@@ -124,10 +124,9 @@ public final class NotBounties extends JavaPlugin {
      * fix typos - x
      * remove voucher - x
      * don't give double skull if a setter is the claimer - x
-     * <p>
-     *     detects if add/remove commands are entered incorrectly
-     *     sort bounty gui and command
-     * </p>
+     * detects if add/remove commands are entered incorrectly ?
+     * sort bounty gui and command - x
+     *
      */
 
     public Map<String, String> loggedPlayers = new HashMap<>();
@@ -930,7 +929,7 @@ public final class NotBounties extends JavaPlugin {
             this.getConfig().set("redeem-reward-later", false);
         }
         if (!this.getConfig().isSet("advanced-gui.sort-type")) {
-            this.getConfig().set("advanced-gui.sort-type", 0);
+            this.getConfig().set("advanced-gui.sort-type", 2);
         }
 
         this.saveConfig();

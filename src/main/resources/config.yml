@@ -81,7 +81,7 @@ advanced-gui:
   # 1 : older bounties at top
   # 2 : more expensive bounties at top
   # 3 : less expensive bounties at top
-  sort-type: 0
+  sort-type: 2
   # how many slots in the GUI
   # looks best with multiples of 9
   size: 54
