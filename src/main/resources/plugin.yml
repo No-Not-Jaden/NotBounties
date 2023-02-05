@@ -1,0 +1,42 @@
+name: NotBounties
+version: '${project.version}'
+main: me.jadenp.notbounties.NotBounties
+api-version: 1.13
+authors: [ Not_Jaden ]
+description: kill...
+softdepend:
+  - PlaceholderAPI
+commands:
+  notbounties:
+    aliases:
+      - notbounty
+      - nbounty
+      - bounty
+      - nbounties
+      - bounties
+    description: set and check bounties
+permissions:
+  notbounties.admin:
+    default: op
+    description: remove or edit bounties
+  notbounties.set:
+    default: true
+    description: set bounties
+  notbounties.view:
+    default: true
+    description: view bounties and the bounty GUI
+  notbounties.buyown:
+    default: true
+    description: buy your own bounty
+  notbounties.immune:
+    default: false
+    description: immune to having bounties set on them
+  notbounties.buyimmunity:
+    default: true
+    description: buy immunity
+  notbounties.removeimmunity:
+    default: false
+    description: remove own immunity
+  notbounties.tracker:
+    default: true
+    description: use a bounty tracker

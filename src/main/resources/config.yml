@@ -1,0 +1,129 @@
+# accepts a material or a placeholder
+# if the currency is a material, the plugin will automatically take away the necessary amounts
+# I recommend changing the language.yml file to fit with your currency
+currency: 'DIAMOND'
+
+minimum-bounty: 1
+# percent extra they have to pay to set a bounty - uses a DECIMAL
+# ex: bounty-tax = 0.25, a bounty set for 100 would cost 125 to be placed
+# use this if players are setting too many bounties
+bounty-tax: 0.0
+# only needed if you are using a placeholder, but will be called either way.
+# {player} & {amount} or use a placeholder
+remove-currency-commands: [] # ['eco take {player} {amount}']
+add-currency-commands: [] # ['eco give {player} {amount}']
+# how many days until bounties expire
+bounty-expire: -1
+reward-heads:
+  # give player heads to the setter of the bounty once claimed
+  setters: true
+  # give player head of victim to the killer once claimed
+  claimed: false
+# this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
+redeem-reward-later: false
+# players can buy their own bounties for an increased amount - uses remove-currency-commands
+buy-own-bounties:
+  enabled: true
+  # bounty set for $100 would have to be bought for $125
+  cost-multiply: 1.25
+  # what is added to the lore in the GUI if the bounty is on the GUI viewer
+  lore-addition: '&9Left Click &7to buy back for &a{amount}'
+immunity:
+  # players can buy immunity from having bounties set on them as opposed to having immunity from the permission node
+  buy-immunity: true
+  # immunity will never run out
+  permanent-immunity:
+    enabled: false
+    cost: 128
+  # immunity will be stronger the more money you spend - only if permanent immunity is disabled
+  # if you buy immunity for 2500, then it protects you from bounties set for 2000, 2499, 1500, etc. (with ratio set to 1)
+  # bounties can be set on you for 3000 though
+  scaling-immunity:
+    # money spent -> bounty protection
+    # ex: if ratio is 0.5, buying immunity for 1000 will protect you from bounties 500 or less
+    ratio: 1.0
+  # in SECONDS how long before a player can set a bounty on a player that was just killed with a bounty
+  grace-period: 10
+# special compass allows you to track people with bounties
+bounty-tracker:
+  # whether the compasses will actually track a player
+  # does not stop admins from getting new compasses, and they will still be removed
+  enabled: true
+  # When to remove the compass after the bounty has been claimed
+  # the higher the number, the more performance heavy it will be on your server
+  # 0 - don't ever remove it
+  # 1 - remove it if they try to hold it
+  # 2 - check inventories every 5 minutes
+  # 3 - check inventory every time player opens a container
+  remove: 2
+  # how many blocks away until it the player starts glowing - 0 to disable
+  glow: 10
+  # information to show when a player is holding a tracker
+  action-bar:
+    enabled: true
+    # always show when holding - false only shows when they right-click
+    show-always: true
+    # show the name of the player who you are tracking
+    player-name: true
+    # show the distance in meters away from your target
+    distance: true
+    # show x y z of your target
+    position: false
+    # show the world of your target
+    world: false
+    # with everything enabled it would look something like:
+    # Not_Jaden - 25m - 13x 63y 20z - world
+
+# for customizing the layout of the GUI
+advanced-gui:
+  # how the bounty menu is sorted
+  # 0 : newer bounties at top
+  # 1 : older bounties at top
+  # 2 : more expensive bounties at top
+  # 3 : less expensive bounties at top
+  sort-type: 0
+  # how many slots in the GUI
+  # looks best with multiples of 9
+  size: 54
+  custom-items:
+    fill:
+      # material from https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+      material: GRAY_STAINED_GLASS_PANE
+      amount: 1
+      # for resource packs, you do not need to use this
+      custom-model-data: 10
+      # name and lore accept placeholders and hex
+      # this will make the name invisible
+      name: '&r'
+      lore: []
+      enchanted: false
+      # Commands to run when the item is clicked
+      # use {player} to replace with the player's name
+      # [close] to close GUI
+      # [p] (command) to send as the player
+      commands: []
+  # which slots bounties will appear in
+  # can accept multiple strings
+  bounty-slots:
+    - '0-44'
+  # - '45'
+  layout:
+    1:
+      # use custom items here or preset items such as 'exit' 'next' 'back'
+      item: fill
+      # what slot or slots in the inventory will be filled - this image has the layout: https://wiki.vg/images/b/bb/DoubleChest-slots.png
+      slot: 45-53
+    # clicking this item will exit the GUI
+    2:
+      item: exit
+      slot: 49
+    # these next 2 will only appear when there are multiple pages
+    # they switch between the pages
+    3:
+      item: back
+      slot: 45
+    4:
+      item: next
+      slot: 53
+
+
