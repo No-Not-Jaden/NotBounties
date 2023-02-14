@@ -302,18 +302,20 @@ public class Events implements Listener {
 
                         if (nb.rewardHeadSetter) {
                             for (Setter setter : bounty.getSetters()) {
-                                Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
-                                if (p != null) {
-                                    if (!nb.rewardHeadClaimed || !Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId().equals(UUID.fromString(setter.getUuid()))){
-                                        nb.addItem(p, skull);
-                                    }
-                                } else {
-                                    if (nb.headRewards.containsKey(setter.getUuid())) {
-                                        List<String> heads = nb.headRewards.get(setter.getUuid());
-                                        heads.add(player.getUniqueId().toString());
-                                        nb.headRewards.replace(setter.getUuid(), heads);
+                                if (!setter.getUuid().equalsIgnoreCase("CONSOLE")) {
+                                    Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
+                                    if (p != null) {
+                                        if (!nb.rewardHeadClaimed || !Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId().equals(UUID.fromString(setter.getUuid()))) {
+                                            nb.addItem(p, skull);
+                                        }
                                     } else {
-                                        nb.headRewards.put(setter.getUuid(), Collections.singletonList(player.getUniqueId().toString()));
+                                        if (nb.headRewards.containsKey(setter.getUuid())) {
+                                            List<String> heads = nb.headRewards.get(setter.getUuid());
+                                            heads.add(player.getUniqueId().toString());
+                                            nb.headRewards.replace(setter.getUuid(), heads);
+                                        } else {
+                                            nb.headRewards.put(setter.getUuid(), Collections.singletonList(player.getUniqueId().toString()));
+                                        }
                                     }
                                 }
                             }
@@ -346,7 +348,13 @@ public class Events implements Listener {
                         nb.bountiesClaimed.replace(killer.getUniqueId().toString(), nb.bountiesClaimed.get(killer.getUniqueId().toString()) + 1);
                         nb.bountiesReceived.replace(player.getUniqueId().toString(), nb.bountiesReceived.get(player.getUniqueId().toString()) + 1);
                         for (Setter setter : bounty.getSetters()) {
+                            if (!setter.getUuid().equalsIgnoreCase("CONSOLE")) {
                             nb.bountiesSet.replace(setter.getUuid(), nb.bountiesSet.get(setter.getUuid()) + 1);
+                                Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
+                                if (p != null) {
+                                    p.playSound(p.getEyeLocation(), Sound.BLOCK_BEEHIVE_SHEAR, 1, 1);
+                                }
+                            }
                         }
                         if (nb.gracePeriod.containsKey(event.getEntity().getUniqueId().toString())) {
                             nb.gracePeriod.replace(event.getEntity().getUniqueId().toString(), System.currentTimeMillis());
@@ -649,17 +657,25 @@ public class Events implements Listener {
             Bounty bounty = nb.getBounty(event.getPlayer());
             assert bounty != null;
             bounty.setDisplayName(event.getPlayer().getName());
-            if (!bounty.isNotified()) {
-                Player p = event.getPlayer();
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        if (p.isOnline())
-                            p.sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(12), bounty.getSetters().get(0).getName(), p));
+            int addedAmount = 0;
+            for (Setter setter : bounty.getSetters()){
+                if (!setter.isNotified()){
+                    event.getPlayer().sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(12), setter.getName(), setter.getAmount(), event.getPlayer()));
+                    setter.setNotified(true);
+                    addedAmount+= setter.getAmount();
+                }
+            }
+            bounty.combineSetters();
+            if (bounty.getTotalBounty() - addedAmount < nb.bBountyThreshold && bounty.getTotalBounty() > nb.bBountyThreshold){
+                event.getPlayer().sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(43), event.getPlayer()));
+                if (nb.bBountyCommands != null && !nb.bBountyCommands.isEmpty()){
+                    for (String command : nb.bBountyCommands){
+                        while (command.contains("{player}")){
+                            command = command.replace("{player}", event.getPlayer().getName());
+                        }
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                     }
-                }.runTaskLater(nb, 50L);
-
-                bounty.setNotified(true);
+                }
             }
         }
 
@@ -725,7 +741,7 @@ public class Events implements Listener {
         if (event.getPlayer().hasPermission("notbounties.admin")) {
             new UpdateChecker(nb, 104484).getVersion(version -> {
 
-                if (!nb.getDescription().getVersion().equals(version)) {
+                if (!nb.getDescription().getVersion().equals(version) && !nb.getDescription().getVersion().contains("dev_")) {
                     event.getPlayer().sendMessage(nb.parse(nb.speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
                     event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
 

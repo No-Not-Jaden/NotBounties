@@ -2,7 +2,8 @@
 prefix: '&7[&9Not&dBounties&7] &8» &r'
 gui-name: '&d&lBounties &9&lPage' # space and page number is added after the name | does NOT accept placeholders (gui won't work with them)
 unknown-number: '&cUnknown number!'
-bounty-success: '&aBounty placed on &e{receiver}&a for &e{amount}&a!'
+bounty-success: '&aBounty placed on &e{receiver}&a for &e{amount}&a! Total Bounty: &e{bounty}'
+bounty-receiver: '&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}'
 unknown-player: '&cCould not find the player &4{receiver}&c!'
 bounty-broadcast: '&e{player}&6 has placed a bounty of &f{amount}&6 on &e{receiver}&6! Total Bounty: &f{bounty}'
 no-permission: '&cYou do not have permission to execute this command!'
@@ -13,7 +14,7 @@ no-bounty: '&4{receiver} &cdoes not have a bounty!'
 check-bounty: '&e{receiver}&a has a bounty of &e{amount}&a.'
 list-setter: '&e{player} &7> &a{amount}'
 list-total: '&e{player} &7> &a{amount}'
-offline-bounty: '&e{player}&6 has set a bounty on you while you were offline!'
+offline-bounty: '&e{player}&6 has set a bounty of &e{amount}&6 on you while you were offline!'
 bounty-item-name: '&3&l{player}'
 bounty-item-lore:
   - '&aBounty: &f{amount}'
@@ -59,6 +60,7 @@ bounty-voucher-lore:
   - '&7this player''s bounty'
   - ''
 redeem-voucher: '&aSuccessfully redeemed voucher for {amount}!'
+big-bounty: '&eYour bounty is very impressive!'
 
 
 

@@ -124,9 +124,27 @@ public final class NotBounties extends JavaPlugin {
      * fix typos - x
      * remove voucher - x
      * don't give double skull if a setter is the claimer - x
-     * detects if add/remove commands are entered incorrectly ?
+     * detects if add/remove commands are entered incorrectly - x
      * sort bounty gui and command - x
      *
+     * default config change for sort - x
+     * min bounty broadcast - x
+     * startup message fixed & wont say with dev - x
+     * send message to player receiving the bounty (new language) - x
+     * remove bounty broadcast for console under min - x
+     * minimize messages so no duplicates - x
+     * bounty-success add {bounty} for total bounty - x
+     * bounty notification works with new bounties and old ones - x
+     * bounty receiver sounds - x
+     * redeem voucher sound - x
+     * bounty complete sound - x
+     * offline bounty notification amount in language - x
+     * bounties over a certain amount give perks - x
+     * ^ particle - - x
+     * ^ command & works offline when they join - (not offline) - x
+     * fixed a bug with claiming a bounty that was edited by console - x
+     * logging in tells you bounties set and combines them after - x
+     * add big bounty message - x
      */
 
     public Map<String, String> loggedPlayers = new HashMap<>();
@@ -176,8 +194,12 @@ public final class NotBounties extends JavaPlugin {
     public boolean TABPosition;
     public boolean TABWorld;
     public int menuSorting;
+    public int minBroadcast;
+    public int bBountyThreshold;
+    public boolean bBountyParticle;
     public List<String> trackerLore = new ArrayList<>();
     public List<String> voucherLore = new ArrayList<>();
+    public List<String> bBountyCommands = new ArrayList<>();
 
     public Map<String, Integer> bountiesClaimed = new HashMap<>();
     public Map<String, Integer> bountiesSet = new HashMap<>();
@@ -231,7 +253,7 @@ public final class NotBounties extends JavaPlugin {
                 List<Setter> expiredSetters = new ArrayList<>();
                 int l = 0;
                 while (configuration.getString("bounties." + i + "." + l + ".uuid") != null) {
-                    Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), configuration.getString("bounties." + i + "." + l + ".uuid"), configuration.getInt("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"));
+                    Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), configuration.getString("bounties." + i + "." + l + ".uuid"), configuration.getInt("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"));
                     if (bountyExpire > 0) {
                         if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
                             expiredSetters.add(setter);
@@ -244,10 +266,10 @@ public final class NotBounties extends JavaPlugin {
                     l++;
                 }
                 if (!setters.isEmpty()) {
-                    bountyList.add(new Bounty(configuration.getString("bounties." + i + ".uuid"), setters, configuration.getString("bounties." + i + ".name"), configuration.getBoolean("bounties." + i + ".notified")));
+                    bountyList.add(new Bounty(configuration.getString("bounties." + i + ".uuid"), setters, configuration.getString("bounties." + i + ".name")));
                 }
                 if (!expiredSetters.isEmpty()) {
-                    expiredBounties.add(new Bounty(configuration.getString("bounties." + i + ".uuid"), expiredSetters, configuration.getString("bounties." + i + ".name"), configuration.getBoolean("bounties." + i + ".notified")));
+                    expiredBounties.add(new Bounty(configuration.getString("bounties." + i + ".uuid"), expiredSetters, configuration.getString("bounties." + i + ".name")));
                 }
                 i++;
             }
@@ -305,11 +327,11 @@ public final class NotBounties extends JavaPlugin {
 
         // update checker
         new UpdateChecker(this, 104484).getVersion(version -> {
-            if (this.getDescription().getVersion().equals(version)) {
-                getLogger().info("[NotBounties] Running latest version.");
+            if (this.getDescription().getVersion().equals(version) || this.getDescription().getVersion().contains("dev_")) {
+                getLogger().info("Running latest version of NotBounties.");
             } else {
-                getLogger().info("[NotBounties] A new update is available. Current version: " + this.getDescription().getVersion() + " Latest version: " + version);
-                getLogger().info("[NotBounties] Download a new version here: https://www.spigotmc.org/resources/104484/");
+                getLogger().info("A new update is available for NotBounties. Current version: " + this.getDescription().getVersion() + " Latest version: " + version);
+                getLogger().info("Download a new version here: https://www.spigotmc.org/resources/104484/");
             }
         });
 
@@ -421,6 +443,22 @@ public final class NotBounties extends JavaPlugin {
                             }
                         }
                     }
+
+                // big bounty particle
+                if (bBountyThreshold != -1){
+                    for (Bounty bounty : bountyList){
+                        Player player = Bukkit.getPlayer(UUID.fromString(bounty.getUUID()));
+                        if (player != null) {
+                            if (bounty.getTotalBounty() > bBountyThreshold) {
+                                if (bBountyParticle) {
+                                    player.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getEyeLocation().add(0,1,0), 0, 0,0,0);
+                                }
+                                // other repeating perks would go here vvv
+
+                            }
+                        }
+                    }
+                }
             }
         }.runTaskTimer(this, 100, 40);
         // auto save bounties every 5 min & remove bounty tracker
@@ -454,7 +492,7 @@ public final class NotBounties extends JavaPlugin {
                         }
                         // add bounty to expired bounties if some have expired
                         if (!expiredSetters.isEmpty()) {
-                            expiredBounties.add(new Bounty(bounty.getUUID(), expiredSetters, bounty.getName(), bounty.isNotified()));
+                            expiredBounties.add(new Bounty(bounty.getUUID(), expiredSetters, bounty.getName()));
                         }
                         //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
                         // remove bounty if all the setters have been removed
@@ -521,13 +559,13 @@ public final class NotBounties extends JavaPlugin {
         for (Bounty bounty : bountyList) {
             configuration.set("bounties." + i + ".uuid", bounty.getUUID());
             configuration.set("bounties." + i + ".name", bounty.getName());
-            configuration.set("bounties." + i + ".notified", bounty.isNotified());
             int f = 0;
             for (Setter setters : bounty.getSetters()) {
                 configuration.set("bounties." + i + "." + f + ".name", setters.getName());
                 configuration.set("bounties." + i + "." + f + ".uuid", setters.getUuid());
                 configuration.set("bounties." + i + "." + f + ".amount", setters.getAmount());
                 configuration.set("bounties." + i + "." + f + ".time-created", setters.getTimeCreated());
+                configuration.set("bounties." + i + "." + f + ".notified", setters.isNotified());
                 f++;
             }
             i++;
@@ -713,6 +751,12 @@ public final class NotBounties extends JavaPlugin {
         if (!configuration.isSet("redeem-voucher")){
             configuration.set("redeem-voucher", "&aSuccessfully redeemed voucher for {amount}!");
         }
+        if (!configuration.isSet("bounty-receiver")){
+            configuration.set("bounty-receiver", "&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}");
+        }
+        if (!configuration.isSet("big-bounty")){
+            configuration.set("big-bounty", "&eYour bounty is very impressive!");
+        }
 
 
         configuration.save(language);
@@ -802,6 +846,10 @@ public final class NotBounties extends JavaPlugin {
         speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-voucher-name"))));
         // 41 redeem-voucher
         speakings.add(color(Objects.requireNonNull(configuration.getString("redeem-voucher"))));
+        // 42 bounty-receiver
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-receiver"))));
+        // 43 big-bounty
+        speakings.add(color(Objects.requireNonNull(configuration.getString("big-bounty"))));
 
         voucherLore.clear();
         for (String str : configuration.getStringList("bounty-voucher-lore")){
@@ -931,6 +979,19 @@ public final class NotBounties extends JavaPlugin {
         if (!this.getConfig().isSet("advanced-gui.sort-type")) {
             this.getConfig().set("advanced-gui.sort-type", 2);
         }
+        if (!this.getConfig().isSet("minimum-broadcast")) {
+            this.getConfig().set("minimum-broadcast", 100);
+        }
+        if (!this.getConfig().isSet("big-bounties.bounty-threshold")) {
+            this.getConfig().set("big-bounties.bounty-threshold", -1);
+        }
+        if (!this.getConfig().isSet("big-bounties.particle")) {
+            this.getConfig().set("big-bounties.particle", true);
+        }
+        if (!this.getConfig().isSet("big-bounties.commands")) {
+            this.getConfig().set("big-bounties.commands", new ArrayList<>(Collections.singletonList("execute run effect give {player} minecraft:glowing 10 0")));
+        }
+
 
         this.saveConfig();
 
@@ -963,6 +1024,10 @@ public final class NotBounties extends JavaPlugin {
         TABWorld = this.getConfig().getBoolean("bounty-tracker.action-bar.world");
         redeemRewardLater = this.getConfig().getBoolean("redeem-reward-later");
         menuSorting = this.getConfig().getInt("advanced-gui.sort-type");
+        minBroadcast = this.getConfig().getInt("minimum-broadcast");
+        bBountyThreshold = this.getConfig().getInt("big-bounties.bounty-threshold");
+        bBountyParticle = this.getConfig().getBoolean("big-bounties.particle");
+        bBountyCommands = this.getConfig().getStringList("big-bounties.commands");
 
         customItems.clear();
         itemCommands.clear();
@@ -1273,10 +1338,10 @@ public final class NotBounties extends JavaPlugin {
     public void doAddCommands(Player p, int amount) {
             if (usingPapi) {
                 if (addCommands == null){
-                    Bukkit.getLogger().warning("[NotBounties] We detected a placeholder as currency, but there are no add commands to give players there reward! (Is it formatted correctly?)");
+                    Bukkit.getLogger().warning("We detected a placeholder as currency, but there are no add commands to give players there reward! (Is it formatted correctly?)");
                 }
                 if (addCommands.isEmpty()){
-                    Bukkit.getLogger().warning("[NotBounties] We detected a placeholder as currency, but there are no add commands to give players there reward! (Is it formatted correctly?)");
+                    Bukkit.getLogger().warning("We detected a placeholder as currency, but there are no add commands to give players there reward! (Is it formatted correctly?)");
                 }
             }
                 for (String str : addCommands) {
@@ -1384,29 +1449,44 @@ public final class NotBounties extends JavaPlugin {
         // add to all time bounties
         allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
 
-        for (Bounty bounty : bountyList) {
+        Bounty bounty = null;
+        for (Bounty bountySearch : bountyList) {
             // if they have a bounty already
-            if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
+            if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
+                bounty = bountySearch;
                 bounty.addBounty(setter, amount);
-                setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, receiver));
-                String message = parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, bounty.getTotalBounty(), receiver);
-                Bukkit.getConsoleSender().sendMessage(message);
-                for (Player player : Bukkit.getOnlinePlayers()){
-                    if (!disableBroadcast.contains(player.getUniqueId().toString()) || player.getUniqueId().equals(receiver.getUniqueId())){
-                        player.sendMessage(message);
-                    }
-                }
-                return;
+                break;
             }
         }
-        // create new bounty
-        bountyList.add(new Bounty(setter, receiver, amount));
-        setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, receiver));
-        String message = parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, amount, receiver);
-        Bukkit.getConsoleSender().sendMessage(message);
-        for (Player player : Bukkit.getOnlinePlayers()){
-            if (!disableBroadcast.contains(player.getUniqueId().toString()) || player.getUniqueId().equals(receiver.getUniqueId())){
-                player.sendMessage(message);
+        if (bounty == null){
+            // create new bounty
+            bounty = new Bounty(setter, receiver, amount);
+            bountyList.add(new Bounty(setter, receiver, amount));
+        }
+        // check for big bounty
+        if (bounty.getTotalBounty() > bBountyThreshold && bounty.getTotalBounty() - amount < bBountyThreshold){
+            receiver.sendMessage(parse(speakings.get(0) + speakings.get(43), receiver));
+            if (bBountyCommands != null && !bBountyCommands.isEmpty()){
+                for (String command : bBountyCommands){
+                    while (command.contains("{player}")){
+                        command = command.replace("{player}", receiver.getName());
+                    }
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                }
+            }
+        }
+        // send messages
+        setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, bounty.getTotalBounty(), receiver));
+        setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT,1,1);
+        receiver.sendMessage(parse(speakings.get(0) + speakings.get(42), setter.getName(), amount, bounty.getTotalBounty(), receiver));
+        receiver.playSound(receiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL,1,1);
+        String message = parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, bounty.getTotalBounty(), receiver);
+        if (amount >= minBroadcast) {
+            Bukkit.getConsoleSender().sendMessage(message);
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!disableBroadcast.contains(player.getUniqueId().toString()) && !player.getUniqueId().equals(receiver.getUniqueId()) && !player.getUniqueId().equals(setter.getUniqueId())) {
+                    player.sendMessage(message);
+                }
             }
         }
     }
@@ -1414,67 +1494,78 @@ public final class NotBounties extends JavaPlugin {
     public void addBounty(Player receiver, int amount) {
         // add to all time bounties
         allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
-        for (Bounty bounty : bountyList) {
+        Bounty bounty = null;
+        for (Bounty bountySearch : bountyList) {
             // if they have a bounty already
-            if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
+            if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
+                bounty = bountySearch;
                 bounty.addBounty(amount);
-                String message = parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), receiver);
-                Bukkit.getConsoleSender().sendMessage(message);
-                for (Player player : Bukkit.getOnlinePlayers()){
-                    if (!disableBroadcast.contains(player.getUniqueId().toString()) || player.getUniqueId().equals(receiver.getUniqueId())){
-                        player.sendMessage(message);
+                break;
+            }
+        }
+        if (bounty == null){
+            // create new bounty
+            bounty = new Bounty(receiver, amount);
+            bountyList.add(new Bounty(receiver, amount));
+        }
+        // check for big bounty
+        if (bounty.getTotalBounty() > bBountyThreshold && bounty.getTotalBounty() - amount < bBountyThreshold){
+            receiver.sendMessage(parse(speakings.get(0) + speakings.get(43), receiver));
+            if (bBountyCommands != null && !bBountyCommands.isEmpty()){
+                for (String command : bBountyCommands){
+                    while (command.contains("{player}")){
+                        command = command.replace("{player}", receiver.getName());
                     }
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                 }
+            }
+        }
+        // send messages
+        receiver.sendMessage(parse(speakings.get(0) + speakings.get(42), "CONSOLE", amount, bounty.getTotalBounty(), receiver));
+        receiver.playSound(receiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL,1,1);
+        String message = parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), receiver);
+        if (amount >= minBroadcast) {
+            Bukkit.getConsoleSender().sendMessage(message);
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!disableBroadcast.contains(player.getUniqueId().toString()) && !player.getUniqueId().equals(receiver.getUniqueId())) {
+                    player.sendMessage(message);
+                }
+            }
+        }
 
-                return;
-            }
-        }
-        // create new bounty
-        bountyList.add(new Bounty(receiver, amount));
-        String message = parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, amount, receiver);
-        Bukkit.getConsoleSender().sendMessage(message);
-        for (Player player : Bukkit.getOnlinePlayers()){
-            if (!disableBroadcast.contains(player.getUniqueId().toString()) || player.getUniqueId().equals(receiver.getUniqueId())){
-                player.sendMessage(message);
-            }
-        }
     }
 
     public void addBounty(Player setter, OfflinePlayer receiver, int amount) {
         // add to all time bounties
         allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
-        for (Bounty bounty : bountyList) {
+        Bounty bounty = null;
+        for (Bounty bountySearch : bountyList) {
             // if they have a bounty already
-            if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
+            if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
+                bounty = bountySearch;
                 bounty.addBounty(setter, amount);
-                bounty.setNotified(false);
-                if (papiEnabled) {
-                    setter.sendMessage(PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, null)));
-                } else {
-                    setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, null));
-                }
-                String message = papiEnabled ? PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, amount, null)) : parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, bounty.getTotalBounty(), null);
-                Bukkit.getConsoleSender().sendMessage(message);
-                for (Player player : Bukkit.getOnlinePlayers()){
-                    if (!disableBroadcast.contains(player.getUniqueId().toString()) || player.getUniqueId().equals(receiver.getUniqueId())){
-                        player.sendMessage(message);
-                    }
-                }
-                return;
+                break;
             }
         }
-        // create new bounty
-        bountyList.add(new Bounty(setter, receiver, amount));
-        if (papiEnabled) {
-            setter.sendMessage(PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, null)));
-        } else {
-            setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, null));
+        if (bounty == null){
+            // create new bounty
+            bounty = new Bounty(setter, receiver, amount);
+            bountyList.add(new Bounty(setter, receiver, amount));
         }
-        String message = papiEnabled ? PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, amount, null)) : parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, amount, null);
-        Bukkit.getConsoleSender().sendMessage(message);
-        for (Player player : Bukkit.getOnlinePlayers()){
-            if (!disableBroadcast.contains(player.getUniqueId().toString()) || player.getUniqueId().equals(receiver.getUniqueId())){
-                player.sendMessage(message);
+        // send messages
+        if (papiEnabled) {
+            setter.sendMessage(PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, bounty.getTotalBounty(), null)));
+        } else {
+            setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, bounty.getTotalBounty(), null));
+        }
+        setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT,1,1);
+        String message = papiEnabled ? PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, bounty.getTotalBounty(), null)) : parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, bounty.getTotalBounty(), null);
+        if (amount >= minBroadcast) {
+            Bukkit.getConsoleSender().sendMessage(message);
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!disableBroadcast.contains(player.getUniqueId().toString()) && !player.getUniqueId().equals(setter.getUniqueId())) {
+                    player.sendMessage(message);
+                }
             }
         }
     }
@@ -1482,28 +1573,28 @@ public final class NotBounties extends JavaPlugin {
     public void addBounty(OfflinePlayer receiver, int amount) {
         // add to all time bounties
         allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
-        for (Bounty bounty : bountyList) {
+        Bounty bounty = null;
+        for (Bounty bountySearch : bountyList) {
             // if they have a bounty already
-            if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
+            if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
+                bounty = bountySearch;
                 bounty.addBounty(amount);
-                bounty.setNotified(false);
-                String message = papiEnabled ? PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), null)) : parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), null);
-                Bukkit.getConsoleSender().sendMessage(message);
-                for (Player player : Bukkit.getOnlinePlayers()){
-                    if (!disableBroadcast.contains(player.getUniqueId().toString()) || player.getUniqueId().equals(receiver.getUniqueId())){
-                        player.sendMessage(message);
-                    }
-                }
-                return;
+                break;
             }
         }
-        // create new bounty
-        bountyList.add(new Bounty(receiver, amount));
-        String message = papiEnabled ? PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, amount, null)) : parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, amount, null);
-        Bukkit.getConsoleSender().sendMessage(message);
-        for (Player player : Bukkit.getOnlinePlayers()){
-            if (!disableBroadcast.contains(player.getUniqueId().toString()) || player.getUniqueId().equals(receiver.getUniqueId())){
-                player.sendMessage(message);
+        if (bounty == null){
+            // create new bounty
+            bounty = new Bounty(receiver, amount);
+            bountyList.add(new Bounty(receiver, amount));
+        }
+        // send messages
+        String message = papiEnabled ? PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), null)) : parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), null);
+        if (amount >= minBroadcast) {
+            Bukkit.getConsoleSender().sendMessage(message);
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!disableBroadcast.contains(player.getUniqueId().toString())) {
+                    player.sendMessage(message);
+                }
             }
         }
     }
@@ -1589,6 +1680,25 @@ public final class NotBounties extends JavaPlugin {
         }
         return str;
     }
+    public String parse(String str, String player, int amount, int bounty, Player receiver) {
+        while (str.contains("{receiver}")) {
+            str = str.replace("{receiver}", player);
+        }
+        while (str.contains("{player}")) {
+            str = str.replace("{player}", player);
+        }
+        while (str.contains("{amount}")) {
+            str = str.replace("{amount}", amount + "");
+        }
+        while (str.contains("{bounty}")) {
+            str = str.replace("{bounty}", bounty + "");
+        }
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+
 
     public String parse(String str, String sender, String player, int amount, Player receiver) {
         while (str.contains("{player}")) {
