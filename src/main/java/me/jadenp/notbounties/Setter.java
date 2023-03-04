@@ -8,11 +8,11 @@ import java.util.UUID;
 public class Setter {
     private final String name;
     private final String uuid;
-    private final int amount;
+    private final long amount;
     private final long timeCreated;
     private boolean notified;
 
-    public Setter(String name, String uuid, int amount, long timeCreated, @Nullable Boolean notified){
+    public Setter(String name, String uuid, long amount, long timeCreated, @Nullable Boolean notified){
 
         this.name = name;
         this.uuid = uuid;
@@ -42,7 +42,7 @@ public class Setter {
         return name;
     }
 
-    public int getAmount() {
+    public long getAmount() {
         return amount;
     }
 

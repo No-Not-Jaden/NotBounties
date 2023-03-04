@@ -1,6 +1,8 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.PlaceholderAPI;
+import me.jadenp.notbounties.sql.MySQL;
+import me.jadenp.notbounties.sql.SQLGetter;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -11,7 +13,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -22,16 +23,16 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static net.md_5.bungee.api.ChatColor.COLOR_CHAR;
+import static me.jadenp.notbounties.ConfigOptions.*;
 
 public final class NotBounties extends JavaPlugin {
     /**
@@ -115,7 +116,6 @@ public final class NotBounties extends JavaPlugin {
      * tab autocomplete bdc - x
      * send message to player when they get bounty - x
      * all time top doesn't display correct numbers - x
-     * <p>
      * bounty tracker permission -
      * tracker right click works even with show always off -
      * claim bounties later with paper - x
@@ -126,14 +126,13 @@ public final class NotBounties extends JavaPlugin {
      * don't give double skull if a setter is the claimer - x
      * detects if add/remove commands are entered incorrectly - x
      * sort bounty gui and command - x
-     *
      * default config change for sort - x
      * min bounty broadcast - x
-     * startup message fixed & wont say with dev - x
+     * startup message fixed & wont say with dev - x f
      * send message to player receiving the bounty (new language) - x
      * remove bounty broadcast for console under min - x
      * minimize messages so no duplicates - x
-     * bounty-success add {bounty} for total bounty - x
+     * bounty-success add {bounty} for total bounty - x f
      * bounty notification works with new bounties and old ones - x
      * bounty receiver sounds - x
      * redeem voucher sound - x
@@ -145,174 +144,221 @@ public final class NotBounties extends JavaPlugin {
      * fixed a bug with claiming a bounty that was edited by console - x
      * logging in tells you bounties set and combines them after - x
      * add big bounty message - x
+     * MySQL - x
+     * Bounties top (args) - - x
+     * not sorted correctly - x
+     * autocomplete - x
+     * claimed bounty amount - x
+     * currency prefix/suffix - x
+     * check your own stats - x
+     * new placeholder - x
+     *
+     *
+     * gui for bounty top
+     *
      */
 
     public Map<String, String> loggedPlayers = new HashMap<>();
-    public List<String> speakings = new ArrayList<>();
-    public List<String> headLore = new ArrayList<>();
     public List<Bounty> bountyList = new ArrayList<>();
     public List<Bounty> expiredBounties = new ArrayList<>();
     public List<String> immunePerms = new ArrayList<>();
     public List<String> disableBroadcast = new ArrayList<>();
 
     public File bounties = new File(this.getDataFolder() + File.separator + "bounties.yml");
-    public File language = new File(this.getDataFolder() + File.separator + "language.yml");
 
-    public boolean usingPapi;
-    public String currency;
-    public List<String> removeCommands;
-    public List<String> addCommands;
-    public int bountyExpire;
-    public boolean papiEnabled;
-    public boolean rewardHeadSetter;
-    public boolean buyBack;
-    public double buyBackInterest;
-    public String buyBackLore;
-    public boolean buyImmunity;
-    public boolean permanentImmunity;
-    public int permanentCost;
-    public double scalingRatio;
-    public int graceTime;
-    public int minBounty;
-    public double bountyTax;
-    public boolean rewardHeadClaimed;
-    public boolean redeemRewardLater;
 
-    public List<ItemStack> customItems = new ArrayList<>();
-    public List<List<String>> itemCommands = new ArrayList<>();
-    public List<Integer> bountySlots = new ArrayList<>();
-    public List<String[]> layout = new ArrayList<>();
-    public int guiSize;
 
-    public boolean tracker;
-    public int trackerRemove;
-    public int trackerGlow;
-    public boolean trackerActionBar;
-    public boolean TABShowAlways;
-    public boolean TABPlayerName;
-    public boolean TABDistance;
-    public boolean TABPosition;
-    public boolean TABWorld;
-    public int menuSorting;
-    public int minBroadcast;
-    public int bBountyThreshold;
-    public boolean bBountyParticle;
-    public List<String> trackerLore = new ArrayList<>();
-    public List<String> voucherLore = new ArrayList<>();
-    public List<String> bBountyCommands = new ArrayList<>();
+
+
 
     public Map<String, Integer> bountiesClaimed = new HashMap<>();
     public Map<String, Integer> bountiesSet = new HashMap<>();
     public Map<String, Integer> bountiesReceived = new HashMap<>();
     public Map<String, Integer> allTimeBounty = new HashMap<>();
+    public Map<String, Integer> allClaimed = new HashMap<>();
     public Map<String, List<String>> headRewards = new HashMap<>();
     public Map<String, Long> repeatBuyCommand = new HashMap<>();
     public Map<String, Long> repeatBuyCommand2 = new HashMap<>();
     public Map<String, Integer> immunitySpent = new HashMap<>();
     public Map<String, Long> gracePeriod = new HashMap<>();
     public Map<Integer, String> trackedBounties = new HashMap<>();
+    public List<Player> displayParticle = new ArrayList<>();
+    private static NotBounties instance;
+    public MySQL SQL;
+    public SQLGetter data;
+
+    private BukkitTask autoConnectTask = null;
+
+    private boolean firstConnect = true;
 
 
     Item item = new Item();
+    public boolean tryToConnect(){
+        if (!SQL.isConnected()) {
+            try {
+                SQL.connect();
+            } catch (ClassNotFoundException | SQLException e) {
+                //e.printStackTrace();
+                return false;
+            }
+
+            if (SQL.isConnected()) {
+                Bukkit.getLogger().info("Database is connected!");
+                data.createTable();
+                data.createDataTable();
+                if (bountyList.size() > 0 && migrateLocalData) {
+                    Bukkit.getLogger().info("Migrating local storage to database");
+                    // add entries to database
+                    for (Bounty bounty : bountyList){
+                        if (bounty.getTotalBounty() != 0){
+                            for (Setter setter : bounty.getSetters()){
+                                data.addBounty(bounty, setter);
+                            }
+                        }
+                    }
+                    bountyList.clear();
+                    YamlConfiguration configuration = new YamlConfiguration();
+                    try {
+                        configuration.save(bounties);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (bountiesClaimed.size() > 0 && migrateLocalData) {
+                    // add entries to database
+                    for (Map.Entry<String, Integer> entry : bountiesClaimed.entrySet()){
+                        data.addData(entry.getKey(), entry.getValue(), bountiesSet.get(entry.getKey()), bountiesReceived.get(entry.getKey()), allTimeBounty.get(entry.getKey()), immunitySpent.get(entry.getKey()), allClaimed.get(entry.getKey()));
+                    }
+                    bountiesClaimed.clear();
+                    bountiesSet.clear();
+                    bountiesReceived.clear();
+                    allClaimed.clear();
+                    allTimeBounty.clear();
+                    immunitySpent.clear();
+                    YamlConfiguration configuration = new YamlConfiguration();
+                    try {
+                        configuration.save(bounties);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                Bukkit.getLogger().info("Cleared up " + data.removeExtraData() + " unused rows in the database!");
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
 
     @Override
     public void onEnable() {
         // Plugin startup logic
+        instance = this;
         Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(new Commands(this));
         Bukkit.getServer().getPluginManager().registerEvents(new Events(this), this);
 
         this.saveDefaultConfig();
 
+        this.SQL = new MySQL(this);
+        this.data = new SQLGetter();
+
         try {
             loadConfig();
-        } catch (IOException e) {
+        } catch (IOException | SQLException | ClassNotFoundException e) {
+            Bukkit.getLogger().warning("NotBounties is having trouble loading saved bounties.");
             e.printStackTrace();
         }
 
         // create bounties file if one doesn't exist
-        if (!bounties.exists()) {
-            try {
-                bounties.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            // get existing bounties file
-            YamlConfiguration configuration = YamlConfiguration.loadConfiguration(bounties);
-            // add all previously logged on players to a map
-            int i = 0;
-            while (configuration.getString("logged-players." + i + ".name") != null) {
-                loggedPlayers.put(Objects.requireNonNull(configuration.getString("logged-players." + i + ".name")).toLowerCase(Locale.ROOT), configuration.getString("logged-players." + i + ".uuid"));
-                i++;
-            }
-            immunePerms = configuration.getStringList("immune-permissions");
-            // go through bounties in file
-            i = 0;
-            while (configuration.getString("bounties." + i + ".uuid") != null) {
-                List<Setter> setters = new ArrayList<>();
-                List<Setter> expiredSetters = new ArrayList<>();
-                int l = 0;
-                while (configuration.getString("bounties." + i + "." + l + ".uuid") != null) {
-                    Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), configuration.getString("bounties." + i + "." + l + ".uuid"), configuration.getInt("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"));
-                    if (bountyExpire > 0) {
-                        if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
-                            expiredSetters.add(setter);
+        try {
+            if (bounties.createNewFile()) {
+                Bukkit.getLogger().info("Created new storage file.");
+            } else {
+                // get existing bounties file
+                YamlConfiguration configuration = YamlConfiguration.loadConfiguration(bounties);
+                // add all previously logged on players to a map
+                int i = 0;
+                while (configuration.getString("logged-players." + i + ".name") != null) {
+                    loggedPlayers.put(Objects.requireNonNull(configuration.getString("logged-players." + i + ".name")).toLowerCase(Locale.ROOT), configuration.getString("logged-players." + i + ".uuid"));
+                    i++;
+                }
+                immunePerms = configuration.getStringList("immune-permissions");
+                // go through bounties in file
+                i = 0;
+                while (configuration.getString("bounties." + i + ".uuid") != null) {
+                    List<Setter> setters = new ArrayList<>();
+                    List<Setter> expiredSetters = new ArrayList<>();
+                    int l = 0;
+                    while (configuration.getString("bounties." + i + "." + l + ".uuid") != null) {
+                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), configuration.getString("bounties." + i + "." + l + ".uuid"), configuration.getInt("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"));
+                        if (bountyExpire > 0) {
+                            if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
+                                expiredSetters.add(setter);
+                            } else {
+                                setters.add(setter);
+                            }
                         } else {
                             setters.add(setter);
                         }
-                    } else {
-                        setters.add(setter);
+                        l++;
                     }
-                    l++;
+                    if (!setters.isEmpty()) {
+                        bountyList.add(new Bounty(configuration.getString("bounties." + i + ".uuid"), setters, configuration.getString("bounties." + i + ".name")));
+                    }
+                    if (!expiredSetters.isEmpty()) {
+                        expiredBounties.add(new Bounty(configuration.getString("bounties." + i + ".uuid"), expiredSetters, configuration.getString("bounties." + i + ".name")));
+                    }
+                    i++;
                 }
-                if (!setters.isEmpty()) {
-                    bountyList.add(new Bounty(configuration.getString("bounties." + i + ".uuid"), setters, configuration.getString("bounties." + i + ".name")));
-                }
-                if (!expiredSetters.isEmpty()) {
-                    expiredBounties.add(new Bounty(configuration.getString("bounties." + i + ".uuid"), expiredSetters, configuration.getString("bounties." + i + ".name")));
-                }
-                i++;
-            }
 
-            // go through player logs
-            i = 0;
-            while (configuration.isSet("data." + i + ".uuid")) {
-                String uuid = configuration.getString("data." + i + ".uuid");
-                bountiesClaimed.put(uuid, configuration.getInt("data." + i + ".claimed"));
-                bountiesSet.put(uuid, configuration.getInt("data." + i + ".set"));
-                bountiesReceived.put(uuid, configuration.getInt("data." + i + ".received"));
-                if (configuration.isSet("data." + i + ".all-time")) {
-                    allTimeBounty.put(uuid, configuration.getInt("data." + i + ".all-time"));
-                } else {
-                    boolean hasABounty = false;
-                    for (Bounty bounty : bountyList) {
-                        // if they have a bounty already
-                        if (bounty.getUUID().equals(uuid)) {
-                            hasABounty = true;
-                            allTimeBounty.put(uuid, bounty.getTotalBounty());
-                            Bukkit.getLogger().info("Missing all time bounty for " + bounty.getName() + ". Setting as current bounty.");
-                            break;
+                // go through player logs
+                i = 0;
+                while (configuration.isSet("data." + i + ".uuid")) {
+                    String uuid = configuration.getString("data." + i + ".uuid");
+                    bountiesClaimed.put(uuid, configuration.getInt("data." + i + ".claimed"));
+                    bountiesSet.put(uuid, configuration.getInt("data." + i + ".set"));
+                    bountiesReceived.put(uuid, configuration.getInt("data." + i + ".received"));
+                    if (configuration.isSet("data." + i + ".all-time")) {
+                        allTimeBounty.put(uuid, configuration.getInt("data." + i + ".all-time"));
+                    } else {
+                        boolean hasABounty = false;
+                        for (Bounty bounty : bountyList) {
+                            // if they have a bounty already
+                            if (bounty.getUUID().equals(uuid)) {
+                                hasABounty = true;
+                                allTimeBounty.put(uuid, bounty.getTotalBounty());
+                                Bukkit.getLogger().info("Missing all time bounty for " + bounty.getName() + ". Setting as current bounty.");
+                                break;
+                            }
                         }
+                        if (!hasABounty)
+                            allTimeBounty.put(uuid, 0);
                     }
-                    if (!hasABounty)
-                        allTimeBounty.put(uuid, 0);
+                    if (configuration.isSet("data." + i + ".all-claimed")){
+                        allClaimed.put(uuid, configuration.getInt("data." + i + ".all-claimed"));
+                    } else {
+                        allClaimed.put(uuid, 0);
+                    }
+                    immunitySpent.put(uuid, configuration.getInt("data." + i + ".immunity"));
+                    if (configuration.isSet("data." + i + ".broadcast")){
+                        disableBroadcast.add(uuid);
+                    }
+                    i++;
                 }
-                immunitySpent.put(uuid, configuration.getInt("data." + i + ".immunity"));
-                if (configuration.isSet("data." + i + ".broadcast")){
-                    disableBroadcast.add(uuid);
+
+                i = 0;
+                while (configuration.getString("head-rewards." + i + ".setter") != null) {
+                    headRewards.put(configuration.getString("head-rewards." + i + ".setter"), configuration.getStringList("head-rewards." + i + ".uuid"));
+                    i++;
                 }
-                i++;
+                i = 0;
+                while (configuration.getString("tracked-bounties." + i + ".uuid") != null) {
+                    trackedBounties.put(configuration.getInt("tracked-bounties." + i + ".number"), configuration.getString("tracked-bounties." + i + ".uuid"));
+                    i++;
+                }
             }
-            i = 0;
-            while (configuration.getString("head-rewards." + i + ".setter") != null) {
-                headRewards.put(configuration.getString("head-rewards." + i + ".setter"), configuration.getStringList("head-rewards." + i + ".uuid"));
-                i++;
-            }
-            i = 0;
-            while (configuration.getString("tracked-bounties." + i + ".uuid") != null) {
-                trackedBounties.put(configuration.getInt("tracked-bounties." + i + ".number"), configuration.getString("tracked-bounties." + i + ".uuid"));
-                i++;
-            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         // create language file if it doesn't exist
@@ -323,6 +369,12 @@ public final class NotBounties extends JavaPlugin {
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new BountyExpansion(this).register();
+        }
+
+
+
+        if (!tryToConnect()){
+            Bukkit.getLogger().info("Database not connected, using internal storage");
         }
 
         // update checker
@@ -446,16 +498,13 @@ public final class NotBounties extends JavaPlugin {
 
                 // big bounty particle
                 if (bBountyThreshold != -1){
-                    for (Bounty bounty : bountyList){
-                        Player player = Bukkit.getPlayer(UUID.fromString(bounty.getUUID()));
-                        if (player != null) {
-                            if (bounty.getTotalBounty() > bBountyThreshold) {
+
+                    for (Player player : displayParticle){
+                        if (player.isOnline()) {
                                 if (bBountyParticle) {
                                     player.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getEyeLocation().add(0,1,0), 0, 0,0,0);
                                 }
                                 // other repeating perks would go here vvv
-
-                            }
                         }
                     }
                 }
@@ -468,36 +517,40 @@ public final class NotBounties extends JavaPlugin {
                 // if they have expire-time enabled
                 if (bountyExpire > 0) {
                     // go through all the bounties and remove setters if it has been more than expire time
-                    ListIterator<Bounty> bountyIterator = bountyList.listIterator();
-                    while (bountyIterator.hasNext()) {
-                        Bounty bounty = bountyIterator.next();
-                        List<Setter> expiredSetters = new ArrayList<>();
-                        ListIterator<Setter> setterIterator = bounty.getSetters().listIterator();
-                        while (setterIterator.hasNext()) {
-                            Setter setter = setterIterator.next();
-                            if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
-                                // check if setter is online
-                                Player player = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
-                                if (player != null) {
-                                    if (!usingPapi) {
-                                        addItem(player, Material.valueOf(currency), setter.getAmount());
+                    if (SQL.isConnected()){
+                        data.removeOldBounties();
+                    } else {
+                        ListIterator<Bounty> bountyIterator = bountyList.listIterator();
+                        while (bountyIterator.hasNext()) {
+                            Bounty bounty = bountyIterator.next();
+                            List<Setter> expiredSetters = new ArrayList<>();
+                            ListIterator<Setter> setterIterator = bounty.getSetters().listIterator();
+                            while (setterIterator.hasNext()) {
+                                Setter setter = setterIterator.next();
+                                if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
+                                    // check if setter is online
+                                    Player player = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
+                                    if (player != null) {
+                                        if (!usingPapi) {
+                                            addItem(player, Material.valueOf(currency), setter.getAmount());
+                                        }
+                                        doAddCommands(player, setter.getAmount());
+                                        player.sendMessage(parse(speakings.get(0) + speakings.get(31), bounty.getName(), setter.getAmount(), player));
+                                    } else {
+                                        expiredSetters.add(setter);
                                     }
-                                    doAddCommands(player, setter.getAmount());
-                                    player.sendMessage(parse(speakings.get(0) + speakings.get(31), bounty.getName(), setter.getAmount(), player));
-                                } else {
-                                    expiredSetters.add(setter);
+                                    setterIterator.remove();
                                 }
-                                setterIterator.remove();
                             }
-                        }
-                        // add bounty to expired bounties if some have expired
-                        if (!expiredSetters.isEmpty()) {
-                            expiredBounties.add(new Bounty(bounty.getUUID(), expiredSetters, bounty.getName()));
-                        }
-                        //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
-                        // remove bounty if all the setters have been removed
-                        if (bounty.getSetters().size() == 0) {
-                            bountyIterator.remove();
+                            // add bounty to expired bounties if some have expired
+                            if (!expiredSetters.isEmpty()) {
+                                expiredBounties.add(new Bounty(bounty.getUUID(), expiredSetters, bounty.getName()));
+                            }
+                            //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
+                            // remove bounty if all the setters have been removed
+                            if (bounty.getSetters().size() == 0) {
+                                bountyIterator.remove();
+                            }
                         }
                     }
                 }
@@ -544,6 +597,11 @@ public final class NotBounties extends JavaPlugin {
         }.runTaskTimer(this, 3600, 3600);
     }
 
+    public static NotBounties getInstance(){
+        return instance;
+    }
+
+
     public void save() {
         YamlConfiguration configuration = new YamlConfiguration();
         configuration.set("immune-permissions", immunePerms);
@@ -555,33 +613,38 @@ public final class NotBounties extends JavaPlugin {
             configuration.set("logged-players." + i + ".uuid", value);
             i++;
         }
-        i = 0;
-        for (Bounty bounty : bountyList) {
-            configuration.set("bounties." + i + ".uuid", bounty.getUUID());
-            configuration.set("bounties." + i + ".name", bounty.getName());
-            int f = 0;
-            for (Setter setters : bounty.getSetters()) {
-                configuration.set("bounties." + i + "." + f + ".name", setters.getName());
-                configuration.set("bounties." + i + "." + f + ".uuid", setters.getUuid());
-                configuration.set("bounties." + i + "." + f + ".amount", setters.getAmount());
-                configuration.set("bounties." + i + "." + f + ".time-created", setters.getTimeCreated());
-                configuration.set("bounties." + i + "." + f + ".notified", setters.isNotified());
-                f++;
+        if (!SQL.isConnected()) {
+            i = 0;
+            for (Bounty bounty : bountyList) {
+                configuration.set("bounties." + i + ".uuid", bounty.getUUID());
+                configuration.set("bounties." + i + ".name", bounty.getName());
+                int f = 0;
+                for (Setter setters : bounty.getSetters()) {
+                    configuration.set("bounties." + i + "." + f + ".name", setters.getName());
+                    configuration.set("bounties." + i + "." + f + ".uuid", setters.getUuid());
+                    configuration.set("bounties." + i + "." + f + ".amount", setters.getAmount());
+                    configuration.set("bounties." + i + "." + f + ".time-created", setters.getTimeCreated());
+                    configuration.set("bounties." + i + "." + f + ".notified", setters.isNotified());
+                    f++;
+                }
+                i++;
             }
-            i++;
-        }
-        i = 0;
-        for (Map.Entry<String, Integer> mapElement : bountiesClaimed.entrySet()) {
-            configuration.set("data." + i + ".uuid", mapElement.getKey());
-            configuration.set("data." + i + ".claimed", mapElement.getValue());
-            configuration.set("data." + i + ".set", bountiesSet.get(mapElement.getKey()));
-            configuration.set("data." + i + ".received", bountiesReceived.get(mapElement.getKey()));
-            configuration.set("data." + i + ".all-time", allTimeBounty.get(mapElement.getKey()));
-            configuration.set("data." + i + ".immunity", immunitySpent.get(mapElement.getKey()));
-            if (disableBroadcast.contains(mapElement.getKey())){
-                configuration.set("data." + i + ".broadcast", false);
+            i = 0;
+            for (Map.Entry<String, Integer> mapElement : bountiesClaimed.entrySet()) {
+                if (mapElement.getValue() + bountiesSet.get(mapElement.getKey()) + bountiesReceived.get(mapElement.getKey()) + allTimeBounty.get(mapElement.getKey()) + allClaimed.get(mapElement.getKey()) + immunitySpent.get(mapElement.getKey()) == 0 && !disableBroadcast.contains(mapElement.getKey()))
+                    continue;
+                configuration.set("data." + i + ".uuid", mapElement.getKey());
+                configuration.set("data." + i + ".claimed", mapElement.getValue());
+                configuration.set("data." + i + ".set", bountiesSet.get(mapElement.getKey()));
+                configuration.set("data." + i + ".received", bountiesReceived.get(mapElement.getKey()));
+                configuration.set("data." + i + ".all-time", allTimeBounty.get(mapElement.getKey()));
+                configuration.set("data." + i + ".all-claimed", allClaimed.get(mapElement.getKey()));
+                configuration.set("data." + i + ".immunity", immunitySpent.get(mapElement.getKey()));
+                if (disableBroadcast.contains(mapElement.getKey())) {
+                    configuration.set("data." + i + ".broadcast", false);
+                }
+                i++;
             }
-            i++;
         }
         i = 0;
         for (Map.Entry<String, List<String>> mapElement : headRewards.entrySet()) {
@@ -603,514 +666,60 @@ public final class NotBounties extends JavaPlugin {
         }
     }
 
-    public void loadConfig() throws IOException {
+    public void loadConfig() throws IOException, SQLException, ClassNotFoundException {
         // close gui
-        if (!speakings.isEmpty())
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                    if (player.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                        player.closeInventory();
-                    }
-                }
-            }
-
-        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(language);
-
-        if (!configuration.isSet("prefix")) {
-            configuration.set("prefix", "&7[&9Not&dBounties&7] &8» &r");
-        }
-        if (!configuration.isSet("unknown-number")) {
-            configuration.set("unknown-number", "&cUnknown number!");
-        }
-        if (!configuration.isSet("bounty-success")) {
-            configuration.set("bounty-success", "&aBounty placed on &e{player}&a for &e{amount}&a!");
-        }
-        if (!configuration.isSet("unknown-player")) {
-            configuration.set("unknown-player", "&cCould not find the player &4{player}&c!");
-        }
-        if (!configuration.isSet("bounty-broadcast")) {
-            configuration.set("bounty-broadcast", "&e{player}&6 has placed a bounty of &f{amount}&6 on &e{receiver}&6! Total Bounty: &f{bounty}");
-        }
-        if (!configuration.isSet("no-permission")) {
-            configuration.set("no-permission", "&cYou do not have permission to execute this command!");
-        }
-        if (!configuration.isSet("broke")) {
-            configuration.set("broke", "&cYou do not have enough currency for this! &8Required: &7{amount}");
-        }
-        if (!configuration.isSet("claim-bounty-broadcast")) {
-            configuration.set("claim-bounty-broadcast", "&e{player}&6 has claimed the bounty of &f{amount}&6 on &e{receiver}&6!");
-        }
-        if (!configuration.isSet("no-bounty")) {
-            configuration.set("no-bounty", "&4{receiver} &cdoesn't have a bounty!");
-        }
-        if (!configuration.isSet("check-bounty")) {
-            configuration.set("check-bounty", "&e{receiver}&a has a bounty of &e{amount}&a.");
-        }
-        if (!configuration.isSet("list-setter")) {
-            configuration.set("list-setter", "&e{player} &7> &a{amount}");
-        }
-        if (!configuration.isSet("list-total")) {
-            configuration.set("list-total", "&e{player} &7> &a{amount}");
-        }
-        if (!configuration.isSet("offline-bounty")) {
-            configuration.set("offline-bounty", "&e{player}&6 has set a bounty on you while you were offline!");
-        }
-        if (!configuration.isSet("bounty-item-name")) {
-            configuration.set("bounty-item-name", "&3&l{player}");
-        }
-        if (!configuration.isSet("bounty-item-lore")) {
-            configuration.set("bounty-item-lore", Arrays.asList("&aBounty: &f{amount}", "&2&oKill this player to", "&2&oreceive this reward", ""));
-        }
-        if (!configuration.isSet("success-remove-bounty")) {
-            configuration.set("success-remove-bounty", "&cSuccessfully removed &4{receiver}'s &cbounty.");
-        }
-        if (!configuration.isSet("success-edit-bounty")) {
-            configuration.set("success-edit-bounty", "&cSuccessfully edited &4{receiver}'s &cbounty.");
-        }
-        if (!configuration.isSet("no-setter")) {
-            configuration.set("no-setter", "&4{player} &chas not set a bounty on {receiver}");
-        }
-        if (!configuration.isSet("repeat-command-bounty")) {
-            configuration.set("repeat-command-bounty", "&6Please type this command in again in the next 30 seconds to confirm buying your bounty for &e{amount}&6.");
-        }
-        if (!configuration.isSet("repeat-command-immunity")) {
-            configuration.set("repeat-command-immunity", "&6Please type this command in again in the next 30 seconds to confirm buying immunity for &e{amount}&6.");
-        }
-        if (!configuration.isSet("permanent-immunity")) {
-            configuration.set("permanent-immunity", "&6{player} &eis immune to bounties!");
-        }
-        if (!configuration.isSet("scaling-immunity")) {
-            configuration.set("scaling-immunity", "&6{player} &eis immune to bounties less than &e{amount}&6.");
-        }
-        if (!configuration.isSet("buy-permanent-immunity")) {
-            configuration.set("buy-permanent-immunity", "&aYou have bought immunity from bounties.");
-        }
-        if (!configuration.isSet("buy-scaling-immunity")) {
-            configuration.set("buy-scaling-immunity", "&aYou have bought immunity from bounties under the amount of &2{amount}&a.");
-        }
-        if (!configuration.isSet("grace-period")) {
-            configuration.set("grace-period", "&cA bounty had just been claimed on &4{player}&c. Please wait &4{time}&c until you try again.");
-        }
-        if (!configuration.isSet("min-bounty")) {
-            configuration.set("min-bounty", "&cThe bounty must be at least &4{amount}&c.");
-        }
-        if (!configuration.isSet("unknown-command")) {
-            configuration.set("unknown-command", "&dUse &9/bounty help &dfor a list of commands.");
-        }
-        if (!configuration.isSet("already-bought-perm")) {
-            configuration.set("already-bought-perm", "&cYou already have permanent immunity!");
-        }
-        if (!configuration.isSet("removed-immunity")) {
-            configuration.set("removed-immunity", "&aSuccessfully removed your immunity to bounties.");
-        }
-        if (!configuration.isSet("removed-other-immunity")) {
-            configuration.set("removed-other-immunity", "&aSuccessfully removed &2{receiver}''s &aimmunity to bounties.");
-        }
-        if (!configuration.isSet("no-immunity")) {
-            configuration.set("no-immunity", "&cYou do not have purchased immunity!");
-        }
-        if (!configuration.isSet("no-immunity-other")) {
-            configuration.set("no-immunity-other", "&4{receiver} &cdoes not have purchased immunity!");
-        }
-        if (!configuration.isSet("expired-bounty")) {
-            configuration.set("expired-bounty", "&eYour bounty on &6{player}&e has expired. You have been refunded &2{amount}&e.");
-        }
-        if (!configuration.isSet("bounty-tracker-name")) {
-            configuration.set("bounty-tracker-name", "&eBounty Tracker: &6&l{player}");
-        }
-        if (!configuration.isSet("bounty-tracker-lore")) {
-            configuration.set("bounty-tracker-lore", Arrays.asList("", "&7Follow this compass", "&7to find {player}", ""));
-        }
-        if (!configuration.isSet("tracker-give")) {
-            configuration.set("tracker-give", "&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.");
-        }
-        if (!configuration.isSet("tracker-receive")) {
-            configuration.set("tracker-receive", "&eYou have been given a bounty tracker for &6{player}&e.");
-        }
-        if (!configuration.isSet("gui-name")) {
-            configuration.set("gui-name", "&dBounties &9Page");
-        }
-        if (!configuration.isSet("bounty-top")) {
-            configuration.set("bounty-top", "&9&l{rank}. &d{player} &7> &a{amount}");
-        }
-        if (!configuration.isSet("bounty-top-title")) {
-            configuration.set("bounty-top-title", "&7&m               &r &d&lBounties &9&lTop &7&m               ");
-        }
-        if (!configuration.isSet("enable-broadcast")) {
-            configuration.set("enable-broadcast", "&eYou have &aenabled &ebounty broadcast!");
-        }
-        if (!configuration.isSet("disable-broadcast")) {
-            configuration.set("disable-broadcast", "&eYou have &cdisabled &ebounty broadcast!");
-        }
-        if (!configuration.isSet("bounty-voucher-name")){
-            configuration.set("bounty-voucher-name", "&6{player}'s&e claimed bounty of &a{amount}&e.");
-        }
-        if (!configuration.isSet("bounty-voucher-lore")){
-            configuration.set("bounty-voucher-lore", Arrays.asList("", "&2Awarded to {receiver}", "&7Right click to redeem", "&7this player's bounty", ""));
-        }
-        if (!configuration.isSet("redeem-voucher")){
-            configuration.set("redeem-voucher", "&aSuccessfully redeemed voucher for {amount}!");
-        }
-        if (!configuration.isSet("bounty-receiver")){
-            configuration.set("bounty-receiver", "&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}");
-        }
-        if (!configuration.isSet("big-bounty")){
-            configuration.set("big-bounty", "&eYour bounty is very impressive!");
-        }
 
 
-        configuration.save(language);
+
 
         speakings.clear();
-        // 0 prefix
-        speakings.add(color(Objects.requireNonNull(configuration.getString("prefix"))));
-        // 1 unknown-number
-        speakings.add(color(Objects.requireNonNull(configuration.getString("unknown-number"))));
-        // 2 bounty-success
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-success"))));
-        // 3 unknown-player
-        speakings.add(color(Objects.requireNonNull(configuration.getString("unknown-player"))));
-        // 4 bounty-broadcast
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-broadcast"))));
-        // 5 no-permission
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-permission"))));
-        // 6 broke
-        speakings.add(color(Objects.requireNonNull(configuration.getString("broke"))));
-        // 7 claim-bounty-broadcast
-        speakings.add(color(Objects.requireNonNull(configuration.getString("claim-bounty-broadcast"))));
-        // 8 no-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-bounty"))));
-        // 9 check-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("check-bounty"))));
-        // 10 list-setter
-        speakings.add(color(Objects.requireNonNull(configuration.getString("list-setter"))));
-        // 11 list-total
-        speakings.add(color(Objects.requireNonNull(configuration.getString("list-total"))));
-        // 12 offline-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("offline-bounty"))));
-        // 13 bounty-item-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-item-name"))));
-        // 14 success-remove-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("success-remove-bounty"))));
-        // 15 success-edit-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("success-edit-bounty"))));
-        // 16 no-setter
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-setter"))));
-        // 17 repeat-command-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("repeat-command-bounty"))));
-        // 18 permanent-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("permanent-immunity"))));
-        // 19 scaling-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("scaling-immunity"))));
-        // 20 buy-permanent-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("buy-permanent-immunity"))));
-        // 21 buy-scaling-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("buy-scaling-immunity"))));
-        // 22 grace-period
-        speakings.add(color(Objects.requireNonNull(configuration.getString("grace-period"))));
-        // 23 min-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("min-bounty"))));
-        // 24 unknown-command
-        speakings.add(color(Objects.requireNonNull(configuration.getString("unknown-command"))));
-        // 25 already-bought-perm
-        speakings.add(color(Objects.requireNonNull(configuration.getString("already-bought-perm"))));
-        // 26 removed-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("removed-immunity"))));
-        // 27 removed-other-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("removed-other-immunity"))));
-        // 28 no-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-immunity"))));
-        // 29 no-immunity-other
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-immunity-other"))));
-        // 30 repeat-command-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("repeat-command-immunity"))));
-        // 31 expired-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("expired-bounty"))));
-        // 32 bounty-tracker-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-tracker-name"))));
-        // 33 tracker-give
-        speakings.add(color(Objects.requireNonNull(configuration.getString("tracker-give"))));
-        // 34 tracker-receive
-        speakings.add(color(Objects.requireNonNull(configuration.getString("tracker-receive"))));
-        // 35 gui-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("gui-name"))));
-        // 36 bounty-top
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-top"))));
-        // 37 bounty-top-title
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-top-title"))));
-        // 38 enable-broadcast
-        speakings.add(color(Objects.requireNonNull(configuration.getString("enable-broadcast"))));
-        // 39 disable-broadcast
-        speakings.add(color(Objects.requireNonNull(configuration.getString("disable-broadcast"))));
-        // 40 bounty-voucher-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-voucher-name"))));
-        // 41 redeem-voucher
-        speakings.add(color(Objects.requireNonNull(configuration.getString("redeem-voucher"))));
-        // 42 bounty-receiver
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-receiver"))));
-        // 43 big-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("big-bounty"))));
-
-        voucherLore.clear();
-        for (String str : configuration.getStringList("bounty-voucher-lore")){
-            voucherLore.add(color(str));
-        }
-        headLore.clear();
-        for (String str : configuration.getStringList("bounty-item-lore")) {
-            headLore.add(color(str));
-        }
-        trackerLore.clear();
-        for (String str : configuration.getStringList("bounty-tracker-lore")) {
-            trackerLore.add(color(str));
-        }
-
-        papiEnabled = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
-
-        this.reloadConfig();
-
-        if (!this.getConfig().isSet("currency")) {
-            this.getConfig().set("currency", "DIAMOND");
-        }
-        if (!this.getConfig().isSet("minimum-bounty")) {
-            this.getConfig().set("minimum-bounty", 1);
-        }
-        if (!this.getConfig().isSet("bounty-tax")) {
-            this.getConfig().set("bounty-tax", 0.0);
-        }
-        if (!this.getConfig().isSet("add-currency-commands")) {
-            this.getConfig().set("add-currency-commands", new ArrayList<String>());
-        }
-        if (!this.getConfig().isSet("remove-currency-commands")) {
-            this.getConfig().set("remove-currency-commands", new ArrayList<String>());
-        }
-        if (!this.getConfig().isSet("bounty-expire")) {
-            this.getConfig().set("bounty-expire", -1);
-        }
-        if (this.getConfig().isBoolean("reward-heads")){
-            boolean prevOption = this.getConfig().getBoolean("reward-heads");
-            this.getConfig().set("reward-heads", null);
-            this.getConfig().set("reward-heads.setters", prevOption);
-        }
-        if (!this.getConfig().isSet("reward-heads.setters")) {
-            this.getConfig().set("reward-heads.setters", false);
-        }
-        if (!this.getConfig().isSet("reward-heads.claimed")) {
-            this.getConfig().set("reward-heads.claimed", false);
-        }
-        if (!this.getConfig().isSet("buy-own-bounties.enabled")) {
-            this.getConfig().set("buy-own-bounties.enabled", false);
-        }
-        if (!this.getConfig().isSet("buy-own-bounties.cost-multiply")) {
-            this.getConfig().set("buy-own-bounties.cost-multiply", 1.25);
-        }
-        if (!this.getConfig().isSet("buy-own-bounties.lore-addition")) {
-            this.getConfig().set("buy-own-bounties.lore-addition", "&9Left Click &7to buy back for &a{amount}");
-        }
-        if (!this.getConfig().isSet("immunity.buy-immunity")) {
-            this.getConfig().set("immunity.buy-immunity", false);
-        }
-        if (!this.getConfig().isSet("immunity.permanent-immunity.enabled")) {
-            this.getConfig().set("immunity.permanent-immunity.enabled", false);
-        }
-        if (!this.getConfig().isSet("immunity.permanent-immunity.cost")) {
-            this.getConfig().set("immunity.permanent-immunity.cost", 128);
-        }
-        if (!this.getConfig().isSet("immunity.scaling-immunity.ratio")) {
-            this.getConfig().set("immunity.scaling-immunity.ratio", 1.0);
-        }
-        if (!this.getConfig().isSet("immunity.grace-period")) {
-            this.getConfig().set("immunity.grace-period", 10);
-        }
-        if (!this.getConfig().isSet("advanced-gui")) {
-            this.getConfig().set("advanced-gui.custom-items.fill.material", "GRAY_STAINED_GLASS_PANE");
-            this.getConfig().set("advanced-gui.custom-items.fill.amount", 1);
-            this.getConfig().set("advanced-gui.custom-items.fill.name", "&r");
-            this.getConfig().set("advanced-gui.custom-items.fill.custom-model-data", 10);
-            this.getConfig().set("advanced-gui.custom-items.fill.lore", new ArrayList<String>());
-            this.getConfig().set("advanced-gui.custom-items.fill.enchanted", false);
-            this.getConfig().set("advanced-gui.custom-items.fill.commands", new ArrayList<String>());
-            this.getConfig().set("advanced-gui.bounty-slots", Collections.singletonList("0-44"));
-            this.getConfig().set("advanced-gui.layout.1.item", "fill");
-            this.getConfig().set("advanced-gui.layout.1.slot", "45-53");
-            this.getConfig().set("advanced-gui.layout.2.item", "exit");
-            this.getConfig().set("advanced-gui.layout.2.slot", "49");
-            this.getConfig().set("advanced-gui.layout.3.item", "back");
-            this.getConfig().set("advanced-gui.layout.3.slot", "45");
-            this.getConfig().set("advanced-gui.layout.4.item", "next");
-            this.getConfig().set("advanced-gui.layout.4.slot", "53");
-            this.getConfig().set("advanced-gui.size", 54);
-        }
-        if (!this.getConfig().isSet("advanced-gui.bounty-slots")) {
-            this.getConfig().set("advanced-gui.bounty-slots", Collections.singletonList("0-44"));
-        }
-        if (!this.getConfig().isSet("advanced-gui.size")) {
-            this.getConfig().set("advanced-gui.size", 54);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.enabled")) {
-            this.getConfig().set("bounty-tracker.enabled", true);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.remove")) {
-            this.getConfig().set("bounty-tracker.remove", 2);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.glow")) {
-            this.getConfig().set("bounty-tracker.glow", 10);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.action-bar.enabled")) {
-            this.getConfig().set("bounty-tracker.action-bar.enabled", true);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.action-bar.show-always")) {
-            this.getConfig().set("bounty-tracker.action-bar.show-always", true);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.action-bar.player-name")) {
-            this.getConfig().set("bounty-tracker.action-bar.player-name", true);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.action-bar.distance")) {
-            this.getConfig().set("bounty-tracker.action-bar.distance", true);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.action-bar.position")) {
-            this.getConfig().set("bounty-tracker.action-bar.position", false);
-        }
-        if (!this.getConfig().isSet("bounty-tracker.action-bar.world")) {
-            this.getConfig().set("bounty-tracker.action-bar.world", false);
-        }
-        if (!this.getConfig().isSet("redeem-reward-later")) {
-            this.getConfig().set("redeem-reward-later", false);
-        }
-        if (!this.getConfig().isSet("advanced-gui.sort-type")) {
-            this.getConfig().set("advanced-gui.sort-type", 2);
-        }
-        if (!this.getConfig().isSet("minimum-broadcast")) {
-            this.getConfig().set("minimum-broadcast", 100);
-        }
-        if (!this.getConfig().isSet("big-bounties.bounty-threshold")) {
-            this.getConfig().set("big-bounties.bounty-threshold", -1);
-        }
-        if (!this.getConfig().isSet("big-bounties.particle")) {
-            this.getConfig().set("big-bounties.particle", true);
-        }
-        if (!this.getConfig().isSet("big-bounties.commands")) {
-            this.getConfig().set("big-bounties.commands", new ArrayList<>(Collections.singletonList("execute run effect give {player} minecraft:glowing 10 0")));
-        }
 
 
-        this.saveConfig();
 
-        usingPapi = Objects.requireNonNull(this.getConfig().getString("currency")).contains("%");
-        currency = Objects.requireNonNull(this.getConfig().getString("currency"));
-        addCommands = this.getConfig().getStringList("add-currency-commands");
-        removeCommands = this.getConfig().getStringList("remove-currency-commands");
-        bountyExpire = this.getConfig().getInt("bounty-expire");
-        rewardHeadSetter = this.getConfig().getBoolean("reward-heads.setters");
-        rewardHeadClaimed = this.getConfig().getBoolean("reward-heads.claimed");
-        buyBack = this.getConfig().getBoolean("buy-own-bounties.enabled");
-        buyBackInterest = this.getConfig().getDouble("buy-own-bounties.cost-multiply");
-        buyBackLore = color(Objects.requireNonNull(this.getConfig().getString("buy-own-bounties.lore-addition")));
-        buyImmunity = this.getConfig().getBoolean("immunity.buy-immunity");
-        permanentImmunity = this.getConfig().getBoolean("immunity.permanent-immunity.enabled");
-        permanentCost = this.getConfig().getInt("immunity.permanent-immunity.cost");
-        scalingRatio = this.getConfig().getDouble("immunity.scaling-immunity.ratio");
-        graceTime = this.getConfig().getInt("immunity.grace-period");
-        minBounty = this.getConfig().getInt("minimum-bounty");
-        bountyTax = this.getConfig().getDouble("bounty-tax");
-        guiSize = this.getConfig().getInt("advanced-gui.size");
-        tracker = this.getConfig().getBoolean("bounty-tracker.enabled");
-        trackerRemove = this.getConfig().getInt("bounty-tracker.remove");
-        trackerGlow = this.getConfig().getInt("bounty-tracker.glow");
-        trackerActionBar = this.getConfig().getBoolean("bounty-tracker.action-bar.enabled");
-        TABShowAlways = this.getConfig().getBoolean("bounty-tracker.action-bar.show-always");
-        TABPlayerName = this.getConfig().getBoolean("bounty-tracker.action-bar.player-name");
-        TABDistance = this.getConfig().getBoolean("bounty-tracker.action-bar.distance");
-        TABPosition = this.getConfig().getBoolean("bounty-tracker.action-bar.position");
-        TABWorld = this.getConfig().getBoolean("bounty-tracker.action-bar.world");
-        redeemRewardLater = this.getConfig().getBoolean("redeem-reward-later");
-        menuSorting = this.getConfig().getInt("advanced-gui.sort-type");
-        minBroadcast = this.getConfig().getInt("minimum-broadcast");
-        bBountyThreshold = this.getConfig().getInt("big-bounties.bounty-threshold");
-        bBountyParticle = this.getConfig().getBoolean("big-bounties.particle");
-        bBountyCommands = this.getConfig().getStringList("big-bounties.commands");
+        ConfigOptions.reloadOptions();
 
-        customItems.clear();
-        itemCommands.clear();
-        bountySlots.clear();
-        layout.clear();
 
-        for (String bSlots : this.getConfig().getStringList("advanced-gui.bounty-slots")) {
-            if (bSlots.contains("-")) {
-                int num1;
-                try {
-                    num1 = Integer.parseInt(bSlots.substring(0, bSlots.indexOf("-")));
-                } catch (NumberFormatException ignored) {
-                    continue;
-                }
-                int num2;
-                try {
-                    num2 = Integer.parseInt(bSlots.substring(bSlots.indexOf("-") + 1));
-                } catch (NumberFormatException ignored) {
-                    continue;
-                }
-                for (int i = Math.min(num1, num2); i < Math.max(num1, num2) + 1; i++) {
-                    bountySlots.add(i);
+        // check players to display particles
+        displayParticle.clear();
+        List<Bounty> topBounties;
+        if (SQL.isConnected()){
+            topBounties = data.getTopBounties();
+        } else {
+            Collections.sort(bountyList);
+            topBounties = new ArrayList<>(bountyList);
+        }
+        for (Bounty bounty : topBounties){
+            if (bounty.getTotalBounty() >= bBountyThreshold){
+                Player player = Bukkit.getPlayer(bounty.getUUID());
+                if (player != null){
+                    displayParticle.add(player);
                 }
             } else {
-                try {
-                    bountySlots.add(Integer.parseInt(bSlots));
-                } catch (NumberFormatException ignored) {
-
-                }
+                break;
             }
         }
 
-        if (this.getConfig().isConfigurationSection("advanced-gui.layout"))
-            for (String key : Objects.requireNonNull(this.getConfig().getConfigurationSection("advanced-gui.layout")).getKeys(false)) {
-                String item = this.getConfig().getString("advanced-gui.layout." + key + ".item");
-                //Bukkit.getLogger().info(item);
-                if (this.getConfig().isConfigurationSection("advanced-gui.custom-items." + item)) {
-                    Material material = Material.STONE;
-                    try {
-                        material = Material.valueOf(Objects.requireNonNull(this.getConfig().getString("advanced-gui.custom-items." + item + ".material")).toUpperCase(Locale.ROOT));
-                    } catch (IllegalArgumentException | NullPointerException ignored) {
-
-                    }
-                    int amount = 1;
-                    try {
-                        amount = this.getConfig().getInt("advanced-gui.custom-items." + item + ".amount");
-                    } catch (NullPointerException ignored) {
-
-                    }
-                    ItemStack itemStack = new ItemStack(material, amount);
-                    ItemMeta meta = itemStack.getItemMeta();
-                    assert meta != null;
-                    if (this.getConfig().isSet("advanced-gui.custom-items." + item + ".name")) {
-                        meta.setDisplayName(this.getConfig().getString("advanced-gui.custom-items." + item + ".name"));
-                    }
-                    if (this.getConfig().isSet("advanced-gui.custom-items." + item + ".custom-model-data")) {
-                        meta.setCustomModelData(this.getConfig().getInt("advanced-gui.custom-items." + item + ".custom-model-data"));
-                    }
-                    if (this.getConfig().isSet("advanced-gui.custom-items." + item + ".lore")) {
-                        meta.setLore(this.getConfig().getStringList("advanced-gui.custom-items." + item + ".lore"));
-                    }
-                    if (this.getConfig().isSet("advanced-gui.custom-items." + item + ".enchanted")) {
-                        if (this.getConfig().getBoolean("advanced-gui.custom-items." + item + ".enchanted")) {
-                            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                        }
-                    }
-                    itemStack.setItemMeta(meta);
-                    if (this.getConfig().isSet("advanced-gui.custom-items." + item + ".enchanted")) {
-                        if (this.getConfig().getBoolean("advanced-gui.custom-items." + item + ".enchanted")) {
-                            itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-                        }
-                    }
-                    customItems.add(itemStack);
-                    if (this.getConfig().isSet("advanced-gui.custom-items." + item + ".commands")) {
-                        itemCommands.add(this.getConfig().getStringList("advanced-gui.custom-items." + item + ".commands"));
-                    } else {
-                        itemCommands.add(new ArrayList<>());
-                    }
-                    layout.add(new String[]{(customItems.size() - 1) + "", this.getConfig().getString("advanced-gui.layout." + key + ".slot")});
-                } else {
-                    layout.add(new String[]{item, this.getConfig().getString("advanced-gui.layout." + key + ".slot")});
+        if (autoConnectTask != null){
+            autoConnectTask.cancel();
+        }
+        if ((SQL.isConnected() || autoConnect) && !firstConnect){
+            SQL.reconnect();
+        }
+        if (firstConnect){
+            firstConnect = false;
+        }
+        if (autoConnect){
+            autoConnectTask = new BukkitRunnable(){
+                @Override
+                public void run() {
+                    tryToConnect();
                 }
-            }
+            }.runTaskTimer(this, 600, 600);
+        }
+
+
+
+
     }
 
     @Override
@@ -1150,12 +759,13 @@ public final class NotBounties extends JavaPlugin {
     public void openGUI(Player player, int page) {
         Inventory bountyInventory = Bukkit.createInventory(player, guiSize, speakings.get(35) + " " + (page + 1));
         ItemStack[] contents = bountyInventory.getContents();
+        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties();
         for (String[] itemInfo : layout) {
             ItemStack itemStack;
             if (itemInfo[0].equalsIgnoreCase("exit")) {
                 itemStack = item.get("exit");
             } else if (itemInfo[0].equalsIgnoreCase("next")) {
-                if (bountyList.size() > (page * bountySlots.size()) + bountySlots.size()) {
+                if (sortedList.size() > (page * bountySlots.size()) + bountySlots.size()) {
                     itemStack = item.get("next");
                 } else {
                     itemStack = null;
@@ -1200,7 +810,7 @@ public final class NotBounties extends JavaPlugin {
                         }
                     }
         }
-        List<Bounty> sortedList = sortBounties();
+
         for (int i = page * bountySlots.size(); i < (page * bountySlots.size()) + bountySlots.size(); i++) {
             if (sortedList.size() > i) {
                 ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
@@ -1269,10 +879,10 @@ public final class NotBounties extends JavaPlugin {
     public void doRemoveCommands(Player p, int amount) {
         if (usingPapi) {
             if (removeCommands == null){
-                Bukkit.getLogger().warning("[NotBounties] We detected a placeholder as currency, but there are no remove commands to take away money! (Is it formatted correctly?)");
+                Bukkit.getLogger().warning("NotBounties detected a placeholder as currency, but there are no remove commands to take away money! (Is it formatted correctly?)");
             }
             if (removeCommands.isEmpty()){
-                Bukkit.getLogger().warning("[NotBounties] We detected a placeholder as currency, but there are no remove commands to take away money! (Is it formatted correctly?)");
+                Bukkit.getLogger().warning("NotBounties detected a placeholder as currency, but there are no remove commands to take away money! (Is it formatted correctly?)");
             }
         }
             for (String str : removeCommands) {
@@ -1296,7 +906,7 @@ public final class NotBounties extends JavaPlugin {
     public void listBounties(CommandSender sender, int page) {
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + speakings.get(35) + " " + (page + 1) + " " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
 
-        List<Bounty> sortedList = sortBounties();
+        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties();
         for (int i = page * length; i < (page * length) + length; i++) {
             if (sortedList.size() > i) {
                 if (papiEnabled) {
@@ -1326,7 +936,7 @@ public final class NotBounties extends JavaPlugin {
         }
         start.addExtra(space);
         //getLogger().info("size: " + bountyList.size() + " page: " + page + " calc: " + ((page * length) + length));
-        if (bountyList.size() > (page * length) + length) {
+        if (sortedList.size() > (page * length) + length) {
             start.addExtra(rightArrow);
         } else {
             start.addExtra(replacement);
@@ -1335,7 +945,7 @@ public final class NotBounties extends JavaPlugin {
         //sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                        ");
     }
 
-    public void doAddCommands(Player p, int amount) {
+    public void doAddCommands(Player p, long amount) {
             if (usingPapi) {
                 if (addCommands == null){
                     Bukkit.getLogger().warning("We detected a placeholder as currency, but there are no add commands to give players there reward! (Is it formatted correctly?)");
@@ -1406,7 +1016,7 @@ public final class NotBounties extends JavaPlugin {
         }
     }
 
-    public void addItem(Player player, Material material, int amount) {
+    public void addItem(Player player, Material material, long amount) {
         ItemStack[] contents = player.getInventory().getContents();
         for (int i = 0; i < contents.length; i++) {
             if (contents[i] == null) {
@@ -1414,14 +1024,18 @@ public final class NotBounties extends JavaPlugin {
                     contents[i] = new ItemStack(material, material.getMaxStackSize());
                     amount -= material.getMaxStackSize();
                 } else {
-                    contents[i] = new ItemStack(material, amount);
+                    contents[i] = new ItemStack(material, (int) amount);
                     amount = 0;
                     break;
                 }
             }
         }
         if (amount > 0) {
-            player.getWorld().dropItem(player.getLocation(), new ItemStack(material, amount));
+            for (int i = 0; i < amount / material.getMaxStackSize(); i++) {
+                player.getWorld().dropItem(player.getLocation(), new ItemStack(material, material.getMaxStackSize()));
+                amount-= material.getMaxStackSize();
+            }
+            player.getWorld().dropItem(player.getLocation(), new ItemStack(material, (int) amount));
         }
         player.getInventory().setContents(contents);
         player.updateInventory();
@@ -1447,25 +1061,38 @@ public final class NotBounties extends JavaPlugin {
 
     public void addBounty(Player setter, Player receiver, int amount) {
         // add to all time bounties
-        allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+
 
         Bounty bounty = null;
-        for (Bounty bountySearch : bountyList) {
-            // if they have a bounty already
-            if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
-                bounty = bountySearch;
-                bounty.addBounty(setter, amount);
-                break;
+        if (SQL.isConnected()){
+            bounty = data.getBounty(receiver.getUniqueId().toString());
+            if (bounty == null){
+                bounty = new Bounty(setter, receiver, amount);
+            }
+            data.addBounty(new Bounty(setter, receiver, amount), new Setter(setter.getName(), setter.getUniqueId().toString(), amount, System.currentTimeMillis(), true));
+            bounty.addBounty(setter, amount);
+            data.addData(receiver.getUniqueId().toString(),0,0,0,amount,0, 0);
+        } else {
+            allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+            for (Bounty bountySearch : bountyList) {
+                // if they have a bounty already
+                if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
+                    bounty = bountySearch;
+                    bounty.addBounty(setter, amount);
+                    break;
+                }
+            }
+            if (bounty == null){
+                // create new bounty
+                bounty = new Bounty(setter, receiver, amount);
+                bountyList.add(new Bounty(setter, receiver, amount));
             }
         }
-        if (bounty == null){
-            // create new bounty
-            bounty = new Bounty(setter, receiver, amount);
-            bountyList.add(new Bounty(setter, receiver, amount));
-        }
+
         // check for big bounty
         if (bounty.getTotalBounty() > bBountyThreshold && bounty.getTotalBounty() - amount < bBountyThreshold){
             receiver.sendMessage(parse(speakings.get(0) + speakings.get(43), receiver));
+            displayParticle.add(receiver);
             if (bBountyCommands != null && !bBountyCommands.isEmpty()){
                 for (String command : bBountyCommands){
                     while (command.contains("{player}")){
@@ -1493,24 +1120,36 @@ public final class NotBounties extends JavaPlugin {
 
     public void addBounty(Player receiver, int amount) {
         // add to all time bounties
-        allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+
         Bounty bounty = null;
-        for (Bounty bountySearch : bountyList) {
-            // if they have a bounty already
-            if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
-                bounty = bountySearch;
-                bounty.addBounty(amount);
-                break;
+        if (SQL.isConnected()){
+            bounty = data.getBounty(receiver.getUniqueId().toString());
+            if (bounty == null){
+                bounty = new Bounty(receiver, amount);
             }
-        }
-        if (bounty == null){
-            // create new bounty
-            bounty = new Bounty(receiver, amount);
-            bountyList.add(new Bounty(receiver, amount));
+            data.addBounty(new Bounty(receiver, amount), new Setter("CONSOLE", UUID.randomUUID().toString(), amount, System.currentTimeMillis(), true));
+            bounty.addBounty(amount);
+            data.addData(receiver.getUniqueId().toString(),0,0,0,amount,0, 0);
+        } else {
+            allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+            for (Bounty bountySearch : bountyList) {
+                // if they have a bounty already
+                if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
+                    bounty = bountySearch;
+                    bounty.addBounty(amount);
+                    break;
+                }
+            }
+            if (bounty == null) {
+                // create new bounty
+                bounty = new Bounty(receiver, amount);
+                bountyList.add(new Bounty(receiver, amount));
+            }
         }
         // check for big bounty
         if (bounty.getTotalBounty() > bBountyThreshold && bounty.getTotalBounty() - amount < bBountyThreshold){
             receiver.sendMessage(parse(speakings.get(0) + speakings.get(43), receiver));
+            displayParticle.add(receiver);
             if (bBountyCommands != null && !bBountyCommands.isEmpty()){
                 for (String command : bBountyCommands){
                     while (command.contains("{player}")){
@@ -1537,20 +1176,32 @@ public final class NotBounties extends JavaPlugin {
 
     public void addBounty(Player setter, OfflinePlayer receiver, int amount) {
         // add to all time bounties
-        allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+
         Bounty bounty = null;
-        for (Bounty bountySearch : bountyList) {
-            // if they have a bounty already
-            if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
-                bounty = bountySearch;
-                bounty.addBounty(setter, amount);
-                break;
+
+        if (SQL.isConnected()){
+            bounty = data.getBounty(receiver.getUniqueId().toString());
+            if (bounty == null){
+                bounty = new Bounty(setter, receiver, amount);
             }
-        }
-        if (bounty == null){
-            // create new bounty
-            bounty = new Bounty(setter, receiver, amount);
-            bountyList.add(new Bounty(setter, receiver, amount));
+            data.addBounty(new Bounty(setter, receiver, amount), new Setter(setter.getName(), setter.getUniqueId().toString(), amount, System.currentTimeMillis(), false));
+            bounty.addBounty(setter, amount);
+            data.addData(receiver.getUniqueId().toString(),0,0,0,amount,0, 0);
+        } else {
+            allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+            for (Bounty bountySearch : bountyList) {
+                // if they have a bounty already
+                if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
+                    bounty = bountySearch;
+                    bounty.addBounty(setter, amount);
+                    break;
+                }
+            }
+            if (bounty == null) {
+                // create new bounty
+                bounty = new Bounty(setter, receiver, amount);
+                bountyList.add(new Bounty(setter, receiver, amount));
+            }
         }
         // send messages
         if (papiEnabled) {
@@ -1572,20 +1223,31 @@ public final class NotBounties extends JavaPlugin {
 
     public void addBounty(OfflinePlayer receiver, int amount) {
         // add to all time bounties
-        allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+
         Bounty bounty = null;
-        for (Bounty bountySearch : bountyList) {
-            // if they have a bounty already
-            if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
-                bounty = bountySearch;
-                bounty.addBounty(amount);
-                break;
+        if (SQL.isConnected()){
+            bounty = data.getBounty(receiver.getUniqueId().toString());
+            if (bounty == null){
+                bounty = new Bounty(receiver, amount);
             }
-        }
-        if (bounty == null){
-            // create new bounty
-            bounty = new Bounty(receiver, amount);
-            bountyList.add(new Bounty(receiver, amount));
+            data.addBounty(new Bounty(receiver, amount), new Setter("CONSOLE", UUID.randomUUID().toString(), amount, System.currentTimeMillis(), false));
+            bounty.addBounty(amount);
+            data.addData(receiver.getUniqueId().toString(),0,0,0,amount,0, 0);
+        } else {
+            allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+            for (Bounty bountySearch : bountyList) {
+                // if they have a bounty already
+                if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
+                    bounty = bountySearch;
+                    bounty.addBounty(amount);
+                    break;
+                }
+            }
+            if (bounty == null) {
+                // create new bounty
+                bounty = new Bounty(receiver, amount);
+                bountyList.add(new Bounty(receiver, amount));
+            }
         }
         // send messages
         String message = papiEnabled ? PlaceholderAPI.setPlaceholders(receiver, parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), null)) : parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), null);
@@ -1599,43 +1261,35 @@ public final class NotBounties extends JavaPlugin {
         }
     }
 
-    public boolean hasBounty(Player receiver) {
-        for (Bounty bounty : bountyList) {
-            if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     public boolean hasBounty(OfflinePlayer receiver) {
-        for (Bounty bounty : bountyList) {
-            if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
-                return true;
+        if (SQL.isConnected()){
+            return data.getBounty(receiver.getUniqueId().toString()) != null;
+        } else {
+            for (Bounty bounty : bountyList) {
+                if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
-    public Bounty getBounty(Player receiver) {
-        for (Bounty bounty : bountyList) {
-            if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
-                return bounty;
-            }
-        }
-        return null;
-    }
 
     public Bounty getBounty(OfflinePlayer receiver) {
-        for (Bounty bounty : bountyList) {
-            if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
-                return bounty;
+        if (SQL.isConnected()){
+            return data.getBounty(receiver.getUniqueId().toString());
+        } else {
+            for (Bounty bounty : bountyList) {
+                if (bounty.getUUID().equals(receiver.getUniqueId().toString())) {
+                    return bounty;
+                }
             }
         }
         return null;
     }
 
-    public String parse(String str, String player, Player receiver) {
+    public String parse(String str, String player, OfflinePlayer receiver) {
         while (str.contains("{receiver}")) {
             str = str.replace("{receiver}", player);
         }
@@ -1648,16 +1302,16 @@ public final class NotBounties extends JavaPlugin {
         return str;
     }
 
-    public String parse(String str, Player receiver) {
+    public String parse(String str, OfflinePlayer receiver) {
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
         }
         return str;
     }
 
-    public String parse(String str, int amount, Player receiver) {
+    public String parse(String str, long amount, OfflinePlayer receiver) {
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", amount + "");
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -1665,7 +1319,7 @@ public final class NotBounties extends JavaPlugin {
         return str;
     }
 
-    public String parse(String str, String player, int amount, Player receiver) {
+    public String parse(String str, String player, long amount, OfflinePlayer receiver) {
         while (str.contains("{receiver}")) {
             str = str.replace("{receiver}", player);
         }
@@ -1673,14 +1327,14 @@ public final class NotBounties extends JavaPlugin {
             str = str.replace("{player}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", amount + "");
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
         }
         return str;
     }
-    public String parse(String str, String player, int amount, int bounty, Player receiver) {
+    public String parse(String str, String player, long amount, long bounty, OfflinePlayer receiver) {
         while (str.contains("{receiver}")) {
             str = str.replace("{receiver}", player);
         }
@@ -1688,7 +1342,7 @@ public final class NotBounties extends JavaPlugin {
             str = str.replace("{player}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", amount + "");
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
         }
         while (str.contains("{bounty}")) {
             str = str.replace("{bounty}", bounty + "");
@@ -1700,7 +1354,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public String parse(String str, String sender, String player, int amount, Player receiver) {
+    public String parse(String str, String sender, String player, long amount, OfflinePlayer receiver) {
         while (str.contains("{player}")) {
             str = str.replace("{player}", sender);
         }
@@ -1708,7 +1362,7 @@ public final class NotBounties extends JavaPlugin {
             str = str.replace("{receiver}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", amount + "");
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -1716,7 +1370,7 @@ public final class NotBounties extends JavaPlugin {
         return str;
     }
 
-    public String parse(String str, String sender, String player, Player receiver) {
+    public String parse(String str, String sender, String player, OfflinePlayer receiver) {
         while (str.contains("{player}")) {
             str = str.replace("{player}", sender);
         }
@@ -1730,7 +1384,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public String parse(String str, String sender, String player, int amount, int totalBounty, Player receiver) {
+    public String parse(String str, String sender, String player, long amount, long totalBounty, OfflinePlayer receiver) {
         while (str.contains("{player}")) {
             str = str.replace("{player}", sender);
         }
@@ -1738,10 +1392,10 @@ public final class NotBounties extends JavaPlugin {
             str = str.replace("{receiver}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", amount + "");
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
         }
         while (str.contains("{bounty}")) {
-            str = str.replace("{bounty}", totalBounty + "");
+            str = str.replace("{bounty}", currencyPrefix + totalBounty + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -1750,23 +1404,5 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public String color(String str) {
-        str = net.md_5.bungee.api.ChatColor.translateAlternateColorCodes('&', str);
-        return translateHexColorCodes("&#", "", str);
-    }
 
-    public String translateHexColorCodes(String startTag, String endTag, String message) {
-        final Pattern hexPattern = Pattern.compile(startTag + "([A-Fa-f0-9]{6})" + endTag);
-        Matcher matcher = hexPattern.matcher(message);
-        StringBuffer buffer = new StringBuffer(message.length() + 4 * 8);
-        while (matcher.find()) {
-            String group = matcher.group(1);
-            matcher.appendReplacement(buffer, COLOR_CHAR + "x"
-                    + COLOR_CHAR + group.charAt(0) + COLOR_CHAR + group.charAt(1)
-                    + COLOR_CHAR + group.charAt(2) + COLOR_CHAR + group.charAt(3)
-                    + COLOR_CHAR + group.charAt(4) + COLOR_CHAR + group.charAt(5)
-            );
-        }
-        return matcher.appendTail(buffer).toString();
-    }
 }

@@ -26,9 +26,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+
+import static me.jadenp.notbounties.ConfigOptions.*;
 
 public class Events implements Listener {
     private final NotBounties nb;
@@ -39,7 +40,7 @@ public class Events implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getView().getTitle().contains(nb.speakings.get(35))) {
+        if (event.getView().getTitle().contains(speakings.get(35))) {
             event.setCancelled(true);
 
             int page = Integer.parseInt(event.getView().getTitle().substring(event.getView().getTitle().lastIndexOf(" ") + 1));
@@ -89,18 +90,18 @@ public class Events implements Listener {
 
                         } else {
                             if (bounty.getUUID().equals(event.getWhoClicked().getUniqueId().toString())) {
-                                if (nb.buyBack) {
-                                    if (nb.usingPapi) {
+                                if (buyBack) {
+                                    if (usingPapi) {
                                         // check if papi is enabled - parse to check
-                                        if (nb.papiEnabled) {
+                                        if (papiEnabled) {
                                             double balance;
                                             try {
-                                                balance = Double.parseDouble(PlaceholderAPI.setPlaceholders((Player) event.getWhoClicked(), nb.currency));
+                                                balance = Double.parseDouble(PlaceholderAPI.setPlaceholders((Player) event.getWhoClicked(), currency));
                                             } catch (NumberFormatException ignored) {
                                                 Bukkit.getLogger().warning("Error getting a number from currency placeholder!");
                                                 return;
                                             }
-                                            if (balance >= (int) (bounty.getTotalBounty() * nb.buyBackInterest)) {
+                                            if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
                                                 Inventory confirmation = Bukkit.createInventory(event.getWhoClicked(), 54, ChatColor.BLUE + "" + ChatColor.BOLD + "Are you sure?");
                                                 ItemStack[] contents = confirmation.getContents();
                                                 Arrays.fill(contents, nb.item.get("fill"));
@@ -111,13 +112,13 @@ public class Events implements Listener {
                                                 confirmation.setContents(contents);
                                                 event.getWhoClicked().openInventory(confirmation);
                                             } else {
-                                                event.getWhoClicked().sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(6), (int) (bounty.getTotalBounty() * nb.buyBackInterest), (Player) event.getWhoClicked()));
+                                                event.getWhoClicked().sendMessage(nb.parse(speakings.get(0) + speakings.get(6), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
                                             }
                                         } else {
                                             Bukkit.getLogger().warning("Currency for bounties currently set as placeholder but PlaceholderAPI is not enabled!");
                                         }
                                     } else {
-                                        if (nb.checkAmount((Player) event.getWhoClicked(), Material.valueOf(nb.currency)) >= (int) (bounty.getTotalBounty() * nb.buyBackInterest)) {
+                                        if (nb.checkAmount((Player) event.getWhoClicked(), Material.valueOf(currency)) >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
                                             Inventory confirmation = Bukkit.createInventory(event.getWhoClicked(), 54, ChatColor.BLUE + "" + ChatColor.BOLD + "Are you sure?");
                                             ItemStack[] contents = confirmation.getContents();
                                             Arrays.fill(contents, nb.item.get("fill"));
@@ -128,7 +129,7 @@ public class Events implements Listener {
                                             confirmation.setContents(contents);
                                             event.getWhoClicked().openInventory(confirmation);
                                         } else {
-                                            event.getWhoClicked().sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(6), (int) (bounty.getTotalBounty() * nb.buyBackInterest), (Player) event.getWhoClicked()));
+                                            event.getWhoClicked().sendMessage(nb.parse(speakings.get(0) + speakings.get(6), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
                                         }
                                     }
                                 }
@@ -138,11 +139,11 @@ public class Events implements Listener {
                 } else {
                     if (event.getWhoClicked().hasPermission("notbounties.admin")) {
                         nb.openGUI((Player) event.getWhoClicked(), page);
-                        event.getWhoClicked().sendMessage(PlaceholderAPI.setPlaceholders(meta.getOwningPlayer(), nb.parse(nb.speakings.get(0) + nb.speakings.get(8), meta.getOwningPlayer().getName(), null)));
+                        event.getWhoClicked().sendMessage(PlaceholderAPI.setPlaceholders(meta.getOwningPlayer(), nb.parse(speakings.get(0) + speakings.get(8), meta.getOwningPlayer().getName(), null)));
                     }
                 }
             } else {
-                for (String[] itemInfo : nb.layout) {
+                for (String[] itemInfo : layout) {
                     int commandIndex;
                     try {
                         commandIndex = Integer.parseInt(itemInfo[0]);
@@ -166,7 +167,7 @@ public class Events implements Listener {
                             }
                             for (int i = Math.min(num1, num2); i < Math.max(num1, num2) + 1; i++) {
                                 if (event.getRawSlot() == i) {
-                                    for (String cmd : nb.itemCommands.get(commandIndex)) {
+                                    for (String cmd : itemCommands.get(commandIndex)) {
                                         while (cmd.contains("{player}")) {
                                             cmd = cmd.replace("{player}", event.getWhoClicked().getName());
                                         }
@@ -192,7 +193,7 @@ public class Events implements Listener {
                                 //Bukkit.getLogger().info(event.getRawSlot() + ">" + itemInfo[1]);
                                 if (event.getRawSlot() == Integer.parseInt(itemInfo[1])) {
                                     //Bukkit.getLogger().info("match");
-                                    for (String cmd : nb.itemCommands.get(commandIndex)) {
+                                    for (String cmd : itemCommands.get(commandIndex)) {
                                         //Bukkit.getLogger().info(cmd);
                                         while (cmd.contains("{player}")) {
                                             cmd = cmd.replace("{player}", event.getWhoClicked().getName());
@@ -239,16 +240,24 @@ public class Events implements Listener {
                     nb.openGUI((Player) event.getWhoClicked(), 0);
                 } else if (clickedItem.isSimilar(nb.item.get("yes"))) {
                     if (event.getWhoClicked().hasPermission("notbounties.admin")) {
-                        nb.bountyList.remove(bounty);
-                        nb.openGUI((Player) event.getWhoClicked(), 0);
-                        event.getWhoClicked().sendMessage(PlaceholderAPI.setPlaceholders(meta.getOwningPlayer(), nb.parse(nb.speakings.get(0) + nb.speakings.get(14), meta.getOwningPlayer().getName(), null)));
-                    } else {
-                        if (!nb.usingPapi) {
-                            nb.removeItem((Player) event.getWhoClicked(), Material.valueOf(nb.currency), (int) (bounty.getTotalBounty() * nb.buyBackInterest));
+                        if (nb.SQL.isConnected()){
+                            nb.data.removeBounty(bounty.getUUID());
+                        } else {
+                            nb.bountyList.remove(bounty);
                         }
-                        nb.doRemoveCommands((Player) event.getWhoClicked(), (int) (bounty.getTotalBounty() * nb.buyBackInterest));
-                        nb.bountyList.remove(bounty);
-                        event.getWhoClicked().sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(14), event.getWhoClicked().getName(), (Player) event.getWhoClicked()));
+                        nb.openGUI((Player) event.getWhoClicked(), 0);
+                        event.getWhoClicked().sendMessage(PlaceholderAPI.setPlaceholders(meta.getOwningPlayer(), nb.parse(speakings.get(0) + speakings.get(14), meta.getOwningPlayer().getName(), null)));
+                    } else {
+                        if (!usingPapi) {
+                            nb.removeItem((Player) event.getWhoClicked(), Material.valueOf(currency), (int) (bounty.getTotalBounty() * buyBackInterest));
+                        }
+                        nb.doRemoveCommands((Player) event.getWhoClicked(), (int) (bounty.getTotalBounty() * buyBackInterest));
+                        if (nb.SQL.isConnected()){
+                            nb.data.removeBounty(bounty.getUUID());
+                        } else {
+                            nb.bountyList.remove(bounty);
+                        }
+                        event.getWhoClicked().sendMessage(nb.parse(speakings.get(0) + speakings.get(14), event.getWhoClicked().getName(), (Player) event.getWhoClicked()));
                         nb.openGUI((Player) event.getWhoClicked(), 0);
                     }
                 }
@@ -269,6 +278,7 @@ public class Events implements Listener {
                 nb.immunePerms.add(event.getPlayer().getUniqueId().toString());
             }
         }
+        nb.displayParticle.remove(event.getPlayer());
 
     }
 
@@ -281,17 +291,18 @@ public class Events implements Listener {
                         Player killer = event.getEntity().getKiller();
                         Player player = (Player) event.getEntity();
                         Bounty bounty = nb.getBounty(player);
+                        nb.displayParticle.remove(player);
                         assert bounty != null;
-                        String message = nb.parse(nb.speakings.get(0) + nb.speakings.get(7), killer.getName(), player.getName(), bounty.getTotalBounty(), player);
+                        String message = nb.parse(speakings.get(0) + speakings.get(7), killer.getName(), player.getName(), bounty.getTotalBounty(), player);
                         Bukkit.getConsoleSender().sendMessage(message);
                         for (Player p : Bukkit.getOnlinePlayers()){
                             if (!nb.disableBroadcast.contains(p.getUniqueId().toString()) || p.getUniqueId().equals(event.getEntity().getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId())){
                                 p.sendMessage(message);
                             }
                         }
-                        if (!nb.usingPapi) {
-                            if (!nb.redeemRewardLater) {
-                                nb.addItem(killer, Material.valueOf(nb.currency), bounty.getTotalBounty());
+                        if (!usingPapi) {
+                            if (!redeemRewardLater) {
+                                nb.addItem(killer, Material.valueOf(currency), bounty.getTotalBounty());
                             }
                         }
                         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
@@ -300,12 +311,12 @@ public class Events implements Listener {
                         skullMeta.setOwningPlayer(player);
                         skull.setItemMeta(skullMeta);
 
-                        if (nb.rewardHeadSetter) {
+                        if (rewardHeadSetter) {
                             for (Setter setter : bounty.getSetters()) {
                                 if (!setter.getUuid().equalsIgnoreCase("CONSOLE")) {
                                     Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
                                     if (p != null) {
-                                        if (!nb.rewardHeadClaimed || !Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId().equals(UUID.fromString(setter.getUuid()))) {
+                                        if (!rewardHeadClaimed || !Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId().equals(UUID.fromString(setter.getUuid()))) {
                                             nb.addItem(p, skull);
                                         }
                                     } else {
@@ -320,20 +331,20 @@ public class Events implements Listener {
                                 }
                             }
                         }
-                        if (nb.rewardHeadClaimed){
+                        if (rewardHeadClaimed){
                                 nb.addItem(Objects.requireNonNull(event.getEntity().getKiller()), skull);
                         }
                         // do commands
-                        if (!nb.redeemRewardLater) {
+                        if (!redeemRewardLater) {
                             nb.doAddCommands(event.getEntity().getKiller(), bounty.getTotalBounty());
                         } else {
                             // give voucher
                             ItemStack item = new ItemStack(Material.PAPER);
                             ItemMeta meta = item.getItemMeta();
                             assert meta != null;
-                            meta.setDisplayName(nb.parse(nb.speakings.get(40), event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(), (Player) event.getEntity()));
+                            meta.setDisplayName(nb.parse(speakings.get(40), event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(), (Player) event.getEntity()));
                             ArrayList<String> lore = new ArrayList<>();
-                            for (String str : nb.voucherLore){
+                            for (String str : voucherLore){
                                 lore.add(nb.parse(str,  event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(), (Player) event.getEntity()));
                             }
                             lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + "" + ChatColor.UNDERLINE + "" + ChatColor.ITALIC + "@" + bounty.getTotalBounty());
@@ -343,13 +354,25 @@ public class Events implements Listener {
                             item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
                             nb.addItem(event.getEntity().getKiller(), item);
                         }
-                        nb.bountyList.remove(bounty);
-                        nb.allTimeBounty.put(player.getUniqueId().toString(), nb.allTimeBounty.get(player.getUniqueId().toString()) + bounty.getTotalBounty());
-                        nb.bountiesClaimed.replace(killer.getUniqueId().toString(), nb.bountiesClaimed.get(killer.getUniqueId().toString()) + 1);
-                        nb.bountiesReceived.replace(player.getUniqueId().toString(), nb.bountiesReceived.get(player.getUniqueId().toString()) + 1);
+                        if (nb.SQL.isConnected()){
+                            nb.data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(), 0, 0);
+                            nb.data.addData(killer.getUniqueId().toString(), 1,0,0,0,0, bounty.getTotalBounty());
+                            nb.data.removeBounty(bounty.getUUID());
+                        } else {
+                            nb.bountyList.remove(bounty);
+                            nb.allTimeBounty.put(player.getUniqueId().toString(), nb.allTimeBounty.get(player.getUniqueId().toString()) + bounty.getTotalBounty());
+                            nb.bountiesClaimed.replace(killer.getUniqueId().toString(), nb.bountiesClaimed.get(killer.getUniqueId().toString()) + 1);
+                            nb.bountiesReceived.replace(player.getUniqueId().toString(), nb.bountiesReceived.get(player.getUniqueId().toString()) + 1);
+                            nb.allClaimed.replace(player.getUniqueId().toString(), nb.allClaimed.get(player.getUniqueId().toString()) + bounty.getTotalBounty());
+                        }
+
                         for (Setter setter : bounty.getSetters()) {
                             if (!setter.getUuid().equalsIgnoreCase("CONSOLE")) {
-                            nb.bountiesSet.replace(setter.getUuid(), nb.bountiesSet.get(setter.getUuid()) + 1);
+                                if (nb.SQL.isConnected()) {
+                                    nb.data.addData(setter.getUuid(), 0, 1, 0, 0, 0, 0);
+                                } else {
+                                    nb.bountiesSet.replace(setter.getUuid(), nb.bountiesSet.get(setter.getUuid()) + 1);
+                                }
                                 Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
                                 if (p != null) {
                                     p.playSound(p.getEyeLocation(), Sound.BLOCK_BEEHIVE_SHEAR, 1, 1);
@@ -361,7 +384,7 @@ public class Events implements Listener {
                         } else {
                             nb.gracePeriod.put(event.getEntity().getUniqueId().toString(), System.currentTimeMillis());
                         }
-                        if (nb.trackerRemove > 0)
+                        if (trackerRemove > 0)
                             for (Player p : Bukkit.getOnlinePlayers()) {
                                 ItemStack[] contents = p.getInventory().getContents();
                                 boolean change = false;
@@ -393,7 +416,7 @@ public class Events implements Listener {
                                     p.getInventory().setContents(contents);
                                 }
                                 if (p.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                    if (p.getOpenInventory().getTitle().contains(nb.speakings.get(35))) {
+                                    if (p.getOpenInventory().getTitle().contains(speakings.get(35))) {
                                         nb.openGUI(p, Integer.parseInt(p.getOpenInventory().getTitle().substring(p.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
                                     }
                                 }
@@ -406,8 +429,8 @@ public class Events implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        if (nb.tracker)
-            if (event.getAction() == Action.RIGHT_CLICK_AIR) {
+        if (tracker)
+            if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
                 if (event.getItem() != null) {
                     ItemStack item = event.getItem();
                     Player player = event.getPlayer();
@@ -435,28 +458,28 @@ public class Events implements Listener {
                                                     if (p != null) {
                                                         compassMeta.setLodestone(p.getLocation());
                                                         compassMeta.setLodestoneTracked(false);
-                                                        if (nb.trackerGlow > 0) {
+                                                        if (trackerGlow > 0) {
                                                             if (p.getWorld().equals(player.getWorld())) {
-                                                                if (player.getLocation().distance(p.getLocation()) < nb.trackerGlow) {
+                                                                if (player.getLocation().distance(p.getLocation()) < trackerGlow) {
                                                                     p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 15, 0));
                                                                 }
                                                             }
                                                         }
                                                         actionBar = ChatColor.DARK_GRAY + "|";
-                                                        if (nb.TABPlayerName) {
+                                                        if (TABPlayerName) {
                                                             actionBar += " " + ChatColor.YELLOW + p.getName() + ChatColor.DARK_GRAY + " |";
                                                         }
-                                                        if (nb.TABDistance) {
+                                                        if (TABDistance) {
                                                             if (p.getWorld().equals(player.getWorld())) {
                                                                 actionBar += " " + ChatColor.GOLD + ((int) player.getLocation().distance(p.getLocation())) + "m" + ChatColor.DARK_GRAY + " |";
                                                             } else {
                                                                 actionBar += " ?m |";
                                                             }
                                                         }
-                                                        if (nb.TABPosition) {
+                                                        if (TABPosition) {
                                                             actionBar += " " + ChatColor.RED + p.getLocation().getBlockX() + "x " + p.getLocation().getBlockY() + "y " + p.getLocation().getBlockZ() + "z" + ChatColor.DARK_GRAY + " |";
                                                         }
-                                                        if (nb.TABWorld) {
+                                                        if (TABWorld) {
                                                             actionBar += " " + ChatColor.LIGHT_PURPLE + p.getWorld().getName() + ChatColor.DARK_GRAY + " |";
                                                         }
                                                     } else {
@@ -476,13 +499,13 @@ public class Events implements Listener {
                                                     }
                                                     item.setItemMeta(compassMeta);
                                                     // display action bar
-                                                    if (nb.trackerActionBar) {
+                                                    if (trackerActionBar) {
                                                         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(actionBar));
                                                     }
                                                 }
                                             }
                                         } else {
-                                            if (nb.trackerActionBar) {
+                                            if (trackerActionBar) {
                                                 player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "No Permission."));
                                             }
                                         }
@@ -512,13 +535,13 @@ public class Events implements Listener {
                                         player.sendMessage(ChatColor.RED + "Error redeeming reward");
                                         return;
                                     }
-                                    if (!nb.usingPapi){
-                                        nb.addItem(player, Material.valueOf(nb.currency), amount);
+                                    if (!usingPapi){
+                                        nb.addItem(player, Material.valueOf(currency), amount);
                                     }
                                     nb.doAddCommands(player, amount);
                                     player.getInventory().remove(item);
                                     player.updateInventory();
-                                    player.sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(41), amount, player));
+                                    player.sendMessage(nb.parse(speakings.get(0) + speakings.get(41), amount, player));
                                 }
                             }
                         }
@@ -530,7 +553,7 @@ public class Events implements Listener {
 
     @EventHandler
     public void onHold(PlayerItemHeldEvent event) {
-        if (nb.trackerRemove > 0) {
+        if (trackerRemove > 0) {
             ItemStack item = event.getPlayer().getInventory().getItem(event.getNewSlot());
             if (item != null) {
                 if (item.getType() == Material.COMPASS) {
@@ -561,8 +584,8 @@ public class Events implements Listener {
 
     @EventHandler
     public void onOpenInv(InventoryOpenEvent event) {
-        if (nb.tracker)
-            if (nb.trackerRemove == 3)
+        if (tracker)
+            if (trackerRemove == 3)
                 if (event.getInventory().getType() != InventoryType.CRAFTING) {
                     ItemStack[] contents = event.getInventory().getContents();
                     boolean change = false;
@@ -660,16 +683,16 @@ public class Events implements Listener {
             int addedAmount = 0;
             for (Setter setter : bounty.getSetters()){
                 if (!setter.isNotified()){
-                    event.getPlayer().sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(12), setter.getName(), setter.getAmount(), event.getPlayer()));
+                    event.getPlayer().sendMessage(nb.parse(speakings.get(0) + speakings.get(12), setter.getName(), setter.getAmount(), event.getPlayer()));
                     setter.setNotified(true);
                     addedAmount+= setter.getAmount();
                 }
             }
             bounty.combineSetters();
-            if (bounty.getTotalBounty() - addedAmount < nb.bBountyThreshold && bounty.getTotalBounty() > nb.bBountyThreshold){
-                event.getPlayer().sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(43), event.getPlayer()));
-                if (nb.bBountyCommands != null && !nb.bBountyCommands.isEmpty()){
-                    for (String command : nb.bBountyCommands){
+            if (bounty.getTotalBounty() - addedAmount < bBountyThreshold && bounty.getTotalBounty() > bBountyThreshold){
+                event.getPlayer().sendMessage(nb.parse(speakings.get(0) + speakings.get(43), event.getPlayer()));
+                if (bBountyCommands != null && !bBountyCommands.isEmpty()){
+                    for (String command : bBountyCommands){
                         while (command.contains("{player}")){
                             command = command.replace("{player}", event.getPlayer().getName());
                         }
@@ -677,10 +700,14 @@ public class Events implements Listener {
                     }
                 }
             }
+            if (bounty.getTotalBounty() > bBountyThreshold){
+                nb.displayParticle.add(event.getPlayer());
+            }
         }
 
         if (!nb.bountiesClaimed.containsKey(event.getPlayer().getUniqueId().toString())) {
             nb.bountiesClaimed.put(event.getPlayer().getUniqueId().toString(), 0);
+            nb.allClaimed.put(event.getPlayer().getUniqueId().toString(), 0);
             nb.bountiesSet.put(event.getPlayer().getUniqueId().toString(), 0);
             nb.bountiesReceived.put(event.getPlayer().getUniqueId().toString(), 0);
             nb.allTimeBounty.put(event.getPlayer().getUniqueId().toString(), 0);
@@ -699,7 +726,7 @@ public class Events implements Listener {
             nb.headRewards.remove(event.getPlayer().getUniqueId().toString());
         }
         // if they have expire-time enabled
-        if (nb.bountyExpire > 0) {
+        if (bountyExpire > 0) {
             boolean change = false;
             // go through all the bounties and remove setters if it has been more than expire time
             ListIterator<Bounty> bountyIterator = nb.expiredBounties.listIterator();
@@ -709,13 +736,13 @@ public class Events implements Listener {
                 while (setterIterator.hasNext()) {
                     Setter setter = setterIterator.next();
                     // check if past expire time
-                    if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * nb.bountyExpire) {
+                    if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
                         // refund money
-                        if (!nb.usingPapi) {
-                            nb.addItem(event.getPlayer(), Material.valueOf(nb.currency), setter.getAmount());
+                        if (!usingPapi) {
+                            nb.addItem(event.getPlayer(), Material.valueOf(currency), setter.getAmount());
                         }
                         nb.doAddCommands(event.getPlayer(), setter.getAmount());
-                        event.getPlayer().sendMessage(nb.parse(nb.speakings.get(0) + nb.speakings.get(31), bounty.getName(), setter.getAmount(), event.getPlayer()));
+                        event.getPlayer().sendMessage(nb.parse(speakings.get(0) + speakings.get(31), bounty.getName(), setter.getAmount(), event.getPlayer()));
                         setterIterator.remove();
                     }
                 }
@@ -729,7 +756,7 @@ public class Events implements Listener {
             if (change) {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                        if (player.getOpenInventory().getTitle().contains(nb.speakings.get(35))) {
+                        if (player.getOpenInventory().getTitle().contains(speakings.get(35))) {
                             nb.openGUI(player, Integer.parseInt(player.getOpenInventory().getTitle().substring(player.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
                         }
                     }
@@ -742,7 +769,7 @@ public class Events implements Listener {
             new UpdateChecker(nb, 104484).getVersion(version -> {
 
                 if (!nb.getDescription().getVersion().equals(version) && !nb.getDescription().getVersion().contains("dev_")) {
-                    event.getPlayer().sendMessage(nb.parse(nb.speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
+                    event.getPlayer().sendMessage(nb.parse(speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
                     event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
 
                 }
@@ -750,4 +777,5 @@ public class Events implements Listener {
         }
 
     }
+
 }

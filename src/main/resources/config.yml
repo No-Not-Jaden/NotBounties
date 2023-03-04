@@ -1,7 +1,11 @@
-# accepts a material or a placeholder
-# if the currency is a material, the plugin will automatically take away the necessary amounts
-# I recommend changing the language.yml file to fit with your currency
-currency: 'DIAMOND'
+
+currency:
+  # accepts a material or a placeholder
+  # if the currency is a material, the plugin will automatically take away the necessary amounts
+  object: 'DIAMOND'
+  # before the currency in all occurrences in language.yml
+  prefix: '&f'
+  suffix: '&b◆'
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
 # minimum amount of currency that will broadcast bounties
@@ -85,7 +89,18 @@ bounty-tracker:
     world: false
     # with everything enabled it would look something like:
     # Not_Jaden - 25m - 13x 63y 20z - world
-
+# MySQL connection - you don't have to change anything if you don't want to use it
+database:
+  host: localhost
+  port: 3306
+  database: db
+  user: username
+  password: pass
+  use-ssl: false
+  # automatically move data stored locally to the MySQL database when one connects
+  migrate-local-data: true
+  # automatically try to connect to the database if a connection was lost
+  auto-connect: false
 # for customizing the layout of the GUI
 advanced-gui:
   # how the bounty menu is sorted

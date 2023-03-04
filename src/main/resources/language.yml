@@ -8,7 +8,6 @@ unknown-player: '&cCould not find the player &4{receiver}&c!'
 bounty-broadcast: '&e{player}&6 has placed a bounty of &f{amount}&6 on &e{receiver}&6! Total Bounty: &f{bounty}'
 no-permission: '&cYou do not have permission to execute this command!'
 broke: '&cYou do not have enough currency for this! &8Required: &7{amount}'
-# using placeholders for reciever
 claim-bounty-broadcast: '&e{player}&6 has claimed the bounty of &f{amount}&6 on &e{receiver}&6!'
 no-bounty: '&4{receiver} &cdoes not have a bounty!'
 check-bounty: '&e{receiver}&a has a bounty of &e{amount}&a.'
@@ -61,6 +60,11 @@ bounty-voucher-lore:
   - ''
 redeem-voucher: '&aSuccessfully redeemed voucher for {amount}!'
 big-bounty: '&eYour bounty is very impressive!'
-
+bounty-stat-all: '&eYour all-time bounty is &2{amount}&e.'
+bounty-stat-kills: '&eYou have killed &6{amount}&e players with bounties.'
+bounty-stat-claimed: '&eYou have claimed &2{amount}&e from bounties.'
+bounty-stat-deaths: '&eYou have died &6{amount}&e times with a bounty.'
+bounty-stat-set: '&eYou have set &6{amount}&e successful bounties.'
+bounty-stat-immunity: '&eYou have spent &2{amount}&e on immunity.'
 
 

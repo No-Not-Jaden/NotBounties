@@ -3,6 +3,7 @@ package me.jadenp.notbounties;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -12,15 +13,8 @@ public class Bounty implements Comparable<Bounty>{
     private String name;
     private List<Setter> setters = new ArrayList<>();
 
-    public Bounty(Player setter, Player receiver, int amount){
-        // save player
-        this.uuid = receiver.getUniqueId().toString();
-        name = receiver.getName();
-        // add to the total bounty
-        setters.add(new Setter(setter.getName(), setter.getUniqueId().toString(), amount, System.currentTimeMillis(),  true));
-    }
 
-    public Bounty(Player setter, OfflinePlayer receiver, int amount){
+    public Bounty(Player setter, OfflinePlayer receiver, long amount){
         // save player
         this.uuid = receiver.getUniqueId().toString();
         name = receiver.getName();
@@ -28,15 +22,7 @@ public class Bounty implements Comparable<Bounty>{
         setters.add(new Setter(setter.getName(), setter.getUniqueId().toString(), amount, System.currentTimeMillis(),false));
     }
 
-    public Bounty(Player receiver, int amount){
-        // save player
-        this.uuid = receiver.getUniqueId().toString();
-        name = receiver.getName();
-        // add to the total bounty
-        setters.add(new Setter("CONSOLE", "CONSOLE", amount, System.currentTimeMillis(), true));
-    }
-
-    public Bounty(OfflinePlayer receiver, int amount){
+    public Bounty(OfflinePlayer receiver, long amount){
         // save player
         this.uuid = receiver.getUniqueId().toString();
         name = receiver.getName();
@@ -78,7 +64,7 @@ public class Bounty implements Comparable<Bounty>{
     }
 
     // console set bounty
-    public void addBounty(int amount){
+    public void addBounty(long amount){
         // first check if player already set a bounty
         for (int i = 0; i < setters.size(); i++){
             if (setters.get(i).getUuid().equalsIgnoreCase("CONSOLE")){
@@ -102,7 +88,7 @@ public class Bounty implements Comparable<Bounty>{
         }
     }
 
-    public void editBounty(UUID uuid, int newAmount){
+    public void editBounty(UUID uuid, long newAmount){
         for (int i = 0; i < setters.size(); i++){
             if (setters.get(i).getUuid().equalsIgnoreCase(uuid.toString())){
                 // same person
