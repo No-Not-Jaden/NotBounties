@@ -6,7 +6,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class Item {
-    public ItemStack get(String item){
+    public static ItemStack get(String item){
         if (item.equalsIgnoreCase("fill")) {
             ItemStack fill = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
             ItemMeta fMeta = fill.getItemMeta();

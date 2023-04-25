@@ -1,7 +1,9 @@
 package me.jadenp.notbounties;
 
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -66,6 +68,7 @@ public class ConfigOptions {
     public static List<String> trackerLore = new ArrayList<>();
     public static List<String> voucherLore = new ArrayList<>();
     public static List<String> speakings = new ArrayList<>();
+    public static List<String> hiddenNames = new ArrayList<>();
 
     public static void reloadOptions() throws IOException {
         NotBounties bounties = NotBounties.getInstance();
@@ -81,62 +84,43 @@ public class ConfigOptions {
             bounties.getConfig().set("currency.prefix", "");
             bounties.getConfig().set("currency.suffix", "");
         }
-        if (!bounties.getConfig().isSet("currency.prefix")){
+        if (!bounties.getConfig().isSet("currency.prefix"))
             bounties.getConfig().set("currency.prefix", "&f");
-        }
-        if (!bounties.getConfig().isSet("currency.suffix")){
+        if (!bounties.getConfig().isSet("currency.suffix"))
             bounties.getConfig().set("currency.suffix", "&b◆");
-        }
-        if (!bounties.getConfig().isSet("minimum-bounty")) {
+        if (!bounties.getConfig().isSet("minimum-bounty"))
             bounties.getConfig().set("minimum-bounty", 1);
-        }
-        if (!bounties.getConfig().isSet("bounty-tax")) {
+        if (!bounties.getConfig().isSet("bounty-tax"))
             bounties.getConfig().set("bounty-tax", 0.0);
-        }
-        if (!bounties.getConfig().isSet("add-currency-commands")) {
+        if (!bounties.getConfig().isSet("add-currency-commands"))
             bounties.getConfig().set("add-currency-commands", new ArrayList<String>());
-        }
-        if (!bounties.getConfig().isSet("remove-currency-commands")) {
+        if (!bounties.getConfig().isSet("remove-currency-commands"))
             bounties.getConfig().set("remove-currency-commands", new ArrayList<String>());
-        }
-        if (!bounties.getConfig().isSet("bounty-expire")) {
-            bounties.getConfig().set("bounty-expire", -1);
-        }
+        if (!bounties.getConfig().isSet("bounty-expire")) bounties.getConfig().set("bounty-expire", -1);
         if (bounties.getConfig().isBoolean("reward-heads")){
             boolean prevOption = bounties.getConfig().getBoolean("reward-heads");
             bounties.getConfig().set("reward-heads", null);
             bounties.getConfig().set("reward-heads.setters", prevOption);
         }
-        if (!bounties.getConfig().isSet("reward-heads.setters")) {
+        if (!bounties.getConfig().isSet("reward-heads.setters"))
             bounties.getConfig().set("reward-heads.setters", false);
-        }
-        if (!bounties.getConfig().isSet("reward-heads.claimed")) {
+        if (!bounties.getConfig().isSet("reward-heads.claimed"))
             bounties.getConfig().set("reward-heads.claimed", false);
-        }
-        if (!bounties.getConfig().isSet("buy-own-bounties.enabled")) {
+        if (!bounties.getConfig().isSet("buy-own-bounties.enabled"))
             bounties.getConfig().set("buy-own-bounties.enabled", false);
-        }
-        if (!bounties.getConfig().isSet("buy-own-bounties.cost-multiply")) {
+        if (!bounties.getConfig().isSet("buy-own-bounties.cost-multiply"))
             bounties.getConfig().set("buy-own-bounties.cost-multiply", 1.25);
-        }
-        if (!bounties.getConfig().isSet("buy-own-bounties.lore-addition")) {
+        if (!bounties.getConfig().isSet("buy-own-bounties.lore-addition"))
             bounties.getConfig().set("buy-own-bounties.lore-addition", "&9Left Click &7to buy back for &a{amount}");
-        }
-        if (!bounties.getConfig().isSet("immunity.buy-immunity")) {
+        if (!bounties.getConfig().isSet("immunity.buy-immunity"))
             bounties.getConfig().set("immunity.buy-immunity", false);
-        }
-        if (!bounties.getConfig().isSet("immunity.permanent-immunity.enabled")) {
+        if (!bounties.getConfig().isSet("immunity.permanent-immunity.enabled"))
             bounties.getConfig().set("immunity.permanent-immunity.enabled", false);
-        }
-        if (!bounties.getConfig().isSet("immunity.permanent-immunity.cost")) {
+        if (!bounties.getConfig().isSet("immunity.permanent-immunity.cost"))
             bounties.getConfig().set("immunity.permanent-immunity.cost", 128);
-        }
-        if (!bounties.getConfig().isSet("immunity.scaling-immunity.ratio")) {
+        if (!bounties.getConfig().isSet("immunity.scaling-immunity.ratio"))
             bounties.getConfig().set("immunity.scaling-immunity.ratio", 1.0);
-        }
-        if (!bounties.getConfig().isSet("immunity.grace-period")) {
-            bounties.getConfig().set("immunity.grace-period", 10);
-        }
+        if (!bounties.getConfig().isSet("immunity.grace-period")) bounties.getConfig().set("immunity.grace-period", 10);
         if (!bounties.getConfig().isSet("advanced-gui")) {
             bounties.getConfig().set("advanced-gui.custom-items.fill.material", "GRAY_STAINED_GLASS_PANE");
             bounties.getConfig().set("advanced-gui.custom-items.fill.amount", 1);
@@ -156,81 +140,58 @@ public class ConfigOptions {
             bounties.getConfig().set("advanced-gui.layout.4.slot", "53");
             bounties.getConfig().set("advanced-gui.size", 54);
         }
-        if (!bounties.getConfig().isSet("advanced-gui.bounty-slots")) {
+        if (!bounties.getConfig().isSet("advanced-gui.bounty-slots"))
             bounties.getConfig().set("advanced-gui.bounty-slots", Collections.singletonList("0-44"));
-        }
-        if (!bounties.getConfig().isSet("advanced-gui.size")) {
+        if (!bounties.getConfig().isSet("advanced-gui.size"))
             bounties.getConfig().set("advanced-gui.size", 54);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.enabled")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.enabled"))
             bounties.getConfig().set("bounty-tracker.enabled", true);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.remove")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.remove"))
             bounties.getConfig().set("bounty-tracker.remove", 2);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.glow")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.glow"))
             bounties.getConfig().set("bounty-tracker.glow", 10);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.enabled")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.enabled"))
             bounties.getConfig().set("bounty-tracker.action-bar.enabled", true);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.show-always")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.show-always"))
             bounties.getConfig().set("bounty-tracker.action-bar.show-always", true);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.player-name")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.player-name"))
             bounties.getConfig().set("bounty-tracker.action-bar.player-name", true);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.distance")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.distance"))
             bounties.getConfig().set("bounty-tracker.action-bar.distance", true);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.position")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.position"))
             bounties.getConfig().set("bounty-tracker.action-bar.position", false);
-        }
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.world")) {
+        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.world"))
             bounties.getConfig().set("bounty-tracker.action-bar.world", false);
-        }
-        if (!bounties.getConfig().isSet("redeem-reward-later")) {
+        if (!bounties.getConfig().isSet("redeem-reward-later"))
             bounties.getConfig().set("redeem-reward-later", false);
-        }
-        if (!bounties.getConfig().isSet("advanced-gui.sort-type")) {
+        if (!bounties.getConfig().isSet("advanced-gui.sort-type"))
             bounties.getConfig().set("advanced-gui.sort-type", 2);
-        }
-        if (!bounties.getConfig().isSet("minimum-broadcast")) {
+        if (!bounties.getConfig().isSet("minimum-broadcast"))
             bounties.getConfig().set("minimum-broadcast", 100);
-        }
-        if (!bounties.getConfig().isSet("big-bounties.bounty-threshold")) {
+        if (!bounties.getConfig().isSet("big-bounties.bounty-threshold"))
             bounties.getConfig().set("big-bounties.bounty-threshold", -1);
-        }
-        if (!bounties.getConfig().isSet("big-bounties.particle")) {
+        if (!bounties.getConfig().isSet("big-bounties.particle"))
             bounties.getConfig().set("big-bounties.particle", true);
-        }
-        if (!bounties.getConfig().isSet("big-bounties.commands")) {
+        if (!bounties.getConfig().isSet("big-bounties.commands"))
             bounties.getConfig().set("big-bounties.commands", new ArrayList<>(Collections.singletonList("execute run effect give {player} minecraft:glowing 10 0")));
-        }
-        if (!bounties.getConfig().isSet("database.host")){
+        if (!bounties.getConfig().isSet("database.host"))
             bounties.getConfig().set("database.host", "localhost");
-        }
-        if (!bounties.getConfig().isSet("database.port")){
+        if (!bounties.getConfig().isSet("database.port"))
             bounties.getConfig().set("database.port", "3306");
-        }
-        if (!bounties.getConfig().isSet("database.database")){
+        if (!bounties.getConfig().isSet("database.database"))
             bounties.getConfig().set("database.database", "db");
-        }
-        if (!bounties.getConfig().isSet("database.user")){
+        if (!bounties.getConfig().isSet("database.user"))
             bounties.getConfig().set("database.user", "username");
-        }
-        if (!bounties.getConfig().isSet("database.password")){
+        if (!bounties.getConfig().isSet("database.password"))
             bounties.getConfig().set("database.password", "");
-        }
-        if (!bounties.getConfig().isSet("database.use-ssl")){
+        if (!bounties.getConfig().isSet("database.use-ssl"))
             bounties.getConfig().set("database.use-ssl", false);
-        }
-        if (!bounties.getConfig().isSet("database.migrate-local-data")){
+        if (!bounties.getConfig().isSet("database.migrate-local-data"))
             bounties.getConfig().set("database.migrate-local-data", true);
-        }
-        if (!bounties.getConfig().isSet("database.auto-connect")){
+        if (!bounties.getConfig().isSet("database.auto-connect"))
             bounties.getConfig().set("database.auto-connect", false);
-        }
+        if (!bounties.getConfig().isSet("hide-stats"))
+            bounties.getConfig().set("hide-stats", new ArrayList<>());
 
         bounties.saveConfig();
 
@@ -272,6 +233,7 @@ public class ConfigOptions {
         bBountyCommands = bounties.getConfig().getStringList("big-bounties.commands");
         migrateLocalData = bounties.getConfig().getBoolean("database.migrate-local-data");
         autoConnect = bounties.getConfig().getBoolean("database.auto-connect");
+        hiddenNames = bounties.getConfig().getStringList("hide-stats");
 
         customItems.clear();
         itemCommands.clear();
@@ -665,5 +627,122 @@ public class ConfigOptions {
         }
         return matcher.appendTail(buffer).toString();
     }
+
+    public static String parse(String str, String player, OfflinePlayer receiver) {
+        while (str.contains("{receiver}")) {
+            str = str.replace("{receiver}", player);
+        }
+        while (str.contains("{player}")) {
+            str = str.replace("{player}", player);
+        }
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+
+    public static String parse(String str, OfflinePlayer receiver) {
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+
+    public static String parse(String str, long amount, OfflinePlayer receiver) {
+        while (str.contains("{amount}")) {
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+        }
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+
+    public static String parse(String str, String player, long amount, OfflinePlayer receiver) {
+        while (str.contains("{receiver}")) {
+            str = str.replace("{receiver}", player);
+        }
+        while (str.contains("{player}")) {
+            str = str.replace("{player}", player);
+        }
+        while (str.contains("{amount}")) {
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+        }
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+    public static String parse(String str, String player, long amount, long bounty, OfflinePlayer receiver) {
+        while (str.contains("{receiver}")) {
+            str = str.replace("{receiver}", player);
+        }
+        while (str.contains("{player}")) {
+            str = str.replace("{player}", player);
+        }
+        while (str.contains("{amount}")) {
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+        }
+        while (str.contains("{bounty}")) {
+            str = str.replace("{bounty}", bounty + "");
+        }
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+
+
+    public static String parse(String str, String sender, String player, long amount, OfflinePlayer receiver) {
+        while (str.contains("{player}")) {
+            str = str.replace("{player}", sender);
+        }
+        while (str.contains("{receiver}")) {
+            str = str.replace("{receiver}", player);
+        }
+        while (str.contains("{amount}")) {
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+        }
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+
+    public static String parse(String str, String sender, String player, OfflinePlayer receiver) {
+        while (str.contains("{player}")) {
+            str = str.replace("{player}", sender);
+        }
+        while (str.contains("{receiver}")) {
+            str = str.replace("{receiver}", player);
+        }
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+
+
+    public static String parse(String str, String sender, String player, long amount, long totalBounty, OfflinePlayer receiver) {
+        while (str.contains("{player}")) {
+            str = str.replace("{player}", sender);
+        }
+        while (str.contains("{receiver}")) {
+            str = str.replace("{receiver}", player);
+        }
+        while (str.contains("{amount}")) {
+            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+        }
+        while (str.contains("{bounty}")) {
+            str = str.replace("{bounty}", currencyPrefix + totalBounty + currencySuffix);
+        }
+        if (papiEnabled && receiver != null) {
+            return PlaceholderAPI.setPlaceholders(receiver, str);
+        }
+        return str;
+    }
+
+
+
 
 }

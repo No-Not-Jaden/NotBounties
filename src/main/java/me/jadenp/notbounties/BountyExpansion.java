@@ -1,8 +1,16 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationOptions;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
+
+import static me.jadenp.notbounties.Commands.sortByValue;
+import static me.jadenp.notbounties.ConfigOptions.*;
+import static me.jadenp.notbounties.ConfigOptions.currencySuffix;
 
 public class BountyExpansion extends PlaceholderExpansion {
 
@@ -83,6 +91,43 @@ public class BountyExpansion extends PlaceholderExpansion {
                 return notBounties.data.getTotalClaimed(player.getUniqueId().toString()) + "";
             }
             return notBounties.allClaimed.get(player.getUniqueId().toString()) + "";
+        }
+        // im just reusing code for this next part, but there is definitely a better way to do this
+        if (params.startsWith("top_")) {
+            params = params.substring(4);
+            int rank = 0;
+            try {
+                rank = Integer.parseInt(params.substring(params.indexOf("_") + 1));
+            } catch (NumberFormatException ignored) {
+            }
+            if (rank < 1)
+                rank = 1;
+            Leaderboard leaderboard;
+            try {
+                leaderboard = Leaderboard.valueOf(params.substring(0, params.indexOf("_")).toUpperCase());
+            } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+                return null;
+            }
+            LinkedHashMap<String, Integer> stat = leaderboard.getTop(rank - 1, 1);
+            if (stat.size() == 0)
+                return "";
+            boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL;
+            Map.Entry<String, Integer> entry = stat.entrySet().iterator().next();
+            int amount = entry.getValue();
+            OfflinePlayer p = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
+            String name = p.getName();
+            if (name == null && notBounties.loggedPlayers.containsValue(entry.getKey())) {
+                for (Map.Entry<String, String> logged : notBounties.loggedPlayers.entrySet()) {
+                    if (logged.getValue().equals(entry.getKey())) {
+                        name = logged.getKey();
+                        break;
+                    }
+                    name = "???";
+                }
+            } else {
+                name = "???";
+            }
+            return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
         }
 
         return null;

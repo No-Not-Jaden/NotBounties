@@ -1,9 +1,6 @@
 package me.jadenp.notbounties.sql;
 
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.ConfigOptions;
-import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.*;
 import org.bukkit.Bukkit;
 
 import java.sql.PreparedStatement;
@@ -116,36 +113,58 @@ public class SQLGetter {
         }
         return 0;
     }
-    public Map<String, Integer> getAllTotalClaimed(){
-        Map<String, Integer> data = new HashMap<>();
-        try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, allclaimed FROM bounty_data;");
 
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()){
-                data.put(rs.getString("uuid"), rs.getInt("allclaimed"));
-            }
-        } catch (SQLException e){
-            if (reconnect()){
-                return getAllTotalClaimed();
-            }
-            if (debug)
-                e.printStackTrace();
+    /**
+     * Get the top stats from the database
+     * @param leaderboard what stat is being requested
+     * @param hiddenNames which names should be hidden from the result
+     * @param skip how many rows will be skipped from the top of the list
+     * @param results maximum amount of results that could be returned
+     * @return A descending ordered list of entries of a leaderboard stat
+     */
+    public LinkedHashMap<String, Integer> getTopStats(Leaderboard leaderboard, List<String> hiddenNames, int skip, int results){
+        String listName = "";
+        switch (leaderboard){
+            case ALL:
+                listName = "alltime";
+                break;
+            case KILLS:
+                listName = "claimed";
+                break;
+            case CLAIMED:
+                listName = "allclaimed";
+                break;
+            case DEATHS:
+                listName = "received";
+                break;
+            case SET:
+                listName = "sets";
+                break;
+            case IMMUNITY:
+                listName = "immunity";
+                break;
         }
-        return data;
-    }
-    public Map<String, Integer> getAllClaimed(){
-        Map<String, Integer> data = new HashMap<>();
+        LinkedHashMap<String, Integer> data = new LinkedHashMap<>();
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < hiddenNames.size()-1; i++) {
+            builder.append(hiddenNames.get(i)).append("' AND name != '");
+        }
+        if (hiddenNames.size() > 0)
+            builder.append(hiddenNames.get(hiddenNames.size()-1));
         try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, claimed FROM bounty_data;");
-
+            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, ? FROM bounty_data WHERE name != '?' ORDER BY ? DESC LIMIT ?,?;");
+            ps.setString(1, listName);
+            ps.setString(2, builder.toString());
+            ps.setString(3, listName);
+            ps.setInt(4, skip);
+            ps.setInt(5, skip + results);
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
-                data.put(rs.getString("uuid"), rs.getInt("claimed"));
+                data.put(rs.getString("uuid"), rs.getInt(listName));
             }
         } catch (SQLException e){
             if (reconnect()){
-                return getAllClaimed();
+                return getTopStats(leaderboard, hiddenNames, skip, results);
             }
             if (debug)
                 e.printStackTrace();
@@ -170,24 +189,6 @@ public class SQLGetter {
         }
         return 0;
     }
-    public Map<String, Integer> getAllSet(){
-        Map<String, Integer> data = new HashMap<>();
-        try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, sets FROM bounty_data;");
-
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()){
-                data.put(rs.getString("uuid"), rs.getInt("sets"));
-            }
-        } catch (SQLException e){
-            if (reconnect()){
-                return getAllSet();
-            }
-            if (debug)
-                e.printStackTrace();
-        }
-        return data;
-    }
 
     public int getReceived(String uuid){
         try {
@@ -206,24 +207,7 @@ public class SQLGetter {
         }
         return 0;
     }
-    public Map<String, Integer> getAllReceived(){
-        Map<String, Integer> data = new HashMap<>();
-        try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, received FROM bounty_data;");
 
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()){
-                data.put(rs.getString("uuid"), rs.getInt("received"));
-            }
-        } catch (SQLException e){
-            if (reconnect()){
-                return getAllReceived();
-            }
-            if (debug)
-                e.printStackTrace();
-        }
-        return data;
-    }
     public int getAllTime(String uuid){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT alltime FROM bounty_data WHERE uuid = ?;");
@@ -240,24 +224,6 @@ public class SQLGetter {
                 e.printStackTrace();
         }
         return 0;
-    }
-    public Map<String, Integer> getAllAllTime(){
-        Map<String, Integer> data = new HashMap<>();
-        try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, alltime FROM bounty_data;");
-
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()){
-                data.put(rs.getString("uuid"), rs.getInt("alltime"));
-            }
-        } catch (SQLException e){
-            if (reconnect()){
-                return getAllAllTime();
-            }
-            if (debug)
-                e.printStackTrace();
-        }
-        return data;
     }
 
     public int getImmunity(String uuid){
@@ -277,24 +243,7 @@ public class SQLGetter {
         }
         return 0;
     }
-    public Map<String, Integer> getAllImmunity(){
-        Map<String, Integer> data = new HashMap<>();
-        try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, immunity FROM bounty_data;");
 
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()){
-                data.put(rs.getString("uuid"), rs.getInt("immunity"));
-            }
-        } catch (SQLException e){
-            if (reconnect()){
-                return getAllImmunity();
-            }
-            if (debug)
-                e.printStackTrace();
-        }
-        return data;
-    }
 
     public void setImmunity(String uuid, int amount){
         try {

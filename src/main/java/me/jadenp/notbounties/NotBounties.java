@@ -155,9 +155,17 @@ public final class NotBounties extends JavaPlugin {
      *
      *
      * gui for bounty top
+     * > new bounty top command
+     * button in the gui to set a bounty
+     * option to disable update notification
+     *
+     * Change getting top stats to limit to 10
      *
      */
 
+    /**
+     * Name, UUID
+     */
     public Map<String, String> loggedPlayers = new HashMap<>();
     public List<Bounty> bountyList = new ArrayList<>();
     public List<Bounty> expiredBounties = new ArrayList<>();
@@ -756,106 +764,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public void openGUI(Player player, int page) {
-        Inventory bountyInventory = Bukkit.createInventory(player, guiSize, speakings.get(35) + " " + (page + 1));
-        ItemStack[] contents = bountyInventory.getContents();
-        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties();
-        for (String[] itemInfo : layout) {
-            ItemStack itemStack;
-            if (itemInfo[0].equalsIgnoreCase("exit")) {
-                itemStack = item.get("exit");
-            } else if (itemInfo[0].equalsIgnoreCase("next")) {
-                if (sortedList.size() > (page * bountySlots.size()) + bountySlots.size()) {
-                    itemStack = item.get("next");
-                } else {
-                    itemStack = null;
-                }
-            } else if (itemInfo[0].equalsIgnoreCase("back")) {
-                if (page > 0) {
-                    itemStack = item.get("back");
-                } else {
-                    itemStack = null;
-                }
-            } else {
-                try {
-                    itemStack = customItems.get(Integer.parseInt(itemInfo[0]));
-                    itemStack = formatItem(itemStack, player);
-                } catch (NumberFormatException ignored) {
-                    itemStack = new ItemStack(Material.STONE);
-                }
-            }
-            if (itemStack != null)
-                if (itemInfo[1] != null)
-                    if (itemInfo[1].contains("-")) {
-                        int num1;
-                        try {
-                            num1 = Integer.parseInt(itemInfo[1].substring(0, itemInfo[1].indexOf("-")));
-                        } catch (NumberFormatException ignored) {
-                            continue;
-                        }
-                        int num2;
-                        try {
-                            num2 = Integer.parseInt(itemInfo[1].substring(itemInfo[1].indexOf("-") + 1));
-                        } catch (NumberFormatException ignored) {
-                            continue;
-                        }
-                        for (int i = Math.min(num1, num2); i < Math.max(num1, num2) + 1; i++) {
-                            contents[i] = itemStack;
-                        }
-                    } else {
-                        try {
-                            contents[Integer.parseInt(itemInfo[1])] = itemStack;
-                        } catch (NumberFormatException ignored) {
 
-                        }
-                    }
-        }
-
-        for (int i = page * bountySlots.size(); i < (page * bountySlots.size()) + bountySlots.size(); i++) {
-            if (sortedList.size() > i) {
-                ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
-                SkullMeta meta = (SkullMeta) skull.getItemMeta();
-                assert meta != null;
-                meta.setOwningPlayer(Bukkit.getOfflinePlayer(UUID.fromString(sortedList.get(i).getUUID())));
-                if (papiEnabled) {
-                    meta.setDisplayName(PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(UUID.fromString(sortedList.get(i).getUUID())), parse(speakings.get(13), sortedList.get(i).getName(), sortedList.get(i).getTotalBounty(), null)));
-                } else {
-                    meta.setDisplayName(parse(speakings.get(13), sortedList.get(i).getName(), sortedList.get(i).getTotalBounty(), null));
-                }
-                ArrayList<String> lore = new ArrayList<>();
-                for (String str : headLore) {
-                    if (papiEnabled) {
-                        lore.add(PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(UUID.fromString(sortedList.get(i).getUUID())), parse(str, sortedList.get(i).getName(), sortedList.get(i).getTotalBounty(), null)));
-                    } else {
-                        lore.add(parse(str, sortedList.get(i).getName(), sortedList.get(i).getTotalBounty(), null));
-                    }
-                }
-
-
-                if (player.hasPermission("notbounties.admin")) {
-                    lore.add(ChatColor.RED + "Left Click" + ChatColor.GRAY + " to Remove");
-                    lore.add(ChatColor.YELLOW + "Right Click" + ChatColor.GRAY + " to Edit");
-                    lore.add("");
-                    //lore.add(ChatColor.BLACK + "" + i);
-                } else {
-                    if (buyBack) {
-                        if (sortedList.get(i).getUUID().equals(player.getUniqueId().toString())) {
-                            lore.add(parse(buyBackLore, (int) (sortedList.get(i).getTotalBounty() * buyBackInterest), player));
-                            lore.add("");
-                        }
-                    }
-                }
-                meta.setLore(lore);
-                skull.setItemMeta(meta);
-                contents[bountySlots.get(i - page * bountySlots.size())] = skull;
-            } else {
-                break;
-            }
-        }
-
-        bountyInventory.setContents(contents);
-        player.openInventory(bountyInventory);
-    }
 
     public List<Bounty> sortBounties(){
         // how bounties are sorted
@@ -1289,119 +1198,7 @@ public final class NotBounties extends JavaPlugin {
         return null;
     }
 
-    public String parse(String str, String player, OfflinePlayer receiver) {
-        while (str.contains("{receiver}")) {
-            str = str.replace("{receiver}", player);
-        }
-        while (str.contains("{player}")) {
-            str = str.replace("{player}", player);
-        }
-        if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
-        }
-        return str;
-    }
 
-    public String parse(String str, OfflinePlayer receiver) {
-        if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
-        }
-        return str;
-    }
-
-    public String parse(String str, long amount, OfflinePlayer receiver) {
-        while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
-        }
-        if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
-        }
-        return str;
-    }
-
-    public String parse(String str, String player, long amount, OfflinePlayer receiver) {
-        while (str.contains("{receiver}")) {
-            str = str.replace("{receiver}", player);
-        }
-        while (str.contains("{player}")) {
-            str = str.replace("{player}", player);
-        }
-        while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
-        }
-        if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
-        }
-        return str;
-    }
-    public String parse(String str, String player, long amount, long bounty, OfflinePlayer receiver) {
-        while (str.contains("{receiver}")) {
-            str = str.replace("{receiver}", player);
-        }
-        while (str.contains("{player}")) {
-            str = str.replace("{player}", player);
-        }
-        while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
-        }
-        while (str.contains("{bounty}")) {
-            str = str.replace("{bounty}", bounty + "");
-        }
-        if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
-        }
-        return str;
-    }
-
-
-    public String parse(String str, String sender, String player, long amount, OfflinePlayer receiver) {
-        while (str.contains("{player}")) {
-            str = str.replace("{player}", sender);
-        }
-        while (str.contains("{receiver}")) {
-            str = str.replace("{receiver}", player);
-        }
-        while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
-        }
-        if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
-        }
-        return str;
-    }
-
-    public String parse(String str, String sender, String player, OfflinePlayer receiver) {
-        while (str.contains("{player}")) {
-            str = str.replace("{player}", sender);
-        }
-        while (str.contains("{receiver}")) {
-            str = str.replace("{receiver}", player);
-        }
-        if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
-        }
-        return str;
-    }
-
-
-    public String parse(String str, String sender, String player, long amount, long totalBounty, OfflinePlayer receiver) {
-        while (str.contains("{player}")) {
-            str = str.replace("{player}", sender);
-        }
-        while (str.contains("{receiver}")) {
-            str = str.replace("{receiver}", player);
-        }
-        while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
-        }
-        while (str.contains("{bounty}")) {
-            str = str.replace("{bounty}", currencyPrefix + totalBounty + currencySuffix);
-        }
-        if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
-        }
-        return str;
-    }
 
 
 

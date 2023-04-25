@@ -20,6 +20,9 @@ remove-currency-commands: [] # ['eco take {player} {amount}']
 add-currency-commands: [] # ['eco give {player} {amount}']
 # how many days until bounties expire
 bounty-expire: -1
+# These player's bounty stats will be hidden from bounties top
+hide-stats:
+  - Not_Jaden
 reward-heads:
   # give player heads to the setter of the bounty once claimed
   setters: true
