@@ -490,6 +490,9 @@ public class ConfigOptions {
         if (!configuration.isSet("bounty-stat-immunity")){
             configuration.set("bounty-stat-immunity", "&eYou have spent &2{amount}&e on immunity.");
         }
+        if (!configuration.isSet("bounty-top-gui")){
+            configuration.set("bounty-top-gui", "&dTop: {type}");
+        }
 
         configuration.save(language);
 
@@ -593,6 +596,8 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat-set"))));
         // 49 bounty-stat-immunity
         speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat-immunity"))));
+        // 50 bounty-top-gui
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-top-gui"))));
 
         voucherLore.clear();
         for (String str : configuration.getStringList("bounty-voucher-lore")){

@@ -103,7 +103,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     if (args.length == 1){
-                        Leaderboard.ALL.displayStats((Player) sender);
+                        Leaderboard.ALL.displayStats((Player) sender, true);
                         return true;
                     }
                     if (args.length != 2){
@@ -113,7 +113,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     try {
-                        Leaderboard.valueOf(args[1].toUpperCase()).displayStats((Player) sender);
+                        Leaderboard.valueOf(args[1].toUpperCase()).displayStats((Player) sender, true);
                     } catch (IllegalArgumentException e){
                         // more usage
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(24), (Player) sender));
@@ -138,7 +138,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                             if (args.length == 2){
                                 // open gui
-
+                                GUI.openTop(leaderboard, (Player) sender);
                             } else {
                                 leaderboard.displayTopStat(sender, 10);
                             }

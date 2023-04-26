@@ -6,21 +6,19 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
-import static me.jadenp.notbounties.ConfigOptions.bountySlots;
 
 public class GUI implements Listener {
     public GUI(){}
@@ -127,7 +125,46 @@ public class GUI implements Listener {
     }
 
     public static void openTop(Leaderboard leaderboard, Player player){
+        // add customizable later
+        LinkedHashMap<String, Integer> list = leaderboard.getTop(0,10);
+        String name = speakings.get(50).replaceAll("\\{type}", leaderboard.name());
+        Inventory inv = Bukkit.createInventory(player, 36, name);
+        ItemStack[] contents = inv.getContents();
+        ItemStack fill = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = fill.getItemMeta();
+        assert meta != null;
+        meta.setDisplayName(ChatColor.BLACK + "");
+        fill.setItemMeta(meta);
+        Arrays.fill(contents, meta);
+        contents[31] = Item.get("exit");
+        int i = 11;
+        for (Map.Entry<String, Integer> entry : list.entrySet()){
+            ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
+            SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
+            assert skullMeta != null;
+            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
+            skullMeta.setOwningPlayer(offlinePlayer);
 
+            if (papiEnabled) {
+                skullMeta.setDisplayName(PlaceholderAPI.setPlaceholders(offlinePlayer, parse(speakings.get(13), offlinePlayer.getName(), entry.getValue(), null)));
+            } else {
+                skullMeta.setDisplayName(parse(speakings.get(13), offlinePlayer.getName(), entry.getValue(), null));
+            }
+            ArrayList<String> lore = new ArrayList<>();
+            lore.add(leaderboard.displayStats(offlinePlayer, false));
+
+            skullMeta.setLore(lore);
+            skull.setItemMeta(skullMeta);
+            contents[i] = skull;
+            if (i < 15)
+                i+= 2;
+            if (i == 15)
+                i = 19;
+            if (i >= 19)
+                i++;
+        }
+        inv.setContents(contents);
+        player.openInventory(inv);
     }
 
     @EventHandler

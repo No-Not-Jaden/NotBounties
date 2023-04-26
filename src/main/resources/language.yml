@@ -66,5 +66,6 @@ bounty-stat-claimed: '&eYou have claimed &2{amount}&e from bounties.'
 bounty-stat-deaths: '&eYou have died &6{amount}&e times with a bounty.'
 bounty-stat-set: '&eYou have set &6{amount}&e successful bounties.'
 bounty-stat-immunity: '&eYou have spent &2{amount}&e on immunity.'
+bounty-top-gui: '&dTop: {type}'
 
 

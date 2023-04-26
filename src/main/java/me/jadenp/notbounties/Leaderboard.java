@@ -64,27 +64,46 @@ public enum Leaderboard {
      * Correctly displays the player's stat
      * @param player Player to display to
      */
-    public void displayStats(Player player){
+    public String displayStats(OfflinePlayer player, boolean send){
+        String msg = "";
         switch (this){
             case ALL:
-                player.sendMessage(parseStats(speakings.get(0) + speakings.get(44), getStat(player.getUniqueId()), true, player));
+            case CLAIMED:
+            case IMMUNITY:
+                msg = parseStats(speakings.get(0) + getStatMsg(), getStat(player.getUniqueId()), true, player);
+
                 break;
             case KILLS:
-                player.sendMessage(parseStats(speakings.get(0) + speakings.get(45), getStat(player.getUniqueId()), false, player));
-                break;
-            case CLAIMED:
-                player.sendMessage(parseStats(speakings.get(0) + speakings.get(46), getStat(player.getUniqueId()), true, player));
-                break;
             case DEATHS:
-                player.sendMessage(parseStats(speakings.get(0) + speakings.get(47), getStat(player.getUniqueId()), false, player));
-                break;
             case SET:
-                player.sendMessage(parseStats(speakings.get(0) + speakings.get(48), getStat(player.getUniqueId()), false, player));
-                break;
-            case IMMUNITY:
-                player.sendMessage(parseStats(speakings.get(0) + speakings.get(49), getStat(player.getUniqueId()), true, player));
+                msg = parseStats(speakings.get(0) + getStatMsg(), getStat(player.getUniqueId()), false, player);
                 break;
         }
+        if (send && player.isOnline()) {
+            Player p = player.getPlayer();
+            assert p != null;
+            p.sendMessage(msg);
+        }
+        return msg;
+
+    }
+
+    public String getStatMsg(){
+        switch (this){
+            case ALL:
+                return speakings.get(44);
+            case KILLS:
+                return speakings.get(45);
+            case CLAIMED:
+                return speakings.get(46);
+            case DEATHS:
+                return speakings.get(47);
+            case SET:
+                return speakings.get(48);
+            case IMMUNITY:
+                return speakings.get(49);
+        }
+        return "";
     }
 
     /**
