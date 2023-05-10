@@ -23,6 +23,8 @@ bounty-expire: -1
 # These player's bounty stats will be hidden from bounties top
 hide-stats:
   - Not_Jaden
+# get notified on NotBounties Updates
+update-notification: true
 reward-heads:
   # give player heads to the setter of the bounty once claimed
   setters: true
@@ -104,56 +106,6 @@ database:
   migrate-local-data: true
   # automatically try to connect to the database if a connection was lost
   auto-connect: false
-# for customizing the layout of the GUI
-advanced-gui:
-  # how the bounty menu is sorted
-  # 0 : newer bounties at top
-  # 1 : older bounties at top
-  # 2 : more expensive bounties at top
-  # 3 : less expensive bounties at top
-  sort-type: 2
-  # how many slots in the GUI
-  # looks best with multiples of 9
-  size: 54
-  custom-items:
-    fill:
-      # material from https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
-      material: GRAY_STAINED_GLASS_PANE
-      amount: 1
-      # for resource packs, you do not need to use this
-      custom-model-data: 10
-      # name and lore accept placeholders and hex
-      # this will make the name invisible
-      name: '&r'
-      lore: []
-      enchanted: false
-      # Commands to run when the item is clicked
-      # use {player} to replace with the player's name
-      # [close] to close GUI
-      # [p] (command) to send as the player
-      commands: []
-  # which slots bounties will appear in
-  # can accept multiple strings
-  bounty-slots:
-    - '0-44'
-  # - '45'
-  layout:
-    1:
-      # use custom items here or preset items such as 'exit' 'next' 'back'
-      item: fill
-      # what slot or slots in the inventory will be filled - this image has the layout: https://wiki.vg/images/b/bb/DoubleChest-slots.png
-      slot: 45-53
-    # clicking this item will exit the GUI
-    2:
-      item: exit
-      slot: 49
-    # these next 2 will only appear when there are multiple pages
-    # they switch between the pages
-    3:
-      item: back
-      slot: 45
-    4:
-      item: next
-      slot: 53
+
 
 

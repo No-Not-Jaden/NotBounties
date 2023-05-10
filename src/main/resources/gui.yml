@@ -1,0 +1,137 @@
+custom-items:
+  fill:
+    # material from https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+    material: GRAY_STAINED_GLASS_PANE
+    amount: 1
+    # for resource packs, you do not need to use this
+    custom-model-data: 10
+    # name and lore accept placeholders and hex
+    # this will make the name invisible
+    name: '&r'
+    lore: []
+    enchanted: false
+    hide-nbt: true
+    # Commands to run when the item is clicked
+    # use {player} to replace with the player's name
+    # [close] to close GUI
+    # [p] (command) to send as the player
+    # [next] <x> goes to the next x amount of pages or next page if x is empty
+    # [back] goes to the last x amount of pages or last page if x is empty
+    # [gui] (gui name) (page) (leaderboard) opens a new gui - only gui name is required, ex: [gui] bounty-gui | [gui] leaderboard 1 kills
+    commands: []
+  exit:
+    material: BARRIER
+    amount: 1
+    name: '&c&lExit'
+    commands:
+      - '[close]'
+  next:
+    material: ARROW
+    amount: 1
+    name : '&7Next Page'
+    commands:
+      - '[next]'
+  back:
+    material: ARROW
+    amount: 1
+    name: '&7Previous Page'
+    commands:
+      - '[back]'
+# for customizing the layout of the regular bounty GUI
+bounty-gui:
+  # how the bounty menu is sorted
+  # 0 : newer bounties at top
+  # 1 : older bounties at top
+  # 2 : more expensive bounties at top
+  # 3 : less expensive bounties at top
+  sort-type: 2
+  # how many slots in the GUI
+  # looks best with multiples of 9
+  size: 54
+  # name of the gui - does not accept placeholders
+  gui-name: '&d&lBounties &9&lPage'
+  # this will add the page number at the end of the gui name
+  add-page: true
+  # this will remove items with actions of [next] or [back] if there is no next page or previous page
+  remove-page-items: true
+  # which slots heads will appear in
+  # can accept multiple strings
+  player-slots:
+    - '0-44'
+  # - '45'
+  head-name: '&4☠ &c&l{player} &4☠'
+  head-lore:
+    - '&7<&m                        &7>'
+    - '&4Bounty: &6{amount}'
+    - '&4&oKill this player to'
+    - '&4&oreceive this reward'
+    - '&7<&m                        &7>'
+  layout:
+    1:
+      # use custom items here or preset items such as 'exit' 'next' 'back'
+      item: fill
+      # what slot or slots in the inventory will be filled - this image has the layout: https://wiki.vg/images/b/bb/DoubleChest-slots.png
+      slot: 45-53
+    # clicking this item will exit the GUI
+    2:
+      item: exit
+      slot: 49
+    # these next 2 will only appear when there are multiple pages
+    # they switch between the pages
+    3:
+      item: back
+      slot: 45
+    4:
+      item: next
+      slot: 53
+leaderboard:
+  # 1 for highest value
+  # 2 for lowest value
+  # 3 for alphabetically
+  # 4 for reverse alphabetically
+  sort-type: 1
+  size: 36
+  gui-name: '&d&lBounties &9&lTop'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    - '11'
+    - '13'
+    - '15'
+    - '19-25'
+  head-name: '&e&l{player}'
+  # rank is number in linked hashmap in customgui create inv
+  head-lore:
+    - '&7<&m                        &7>'
+    - '&2&n{leaderboard}'
+    #- '&6%notbounties_top_{rank}_{leaderboard}%' this is better if you are using placeholderAPI
+    - '&6{rank}&8: &7{amount}'
+    - '&7<&m                        &7>'
+  layout:
+    1:
+      item: fill
+      slot: 0-35
+    2:
+      item: exit
+      slot: 31
+set-bounty:
+  # same sort for leaderboard, but this sorts immunity
+  sort-type: 3
+  size: 54
+  gui-name: '&cWIP'
+  add-page: true
+  remove-page-items: true
+  player-slots:
+    - '0-44'
+  head-name: '{player}'
+  head-lore:
+    - 'yum'
+  layout:
+    1:
+      item: fill
+      slot: 45-53
+    2:
+      item: exit
+      slot: 49
+# the page of this is the price
+select-price:

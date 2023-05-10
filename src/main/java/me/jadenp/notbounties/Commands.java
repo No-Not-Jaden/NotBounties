@@ -103,7 +103,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     if (args.length == 1){
-                        Leaderboard.ALL.displayStats((Player) sender, true);
+                        Leaderboard.ALL.displayStats((Player) sender, true, false);
                         return true;
                     }
                     if (args.length != 2){
@@ -113,7 +113,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     try {
-                        Leaderboard.valueOf(args[1].toUpperCase()).displayStats((Player) sender, true);
+                        Leaderboard.valueOf(args[1].toUpperCase()).displayStats((Player) sender, true, false);
                     } catch (IllegalArgumentException e){
                         // more usage
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(24), (Player) sender));
@@ -138,7 +138,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                             if (args.length == 2){
                                 // open gui
-                                GUI.openTop(leaderboard, (Player) sender);
+                                GUI.openGUI((Player) sender, "leaderboard", 1);
                             } else {
                                 leaderboard.displayTopStat(sender, 10);
                             }
@@ -629,13 +629,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             } else if (nb.SQL.isConnected()){
                                                 nb.data.removeSetter(toRemove.getUUID(), actualRemove.getUuid());
                                             }
-                                            for (Player player : Bukkit.getOnlinePlayers()) {
-                                                if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                                    if (player.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                                                        GUI.openGUI(player, Integer.parseInt(player.getOpenInventory().getTitle().substring(player.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                                                    }
-                                                }
-                                            }
+                                            // reopen gui for everyone
+                                            reopenBountiesGUI();
                                             // successfully removed
                                             if (sender instanceof Player) {
                                                 Player player = Bukkit.getPlayer(UUID.fromString(toRemove.getUUID()));
@@ -950,13 +945,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 if (balance >= (int) (amount + (amount * bountyTax))) {
                                                     nb.doRemoveCommands((Player) sender, (int) (amount + (amount * bountyTax)));
                                                     nb.addBounty((Player) sender, p, (int) amount);
-                                                    for (Player player : Bukkit.getOnlinePlayers()) {
-                                                        if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                                            if (player.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                                                                GUI.openGUI(player, Integer.parseInt(player.getOpenInventory().getTitle().substring(player.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                                                            }
-                                                        }
-                                                    }
+                                                    reopenBountiesGUI();
                                                 } else {
                                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (amount + (amount * bountyTax)), (Player) sender));
                                                 }
@@ -970,13 +959,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 nb.removeItem((Player) sender, Material.valueOf(currency), (int) (amount + (amount * bountyTax)));
                                                 nb.addBounty((Player) sender, p, (int) amount);
                                                 nb.doRemoveCommands((Player) sender, (int) (amount + (amount * bountyTax)));
-                                                for (Player player : Bukkit.getOnlinePlayers()) {
-                                                    if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                                        if (player.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                                                            GUI.openGUI(player, Integer.parseInt(player.getOpenInventory().getTitle().substring(player.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                                                        }
-                                                    }
-                                                }
+                                                reopenBountiesGUI();
                                             } else {
                                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (amount + (amount * bountyTax)), (Player) sender));
                                             }
@@ -992,13 +975,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                 } else {
                                     nb.addBounty(p, (int) amount);
-                                    for (Player player : Bukkit.getOnlinePlayers()) {
-                                        if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                            if (player.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                                                GUI.openGUI(player, Integer.parseInt(player.getOpenInventory().getTitle().substring(player.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                                            }
-                                        }
-                                    }
+                                    reopenBountiesGUI();
                                 }
                                 return true;
                             }
@@ -1021,13 +998,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 if (balance >= (int) (amount + (amount * bountyTax))) {
                                                     nb.doRemoveCommands((Player) sender, (int) (amount + (amount * bountyTax)));
                                                     nb.addBounty((Player) sender, player, (int) amount);
-                                                    for (Player player1 : Bukkit.getOnlinePlayers()) {
-                                                        if (player1.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                                            if (player1.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                                                                GUI.openGUI(player1, Integer.parseInt(player1.getOpenInventory().getTitle().substring(player1.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                                                            }
-                                                        }
-                                                    }
+                                                    reopenBountiesGUI();
                                                 } else {
                                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (amount + (amount *bountyTax)), (Player) sender));
                                                 }
@@ -1038,13 +1009,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (nb.checkAmount((Player) sender, Material.valueOf(currency)) >= (int) (amount + (amount * bountyTax))) {
                                                 nb.removeItem((Player) sender, Material.valueOf(currency), (int) (amount + (amount * bountyTax)));
                                                 nb.addBounty((Player) sender, player, (int) amount);
-                                                for (Player player1 : Bukkit.getOnlinePlayers()) {
-                                                    if (player1.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                                        if (player1.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                                                            GUI.openGUI(player1, Integer.parseInt(player1.getOpenInventory().getTitle().substring(player1.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                                                        }
-                                                    }
-                                                }
+                                                reopenBountiesGUI();
                                                 nb.doRemoveCommands((Player) sender, (int) (amount + (amount * bountyTax)));
                                             } else {
                                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (amount + (amount * bountyTax)), (Player) sender));
@@ -1060,13 +1025,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                 } else {
                                     nb.addBounty(player, (int) amount);
-                                    for (Player player1 : Bukkit.getOnlinePlayers()) {
-                                        if (player1.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                            if (player1.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                                                GUI.openGUI(player1, Integer.parseInt(player1.getOpenInventory().getTitle().substring(player1.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                                            }
-                                        }
-                                    }
+                                    reopenBountiesGUI();
                                 }
                             } else {
                                 if (sender instanceof Player)
@@ -1084,7 +1043,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             } else {
                 // open gui
-                GUI.openGUI((Player) sender, 0);
+                GUI.openGUI((Player) sender, "bounty-gui", 1);
             }
         }
         return true;
@@ -1210,6 +1169,20 @@ public class Commands implements CommandExecutor, TabCompleter {
             temp.put(aa.getKey(), aa.getValue());
         }
         return temp;
+    }
+
+    public static void reopenBountiesGUI(){
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
+                if (!GUI.pageNumber.containsKey(player.getUniqueId()))
+                    continue;
+                GUIOptions gui = GUI.getGUIByTitle(player.getOpenInventory().getTitle());
+                if (gui == null)
+                    continue;
+                if (gui.getType().equals("bounty-gui"))
+                    GUI.openGUI(player, gui.getType(), GUI.pageNumber.get(player.getUniqueId()));
+            }
+        }
     }
 
 

@@ -1,6 +1,5 @@
 # a '#' after a line means only admins will see this message, if there is not a '#', then with all the other permissions, players can see this message
 prefix: '&7[&9Not&dBounties&7] &8» &r'
-gui-name: '&d&lBounties &9&lPage' # space and page number is added after the name | does NOT accept placeholders (gui won't work with them)
 unknown-number: '&cUnknown number!'
 bounty-success: '&aBounty placed on &e{receiver}&a for &e{amount}&a! Total Bounty: &e{bounty}'
 bounty-receiver: '&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}'
@@ -14,12 +13,6 @@ check-bounty: '&e{receiver}&a has a bounty of &e{amount}&a.'
 list-setter: '&e{player} &7> &a{amount}'
 list-total: '&e{player} &7> &a{amount}'
 offline-bounty: '&e{player}&6 has set a bounty of &e{amount}&6 on you while you were offline!'
-bounty-item-name: '&3&l{player}'
-bounty-item-lore:
-  - '&aBounty: &f{amount}'
-  - '&2&oKill this player to'
-  - '&2&oreceive this reward'
-  - ''
 success-remove-bounty: '&aSuccessfully removed &2{receiver}''s &abounty.'  #
 success-edit-bounty: '&aSuccessfully edited &2{receiver}''s &abounty.' #
 no-setter: '&4{player} &chas not set a bounty on {receiver}' #
@@ -60,12 +53,26 @@ bounty-voucher-lore:
   - ''
 redeem-voucher: '&aSuccessfully redeemed voucher for {amount}!'
 big-bounty: '&eYour bounty is very impressive!'
-bounty-stat-all: '&eYour all-time bounty is &2{amount}&e.'
-bounty-stat-kills: '&eYou have killed &6{amount}&e players with bounties.'
-bounty-stat-claimed: '&eYou have claimed &2{amount}&e from bounties.'
-bounty-stat-deaths: '&eYou have died &6{amount}&e times with a bounty.'
-bounty-stat-set: '&eYou have set &6{amount}&e successful bounties.'
-bounty-stat-immunity: '&eYou have spent &2{amount}&e on immunity.'
-bounty-top-gui: '&dTop: {type}'
+bounty-stat:
+  all:
+    long: '&eYour all-time bounty is &2{amount}&e.'
+    short: '&6All-time bounty: &e{amount}'
+  kills:
+    long: '&eYou have killed &6{amount}&e players with bounties.'
+    short: '&6Bounty kills: &e{amount}'
+  claimed:
+    long: '&eYou have claimed &2{amount}&e from bounties.'
+    short: '&6Bounty rewards: &e{amount}'
+  deaths:
+    long: '&eYou have died &6{amount}&e times with a bounty.'
+    short: '&6Bounty deaths: &e{amount}'
+  set:
+    long: '&eYou have set &6{amount}&e successful bounties.'
+    short: '&6Bounties set: &e{amount}'
+  immunity:
+    long: '&eYou have spent &2{amount}&e on immunity.'
+    short: '&6Bounty immunity: &e{amount}'
+
+
 
 

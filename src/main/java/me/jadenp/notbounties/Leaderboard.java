@@ -9,7 +9,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
 import static me.jadenp.notbounties.ConfigOptions.papiEnabled;
@@ -64,19 +63,19 @@ public enum Leaderboard {
      * Correctly displays the player's stat
      * @param player Player to display to
      */
-    public String displayStats(OfflinePlayer player, boolean send){
+    public String displayStats(OfflinePlayer player, boolean send, boolean shorten){
         String msg = "";
         switch (this){
             case ALL:
             case CLAIMED:
             case IMMUNITY:
-                msg = parseStats(speakings.get(0) + getStatMsg(), getStat(player.getUniqueId()), true, player);
+                msg = parseStats(speakings.get(0) + getStatMsg(shorten), getStat(player.getUniqueId()), true, player);
 
                 break;
             case KILLS:
             case DEATHS:
             case SET:
-                msg = parseStats(speakings.get(0) + getStatMsg(), getStat(player.getUniqueId()), false, player);
+                msg = parseStats(speakings.get(0) + getStatMsg(shorten), getStat(player.getUniqueId()), false, player);
                 break;
         }
         if (send && player.isOnline()) {
@@ -88,20 +87,20 @@ public enum Leaderboard {
 
     }
 
-    public String getStatMsg(){
+    public String getStatMsg(boolean shorten){
         switch (this){
             case ALL:
-                return speakings.get(44);
+                return shorten ? speakings.get(50) : speakings.get(44);
             case KILLS:
-                return speakings.get(45);
+                return shorten ? speakings.get(51) : speakings.get(45);
             case CLAIMED:
-                return speakings.get(46);
+                return shorten ? speakings.get(52) : speakings.get(46);
             case DEATHS:
-                return speakings.get(47);
+                return shorten ? speakings.get(53) : speakings.get(47);
             case SET:
-                return speakings.get(48);
+                return shorten ? speakings.get(54) : speakings.get(48);
             case IMMUNITY:
-                return speakings.get(49);
+                return shorten ? speakings.get(55) : speakings.get(49);
         }
         return "";
     }
@@ -187,7 +186,7 @@ public enum Leaderboard {
         return text;
     }
 
-    public static HashMap<String, Integer> sortByValue(Map<String, Integer> hm) {
+    public static LinkedHashMap<String, Integer> sortByValue(Map<String, Integer> hm) {
         // Create a list from elements of HashMap
         List<Map.Entry<String, Integer>> list =
                 new LinkedList<>(hm.entrySet());
@@ -196,7 +195,22 @@ public enum Leaderboard {
         list.sort((o1, o2) -> (o2.getValue()).compareTo(o1.getValue()));
 
         // put data from sorted list to hashmap
-        HashMap<String, Integer> temp = new LinkedHashMap<>();
+        LinkedHashMap<String, Integer> temp = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> aa : list) {
+            temp.put(aa.getKey(), aa.getValue());
+        }
+        return temp;
+    }
+    public static LinkedHashMap<String, Integer> sortByName(Map<String, Integer> hm) {
+        // Create a list from elements of HashMap
+        List<Map.Entry<String, Integer>> list =
+                new LinkedList<>(hm.entrySet());
+
+        // Sort the list
+        list.sort((o1, o2) -> (Objects.requireNonNull(Bukkit.getOfflinePlayer(UUID.fromString(o2.getKey())).getName())).compareTo(Objects.requireNonNull(Bukkit.getOfflinePlayer(UUID.fromString(o1.getKey())).getName())));
+
+        // put data from sorted list to hashmap
+        LinkedHashMap<String, Integer> temp = new LinkedHashMap<>();
         for (Map.Entry<String, Integer> aa : list) {
             temp.put(aa.getKey(), aa.getValue());
         }
@@ -216,5 +230,26 @@ public enum Leaderboard {
             return PlaceholderAPI.setPlaceholders(player, text);
         }
         return text;
+    }
+
+    public LinkedHashMap<String, Integer> getSortedList(int skip, int amount, int sortType){
+        LinkedHashMap<String, Integer> top = getTop(skip, amount);
+        if (sortType == 2)
+            return reverseMap(top);
+        if (sortType == 3)
+            return sortByName(top);
+        if (sortType == 4)
+            return reverseMap(sortByName(top));
+        return top;
+    }
+
+    public static LinkedHashMap<String, Integer> reverseMap(LinkedHashMap<String, Integer> map){
+        List<String> keys = new ArrayList<>(map.keySet());
+        Collections.reverse(keys);
+        LinkedHashMap<String, Integer> newMap = new LinkedHashMap<>();
+        for (String key : keys){
+            newMap.put(key, map.get(key));
+        }
+        return newMap;
     }
 }

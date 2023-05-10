@@ -1,8 +1,6 @@
 package me.jadenp.notbounties;
 
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
@@ -11,14 +9,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
@@ -187,12 +183,8 @@ public class Events implements Listener {
                                 if (change) {
                                     p.getInventory().setContents(contents);
                                 }
-                                if (p.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                                    if (p.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                                        GUI.openGUI(p, Integer.parseInt(p.getOpenInventory().getTitle().substring(p.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                                    }
-                                }
                             }
+                        Commands.reopenBountiesGUI();
                     }
                 }
             }
@@ -526,26 +518,22 @@ public class Events implements Listener {
                 }
             }
             if (change) {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                        if (player.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                            GUI.openGUI(player, Integer.parseInt(player.getOpenInventory().getTitle().substring(player.getOpenInventory().getTitle().lastIndexOf(" ") + 1)));
-                        }
-                    }
-                }
+                Commands.reopenBountiesGUI();
             }
         }
 
         // check for updates
-        if (event.getPlayer().hasPermission("notbounties.admin")) {
-            new UpdateChecker(nb, 104484).getVersion(version -> {
+        if (updateNotification) {
+            if (event.getPlayer().hasPermission("notbounties.admin")) {
+                new UpdateChecker(nb, 104484).getVersion(version -> {
 
-                if (!nb.getDescription().getVersion().equals(version) && !nb.getDescription().getVersion().contains("dev_")) {
-                    event.getPlayer().sendMessage(parse(speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
-                    event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
+                    if (!nb.getDescription().getVersion().equals(version) && !nb.getDescription().getVersion().contains("dev_")) {
+                        event.getPlayer().sendMessage(parse(speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
+                        event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
 
-                }
-            });
+                    }
+                });
+            }
         }
 
     }

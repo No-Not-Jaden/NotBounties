@@ -40,12 +40,28 @@ public class BountyExpansion extends PlaceholderExpansion {
         return true; // This is required or else PlaceholderAPI will unregister the Expansion on reload
     }
 
+    /**
+     * Add "_formatted" to the end to add the currency prefix and suffix
+     * Add "_full" to the end of leaderboard to add what the stat is about
+     * <p>%notbounties_bounty%</p>
+     * <p>%notbounties_(all/kills/claimed/deaths/set/immunity)%</p>
+     * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity)%</p>
+     * @Depricated <p>%notbounties_bounties_claimed%</p>
+     * <p>%notbounties_bounties_set%</p>
+     * <p>%notbounties_bounties_received%</p>
+     * <p>%notbounties_immunity_spent%</p>
+     * <p>%notbounties_all_time_bounty%</p>
+     * <p>%notbounties_currency_gained%</p>
+     */
+
     @Override
     public String onRequest(OfflinePlayer player, String params){
         String uuid = player.getUniqueId().toString();
-        if (params.equalsIgnoreCase("bounty")){
+        if (params.startsWith("bounty")){
             Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId().toString()) : notBounties.getBounty(player);
             if (bounty != null){
+                if (params.endsWith("_formatted"))
+                    return color(currencyPrefix + bounty.getTotalBounty() + currencySuffix);
                 return bounty.getTotalBounty() + "";
             }
             return "0";
@@ -92,7 +108,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             }
             return notBounties.allClaimed.get(player.getUniqueId().toString()) + "";
         }
-        // im just reusing code for this next part, but there is definitely a better way to do this
+
         if (params.startsWith("top_")) {
             params = params.substring(4);
             int rank = 0;
@@ -127,8 +143,23 @@ public class BountyExpansion extends PlaceholderExpansion {
             } else {
                 name = "???";
             }
+            if (params.endsWith("_full"))
+                return leaderboard.getStatMsg(true);
+            if (params.endsWith("_formatted"))
+                return color(currencyPrefix + leaderboard.getStat(player.getUniqueId()) + currencySuffix);
             return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
         }
+
+        String value = params.contains("_") ? params.substring(0, params.indexOf("_")) : params;
+
+        try {
+            Leaderboard leaderboard = Leaderboard.valueOf(value.toUpperCase());
+            if (params.endsWith("_full"))
+                return leaderboard.getStatMsg(true);
+            if (params.endsWith("_formatted"))
+                return color(currencyPrefix + leaderboard.getStat(player.getUniqueId()) + currencySuffix);
+            return leaderboard.getStat(player.getUniqueId()) + "";
+        } catch (IllegalArgumentException ignored){}
 
         return null;
     }

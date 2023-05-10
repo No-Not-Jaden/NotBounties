@@ -153,13 +153,13 @@ public final class NotBounties extends JavaPlugin {
      * check your own stats - x
      * new placeholder - x
      *
-     *
-     * gui for bounty top
-     * > new bounty top command
+     * gui for bounty top -
+     * > new bounty top command -
      * button in the gui to set a bounty
-     * option to disable update notification
-     *
-     * Change getting top stats to limit to 10
+     * option to disable update notification -
+     * Change getting top stats to limit to 10 -
+     * hidden players from stats -
+     * move gui stuff to another config file -
      *
      */
 
@@ -386,14 +386,16 @@ public final class NotBounties extends JavaPlugin {
         }
 
         // update checker
-        new UpdateChecker(this, 104484).getVersion(version -> {
-            if (this.getDescription().getVersion().equals(version) || this.getDescription().getVersion().contains("dev_")) {
-                getLogger().info("Running latest version of NotBounties.");
-            } else {
-                getLogger().info("A new update is available for NotBounties. Current version: " + this.getDescription().getVersion() + " Latest version: " + version);
-                getLogger().info("Download a new version here: https://www.spigotmc.org/resources/104484/");
-            }
-        });
+        if (updateNotification) {
+            new UpdateChecker(this, 104484).getVersion(version -> {
+                if (this.getDescription().getVersion().equals(version) || this.getDescription().getVersion().contains("dev_")) {
+                    getLogger().info("Running latest version of NotBounties.");
+                } else {
+                    getLogger().info("A new update is available for NotBounties. Current version: " + this.getDescription().getVersion() + " Latest version: " + version);
+                    getLogger().info("Download a new version here: https://www.spigotmc.org/resources/104484/");
+                }
+            });
+        }
 
         // make bounty tracker work
         new BukkitRunnable() {
@@ -766,16 +768,16 @@ public final class NotBounties extends JavaPlugin {
 
 
 
-    public List<Bounty> sortBounties(){
+    public List<Bounty> sortBounties(int sortType){
         // how bounties are sorted
         List<Bounty> sortedList = new ArrayList<>(bountyList);
         Bounty temp;
         for (int i = 0; i < sortedList.size(); i++) {
             for (int j = i + 1; j < sortedList.size(); j++) {
-                if((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && menuSorting == 0) || // oldest bounties at top
-                        (sortedList.get(i).getSetters().get(0).getTimeCreated() < sortedList.get(j).getSetters().get(0).getTimeCreated() && menuSorting == 1) || // newest bounties at top
-                        (sortedList.get(i).getTotalBounty() < sortedList.get(j).getTotalBounty() && menuSorting == 2) || // more expensive bounties at top
-                        (sortedList.get(i).getTotalBounty() > sortedList.get(j).getTotalBounty() && menuSorting == 3)) { // less expensive bounties at top
+                if((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
+                        (sortedList.get(i).getSetters().get(0).getTimeCreated() < sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 1) || // newest bounties at top
+                        (sortedList.get(i).getTotalBounty() < sortedList.get(j).getTotalBounty() && sortType == 2) || // more expensive bounties at top
+                        (sortedList.get(i).getTotalBounty() > sortedList.get(j).getTotalBounty() && sortType == 3)) { // less expensive bounties at top
                     temp = sortedList.get(i);
                     sortedList.set(i, sortedList.get(j));
                     sortedList.set(j, temp);
@@ -815,7 +817,7 @@ public final class NotBounties extends JavaPlugin {
     public void listBounties(CommandSender sender, int page) {
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + speakings.get(35) + " " + (page + 1) + " " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
 
-        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties();
+        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties(GUI.getGUI("bounty-gui").getSortType());
         for (int i = page * length; i < (page * length) + length; i++) {
             if (sortedList.size() > i) {
                 if (papiEnabled) {

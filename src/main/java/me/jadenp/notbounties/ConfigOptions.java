@@ -4,6 +4,7 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -24,7 +25,6 @@ public class ConfigOptions {
     public static boolean autoConnect;
     public static boolean migrateLocalData;
     public static List<String> bBountyCommands = new ArrayList<>();
-    public static int guiSize;
     public static boolean tracker;
     public static int trackerRemove;
     public static int trackerGlow;
@@ -34,14 +34,9 @@ public class ConfigOptions {
     public static boolean TABDistance;
     public static boolean TABPosition;
     public static boolean TABWorld;
-    public static int menuSorting;
     public static int minBroadcast;
     public static int bBountyThreshold;
     public static boolean bBountyParticle;
-    public static List<ItemStack> customItems = new ArrayList<>();
-    public static List<List<String>> itemCommands = new ArrayList<>();
-    public static List<Integer> bountySlots = new ArrayList<>();
-    public static List<String[]> layout = new ArrayList<>();
     public static boolean buyImmunity;
     public static boolean permanentImmunity;
     public static int permanentCost;
@@ -64,16 +59,18 @@ public class ConfigOptions {
     public static String currencyPrefix;
     public static String currencySuffix;
     public static File language;
-    public static List<String> headLore = new ArrayList<>();
     public static List<String> trackerLore = new ArrayList<>();
     public static List<String> voucherLore = new ArrayList<>();
     public static List<String> speakings = new ArrayList<>();
     public static List<String> hiddenNames = new ArrayList<>();
+    public static boolean updateNotification;
+    public static Map<String, CustomItem> customItems = new HashMap<>();
 
     public static void reloadOptions() throws IOException {
         NotBounties bounties = NotBounties.getInstance();
 
         papiEnabled = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
+        language = new File(bounties.getDataFolder() + File.separator + "language.yml");
 
         bounties.reloadConfig();
 
@@ -97,7 +94,7 @@ public class ConfigOptions {
         if (!bounties.getConfig().isSet("remove-currency-commands"))
             bounties.getConfig().set("remove-currency-commands", new ArrayList<String>());
         if (!bounties.getConfig().isSet("bounty-expire")) bounties.getConfig().set("bounty-expire", -1);
-        if (bounties.getConfig().isBoolean("reward-heads")){
+        if (bounties.getConfig().isBoolean("reward-heads")) {
             boolean prevOption = bounties.getConfig().getBoolean("reward-heads");
             bounties.getConfig().set("reward-heads", null);
             bounties.getConfig().set("reward-heads.setters", prevOption);
@@ -121,29 +118,7 @@ public class ConfigOptions {
         if (!bounties.getConfig().isSet("immunity.scaling-immunity.ratio"))
             bounties.getConfig().set("immunity.scaling-immunity.ratio", 1.0);
         if (!bounties.getConfig().isSet("immunity.grace-period")) bounties.getConfig().set("immunity.grace-period", 10);
-        if (!bounties.getConfig().isSet("advanced-gui")) {
-            bounties.getConfig().set("advanced-gui.custom-items.fill.material", "GRAY_STAINED_GLASS_PANE");
-            bounties.getConfig().set("advanced-gui.custom-items.fill.amount", 1);
-            bounties.getConfig().set("advanced-gui.custom-items.fill.name", "&r");
-            bounties.getConfig().set("advanced-gui.custom-items.fill.custom-model-data", 10);
-            bounties.getConfig().set("advanced-gui.custom-items.fill.lore", new ArrayList<String>());
-            bounties.getConfig().set("advanced-gui.custom-items.fill.enchanted", false);
-            bounties.getConfig().set("advanced-gui.custom-items.fill.commands", new ArrayList<String>());
-            bounties.getConfig().set("advanced-gui.bounty-slots", Collections.singletonList("0-44"));
-            bounties.getConfig().set("advanced-gui.layout.1.item", "fill");
-            bounties.getConfig().set("advanced-gui.layout.1.slot", "45-53");
-            bounties.getConfig().set("advanced-gui.layout.2.item", "exit");
-            bounties.getConfig().set("advanced-gui.layout.2.slot", "49");
-            bounties.getConfig().set("advanced-gui.layout.3.item", "back");
-            bounties.getConfig().set("advanced-gui.layout.3.slot", "45");
-            bounties.getConfig().set("advanced-gui.layout.4.item", "next");
-            bounties.getConfig().set("advanced-gui.layout.4.slot", "53");
-            bounties.getConfig().set("advanced-gui.size", 54);
-        }
-        if (!bounties.getConfig().isSet("advanced-gui.bounty-slots"))
-            bounties.getConfig().set("advanced-gui.bounty-slots", Collections.singletonList("0-44"));
-        if (!bounties.getConfig().isSet("advanced-gui.size"))
-            bounties.getConfig().set("advanced-gui.size", 54);
+
         if (!bounties.getConfig().isSet("bounty-tracker.enabled"))
             bounties.getConfig().set("bounty-tracker.enabled", true);
         if (!bounties.getConfig().isSet("bounty-tracker.remove"))
@@ -192,6 +167,8 @@ public class ConfigOptions {
             bounties.getConfig().set("database.auto-connect", false);
         if (!bounties.getConfig().isSet("hide-stats"))
             bounties.getConfig().set("hide-stats", new ArrayList<>());
+        if (!bounties.getConfig().isSet("update-notification"))
+            bounties.getConfig().set("update-notification", true);
 
         bounties.saveConfig();
 
@@ -215,7 +192,6 @@ public class ConfigOptions {
         graceTime = bounties.getConfig().getInt("immunity.grace-period");
         minBounty = bounties.getConfig().getInt("minimum-bounty");
         bountyTax = bounties.getConfig().getDouble("bounty-tax");
-        guiSize = bounties.getConfig().getInt("advanced-gui.size");
         tracker = bounties.getConfig().getBoolean("bounty-tracker.enabled");
         trackerRemove = bounties.getConfig().getInt("bounty-tracker.remove");
         trackerGlow = bounties.getConfig().getInt("bounty-tracker.glow");
@@ -226,7 +202,6 @@ public class ConfigOptions {
         TABPosition = bounties.getConfig().getBoolean("bounty-tracker.action-bar.position");
         TABWorld = bounties.getConfig().getBoolean("bounty-tracker.action-bar.world");
         redeemRewardLater = bounties.getConfig().getBoolean("redeem-reward-later");
-        menuSorting = bounties.getConfig().getInt("advanced-gui.sort-type");
         minBroadcast = bounties.getConfig().getInt("minimum-broadcast");
         bBountyThreshold = bounties.getConfig().getInt("big-bounties.bounty-threshold");
         bBountyParticle = bounties.getConfig().getBoolean("big-bounties.particle");
@@ -234,91 +209,112 @@ public class ConfigOptions {
         migrateLocalData = bounties.getConfig().getBoolean("database.migrate-local-data");
         autoConnect = bounties.getConfig().getBoolean("database.auto-connect");
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
+        updateNotification = bounties.getConfig().getBoolean("update-notification");
 
-        customItems.clear();
-        itemCommands.clear();
-        bountySlots.clear();
-        layout.clear();
 
-        for (String bSlots : bounties.getConfig().getStringList("advanced-gui.bounty-slots")) {
-            if (bSlots.contains("-")) {
-                int num1;
-                try {
-                    num1 = Integer.parseInt(bSlots.substring(0, bSlots.indexOf("-")));
-                } catch (NumberFormatException ignored) {
-                    continue;
-                }
-                int num2;
-                try {
-                    num2 = Integer.parseInt(bSlots.substring(bSlots.indexOf("-") + 1));
-                } catch (NumberFormatException ignored) {
-                    continue;
-                }
-                for (int i = Math.min(num1, num2); i < Math.max(num1, num2) + 1; i++) {
-                    bountySlots.add(i);
-                }
-            } else {
-                try {
-                    bountySlots.add(Integer.parseInt(bSlots));
-                } catch (NumberFormatException ignored) {
 
+        File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
+        if (!guiFile.exists() && bounties.getConfig().isConfigurationSection("advanced-gui")) {
+            // migrate everything to gui.yml
+            YamlConfiguration configuration = new YamlConfiguration();
+            ConfigurationSection section = bounties.getConfig().getConfigurationSection("advanced-gui");
+            assert section != null;
+            configuration.set("bounty-gui.sort-type", section.get("sort-type"));
+            configuration.set("bounty-gui.size", section.get("size"));
+            for (String key : section.getConfigurationSection("custom-items").getKeys(false)) {
+                configuration.set("custom-items." + key, section.get("custom-items." + key));
+            }
+            configuration.set("bounty-gui.player-slots", section.get("bounty-slots"));
+            configuration.set("bounty-gui.remove-page-items", true);
+            configuration.set("bounty-gui.head-lore", Arrays.asList("&7<&m                        &7>", "&4Bounty: &6%notbounties_bounty_formatted%", "&4&oKill this player to", "&4&oreceive this reward", "&7<&m                        &7>"));
+            configuration.set("bounty-gui.head-name", "&4☠ &c&l{player} &4☠");
+
+            configuration.set("bounty-gui.gui-name", "&d&lBounties &9&lPage");
+            configuration.set("bounty-gui.add-page", true);
+
+            if (language.exists()){
+                YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(language);
+                if (languageConfig.isSet("bounty-item-name") && languageConfig.isSet("bounty-item-lore") && languageConfig.isSet("bounty-item-lore")) {
+                    // convert {amount} to %notbounties_bounty_formatted%
+                    String unformatted = languageConfig.getString("bounty-item-name");
+                    assert unformatted != null;
+                    unformatted = unformatted.replaceAll("\\{amount}", "%notbounties_bounty_formatted%");
+                    configuration.set("bounty-gui.head-name", unformatted);
+
+                    List<String> unformattedList = languageConfig.getStringList("bounty-item-lore");
+                    unformattedList.replaceAll(s -> s.replaceAll("\\{amount}", "%notbounties_bounty_formatted%"));
+                    configuration.set("bounty-gui.head-lore", unformattedList);
+                    configuration.set("bounty-gui.gui-name", languageConfig.getString("gui-name"));
+                    languageConfig.set("gui-name", null);
+                    languageConfig.set("bounty-item-name", null);
+                    languageConfig.set("bounty-item-lore", null);
+                    languageConfig.save(language);
                 }
+            }
+
+            for (String key : section.getConfigurationSection("layout").getKeys(false)) {
+                configuration.set("bounty-gui.layout." + key, section.get("layout." + key));
+            }
+
+            bounties.getConfig().set("advanced-gui", null);
+            configuration.save(guiFile);
+        } else if (!guiFile.exists()) {
+            bounties.saveResource("gui.yml", false);
+        }
+
+        YamlConfiguration guiConfig = YamlConfiguration.loadConfiguration(guiFile);
+        for (String key : guiConfig.getConfigurationSection("custom-items").getKeys(false)){
+
+            Material material = Material.STONE;
+            String mat = guiConfig.getString("custom-items." + key + ".material");
+            if (mat != null)
+                try {
+                    material = Material.valueOf(mat.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException e) {
+                    Bukkit.getLogger().warning("Unknown material \"" + mat + "\" in " + guiConfig.getName());
+                }
+            int amount = guiConfig.isInt("custom-items." + key + ".amount") ? guiConfig.getInt("custom-items." + key + ".amount") : 1;
+
+            ItemStack itemStack = new ItemStack(material, amount);
+            ItemMeta meta = itemStack.getItemMeta();
+            assert meta != null;
+            if (guiConfig.isSet("custom-items." + key + ".name")) {
+                meta.setDisplayName(guiConfig.getString("custom-items." + key + ".name"));
+            }
+            if (guiConfig.isSet("custom-items." + key + ".custom-model-data")) {
+                meta.setCustomModelData(guiConfig.getInt("custom-items." + key + ".custom-model-data"));
+            }
+            if (guiConfig.isSet("custom-items." + key + ".lore")) {
+                meta.setLore(guiConfig.getStringList("custom-items." + key + ".lore"));
+            }
+            if (guiConfig.isSet("custom-items." + key + ".enchanted")) {
+                if (guiConfig.getBoolean("custom-items." + key + ".enchanted")) {
+                    itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
+            }
+            if (guiConfig.getBoolean("custom-items." + key + ".hide-nbt")) {
+                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+                meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
+            }
+            itemStack.setItemMeta(meta);
+
+            List<String> itemCommands = guiConfig.isSet("custom-items." + key + ".commands") ? guiConfig.getStringList("custom-items." + key + ".commands") : new ArrayList<>();
+            CustomItem customItem = new CustomItem(itemStack, itemCommands);
+            customItems.put(key, customItem);
+        }
+        for (String key : guiConfig.getKeys(false)){
+            if (key.equals("custom-items"))
+                continue;
+            try {
+                GUI.addGUI(new GUIOptions(Objects.requireNonNull(guiConfig.getConfigurationSection(key))), key);
+            } catch (IllegalArgumentException e){
+                Bukkit.getLogger().warning("Unknown GUI in gui.yml: \"" + key + "\"");
             }
         }
 
-        if (bounties.getConfig().isConfigurationSection("advanced-gui.layout"))
-            for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("advanced-gui.layout")).getKeys(false)) {
-                String item = bounties.getConfig().getString("advanced-gui.layout." + key + ".item");
-                //Bukkit.getLogger().info(item);
-                if (bounties.getConfig().isConfigurationSection("advanced-gui.custom-items." + item)) {
-                    Material material = Material.STONE;
-                    try {
-                        material = Material.valueOf(Objects.requireNonNull(bounties.getConfig().getString("advanced-gui.custom-items." + item + ".material")).toUpperCase(Locale.ROOT));
-                    } catch (IllegalArgumentException | NullPointerException ignored) {
 
-                    }
-                    int amount = 1;
-                    try {
-                        amount = bounties.getConfig().getInt("advanced-gui.custom-items." + item + ".amount");
-                    } catch (NullPointerException ignored) {
 
-                    }
-                    ItemStack itemStack = new ItemStack(material, amount);
-                    ItemMeta meta = itemStack.getItemMeta();
-                    assert meta != null;
-                    if (bounties.getConfig().isSet("advanced-gui.custom-items." + item + ".name")) {
-                        meta.setDisplayName(bounties.getConfig().getString("advanced-gui.custom-items." + item + ".name"));
-                    }
-                    if (bounties.getConfig().isSet("advanced-gui.custom-items." + item + ".custom-model-data")) {
-                        meta.setCustomModelData(bounties.getConfig().getInt("advanced-gui.custom-items." + item + ".custom-model-data"));
-                    }
-                    if (bounties.getConfig().isSet("advanced-gui.custom-items." + item + ".lore")) {
-                        meta.setLore(bounties.getConfig().getStringList("advanced-gui.custom-items." + item + ".lore"));
-                    }
-                    if (bounties.getConfig().isSet("advanced-gui.custom-items." + item + ".enchanted")) {
-                        if (bounties.getConfig().getBoolean("advanced-gui.custom-items." + item + ".enchanted")) {
-                            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                        }
-                    }
-                    itemStack.setItemMeta(meta);
-                    if (bounties.getConfig().isSet("advanced-gui.custom-items." + item + ".enchanted")) {
-                        if (bounties.getConfig().getBoolean("advanced-gui.custom-items." + item + ".enchanted")) {
-                            itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-                        }
-                    }
-                    customItems.add(itemStack);
-                    if (bounties.getConfig().isSet("advanced-gui.custom-items." + item + ".commands")) {
-                        itemCommands.add(bounties.getConfig().getStringList("advanced-gui.custom-items." + item + ".commands"));
-                    } else {
-                        itemCommands.add(new ArrayList<>());
-                    }
-                    layout.add(new String[]{(customItems.size() - 1) + "", bounties.getConfig().getString("advanced-gui.layout." + key + ".slot")});
-                } else {
-                    layout.add(new String[]{item, bounties.getConfig().getString("advanced-gui.layout." + key + ".slot")});
-                }
-            }
-
-        language = new File(bounties.getDataFolder() + File.separator + "language.yml");
 
         if (!speakings.isEmpty())
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -369,12 +365,6 @@ public class ConfigOptions {
         }
         if (!configuration.isSet("offline-bounty")) {
             configuration.set("offline-bounty", "&e{player}&6 has set a bounty on you while you were offline!");
-        }
-        if (!configuration.isSet("bounty-item-name")) {
-            configuration.set("bounty-item-name", "&3&l{player}");
-        }
-        if (!configuration.isSet("bounty-item-lore")) {
-            configuration.set("bounty-item-lore", Arrays.asList("&aBounty: &f{amount}", "&2&oKill this player to", "&2&oreceive this reward", ""));
         }
         if (!configuration.isSet("success-remove-bounty")) {
             configuration.set("success-remove-bounty", "&cSuccessfully removed &4{receiver}'s &cbounty.");
@@ -442,9 +432,6 @@ public class ConfigOptions {
         if (!configuration.isSet("tracker-receive")) {
             configuration.set("tracker-receive", "&eYou have been given a bounty tracker for &6{player}&e.");
         }
-        if (!configuration.isSet("gui-name")) {
-            configuration.set("gui-name", "&dBounties &9Page");
-        }
         if (!configuration.isSet("bounty-top")) {
             configuration.set("bounty-top", "&9&l{rank}. &d{player} &7> &a{amount}");
         }
@@ -457,42 +444,53 @@ public class ConfigOptions {
         if (!configuration.isSet("disable-broadcast")) {
             configuration.set("disable-broadcast", "&eYou have &cdisabled &ebounty broadcast!");
         }
-        if (!configuration.isSet("bounty-voucher-name")){
+        if (!configuration.isSet("bounty-voucher-name")) {
             configuration.set("bounty-voucher-name", "&6{player}'s&e claimed bounty of &a{amount}&e.");
         }
-        if (!configuration.isSet("bounty-voucher-lore")){
+        if (!configuration.isSet("bounty-voucher-lore")) {
             configuration.set("bounty-voucher-lore", Arrays.asList("", "&2Awarded to {receiver}", "&7Right click to redeem", "&7this player's bounty", ""));
         }
-        if (!configuration.isSet("redeem-voucher")){
+        if (!configuration.isSet("redeem-voucher")) {
             configuration.set("redeem-voucher", "&aSuccessfully redeemed voucher for {amount}!");
         }
-        if (!configuration.isSet("bounty-receiver")){
+        if (!configuration.isSet("bounty-receiver")) {
             configuration.set("bounty-receiver", "&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}");
         }
-        if (!configuration.isSet("big-bounty")){
+        if (!configuration.isSet("big-bounty")) {
             configuration.set("big-bounty", "&eYour bounty is very impressive!");
         }
-        if (!configuration.isSet("bounty-stat-all")){
-            configuration.set("bounty-stat-all", "&eYour all-time bounty is &2{amount}&e.");
+        if (configuration.isSet("bounty-stat-all")){
+            configuration.set("bounty-stat.all.long", configuration.getString("bounty-stat-all"));
+            configuration.set("bounty-stat.kills.long", configuration.getString("bounty-stat-kills"));
+            configuration.set("bounty-stat.claimed.long", configuration.getString("bounty-stat-claimed"));
+            configuration.set("bounty-stat.deaths.long", configuration.getString("bounty-stat-deaths"));
+            configuration.set("bounty-stat.set.long", configuration.getString("bounty-stat-set"));
+            configuration.set("bounty-stat.immunity.long", configuration.getString("bounty-stat-immunity"));
         }
-        if (!configuration.isSet("bounty-stat-kills")){
-            configuration.set("bounty-stat-kills", "&eYou have killed &6{amount}&e players with bounties.");
-        }
-        if (!configuration.isSet("bounty-stat-claimed")){
-            configuration.set("bounty-stat-claimed", "&eYou have claimed &2{amount}&e from bounties.");
-        }
-        if (!configuration.isSet("bounty-stat-deaths")){
-            configuration.set("bounty-stat-deaths", "&eYou have died &6{amount}&e times with a bounty.");
-        }
-        if (!configuration.isSet("bounty-stat-set")){
-            configuration.set("bounty-stat-set", "&eYou have set &6{amount}&e successful bounties.");
-        }
-        if (!configuration.isSet("bounty-stat-immunity")){
-            configuration.set("bounty-stat-immunity", "&eYou have spent &2{amount}&e on immunity.");
-        }
-        if (!configuration.isSet("bounty-top-gui")){
-            configuration.set("bounty-top-gui", "&dTop: {type}");
-        }
+        if (!configuration.isSet("bounty-stat.all.long"))
+            configuration.set("bounty-stat.all.long", "&eYour all-time bounty is &2{amount}&e.");
+        if (!configuration.isSet("bounty-stat.kills.long"))
+            configuration.set("bounty-stat.kills.long", "&eYou have killed &6{amount}&e players with bounties.");
+        if (!configuration.isSet("bounty-stat.claimed.long"))
+            configuration.set("bounty-stat.claimed.long", "&eYou have claimed &2{amount}&e from bounties.");
+        if (!configuration.isSet("bounty-stat.deaths.long"))
+            configuration.set("bounty-stat.deaths.long", "&eYou have died &6{amount}&e times with a bounty.");
+        if (!configuration.isSet("bounty-stat.set.long"))
+            configuration.set("bounty-stat.set.long", "&eYou have set &6{amount}&e successful bounties.");
+        if (!configuration.isSet("bounty-stat.immunity.long"))
+            configuration.set("bounty-stat.immunity.long", "&eYou have spent &2{amount}&e on immunity.");
+        if (!configuration.isSet("bounty-stat.all.short"))
+            configuration.set("bounty-stat.all.short", "'&6All-time bounty: &e{amount}");
+        if (!configuration.isSet("bounty-stat.kills.short"))
+            configuration.set("bounty-stat.kills.short", "&6Bounty kills: &e{amount}");
+        if (!configuration.isSet("bounty-stat.claimed.short"))
+            configuration.set("bounty-stat.claimed.short", "&6Bounty rewards: &e{amount}");
+        if (!configuration.isSet("bounty-stat.deaths.short"))
+            configuration.set("bounty-stat.deaths.short", "&6Bounty deaths: &e{amount}");
+        if (!configuration.isSet("bounty-stat.set.short"))
+            configuration.set("bounty-stat.set.short", "&6Bounties set: &e{amount}");
+        if (!configuration.isSet("bounty-stat.immunity.short"))
+            configuration.set("bounty-stat.immunity.short", "&6Bounty immunity: &e{amount}");
 
         configuration.save(language);
 
@@ -523,7 +521,7 @@ public class ConfigOptions {
         // 12 offline-bounty
         speakings.add(color(Objects.requireNonNull(configuration.getString("offline-bounty"))));
         // 13 bounty-item-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-item-name"))));
+        speakings.add("");
         // 14 success-remove-bounty
         speakings.add(color(Objects.requireNonNull(configuration.getString("success-remove-bounty"))));
         // 15 success-edit-bounty
@@ -567,7 +565,7 @@ public class ConfigOptions {
         // 34 tracker-receive
         speakings.add(color(Objects.requireNonNull(configuration.getString("tracker-receive"))));
         // 35 gui-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("gui-name"))));
+        speakings.add("");
         // 36 bounty-top
         speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-top"))));
         // 37 bounty-top-title
@@ -584,34 +582,43 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-receiver"))));
         // 43 big-bounty
         speakings.add(color(Objects.requireNonNull(configuration.getString("big-bounty"))));
-        // 44 bounty-stat-all
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat-all"))));
-        // 45 bounty-stat-kills
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat-kills"))));
-        // 46 bounty-stat-claimed
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat-claimed"))));
-        // 47 bounty-stat-deaths
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat-deaths"))));
-        // 48 bounty-stat-set
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat-set"))));
-        // 49 bounty-stat-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat-immunity"))));
-        // 50 bounty-top-gui
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-top-gui"))));
+        // bounty-stat
+        // 44 all.long
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.all.long"))));
+        // 45 kills.long
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.kills.long"))));
+        // 46 claimed.long
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.claimed.long"))));
+        // 47 deaths.long
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.deaths.long"))));
+        // 48 set.long
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.set.long"))));
+        // 49 immunity.long
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.immunity.long"))));
+        // 50 all.short
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.all.short"))));
+        // 51 kills.short
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.kills.short"))));
+        // 52 claimed.short
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.claimed.short"))));
+        // 53 deaths.short
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.deaths.short"))));
+        // 54 set.short
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.set.short"))));
+        // 55 immunity.short
+        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.immunity.short"))));
+
 
         voucherLore.clear();
-        for (String str : configuration.getStringList("bounty-voucher-lore")){
+        for (String str : configuration.getStringList("bounty-voucher-lore")) {
             voucherLore.add(color(str));
-        }
-        headLore.clear();
-        for (String str : configuration.getStringList("bounty-item-lore")) {
-            headLore.add(color(str));
         }
         trackerLore.clear();
         for (String str : configuration.getStringList("bounty-tracker-lore")) {
             trackerLore.add(color(str));
         }
     }
+
 
     public static String color(String str) {
         str = net.md_5.bungee.api.ChatColor.translateAlternateColorCodes('&', str);
@@ -678,6 +685,7 @@ public class ConfigOptions {
         }
         return str;
     }
+
     public static String parse(String str, String player, long amount, long bounty, OfflinePlayer receiver) {
         while (str.contains("{receiver}")) {
             str = str.replace("{receiver}", player);
@@ -746,8 +754,6 @@ public class ConfigOptions {
         }
         return str;
     }
-
-
 
 
 }
