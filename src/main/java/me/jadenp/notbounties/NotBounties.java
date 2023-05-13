@@ -156,10 +156,13 @@ public final class NotBounties extends JavaPlugin {
      * gui for bounty top -
      * > new bounty top command -
      * button in the gui to set a bounty
-     * option to disable update notification -
+     * option to disable update notification - x
      * Change getting top stats to limit to 10 -
      * hidden players from stats -
-     * move gui stuff to another config file -
+     * move gui stuff to another config file - x
+     * tab complete is null sometimes x
+     * Removing bounty doesn't tell you in lore
+     * Are you sure GUI - not a valid gui (no page number)
      *
      */
 
@@ -200,7 +203,6 @@ public final class NotBounties extends JavaPlugin {
     private boolean firstConnect = true;
 
 
-    Item item = new Item();
     public boolean tryToConnect(){
         if (!SQL.isConnected()) {
             try {
@@ -264,6 +266,7 @@ public final class NotBounties extends JavaPlugin {
         instance = this;
         Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(new Commands(this));
         Bukkit.getServer().getPluginManager().registerEvents(new Events(this), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new GUI(), this);
 
         this.saveDefaultConfig();
 
@@ -388,7 +391,7 @@ public final class NotBounties extends JavaPlugin {
         // update checker
         if (updateNotification) {
             new UpdateChecker(this, 104484).getVersion(version -> {
-                if (this.getDescription().getVersion().equals(version) || this.getDescription().getVersion().contains("dev_")) {
+                if (this.getDescription().getVersion().equals(version) || this.getDescription().getVersion().contains("dev")) {
                     getLogger().info("Running latest version of NotBounties.");
                 } else {
                     getLogger().info("A new update is available for NotBounties. Current version: " + this.getDescription().getVersion() + " Latest version: " + version);

@@ -35,6 +35,8 @@ public class GUI implements Listener {
         return null;
     }
 
+    public GUI(){}
+
     public static void openGUI(Player player, String name, int page, Object... data) {
         if (!customGuis.containsKey(name))
             return;
@@ -64,6 +66,7 @@ public class GUI implements Listener {
         }
 
         player.openInventory(gui.createInventory(player, page, values, replacements));
+        pageNumber.put(player.getUniqueId(), page);
     }
 
 

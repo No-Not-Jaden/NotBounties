@@ -214,9 +214,13 @@ public class ConfigOptions {
 
 
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
-        if (!guiFile.exists() && bounties.getConfig().isConfigurationSection("advanced-gui")) {
+        if (!guiFile.exists()) {
+            bounties.saveResource("gui.yml", false);
+        }
+        if (bounties.getConfig().isConfigurationSection("advanced-gui")) {
             // migrate everything to gui.yml
-            YamlConfiguration configuration = new YamlConfiguration();
+            YamlConfiguration configuration = YamlConfiguration.loadConfiguration(guiFile);
+            configuration.set("bounty-gui", null);
             ConfigurationSection section = bounties.getConfig().getConfigurationSection("advanced-gui");
             assert section != null;
             configuration.set("bounty-gui.sort-type", section.get("sort-type"));
@@ -258,10 +262,9 @@ public class ConfigOptions {
 
             bounties.getConfig().set("advanced-gui", null);
             configuration.save(guiFile);
-        } else if (!guiFile.exists()) {
-            bounties.saveResource("gui.yml", false);
         }
 
+        customItems.clear();
         YamlConfiguration guiConfig = YamlConfiguration.loadConfiguration(guiFile);
         for (String key : guiConfig.getConfigurationSection("custom-items").getKeys(false)){
 

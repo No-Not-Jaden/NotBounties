@@ -29,6 +29,7 @@ public class GUIOptions {
     private final List<String> headLore;
     private final boolean addPage;
     private final String type;
+    private final List<CustomItem> pageReplacements = new ArrayList<>();
 
     public GUIOptions(ConfigurationSection settings){
         type = settings.getName();
@@ -38,7 +39,7 @@ public class GUIOptions {
         addPage = settings.getBoolean("add-page");
         sortType = settings.isSet("sort-type") ? settings.getInt("sort-type") : 1;
         removePageItems = settings.getBoolean("remove-page-items");
-        headName = settings.getString("head-item");
+        headName = settings.getString("head-name");
         headLore = settings.getStringList("head-lore");
         customItems = new CustomItem[size];
         for (String key : Objects.requireNonNull(settings.getConfigurationSection("layout")).getKeys(false)) {
@@ -48,6 +49,12 @@ public class GUIOptions {
             if (ConfigOptions.customItems.containsKey(item)) {
                 CustomItem customItem = ConfigOptions.customItems.get(item);
                 for (int i : slots){
+                    //Bukkit.getLogger().info(i + "");
+                    if (customItems[i] != null){
+                        if (getPageType(customItem.getCommands()) > 0){
+                            pageReplacements.add(customItems[i]);
+                        }
+                    }
                     customItems[i] = customItem;
                 }
             } else {
@@ -95,19 +102,30 @@ public class GUIOptions {
         if (page < 1)
             page = 1;
 
-        String name = addPage ? this.name + page : this.name;
+        String name = addPage ? this.name + " " + page : this.name;
         Inventory inventory = Bukkit.createInventory(player, size, name);
         ItemStack[] contents = inventory.getContents();
         // set up regular items
+        int replacementIndex = 0;
         for (int i = 0; i < contents.length; i++) {
+            if (customItems[i] == null)
+                continue;
             // check if item is a page item
             if (removePageItems){
-                if (customItems[i].getCommands().contains("[next]") && page * playerSlots.size() >= amount.length)
+                // next
+                if (getPageType(customItems[i].getCommands()) == 1 && page * playerSlots.size() >= amount.length){
+                    contents[i] = pageReplacements.get(replacementIndex).getFormattedItem(player, replacements);
+                    replacementIndex++;
                     continue;
-                if (customItems[i].getCommands().contains("[back]") && page == 1)
+                }
+                // back
+                if (getPageType(customItems[i].getCommands()) == 2 && page == 1){
+                    contents[i] = pageReplacements.get(replacementIndex).getFormattedItem(player, replacements);
+                    replacementIndex++;
                     continue;
+                }
             }
-            contents[i] = customItems[i].getFormattedItem(player);
+            contents[i] = customItems[i].getFormattedItem(player, replacements);
         }
         // set up player slots
         for (int i = (page-1) * playerSlots.size(); i < Math.min(playerSlots.size(), playerItems.length); i++){
@@ -116,12 +134,13 @@ public class GUIOptions {
             assert meta != null;
             final OfflinePlayer p = playerItems[i];
             meta.setOwningPlayer(p);
-            meta.setDisplayName(parse(color(headName), p));
-            List<String> lore = new ArrayList<>(headLore);
             final int finalAmount = amount[i];
             final int rank = i;
             String[] finalReplacements = replacements;
-            lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", finalAmount + "").replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0])), p));
+            String playerName = p.getName() != null ? p.getName() : "<?>";
+            meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", finalAmount + "").replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
+            List<String> lore = new ArrayList<>(headLore);
+            lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", finalAmount + "").replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
             meta.setLore(lore);
             skull.setItemMeta(meta);
             contents[playerSlots.get(i)] = skull;
@@ -167,9 +186,10 @@ public class GUIOptions {
         try {
             int bound1 = Integer.parseInt(split[0]);
             int bound2 = Integer.parseInt(split[1]);
-            int[] result = new int[Math.abs(bound1 - bound2)];
+            int[] result = new int[Math.abs(bound1 - bound2) + 1];
 
             for (int i = Math.min(bound1, bound2); i < Math.max(bound1, bound2) + 1; i++) {
+                //Bukkit.getLogger().info(i + "");
                 result[i-Math.min(bound1, bound2)] = i;
             }
             return result;
@@ -177,6 +197,21 @@ public class GUIOptions {
             // formatting error
             return new int[0];
         }
+    }
+
+    /**
+     * Parses through commands for "[next]" and "[back]"
+     * @param commands Commands of the CustomItem
+     * @return 1 for next, 2 for back, 0 for no page item
+     */
+    public static int getPageType(List<String> commands){
+        for (String command : commands){
+            if (command.startsWith("[next]"))
+                return 1;
+            if (command.startsWith("[back]"))
+                return 2;
+        }
+        return 0;
     }
 
     public String getType() {

@@ -3,7 +3,7 @@ custom-items:
     # material from https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
     material: GRAY_STAINED_GLASS_PANE
     amount: 1
-    # for resource packs, you do not need to use this
+    # for resource packs. Not required to use this
     custom-model-data: 10
     # name and lore accept placeholders and hex
     # this will make the name invisible
@@ -16,7 +16,7 @@ custom-items:
     # [close] to close GUI
     # [p] (command) to send as the player
     # [next] <x> goes to the next x amount of pages or next page if x is empty
-    # [back] goes to the last x amount of pages or last page if x is empty
+    # [back] <x> goes to the last x amount of pages or last page if x is empty
     # [gui] (gui name) (page) (leaderboard) opens a new gui - only gui name is required, ex: [gui] bounty-gui | [gui] leaderboard 1 kills
     commands: []
   exit:

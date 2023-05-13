@@ -1,9 +1,6 @@
 package me.jadenp.notbounties;
 
-import org.bukkit.Bukkit;
-
 import javax.annotation.Nullable;
-import java.util.UUID;
 
 public class Setter {
     private final String name;

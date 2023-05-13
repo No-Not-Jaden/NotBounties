@@ -1136,13 +1136,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (args.length == 1) {
                     if (sender.hasPermission("notbounties.set")) {
                         for (Map.Entry<String, String> entry : nb.loggedPlayers.entrySet()) {
-                            tab.add(Bukkit.getOfflinePlayer(UUID.fromString(entry.getValue())).getName());
+                            String name = Bukkit.getOfflinePlayer(UUID.fromString(entry.getValue())).getName();
+                            if (name != null)
+                                tab.add(name);
                         }
                     }
                 } else if (args.length == 3) {
                     if (args[0].equalsIgnoreCase("immunity") && args[1].equalsIgnoreCase("remove") && sender.hasPermission("notbounties.admin")) {
                         for (Map.Entry<String, String> entry : nb.loggedPlayers.entrySet()) {
-                            tab.add(Bukkit.getOfflinePlayer(UUID.fromString(entry.getValue())).getName());
+                            String name = Bukkit.getOfflinePlayer(UUID.fromString(entry.getValue())).getName();
+                            if (name != null)
+                                tab.add(name);
                         }
                     }
                 }

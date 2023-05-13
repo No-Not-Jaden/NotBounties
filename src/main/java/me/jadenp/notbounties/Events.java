@@ -527,7 +527,7 @@ public class Events implements Listener {
             if (event.getPlayer().hasPermission("notbounties.admin")) {
                 new UpdateChecker(nb, 104484).getVersion(version -> {
 
-                    if (!nb.getDescription().getVersion().equals(version) && !nb.getDescription().getVersion().contains("dev_")) {
+                    if (!nb.getDescription().getVersion().equals(version) && !nb.getDescription().getVersion().contains("dev")) {
                         event.getPlayer().sendMessage(parse(speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
                         event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
 
