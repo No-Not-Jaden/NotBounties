@@ -243,6 +243,32 @@ public enum Leaderboard {
         return top;
     }
 
+    public LinkedHashMap<String, String> getFormattedList(int skip, int amount, int sortType){
+        LinkedHashMap<String, Integer> top = getTop(skip, amount);
+        if (sortType == 2)
+            top = reverseMap(top);
+        if (sortType == 3)
+            top = sortByName(top);
+        if (sortType == 4)
+            top = reverseMap(sortByName(top));
+        LinkedHashMap<String, String> formattedList = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : top.entrySet()){
+            switch (this){
+                case ALL:
+                case CLAIMED:
+                case IMMUNITY:
+                    formattedList.put(entry.getKey(), currencyPrefix + entry.getValue() + currencySuffix);
+                    break;
+                case KILLS:
+                case DEATHS:
+                case SET:
+                    formattedList.put(entry.getKey(), entry.getValue() + "");
+                    break;
+            }
+        }
+        return formattedList;
+    }
+
     public static LinkedHashMap<String, Integer> reverseMap(LinkedHashMap<String, Integer> map){
         List<String> keys = new ArrayList<>(map.keySet());
         Collections.reverse(keys);

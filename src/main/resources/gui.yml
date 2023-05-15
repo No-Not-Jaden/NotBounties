@@ -18,6 +18,11 @@ custom-items:
     # [next] <x> goes to the next x amount of pages or next page if x is empty
     # [back] <x> goes to the last x amount of pages or last page if x is empty
     # [gui] (gui name) (page) (leaderboard) opens a new gui - only gui name is required, ex: [gui] bounty-gui | [gui] leaderboard 1 kills
+    # adding @{permission} at the beginning will check for a permission before executing the command. !@ will check if they don't have permission
+    #   ex: '@notbounties.admin [next]' will only go to the next page if the player clicking the item has notbounties.admin
+    #   '!@essentials.fly [p] top' will run the command /top as the player if the player doesn't have essentials.fly
+    # {player} will be replaced with the name of the player who clicked
+    # {slot<x>} will be replaced with the name of the owner of the skull in that slot, or if there is not skull, it will be replaced with the item name
     commands: []
   exit:
     material: BARRIER
@@ -37,42 +42,61 @@ custom-items:
     name: '&7Previous Page'
     commands:
       - '[back]'
+  set-bounty:
+    material: SKELETON_SKULL
+    amount: 1
+    name: '&c&lSet Bounty'
+    commands:
+      - '[p] bounty set'
   add1:
-    material: LIME_STAINED_GLASS
+    material: LIME_STAINED_GLASS_PANE
     amount: 1
     name: '&a&lAdd 1'
     commands:
       - '[next] 1'
   add10:
-    material: LIME_STAINED_GLASS
+    material: LIME_STAINED_GLASS_PANE
     amount: 10
     name: '&a&lAdd 10'
     commands:
       - '[next] 10'
   add100:
-    material: LIME_STAINED_GLASS
+    material: LIME_STAINED_GLASS_PANE
     amount: 64
     name: '&a&lAdd 100'
     commands:
       - '[next] 100'
   remove1:
-    material: RED_STAINED_GLASS
+    material: RED_STAINED_GLASS_PANE
     amount: 1
     name: '&c&lRemove 1'
     commands:
       - '[back] 1'
   remove10:
-    material: RED_STAINED_GLASS
+    material: RED_STAINED_GLASS_PANE
     amount: 10
     name: '&c&lRemove 10'
     commands:
       - '[back] 10'
   remove100:
-    material: RED_STAINED_GLASS
+    material: RED_STAINED_GLASS_PANE
     amount: 64
     name: '&c&lRemove 100'
     commands:
       - '[back] 100'
+  yes:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 1
+    name: '&a&lYes'
+    commands:
+      - '!@notbounties.admin [p] bounty buy --confirm'
+      - '@notbounties.admin [p] bounty remove {slot13}'
+  no:
+    material: RED_STAINED_GLASS_PANE
+    amount: 1
+    name: '&c&lNo'
+    commands:
+      - '[p] bounty'
 # for customizing the layout of the regular bounty GUI
 bounty-gui:
   # how the bounty menu is sorted
@@ -111,7 +135,7 @@ bounty-gui:
     # clicking this item will exit the GUI
     2:
       item: exit
-      slot: 49
+      slot: 48
     # these next 2 will only appear when there are multiple pages
     # they switch between the pages
     3:
@@ -120,6 +144,9 @@ bounty-gui:
     4:
       item: next
       slot: 53
+    5:
+      item: set-bounty
+      slot: 50
 leaderboard:
   # 1 for highest value
   # 2 for lowest value
@@ -172,6 +199,12 @@ set-bounty:
     2:
       item: exit
       slot: 49
+    3:
+      item: next
+      slot: 53
+    4:
+      item: back
+      slot: 45
 # the page of this is the price
 select-price:
   sort-type: 1
@@ -220,5 +253,39 @@ confirm:
   remove-page-items: true
   player-slots:
     - '13'
+  head-name: '&e&lBuy Back for: &6{amount}'
+  head-lore:
+    - ''
+    - '&7{player}'
+    #- '&7Total Bounty: &f%notbounties_bounty_formatted%'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 0-53
+    2:
+      item: exit
+      slot: 49
+    3:
+      item: no
+      slot: 28-30
+    4:
+      item: no
+      slot: 19-21
+    5:
+      item: no
+      slot: 37-39
+    6:
+      item: yes
+      slot: 23-25
+    7:
+      item: yes
+      slot: 32-34
+    8:
+      item: yes
+      slot: 41-43
+
+
+
 
 

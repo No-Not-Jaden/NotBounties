@@ -81,11 +81,11 @@ public class GUIOptions {
      * @param page Page of gui - This will change the items in player slots and page items if enabled
      * @return Custom GUI Inventory
      */
-    public Inventory createInventory(Player player, int page, LinkedHashMap<String, Integer> values, String... replacements){
+    public Inventory createInventory(Player player, int page, LinkedHashMap<String, String> values, String... replacements){
         OfflinePlayer[] playerItems = new OfflinePlayer[values.size()];
-        int[] amount = new int[values.size()];
+        String[] amount = new String[values.size()];
         int index = 0;
-        for (Map.Entry<String, Integer> entry : values.entrySet()){
+        for (Map.Entry<String, String> entry : values.entrySet()){
             playerItems[index] = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
             amount[index] = entry.getValue();
             index++;
@@ -134,13 +134,13 @@ public class GUIOptions {
             assert meta != null;
             final OfflinePlayer p = playerItems[i];
             meta.setOwningPlayer(p);
-            final int finalAmount = amount[i];
+            final String finalAmount = amount[i];
             final int rank = i;
             String[] finalReplacements = replacements;
             String playerName = p.getName() != null ? p.getName() : "<?>";
-            meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", finalAmount + "").replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
+            meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", finalAmount).replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
             List<String> lore = new ArrayList<>(headLore);
-            lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", finalAmount + "").replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
+            lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", finalAmount).replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
             // extra lore stuff
             if (type.equals("bounty-gui"))
                 if (player.hasPermission("notbounties.admin")) {
@@ -150,7 +150,7 @@ public class GUIOptions {
                 } else {
                     if (buyBack) {
                         if (p.getUniqueId().equals(player.getUniqueId())) {
-                            lore.add(parse(buyBackLore, (int) (finalAmount * buyBackInterest), player));
+                            lore.add(parse(buyBackLore, (int) (parseCurrency(finalAmount) * buyBackInterest), player));
                             lore.add("");
                         }
                     }
@@ -162,6 +162,22 @@ public class GUIOptions {
         inventory.setContents(contents);
         return inventory;
         
+    }
+
+    public static int parseCurrency(String amount){
+        amount = ChatColor.stripColor(amount);
+        int a = 0;
+        try {
+            a = Integer.parseInt(amount);
+            return a;
+        } catch (NumberFormatException ignored){}
+        try {
+            a = Integer.parseInt(amount.substring(ChatColor.stripColor(currencyPrefix).length(), amount.length() - ChatColor.stripColor(currencySuffix).length()));
+        } catch (NumberFormatException | IndexOutOfBoundsException e){
+            Bukkit.getLogger().warning("Unable to parse a currency string! This is a bug, please contact the plugin owner Not_Jaden");
+            e.printStackTrace();
+        }
+        return a;
     }
 
     public int getSize() {

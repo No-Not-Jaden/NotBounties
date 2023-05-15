@@ -330,138 +330,94 @@ public class ConfigOptions {
 
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(language);
 
-        if (!configuration.isSet("prefix")) {
+        if (!configuration.isSet("prefix"))
             configuration.set("prefix", "&7[&9Not&dBounties&7] &8» &r");
-        }
-        if (!configuration.isSet("unknown-number")) {
+        if (!configuration.isSet("unknown-number"))
             configuration.set("unknown-number", "&cUnknown number!");
-        }
-        if (!configuration.isSet("bounty-success")) {
+        if (!configuration.isSet("bounty-success"))
             configuration.set("bounty-success", "&aBounty placed on &e{player}&a for &e{amount}&a!");
-        }
-        if (!configuration.isSet("unknown-player")) {
+        if (!configuration.isSet("unknown-player"))
             configuration.set("unknown-player", "&cCould not find the player &4{player}&c!");
-        }
-        if (!configuration.isSet("bounty-broadcast")) {
+        if (!configuration.isSet("bounty-broadcast"))
             configuration.set("bounty-broadcast", "&e{player}&6 has placed a bounty of &f{amount}&6 on &e{receiver}&6! Total Bounty: &f{bounty}");
-        }
-        if (!configuration.isSet("no-permission")) {
+        if (!configuration.isSet("no-permission"))
             configuration.set("no-permission", "&cYou do not have permission to execute this command!");
-        }
-        if (!configuration.isSet("broke")) {
+        if (!configuration.isSet("broke"))
             configuration.set("broke", "&cYou do not have enough currency for this! &8Required: &7{amount}");
-        }
-        if (!configuration.isSet("claim-bounty-broadcast")) {
+        if (!configuration.isSet("claim-bounty-broadcast"))
             configuration.set("claim-bounty-broadcast", "&e{player}&6 has claimed the bounty of &f{amount}&6 on &e{receiver}&6!");
-        }
-        if (!configuration.isSet("no-bounty")) {
+        if (!configuration.isSet("no-bounty"))
             configuration.set("no-bounty", "&4{receiver} &cdoesn't have a bounty!");
-        }
-        if (!configuration.isSet("check-bounty")) {
+        if (!configuration.isSet("check-bounty"))
             configuration.set("check-bounty", "&e{receiver}&a has a bounty of &e{amount}&a.");
-        }
-        if (!configuration.isSet("list-setter")) {
+        if (!configuration.isSet("list-setter"))
             configuration.set("list-setter", "&e{player} &7> &a{amount}");
-        }
-        if (!configuration.isSet("list-total")) {
+        if (!configuration.isSet("list-total"))
             configuration.set("list-total", "&e{player} &7> &a{amount}");
-        }
-        if (!configuration.isSet("offline-bounty")) {
+        if (!configuration.isSet("offline-bounty"))
             configuration.set("offline-bounty", "&e{player}&6 has set a bounty on you while you were offline!");
-        }
-        if (!configuration.isSet("success-remove-bounty")) {
+        if (!configuration.isSet("success-remove-bounty"))
             configuration.set("success-remove-bounty", "&cSuccessfully removed &4{receiver}'s &cbounty.");
-        }
-        if (!configuration.isSet("success-edit-bounty")) {
+        if (!configuration.isSet("success-edit-bounty"))
             configuration.set("success-edit-bounty", "&cSuccessfully edited &4{receiver}'s &cbounty.");
-        }
-        if (!configuration.isSet("no-setter")) {
+        if (!configuration.isSet("no-setter"))
             configuration.set("no-setter", "&4{player} &chas not set a bounty on {receiver}");
-        }
-        if (!configuration.isSet("repeat-command-bounty")) {
+        if (!configuration.isSet("repeat-command-bounty"))
             configuration.set("repeat-command-bounty", "&6Please type this command in again in the next 30 seconds to confirm buying your bounty for &e{amount}&6.");
-        }
-        if (!configuration.isSet("repeat-command-immunity")) {
+        if (!configuration.isSet("repeat-command-immunity"))
             configuration.set("repeat-command-immunity", "&6Please type this command in again in the next 30 seconds to confirm buying immunity for &e{amount}&6.");
-        }
-        if (!configuration.isSet("permanent-immunity")) {
+        if (!configuration.isSet("permanent-immunity"))
             configuration.set("permanent-immunity", "&6{player} &eis immune to bounties!");
-        }
-        if (!configuration.isSet("scaling-immunity")) {
+        if (!configuration.isSet("scaling-immunity"))
             configuration.set("scaling-immunity", "&6{player} &eis immune to bounties less than &e{amount}&6.");
-        }
-        if (!configuration.isSet("buy-permanent-immunity")) {
+        if (!configuration.isSet("buy-permanent-immunity"))
             configuration.set("buy-permanent-immunity", "&aYou have bought immunity from bounties.");
-        }
-        if (!configuration.isSet("buy-scaling-immunity")) {
+        if (!configuration.isSet("buy-scaling-immunity"))
             configuration.set("buy-scaling-immunity", "&aYou have bought immunity from bounties under the amount of &2{amount}&a.");
-        }
-        if (!configuration.isSet("grace-period")) {
+        if (!configuration.isSet("grace-period"))
             configuration.set("grace-period", "&cA bounty had just been claimed on &4{player}&c. Please wait &4{time}&c until you try again.");
-        }
-        if (!configuration.isSet("min-bounty")) {
+        if (!configuration.isSet("min-bounty"))
             configuration.set("min-bounty", "&cThe bounty must be at least &4{amount}&c.");
-        }
-        if (!configuration.isSet("unknown-command")) {
+        if (!configuration.isSet("unknown-command"))
             configuration.set("unknown-command", "&dUse &9/bounty help &dfor a list of commands.");
-        }
-        if (!configuration.isSet("already-bought-perm")) {
+        if (!configuration.isSet("already-bought-perm"))
             configuration.set("already-bought-perm", "&cYou already have permanent immunity!");
-        }
-        if (!configuration.isSet("removed-immunity")) {
+        if (!configuration.isSet("removed-immunity"))
             configuration.set("removed-immunity", "&aSuccessfully removed your immunity to bounties.");
-        }
-        if (!configuration.isSet("removed-other-immunity")) {
+        if (!configuration.isSet("removed-other-immunity"))
             configuration.set("removed-other-immunity", "&aSuccessfully removed &2{receiver}''s &aimmunity to bounties.");
-        }
-        if (!configuration.isSet("no-immunity")) {
+        if (!configuration.isSet("no-immunity"))
             configuration.set("no-immunity", "&cYou do not have purchased immunity!");
-        }
-        if (!configuration.isSet("no-immunity-other")) {
+        if (!configuration.isSet("no-immunity-other"))
             configuration.set("no-immunity-other", "&4{receiver} &cdoes not have purchased immunity!");
-        }
-        if (!configuration.isSet("expired-bounty")) {
+        if (!configuration.isSet("expired-bounty"))
             configuration.set("expired-bounty", "&eYour bounty on &6{player}&e has expired. You have been refunded &2{amount}&e.");
-        }
-        if (!configuration.isSet("bounty-tracker-name")) {
+        if (!configuration.isSet("bounty-tracker-name"))
             configuration.set("bounty-tracker-name", "&eBounty Tracker: &6&l{player}");
-        }
-        if (!configuration.isSet("bounty-tracker-lore")) {
+        if (!configuration.isSet("bounty-tracker-lore"))
             configuration.set("bounty-tracker-lore", Arrays.asList("", "&7Follow this compass", "&7to find {player}", ""));
-        }
-        if (!configuration.isSet("tracker-give")) {
+        if (!configuration.isSet("tracker-give"))
             configuration.set("tracker-give", "&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.");
-        }
-        if (!configuration.isSet("tracker-receive")) {
+        if (!configuration.isSet("tracker-receive"))
             configuration.set("tracker-receive", "&eYou have been given a bounty tracker for &6{player}&e.");
-        }
-        if (!configuration.isSet("bounty-top")) {
+        if (!configuration.isSet("bounty-top"))
             configuration.set("bounty-top", "&9&l{rank}. &d{player} &7> &a{amount}");
-        }
-        if (!configuration.isSet("bounty-top-title")) {
+        if (!configuration.isSet("bounty-top-title"))
             configuration.set("bounty-top-title", "&7&m               &r &d&lBounties &9&lTop &7&m               ");
-        }
-        if (!configuration.isSet("enable-broadcast")) {
+        if (!configuration.isSet("enable-broadcast"))
             configuration.set("enable-broadcast", "&eYou have &aenabled &ebounty broadcast!");
-        }
-        if (!configuration.isSet("disable-broadcast")) {
+        if (!configuration.isSet("disable-broadcast"))
             configuration.set("disable-broadcast", "&eYou have &cdisabled &ebounty broadcast!");
-        }
-        if (!configuration.isSet("bounty-voucher-name")) {
+        if (!configuration.isSet("bounty-voucher-name"))
             configuration.set("bounty-voucher-name", "&6{player}'s&e claimed bounty of &a{amount}&e.");
-        }
-        if (!configuration.isSet("bounty-voucher-lore")) {
+        if (!configuration.isSet("bounty-voucher-lore"))
             configuration.set("bounty-voucher-lore", Arrays.asList("", "&2Awarded to {receiver}", "&7Right click to redeem", "&7this player's bounty", ""));
-        }
-        if (!configuration.isSet("redeem-voucher")) {
+        if (!configuration.isSet("redeem-voucher"))
             configuration.set("redeem-voucher", "&aSuccessfully redeemed voucher for {amount}!");
-        }
-        if (!configuration.isSet("bounty-receiver")) {
+        if (!configuration.isSet("bounty-receiver"))
             configuration.set("bounty-receiver", "&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}");
-        }
-        if (!configuration.isSet("big-bounty")) {
+        if (!configuration.isSet("big-bounty"))
             configuration.set("big-bounty", "&eYour bounty is very impressive!");
-        }
         if (configuration.isSet("bounty-stat-all")){
             configuration.set("bounty-stat.all.long", configuration.getString("bounty-stat-all"));
             configuration.set("bounty-stat.kills.long", configuration.getString("bounty-stat-kills"));
@@ -756,6 +712,51 @@ public class ConfigOptions {
             return PlaceholderAPI.setPlaceholders(receiver, str);
         }
         return str;
+    }
+
+    /**
+     * Get the balance of a player. Checks if the currency is a placeholder and parses it, otherwise, gets the amount of items matching the currency material
+     * @param player Player to get balance from
+     * @return Balance of player
+     */
+    public static double getBalance(Player player){
+        if (usingPapi) {
+            // check if papi is enabled - parse to check
+            if (papiEnabled) {
+                double balance;
+                try {
+                    balance = Double.parseDouble(PlaceholderAPI.setPlaceholders(player, currency));
+                } catch (NumberFormatException ignored) {
+                    Bukkit.getLogger().warning("Error getting a number from currency placeholder!");
+                    return 0;
+                }
+                return balance;
+            } else {
+                Bukkit.getLogger().warning("Currency for bounties currently set as placeholder but PlaceholderAPI is not enabled!");
+            }
+        } else {
+            return checkAmount(player, Material.valueOf(currency));
+        }
+        return 0;
+    }
+
+    /**
+     * Check the amount of items matching a material
+     * @param player Player whose inventory will be searched
+     * @param material Material to check for
+     * @return amount of items in the players inventory that are a certain material
+     */
+    public static int checkAmount(Player player, Material material) {
+        int amount = 0;
+        ItemStack[] contents = player.getInventory().getContents();
+        for (ItemStack content : contents) {
+            if (content != null) {
+                if (content.getType().equals(material)) {
+                    amount += content.getAmount();
+                }
+            }
+        }
+        return amount;
     }
 
 

@@ -42,26 +42,31 @@ public class GUI implements Listener {
             return;
         GUIOptions gui = customGuis.get(name);
 
-        LinkedHashMap<String, Integer> values = new LinkedHashMap<>();
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
         NotBounties nb = NotBounties.getInstance();
         String[] replacements = new String[0];
         switch (name){
             case "bounty-gui":
                 List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList)
-                    values.put(bounty.getUUID(), bounty.getTotalBounty());
+                    values.put(bounty.getUUID(), currencyPrefix + bounty.getTotalBounty() + currencySuffix);
                 break;
             case "leaderboard":
                 Leaderboard leaderboard = (Leaderboard) data[0];
-                values = leaderboard.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType());
+                values = leaderboard.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
                 replacements = new String[]{leaderboard.toString()};
                 break;
             case "set-bounty":
-                values = Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType());
+                values = Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
                 break;
             case "select-price":
                 String uuid = data.length > 0 && data[0] instanceof String ? (String) data[0] : player.getUniqueId().toString();
-                values.put(uuid, page);
+                values.put(uuid, page + "");
+                break;
+            case "confirm":
+                uuid = data.length > 0 && data[0] instanceof String ? (String) data[0] : player.getUniqueId().toString();
+                int price = data.length > 1 && data[1] instanceof Integer ? (int) data[1] : 0;
+                values.put(uuid, price + "");
                 break;
         }
 
@@ -280,59 +285,16 @@ public class GUI implements Listener {
                     } else if (event.isLeftClick()) {
                         if (event.getWhoClicked().hasPermission("notbounties.admin")) {
                             // remove
-                            Inventory confirmation = Bukkit.createInventory(event.getWhoClicked(), 54, ChatColor.BLUE + "" + ChatColor.BOLD + "Are you sure?");
-                            ItemStack[] contents = confirmation.getContents();
-                            Arrays.fill(contents, Item.get("fill"));
-                            contents[29] = Item.get("yes");
-                            contents[33] = Item.get("no");
-                            contents[40] = Item.get("exit");
-                            contents[13] = event.getCurrentItem();
-                            confirmation.setContents(contents);
-                            event.getWhoClicked().openInventory(confirmation);
+                            openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), 0);
 
                         } else {
                             if (bounty.getUUID().equals(event.getWhoClicked().getUniqueId().toString())) {
                                 if (buyBack) {
-                                    if (usingPapi) {
-                                        // check if papi is enabled - parse to check
-                                        if (papiEnabled) {
-                                            double balance;
-                                            try {
-                                                balance = Double.parseDouble(PlaceholderAPI.setPlaceholders((Player) event.getWhoClicked(), currency));
-                                            } catch (NumberFormatException ignored) {
-                                                Bukkit.getLogger().warning("Error getting a number from currency placeholder!");
-                                                return;
-                                            }
-                                            if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
-                                                Inventory confirmation = Bukkit.createInventory(event.getWhoClicked(), 54, ChatColor.BLUE + "" + ChatColor.BOLD + "Are you sure?");
-                                                ItemStack[] contents = confirmation.getContents();
-                                                Arrays.fill(contents, Item.get("fill"));
-                                                contents[29] = Item.get("yes");
-                                                contents[33] = Item.get("no");
-                                                contents[40] = Item.get("exit");
-                                                contents[13] = event.getCurrentItem();
-                                                confirmation.setContents(contents);
-                                                event.getWhoClicked().openInventory(confirmation);
-                                            } else {
-                                                event.getWhoClicked().sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
-                                            }
-                                        } else {
-                                            Bukkit.getLogger().warning("Currency for bounties currently set as placeholder but PlaceholderAPI is not enabled!");
-                                        }
+                                    double balance = getBalance((Player) event.getWhoClicked());
+                                    if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
+                                        openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), (int) (buyBackInterest * bounty.getTotalBounty()));
                                     } else {
-                                        if (NotBounties.getInstance().checkAmount((Player) event.getWhoClicked(), Material.valueOf(currency)) >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
-                                            Inventory confirmation = Bukkit.createInventory(event.getWhoClicked(), 54, ChatColor.BLUE + "" + ChatColor.BOLD + "Are you sure?");
-                                            ItemStack[] contents = confirmation.getContents();
-                                            Arrays.fill(contents, Item.get("fill"));
-                                            contents[29] = Item.get("yes");
-                                            contents[33] = Item.get("no");
-                                            contents[40] = Item.get("exit");
-                                            contents[13] = event.getCurrentItem();
-                                            confirmation.setContents(contents);
-                                            event.getWhoClicked().openInventory(confirmation);
-                                        } else {
-                                            event.getWhoClicked().sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
-                                        }
+                                        event.getWhoClicked().sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
                                     }
                                 }
                             }
@@ -346,6 +308,9 @@ public class GUI implements Listener {
                 }
             } else if (guiType.equals("set-bounty")){
                 openGUI((Player) event.getWhoClicked(), "select-price", minBounty, player.getUniqueId().toString());
+            } else if (guiType.equals("select-price")){
+                Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + player.getName() + " " + pageNumber.get(event.getWhoClicked().getUniqueId()));
+                event.getView().close();
             }
         } else {
             CustomItem customItem = gui.getCustomItems()[event.getSlot()];
@@ -353,25 +318,61 @@ public class GUI implements Listener {
                 return;
             for (String command : customItem.getCommands()){
                 command = command.replaceAll("\\{player}", event.getWhoClicked().getName());
-                if (command.startsWith("[close]"))
+                while (command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")){
+                    String replacement = "";
+                    try {
+                        int slot = Integer.parseInt(command.substring(command.indexOf("{slot") + 5, command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(command.indexOf("{slot")).length()));
+                        ItemStack item = event.getInventory().getContents()[slot];
+                        if (item != null) {
+                            if (item.getType() == Material.PLAYER_HEAD) {
+                                SkullMeta meta = (SkullMeta) item.getItemMeta();
+                                assert meta != null;
+                                OfflinePlayer player = meta.getOwningPlayer();
+                                if (player != null && player.getName() != null) {
+                                    replacement = meta.getOwningPlayer().getName();
+                                } else {
+                                    Bukkit.getLogger().warning("Invalid player for slot " + slot);
+                                }
+                            }
+                            if (replacement == null)
+                                replacement = "";
+                            if (replacement.equals("")) {
+                                ItemMeta meta = item.getItemMeta();
+                                assert meta != null;
+                                replacement = meta.getDisplayName();
+                            }
+                        }
+                    } catch (NumberFormatException e){
+                        Bukkit.getLogger().warning("Error getting slot in command: \n" + command);
+                    }
+                    command = command.substring(0, command.indexOf("{slot")) + replacement + command.substring(command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(command.indexOf("{slot")).length());
+                }
+                if (command.startsWith("@")){
+                    String permission = command.substring(1, command.indexOf(" "));
+                    if (!event.getWhoClicked().hasPermission(permission))
+                        continue;
+                } else if (command.startsWith("!@")){
+                    String permission = command.substring(2, command.indexOf(" "));
+                    if (event.getWhoClicked().hasPermission(permission))
+                        continue;
+                }
+                if (command.startsWith("[close]")) {
                     event.getView().close();
-                if (command.startsWith("[p]"))
+                } else if (command.startsWith("[p]")) {
                     Bukkit.dispatchCommand(event.getWhoClicked(), command.substring(4));
-                if (command.startsWith("[next]")) {
+                } else if (command.startsWith("[next]")) {
                     int amount = 1;
                     try {
                         amount = Integer.parseInt(command.substring(7));
                     } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
                     openGUI((Player) event.getWhoClicked(), gui.getName(), pageNumber.get(event.getWhoClicked().getUniqueId()) + amount);
-                }
-                if (command.startsWith("[back]")) {
+                } else if (command.startsWith("[back]")) {
                     int amount = 1;
                     try {
                         amount = Integer.parseInt(command.substring(7));
                     } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
                     openGUI((Player) event.getWhoClicked(), gui.getName(), pageNumber.get(event.getWhoClicked().getUniqueId()) - amount);
-                }
-                if (command.startsWith("[gui]")){
+                } else if (command.startsWith("[gui]")){
                     int amount = 1;
                     String guiName = command.substring(6);
                     if (command.substring(6).contains(" ")) {
@@ -391,6 +392,8 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), guiName, amount);
                     }
 
+                } else {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                 }
             }
         }

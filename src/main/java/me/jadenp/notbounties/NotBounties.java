@@ -155,14 +155,18 @@ public final class NotBounties extends JavaPlugin {
      *
      * gui for bounty top -
      * > new bounty top command -
-     * button in the gui to set a bounty
+     * button in the gui to set a bounty -
      * option to disable update notification - x
      * Change getting top stats to limit to 10 -
      * hidden players from stats -
      * move gui stuff to another config file - x
      * tab complete is null sometimes x
      * Removing bounty doesn't tell you in lore -
-     * Are you sure GUI - not a valid gui (no page number)
+     * Are you sure GUI - not a valid gui (no page number) -
+     * can buy back bounty or immunity with --confirm -
+     * make a getBalance() method -
+     * @ and !@ work in gui -
+     * {slot13} works -
      *
      */
 
@@ -886,18 +890,7 @@ public final class NotBounties extends JavaPlugin {
 
     }
 
-    public int checkAmount(Player player, Material material) {
-        int amount = 0;
-        ItemStack[] contents = player.getInventory().getContents();
-        for (ItemStack content : contents) {
-            if (content != null) {
-                if (content.getType().equals(material)) {
-                    amount += content.getAmount();
-                }
-            }
-        }
-        return amount;
-    }
+
 
     public void removeItem(Player player, Material material, int amount) {
         ItemStack[] contents = player.getInventory().getContents();
