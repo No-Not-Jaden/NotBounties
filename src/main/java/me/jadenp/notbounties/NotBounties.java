@@ -161,7 +161,7 @@ public final class NotBounties extends JavaPlugin {
      * hidden players from stats -
      * move gui stuff to another config file - x
      * tab complete is null sometimes x
-     * Removing bounty doesn't tell you in lore
+     * Removing bounty doesn't tell you in lore -
      * Are you sure GUI - not a valid gui (no page number)
      *
      */

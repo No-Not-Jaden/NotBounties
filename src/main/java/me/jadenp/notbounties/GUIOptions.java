@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -15,8 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.ConfigOptions.color;
-import static me.jadenp.notbounties.ConfigOptions.parse;
+import static me.jadenp.notbounties.ConfigOptions.*;
 
 public class GUIOptions {
     private final List<Integer> playerSlots; // this size of this is how many player slots per page
@@ -141,6 +141,20 @@ public class GUIOptions {
             meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", finalAmount + "").replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
             List<String> lore = new ArrayList<>(headLore);
             lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", finalAmount + "").replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
+            // extra lore stuff
+            if (type.equals("bounty-gui"))
+                if (player.hasPermission("notbounties.admin")) {
+                    lore.add(ChatColor.RED + "Left Click" + ChatColor.GRAY + " to Remove");
+                    lore.add(ChatColor.YELLOW + "Right Click" + ChatColor.GRAY + " to Edit");
+                    lore.add("");
+                } else {
+                    if (buyBack) {
+                        if (p.getUniqueId().equals(player.getUniqueId())) {
+                            lore.add(parse(buyBackLore, (int) (finalAmount * buyBackInterest), player));
+                            lore.add("");
+                        }
+                    }
+                }
             meta.setLore(lore);
             skull.setItemMeta(meta);
             contents[playerSlots.get(i)] = skull;

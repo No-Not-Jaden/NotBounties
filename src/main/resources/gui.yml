@@ -37,6 +37,42 @@ custom-items:
     name: '&7Previous Page'
     commands:
       - '[back]'
+  add1:
+    material: LIME_STAINED_GLASS
+    amount: 1
+    name: '&a&lAdd 1'
+    commands:
+      - '[next] 1'
+  add10:
+    material: LIME_STAINED_GLASS
+    amount: 10
+    name: '&a&lAdd 10'
+    commands:
+      - '[next] 10'
+  add100:
+    material: LIME_STAINED_GLASS
+    amount: 64
+    name: '&a&lAdd 100'
+    commands:
+      - '[next] 100'
+  remove1:
+    material: RED_STAINED_GLASS
+    amount: 1
+    name: '&c&lRemove 1'
+    commands:
+      - '[back] 1'
+  remove10:
+    material: RED_STAINED_GLASS
+    amount: 10
+    name: '&c&lRemove 10'
+    commands:
+      - '[back] 10'
+  remove100:
+    material: RED_STAINED_GLASS
+    amount: 64
+    name: '&c&lRemove 100'
+    commands:
+      - '[back] 100'
 # for customizing the layout of the regular bounty GUI
 bounty-gui:
   # how the bounty menu is sorted
@@ -118,14 +154,17 @@ set-bounty:
   # same sort for leaderboard, but this sorts immunity
   sort-type: 3
   size: 54
-  gui-name: '&cWIP'
-  add-page: true
+  gui-name: '&d&lSelect &9&lPlayer'
+  add-page: false
   remove-page-items: true
   player-slots:
     - '0-44'
-  head-name: '{player}'
+  head-name: '&e&l{player}'
   head-lore:
-    - 'yum'
+    - ''
+    - '&6Immunity: {amount}'
+    - '&7Click to select player'
+    - ''
   layout:
     1:
       item: fill
@@ -135,3 +174,51 @@ set-bounty:
       slot: 49
 # the page of this is the price
 select-price:
+  sort-type: 1
+  size: 54
+  gui-name: '&d&lSelect &9&lPrice:&f'
+  add-page: true
+  remove-page-items: false
+  player-slots:
+    - '13'
+  head-name: '&2Price: &a{amount}'
+  head-lore:
+    - ''
+    - '&7{player}'
+    - '&7Immunity: &f{amount}'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 0-53
+    2:
+      item: exit
+      slot: 49
+    3:
+      item: remove1
+      slot: 19-21
+    4:
+      item: remove10
+      slot: 28-30
+    5:
+      item: remove100
+      slot: 37-39
+    6:
+      item: add1
+      slot: 23-25
+    7:
+      item: add10
+      slot: 32-34
+    8:
+      item: add100
+      slot: 41-43
+confirm:
+  sort-type: 1
+  size: 54
+  gui-name: '&6&lAre you sure?'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    - '13'
+
+
