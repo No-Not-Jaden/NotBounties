@@ -99,9 +99,10 @@ public class GUIOptions {
                 replacements[i] = "";
         }
 
-        if (page < 1)
+        if (page < 1) {
             page = 1;
-
+            GUI.pageNumber.replace(player.getUniqueId(), page);
+        }
         String name = addPage ? this.name + " " + page : this.name;
         Inventory inventory = Bukkit.createInventory(player, size, name);
         ItemStack[] contents = inventory.getContents();
@@ -128,19 +129,20 @@ public class GUIOptions {
             contents[i] = customItems[i].getFormattedItem(player, replacements);
         }
         // set up player slots
-        for (int i = (page-1) * playerSlots.size(); i < Math.min(playerSlots.size(), playerItems.length); i++){
+        for (int i = type.equals("select-price") ? 0 : (page-1) * playerSlots.size(); i < Math.min(playerSlots.size(), playerItems.length); i++){
             ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) skull.getItemMeta();
             assert meta != null;
             final OfflinePlayer p = playerItems[i];
             meta.setOwningPlayer(p);
             final String finalAmount = amount[i];
-            final int rank = i;
+            final int rank = i + 1;
             String[] finalReplacements = replacements;
             String playerName = p.getName() != null ? p.getName() : "<?>";
-            meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", finalAmount).replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
+
+            meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", finalAmount).replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName).replaceAll("\\{amount_tax}", currencyPrefix + (int) (parseCurrency(finalAmount) * (bountyTax + 1)) + currencySuffix)), p));
             List<String> lore = new ArrayList<>(headLore);
-            lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", finalAmount).replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName)), p));
+            lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", finalAmount).replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName).replaceAll("\\{amount_tax}", currencyPrefix + (int) (parseCurrency(finalAmount) * (bountyTax + 1)) + currencySuffix)), p));
             // extra lore stuff
             if (type.equals("bounty-gui"))
                 if (player.hasPermission("notbounties.admin")) {
@@ -174,8 +176,8 @@ public class GUIOptions {
         try {
             a = Integer.parseInt(amount.substring(ChatColor.stripColor(currencyPrefix).length(), amount.length() - ChatColor.stripColor(currencySuffix).length()));
         } catch (NumberFormatException | IndexOutOfBoundsException e){
-            Bukkit.getLogger().warning("Unable to parse a currency string! This is a bug, please contact the plugin owner Not_Jaden");
-            e.printStackTrace();
+            Bukkit.getLogger().warning("Unable to parse a currency string! This is probably because of an incompatible usage of {amount_tax}");
+
         }
         return a;
     }

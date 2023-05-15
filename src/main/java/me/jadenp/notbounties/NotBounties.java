@@ -153,25 +153,25 @@ public final class NotBounties extends JavaPlugin {
      * check your own stats - x
      * new placeholder - x
      *
-     * gui for bounty top -
-     * > new bounty top command -
-     * button in the gui to set a bounty -
+     * gui for bounty top - x
+     * > new bounty top command - x
+     * button in the gui to set a bounty - x
      * option to disable update notification - x
-     * Change getting top stats to limit to 10 -
-     * hidden players from stats -
+     * Change getting top stats to limit to 10 - x
+     * hidden players from stats - x
      * move gui stuff to another config file - x
      * tab complete is null sometimes x
-     * Removing bounty doesn't tell you in lore -
-     * Are you sure GUI - not a valid gui (no page number) -
-     * can buy back bounty or immunity with --confirm -
-     * make a getBalance() method -
-     * @ and !@ work in gui -
-     * {slot13} works -
+     * Removing bounty doesn't tell you in lore - x
+     * Are you sure GUI - not a valid gui (no page number) - x
+     * can buy back bounty or immunity with --confirm - x
+     * make a getBalance() method - x
+     * @ and !@ work in gui - x
+     * {slot13} works - x
      *
      */
 
     /**
-     * Name, UUID
+     * Name (lower case), UUID
      */
     public Map<String, String> loggedPlayers = new HashMap<>();
     public List<Bounty> bountyList = new ArrayList<>();
@@ -796,12 +796,11 @@ public final class NotBounties extends JavaPlugin {
 
     public void doRemoveCommands(Player p, int amount) {
         if (usingPapi) {
-            if (removeCommands == null){
+            if (removeCommands == null || removeCommands.isEmpty()){
                 Bukkit.getLogger().warning("NotBounties detected a placeholder as currency, but there are no remove commands to take away money! (Is it formatted correctly?)");
             }
-            if (removeCommands.isEmpty()){
-                Bukkit.getLogger().warning("NotBounties detected a placeholder as currency, but there are no remove commands to take away money! (Is it formatted correctly?)");
-            }
+        } else {
+            removeItem(p, Material.valueOf(currency), amount);
         }
             for (String str : removeCommands) {
                 while (str.contains("{player}")) {

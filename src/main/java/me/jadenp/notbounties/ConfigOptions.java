@@ -139,8 +139,6 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-tracker.action-bar.world", false);
         if (!bounties.getConfig().isSet("redeem-reward-later"))
             bounties.getConfig().set("redeem-reward-later", false);
-        if (!bounties.getConfig().isSet("advanced-gui.sort-type"))
-            bounties.getConfig().set("advanced-gui.sort-type", 2);
         if (!bounties.getConfig().isSet("minimum-broadcast"))
             bounties.getConfig().set("minimum-broadcast", 100);
         if (!bounties.getConfig().isSet("big-bounties.bounty-threshold"))

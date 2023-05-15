@@ -142,7 +142,9 @@ public enum Leaderboard {
             if (amount == 0)
                 break;
             amount--;
-            top.put(entry.getKey(), entry.getValue());
+            OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
+            if (player.getName() != null && !hiddenNames.contains(player.getName()))
+                top.put(entry.getKey(), entry.getValue());
         }
         return top;
     }
@@ -159,18 +161,20 @@ public enum Leaderboard {
         for (Map.Entry<String, Integer> entry : map.entrySet()){
             OfflinePlayer p = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
             String name = p.getName();
-            if (name == null && nb.loggedPlayers.containsValue(entry.getKey())){
-                for (Map.Entry<String, String> logged : nb.loggedPlayers.entrySet()){
-                    if (logged.getValue().equals(entry.getKey())) {
-                        name = logged.getKey();
-                        break;
+            if (name == null){
+                if (nb.loggedPlayers.containsValue(entry.getKey())) {
+                    for (Map.Entry<String, String> logged : nb.loggedPlayers.entrySet()) {
+                        if (logged.getValue().equals(entry.getKey())) {
+                            name = logged.getKey();
+                            break;
+                        }
+                        name = "???";
                     }
+                } else {
                     name = "???";
                 }
-            } else {
-                name = "???";
             }
-            sender.sendMessage(parseBountyTopString(i, name, entry.getValue(), useCurrency, p));
+            sender.sendMessage(parseBountyTopString(i + 1, name, entry.getValue(), useCurrency, p));
             i++;
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                   ");

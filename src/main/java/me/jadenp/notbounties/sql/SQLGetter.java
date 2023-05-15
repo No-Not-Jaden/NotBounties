@@ -145,22 +145,27 @@ public class SQLGetter {
                 break;
         }
         LinkedHashMap<String, Integer> data = new LinkedHashMap<>();
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < hiddenNames.size()-1; i++) {
-            builder.append(hiddenNames.get(i)).append("' AND name != '");
+        StringBuilder builder = new StringBuilder("");
+        for (int i = 0; i < hiddenNames.size(); i++) {
+            String uuid = NotBounties.getInstance().loggedPlayers.get(hiddenNames.get(i).toLowerCase());
+            if (uuid == null)
+                continue;
+            if (i < hiddenNames.size() - 1)
+                builder.append(uuid).append("' AND uuid != '");
+            else
+                builder.append(uuid);
         }
-        if (hiddenNames.size() > 0)
-            builder.append(hiddenNames.get(hiddenNames.size()-1));
+
         try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, ? FROM bounty_data WHERE name != '?' ORDER BY ? DESC LIMIT ?,?;");
+            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, `" + listName + "` FROM bounty_data WHERE uuid != '" + builder + "' ORDER BY ? DESC LIMIT ?,?;");
             ps.setString(1, listName);
-            ps.setString(2, builder.toString());
-            ps.setString(3, listName);
-            ps.setInt(4, skip);
-            ps.setInt(5, skip + results);
+            ps.setInt(2, skip);
+            ps.setInt(3, skip + results);
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
-                data.put(rs.getString("uuid"), rs.getInt(listName));
+                String uuid = rs.getString("uuid");
+                int value = rs.getInt(2);
+                data.put(uuid, value);
             }
         } catch (SQLException e){
             if (reconnect()){

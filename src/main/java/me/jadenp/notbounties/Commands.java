@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
+
 import static me.jadenp.notbounties.ConfigOptions.*;
 
 public class Commands implements CommandExecutor, TabCompleter {
@@ -81,7 +82,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                     sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
                 } else if (args[0].equalsIgnoreCase("set")) {
-                    if (sender.hasPermission("notbounties.set")){
+                    if (sender.hasPermission("notbounties.set")) {
                         if (sender instanceof Player)
                             GUI.openGUI((Player) sender, "set-bounty", 1);
                     } else {
@@ -89,8 +90,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(5), (Player) sender));
                     }
                 } else if (args[0].equalsIgnoreCase("bdc")) {
-                    if (sender instanceof Player){
-                        if (nb.disableBroadcast.contains(((Player) sender).getUniqueId().toString())){
+                    if (sender instanceof Player) {
+                        if (nb.disableBroadcast.contains(((Player) sender).getUniqueId().toString())) {
                             // enable
                             nb.disableBroadcast.remove(((Player) sender).getUniqueId().toString());
                             sender.sendMessage(parse(speakings.get(0) + speakings.get(38), (Player) sender));
@@ -103,19 +104,19 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage("You can't disable bounty broadcast! (yet?) If you really want to disable, send a message in the discord!");
                     }
                 } else if (args[0].equalsIgnoreCase("stat")) {
-                    if (!sender.hasPermission("notbounties.view")){
+                    if (!sender.hasPermission("notbounties.view")) {
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(5), (Player) sender));
                         return true;
                     }
-                    if (!(sender instanceof  Player)){
+                    if (!(sender instanceof Player)) {
                         sender.sendMessage("Only players can use this command!");
                         return true;
                     }
-                    if (args.length == 1){
+                    if (args.length == 1) {
                         Leaderboard.ALL.displayStats((Player) sender, true, false);
                         return true;
                     }
-                    if (args.length != 2){
+                    if (args.length != 2) {
                         // usage
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(24), (Player) sender));
                         sender.sendMessage(ChatColor.BLUE + "/bounty stat (all/kills/claimed/deaths/set/immunity)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "View your bounty stats.");
@@ -123,7 +124,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                     try {
                         Leaderboard.valueOf(args[1].toUpperCase()).displayStats((Player) sender, true, false);
-                    } catch (IllegalArgumentException e){
+                    } catch (IllegalArgumentException e) {
                         // more usage
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(24), (Player) sender));
                         sender.sendMessage(ChatColor.BLUE + "/bounty stat (all/kills/claimed/deaths/set/immunity)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "View your bounty stats.");
@@ -133,11 +134,11 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                 } else if (args[0].equalsIgnoreCase("top")) {
                     if (sender.hasPermission("notbounties.view")) {
+                        Leaderboard leaderboard;
                         if (args.length > 1) {
-                            Leaderboard leaderboard;
                             try {
                                 leaderboard = Leaderboard.valueOf(args[1].toUpperCase());
-                            } catch (IllegalArgumentException e){
+                            } catch (IllegalArgumentException e) {
                                 if (sender instanceof Player)
                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(24), (Player) sender));
                                 else
@@ -145,21 +146,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 sender.sendMessage(ChatColor.BLUE + "/bounty top (all/kills/claimed/deaths/set/immunity) <list>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Lists the top 10 players with the respective stats.");
                                 return true;
                             }
-                            if (args.length == 2){
-                                // open gui
-                                GUI.openGUI((Player) sender, "leaderboard", 1);
-                            } else {
-                                leaderboard.displayTopStat(sender, 10);
-                            }
                         } else {
-                            // usage
-                            if (sender instanceof Player)
-                                sender.sendMessage(parse(speakings.get(0) + speakings.get(24), (Player) sender));
-                            else
-                                sender.sendMessage(parse(speakings.get(0) + speakings.get(24), null));
-                            sender.sendMessage(ChatColor.BLUE + "/bounty top (all/kills/claimed/deaths/set/immunity) <list>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Lists the top 10 players with the respective stats.");
+                            leaderboard = Leaderboard.ALL;
                         }
-
+                        if (args.length > 2 && args[2].equalsIgnoreCase("list")){
+                            leaderboard.displayTopStat(sender, 10);
+                        } else {
+                            GUI.openGUI((Player) sender, "leaderboard", 1, leaderboard);
+                        }
                     } else {
                         // no permission
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(5), (Player) sender));
@@ -187,8 +181,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (sender.hasPermission("notbounties.removeimmunity") || sender.hasPermission("notbounties.admin")) {
                                 if (sender instanceof Player) {
                                     // remove immunity
-                                    if (nb.SQL.isConnected()){
-                                        if (nb.data.getImmunity(((Player) sender).getUniqueId().toString()) > 0){
+                                    if (nb.SQL.isConnected()) {
+                                        if (nb.data.getImmunity(((Player) sender).getUniqueId().toString()) > 0) {
                                             nb.data.setImmunity(((Player) sender).getUniqueId().toString(), 0);
                                             sender.sendMessage(parse(speakings.get(0) + speakings.get(26), (Player) sender));
                                         } else {
@@ -226,8 +220,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (sender.hasPermission("notbounties.admin")) {
                                 Player p = Bukkit.getPlayer(args[2]);
                                 if (p != null) {
-                                    if (nb.SQL.isConnected()){
-                                        if (nb.data.getImmunity(p.getUniqueId().toString()) > 0){
+                                    if (nb.SQL.isConnected()) {
+                                        if (nb.data.getImmunity(p.getUniqueId().toString()) > 0) {
                                             nb.data.setImmunity(p.getUniqueId().toString(), 0);
                                             sender.sendMessage(parse(speakings.get(0) + speakings.get(27), p.getName(), p));
                                         } else {
@@ -246,8 +240,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     // go through logged players
                                     if (nb.loggedPlayers.containsKey(args[2].toLowerCase(Locale.ROOT))) {
                                         OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(nb.loggedPlayers.get(args[2].toLowerCase(Locale.ROOT))));
-                                        if (nb.SQL.isConnected()){
-                                            if (nb.data.getImmunity(player.getUniqueId().toString()) > 0){
+                                        if (nb.SQL.isConnected()) {
+                                            if (nb.data.getImmunity(player.getUniqueId().toString()) > 0) {
                                                 nb.data.setImmunity(player.getUniqueId().toString(), 0);
                                                 sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(27), player.getName(), null)));
                                             } else {
@@ -310,14 +304,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         int immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(((Player) sender).getUniqueId().toString()) : nb.immunitySpent.get(((Player) sender).getUniqueId().toString());
                                         if (immunitySpent < permanentCost && !sender.hasPermission("notbounties.immune")) {
                                             if ((nb.repeatBuyCommand2.containsKey(((Player) sender).getUniqueId().toString()) && System.currentTimeMillis() - nb.repeatBuyCommand2.get(((Player) sender).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
-                                                    // try to find bounty and buy it
-                                                    nb.repeatBuyCommand2.remove(((Player) sender).getUniqueId().toString());
-                                                    double balance = getBalance((Player) sender);
+                                                // try to find bounty and buy it
+                                                nb.repeatBuyCommand2.remove(((Player) sender).getUniqueId().toString());
+                                                double balance = getBalance((Player) sender);
                                                 if (balance >= permanentCost) {
                                                     nb.doRemoveCommands((Player) sender, permanentCost);
                                                     // successfully bought perm immunity
-                                                    if (nb.SQL.isConnected()){
-                                                        nb.data.addData(((Player) sender).getUniqueId().toString(), 0,0,0,0,permanentCost, 0);
+                                                    if (nb.SQL.isConnected()) {
+                                                        nb.data.addData(((Player) sender).getUniqueId().toString(), 0, 0, 0, 0, permanentCost, 0);
                                                         sender.sendMessage(parse(speakings.get(0) + speakings.get(20), nb.data.getImmunity(((Player) sender).getUniqueId().toString()), (Player) sender));
                                                     } else {
                                                         nb.immunitySpent.replace(((Player) sender).getUniqueId().toString(), nb.immunitySpent.get(((Player) sender).getUniqueId().toString()) + permanentCost);
@@ -352,8 +346,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 if (balance >= (int) (amount * scalingRatio)) {
                                                     nb.doRemoveCommands((Player) sender, (int) (amount * scalingRatio));
                                                     // successfully bought scaling immunity - amount x scalingRatio
-                                                    if (nb.SQL.isConnected()){
-                                                        nb.data.addData(((Player) sender).getUniqueId().toString(), 0,0,0,0, amount, 0);
+                                                    if (nb.SQL.isConnected()) {
+                                                        nb.data.addData(((Player) sender).getUniqueId().toString(), 0, 0, 0, 0, amount, 0);
                                                         sender.sendMessage(parse(speakings.get(0) + speakings.get(20), nb.data.getImmunity(((Player) sender).getUniqueId().toString()), (Player) sender));
                                                     } else {
                                                         nb.immunitySpent.replace(((Player) sender).getUniqueId().toString(), nb.immunitySpent.get(((Player) sender).getUniqueId().toString()) + (amount));
@@ -393,12 +387,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     Bounty bounty = nb.getBounty((Player) sender);
                                     assert bounty != null;
                                     if ((nb.repeatBuyCommand.containsKey(((Player) sender).getUniqueId().toString()) && System.currentTimeMillis() - nb.repeatBuyCommand.get(((Player) sender).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
-                                            // try to find bounty and buy it
-                                            nb.repeatBuyCommand.remove(((Player) sender).getUniqueId().toString());
-                                            double balance = getBalance((Player) sender);
+                                        // try to find bounty and buy it
+                                        nb.repeatBuyCommand.remove(((Player) sender).getUniqueId().toString());
+                                        double balance = getBalance((Player) sender);
                                         if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
                                             nb.doRemoveCommands((Player) sender, (int) (bounty.getTotalBounty() * buyBackInterest));
-                                            if (nb.SQL.isConnected()){
+                                            if (nb.SQL.isConnected()) {
                                                 nb.data.removeBounty(bounty.getUUID());
                                             } else {
                                                 nb.bountyList.remove(bounty);
@@ -407,7 +401,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         } else {
                                             sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) sender));
                                         }
-
 
 
                                     } else {
@@ -504,7 +497,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                             if (toRemove != null) {
                                 if (args.length == 2) {
-                                    if (nb.SQL.isConnected()){
+                                    if (nb.SQL.isConnected()) {
                                         nb.data.removeBounty(toRemove.getUUID());
                                     } else {
                                         nb.bountyList.remove(toRemove);
@@ -531,12 +524,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (actualRemove != null) {
                                             toRemove.removeBounty(UUID.fromString(actualRemove.getUuid()));
                                             if (toRemove.getSetters().size() == 0) {
-                                                if (nb.SQL.isConnected()){
+                                                if (nb.SQL.isConnected()) {
                                                     nb.data.removeBounty(toRemove.getUUID());
                                                 } else {
                                                     nb.bountyList.remove(toRemove);
                                                 }
-                                            } else if (nb.SQL.isConnected()){
+                                            } else if (nb.SQL.isConnected()) {
                                                 nb.data.removeSetter(toRemove.getUUID(), actualRemove.getUuid());
                                             }
                                             // reopen gui for everyone
@@ -613,7 +606,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         return true;
                                     }
-                                    if (nb.SQL.isConnected()){
+                                    if (nb.SQL.isConnected()) {
                                         nb.data.editBounty(toEdit.getUUID(), UUID.randomUUID().toString(), amount - toEdit.getTotalBounty());
                                     } else {
                                         toEdit.addBounty(amount - toEdit.getTotalBounty());
@@ -647,7 +640,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 }
                                                 return true;
                                             }
-                                            if (nb.SQL.isConnected()){
+                                            if (nb.SQL.isConnected()) {
                                                 nb.data.editBounty(toEdit.getUUID(), actualEdit.getUuid(), amount - toEdit.getTotalBounty());
                                             } else {
                                                 toEdit.editBounty(UUID.fromString(actualEdit.getUuid()), amount);
@@ -876,7 +869,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             nb.addBounty((Player) sender, player, (int) amount);
                                             reopenBountiesGUI();
                                         } else {
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (amount + (amount *bountyTax)), (Player) sender));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (amount + (amount * bountyTax)), (Player) sender));
                                         }
                                     } else {
                                         // has immunity
@@ -986,6 +979,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         tab.add(player.getName());
                     }
+                } else if (args[0].equalsIgnoreCase("top") && sender.hasPermission("notbounties.view")){
+                    tab.add("list");
                 }
             } else if (args.length == 4) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission("notbounties.admin")) {
@@ -1045,7 +1040,7 @@ public class Commands implements CommandExecutor, TabCompleter {
         return temp;
     }
 
-    public static void reopenBountiesGUI(){
+    public static void reopenBountiesGUI() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
                 if (!GUI.pageNumber.containsKey(player.getUniqueId()))
@@ -1058,9 +1053,6 @@ public class Commands implements CommandExecutor, TabCompleter {
             }
         }
     }
-
-
-
 
 
 }

@@ -6,6 +6,8 @@ custom-items:
     # for resource packs. Not required to use this
     custom-model-data: 10
     # name and lore accept placeholders and hex
+    # {amount} will be replaced with the value you are sorting by. This changes for different GUIs
+    # {amount_tax} will be replaced with {amount} * bounty tax
     # this will make the name invisible
     name: '&r'
     lore: []
@@ -22,7 +24,7 @@ custom-items:
     #   ex: '@notbounties.admin [next]' will only go to the next page if the player clicking the item has notbounties.admin
     #   '!@essentials.fly [p] top' will run the command /top as the player if the player doesn't have essentials.fly
     # {player} will be replaced with the name of the player who clicked
-    # {slot<x>} will be replaced with the name of the owner of the skull in that slot, or if there is not skull, it will be replaced with the item name
+    # {slot<x>} will be replaced with the name of the owner of the skull in that slot, or if there is no skull, it will be replaced with the item name
     commands: []
   exit:
     material: BARRIER
@@ -91,6 +93,7 @@ custom-items:
     commands:
       - '!@notbounties.admin [p] bounty buy --confirm'
       - '@notbounties.admin [p] bounty remove {slot13}'
+      - '[close]'
   no:
     material: RED_STAINED_GLASS_PANE
     amount: 1
@@ -166,7 +169,7 @@ leaderboard:
   # rank is number in linked hashmap in customgui create inv
   head-lore:
     - '&7<&m                        &7>'
-    - '&2&n{leaderboard}'
+    - '&8&l{leaderboard}'
     #- '&6%notbounties_top_{rank}_{leaderboard}%' this is better if you are using placeholderAPI
     - '&6{rank}&8: &7{amount}'
     - '&7<&m                        &7>'
@@ -209,16 +212,16 @@ set-bounty:
 select-price:
   sort-type: 1
   size: 54
-  gui-name: '&d&lSelect &9&lPrice:&f'
+  gui-name: '&d&lSelect &9&lBase Value:&f'
   add-page: true
   remove-page-items: false
   player-slots:
     - '13'
-  head-name: '&2Price: &a{amount}'
+  head-name: '&2Price: &a{amount_tax}'
   head-lore:
     - ''
     - '&7{player}'
-    - '&7Immunity: &f{amount}'
+    #- '&7Immunity: &f%notbounties_immunity_formatted%'
     - ''
   layout:
     1:
