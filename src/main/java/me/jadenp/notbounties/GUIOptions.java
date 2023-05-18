@@ -5,16 +5,13 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
 
@@ -139,10 +136,14 @@ public class GUIOptions {
             final int rank = i + 1;
             String[] finalReplacements = replacements;
             String playerName = p.getName() != null ? p.getName() : "<?>";
-
-            meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", finalAmount).replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName).replaceAll("\\{amount_tax}", currencyPrefix + (int) (parseCurrency(finalAmount) * (bountyTax + 1)) + currencySuffix)), p));
             List<String> lore = new ArrayList<>(headLore);
-            lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", finalAmount).replaceAll("\\{rank}", rank + "").replaceAll("\\{leaderboard}", finalReplacements[0]).replaceAll("\\{player}", playerName).replaceAll("\\{amount_tax}", currencyPrefix + (int) (parseCurrency(finalAmount) * (bountyTax + 1)) + currencySuffix)), p));
+
+            try {
+                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + (int) (parseCurrency(finalAmount) * (bountyTax + 1)) + currencySuffix))), p));
+                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + (int) (parseCurrency(finalAmount) * (bountyTax + 1)) + currencySuffix))), p));
+            } catch (IllegalArgumentException e){
+                Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
+            }
             // extra lore stuff
             if (type.equals("bounty-gui"))
                 if (player.hasPermission("notbounties.admin")) {
@@ -180,10 +181,6 @@ public class GUIOptions {
 
         }
         return a;
-    }
-
-    public int getSize() {
-        return size;
     }
 
     public int getSortType() {

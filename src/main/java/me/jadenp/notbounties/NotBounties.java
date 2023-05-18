@@ -11,14 +11,9 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -34,143 +29,11 @@ import java.util.*;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
 
+/**
+ *
+ */
+
 public final class NotBounties extends JavaPlugin {
-    /**
-     * set bounties with command - x
-     * language file - x
-     * receive rewards when killed -
-     * list bounties in chat - paged list - x
-     * check bounty - x
-     * file to save bounties - x
-     * tab complete - x
-     * on join add to logged players and check if they have a bounty - x
-     * offline bounty set - config option to change expire time - x
-     * save logged players to file - x
-     * bounty immunity - with permission - & after a bounty was recently claimed on them w/ option in config
-     * buy immunity - x
-     * placeholder api support - x
-     * notbounties_bounty - what their bounty is worth - x
-     * notbounties_bounties_claimed - how many claimed bounties - x
-     * not_bounties_bounties_set - how many set bounties - x
-     * notbounties_bounties_received - how many received bounties - x
-     * notbounties_immunity_spent - x
-     * usable in language.yml - x
-     * player heads option in config to receive heads when fulfilling a bounty -
-     * item based currency - x
-     * admins can edit or remove bounties with command or gui - x
-     * gui to view/edit/remove bounties - edit fill in command in chat - x
-     * config option to buy your own bounty with optional interest - command or rc in gui - x
-     * minimum bounty - x
-     * confirmation menu for removing bounties - also right click for removing same for buy back - x
-     * add 1 space to help line bottom - x
-     * -1 on check - x
-     * rc to buy back not translated color codes - x
-     * success edit & remove to green - x
-     * amount not showing in gui - head lore - x
-     * name fill - x
-     * ignore-case when comparing in tab complete - x
-     * only admins can set bounties on themselves - nah, this is funny
-     * bounty buy works even if u don't have a bounty on yourself - x
-     * minimum bounty doesn't work - x
-     * bounty scaling immunity isn't parsed for player and doesn't stop - x
-     * can kill yourself to get the bounty - x
-     * add how much it costs for bounty buy - x
-     * bounty broadcast is still double - x
-     * removing a setter from bounty doesn't work - - x
-     * change to right click to remove bounty from buy back - or match before - x
-     * buy back displayed wrong in lore - x
-     * no reload command *facepalm* - x
-     * unknown number when editing with from - x
-     * offline bounty set is case sensitive x
-     * bounty broadcast says the setter x
-     * placeholders work for immunity and buy back x
-     * bounties expire x
-     * reward don't give if false - - x
-     * say unknown command for bounty buy when disabled - x
-     * confirm buy for immunity - x
-     * permanent immunity is still scaling immunity in practice - doesn't work at all now - x
-     * can buy perm immunity infinitely - x
-     * remove immunity command w/ permission  - x
-     * bounty tax% - cost extra to place a bounty that rewards less - x
-     * tab complete with offline players - - x
-     * {amount} to broke - x
-     * add immunity remove to tab complete and fix where autocomplete for names is - x
-     * need another repeat command for buying immunity - x
-     * check immunity permission
-     * bounty check offline player doesn't work - x
-     * hex color codes - x &#e03ff2 x
-     * message and payback money for expired bounties x
-     * do add commands is for expired bounties too*
-     * offline set acc works not case sensitive x
-     * advanced gui config x
-     * use hex and placeholders x
-     * give bounty tracker - x
-     * remove tracker -
-     * tracker works - x
-     * rc works - x
-     * change name - x
-     * tab complete - x
-     * all time bounty - x
-     * bounty top cmd - x
-     * disable bounty broadcast - x
-     * tab autocomplete bdc - x
-     * send message to player when they get bounty - x
-     * all time top doesn't display correct numbers - x
-     * bounty tracker permission -
-     * tracker right click works even with show always off -
-     * claim bounties later with paper - x
-     * reward heads for claimed or setters - x
-     * bounty redeemed broadcast also effected by bdc disabled -
-     * fix typos - x
-     * remove voucher - x
-     * don't give double skull if a setter is the claimer - x
-     * detects if add/remove commands are entered incorrectly - x
-     * sort bounty gui and command - x
-     * default config change for sort - x
-     * min bounty broadcast - x
-     * startup message fixed & wont say with dev - x f
-     * send message to player receiving the bounty (new language) - x
-     * remove bounty broadcast for console under min - x
-     * minimize messages so no duplicates - x
-     * bounty-success add {bounty} for total bounty - x f
-     * bounty notification works with new bounties and old ones - x
-     * bounty receiver sounds - x
-     * redeem voucher sound - x
-     * bounty complete sound - x
-     * offline bounty notification amount in language - x
-     * bounties over a certain amount give perks - x
-     * ^ particle - - x
-     * ^ command & works offline when they join - (not offline) - x
-     * fixed a bug with claiming a bounty that was edited by console - x
-     * logging in tells you bounties set and combines them after - x
-     * add big bounty message - x
-     * MySQL - x
-     * Bounties top (args) - - x
-     * not sorted correctly - x
-     * autocomplete - x
-     * claimed bounty amount - x
-     * currency prefix/suffix - x
-     * check your own stats - x
-     * new placeholder - x
-     * gui for bounty top - x
-     * > new bounty top command - x
-     * button in the gui to set a bounty - x
-     * option to disable update notification - x
-     * Change getting top stats to limit to 10 - x
-     * hidden players from stats - x
-     * move gui stuff to another config file - x
-     * tab complete is null sometimes x
-     * Removing bounty doesn't tell you in lore - x
-     * Are you sure GUI - not a valid gui (no page number) - x
-     * can buy back bounty or immunity with --confirm - x
-     * make a getBalance() method - x
-     * @ and !@ work in gui - x
-     * {slot13} works - x
-     *
-     * remove and add commands in config moved - x
-     * select price & leaderboard keeps info - x
-     * leaderboard next page not working
-     */
 
     /**
      * Name (lower case), UUID
@@ -182,11 +45,6 @@ public final class NotBounties extends JavaPlugin {
     public List<String> disableBroadcast = new ArrayList<>();
 
     public File bounties = new File(this.getDataFolder() + File.separator + "bounties.yml");
-
-
-
-
-
 
     public Map<String, Integer> bountiesClaimed = new HashMap<>();
     public Map<String, Integer> bountiesSet = new HashMap<>();
@@ -754,34 +612,6 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public ItemStack formatItem(ItemStack itemStack, Player player) {
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        assert itemMeta != null;
-        ItemStack stack = new ItemStack(itemStack.getType(), itemStack.getAmount());
-        ItemMeta meta = stack.getItemMeta();
-        assert meta != null;
-        meta.setDisplayName(color(parse(itemMeta.getDisplayName(), player)));
-        if (itemMeta.hasCustomModelData())
-            meta.setCustomModelData(itemMeta.getCustomModelData());
-        ArrayList<String> lore = new ArrayList<>();
-        if (itemMeta.getLore() != null)
-            for (String str : itemMeta.getLore()) {
-                lore.add(color(parse(str, player)));
-            }
-        meta.setLore(lore);
-        if (itemStack.getEnchantments().size() > 0) {
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        }
-        stack.setItemMeta(meta);
-        if (itemStack.getEnchantments().size() > 0) {
-            stack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-        }
-        return stack;
-    }
-
-
-
-
     public List<Bounty> sortBounties(int sortType){
         // how bounties are sorted
         List<Bounty> sortedList = new ArrayList<>(bountyList);
@@ -830,7 +660,7 @@ public final class NotBounties extends JavaPlugin {
     public void listBounties(CommandSender sender, int page) {
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + speakings.get(35) + " " + (page + 1) + " " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
 
-        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties(GUI.getGUI("bounty-gui").getSortType());
+        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties(Objects.requireNonNull(GUI.getGUI("bounty-gui")).getSortType());
         for (int i = page * length; i < (page * length) + length; i++) {
             if (sortedList.size() > i) {
                 if (papiEnabled) {
@@ -974,7 +804,6 @@ public final class NotBounties extends JavaPlugin {
 
     public void addBounty(Player setter, Player receiver, int amount) {
         // add to all time bounties
-
 
         Bounty bounty = null;
         if (SQL.isConnected()){

@@ -113,7 +113,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     if (args.length == 1) {
-                        Leaderboard.ALL.displayStats((Player) sender, true, false);
+                        Leaderboard.ALL.displayStats((Player) sender, false);
                         return true;
                     }
                     if (args.length != 2) {
@@ -123,7 +123,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     try {
-                        Leaderboard.valueOf(args[1].toUpperCase()).displayStats((Player) sender, true, false);
+                        Leaderboard.valueOf(args[1].toUpperCase()).displayStats((Player) sender, false);
                     } catch (IllegalArgumentException e) {
                         // more usage
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(24), (Player) sender));
@@ -1021,23 +1021,6 @@ public class Commands implements CommandExecutor, TabCompleter {
             return tab;
         }
         return null;
-    }
-
-    // function to sort hashmap by values
-    public static HashMap<String, Integer> sortByValue(Map<String, Integer> hm) {
-        // Create a list from elements of HashMap
-        List<Map.Entry<String, Integer>> list =
-                new LinkedList<>(hm.entrySet());
-
-        // Sort the list
-        list.sort((o1, o2) -> (o2.getValue()).compareTo(o1.getValue()));
-
-        // put data from sorted list to hashmap
-        HashMap<String, Integer> temp = new LinkedHashMap<>();
-        for (Map.Entry<String, Integer> aa : list) {
-            temp.put(aa.getKey(), aa.getValue());
-        }
-        return temp;
     }
 
     public static void reopenBountiesGUI() {

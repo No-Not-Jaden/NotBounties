@@ -3,14 +3,13 @@ package me.jadenp.notbounties;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.configuration.ConfigurationOptions;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
 
-import static me.jadenp.notbounties.Commands.sortByValue;
 import static me.jadenp.notbounties.ConfigOptions.*;
-import static me.jadenp.notbounties.ConfigOptions.currencySuffix;
 
 public class BountyExpansion extends PlaceholderExpansion {
 

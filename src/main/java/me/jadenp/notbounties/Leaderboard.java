@@ -61,9 +61,10 @@ public enum Leaderboard {
 
     /**
      * Correctly displays the player's stat
+     *
      * @param player Player to display to
      */
-    public String displayStats(OfflinePlayer player, boolean send, boolean shorten){
+    public void displayStats(OfflinePlayer player, boolean shorten){
         String msg = "";
         switch (this){
             case ALL:
@@ -78,12 +79,11 @@ public enum Leaderboard {
                 msg = parseStats(speakings.get(0) + getStatMsg(shorten), getStat(player.getUniqueId()), false, player);
                 break;
         }
-        if (send && player.isOnline()) {
+        if (player.isOnline()) {
             Player p = player.getPlayer();
             assert p != null;
             p.sendMessage(msg);
         }
-        return msg;
 
     }
 
@@ -234,17 +234,6 @@ public enum Leaderboard {
             return PlaceholderAPI.setPlaceholders(player, text);
         }
         return text;
-    }
-
-    public LinkedHashMap<String, Integer> getSortedList(int skip, int amount, int sortType){
-        LinkedHashMap<String, Integer> top = getTop(skip, amount);
-        if (sortType == 2)
-            return reverseMap(top);
-        if (sortType == 3)
-            return sortByName(top);
-        if (sortType == 4)
-            return reverseMap(sortByName(top));
-        return top;
     }
 
     public LinkedHashMap<String, String> getFormattedList(int skip, int amount, int sortType){

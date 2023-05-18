@@ -25,17 +25,6 @@ public class MySQL {
         username = (plugin.getConfig().isSet("database.user") ? plugin.getConfig().getString("database.user") : "user");
         password = (plugin.getConfig().isSet("database.password") ? plugin.getConfig().getString("database.password") : "");
         useSSL = (plugin.getConfig().isSet("database.use-ssl") && plugin.getConfig().getBoolean("database.use-ssl"));
-        /*getLogger().info(host);
-        getLogger().info(port);
-        getLogger().info(database);
-        getLogger().info(username);
-        getLogger().info(password);
-        getLogger().info(useSSL + "");
-        host = "localhost";
-        port = "3306";
-        database = "jadenplugins";
-        username = "root";
-        password = "";*/
     }
 
     public void reconnect() throws SQLException, ClassNotFoundException {

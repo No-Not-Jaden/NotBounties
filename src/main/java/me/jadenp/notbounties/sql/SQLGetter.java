@@ -12,7 +12,7 @@ public class SQLGetter {
 
     private long nextReconnectAttempt;
     private int reconnectAttempts;
-    private final boolean debug = true;
+    private final boolean debug = false;
     public SQLGetter (){
         nextReconnectAttempt = System.currentTimeMillis();
         reconnectAttempts = 0;
@@ -145,7 +145,7 @@ public class SQLGetter {
                 break;
         }
         LinkedHashMap<String, Integer> data = new LinkedHashMap<>();
-        StringBuilder builder = new StringBuilder("");
+        StringBuilder builder = new StringBuilder();
         for (int i = 0; i < hiddenNames.size(); i++) {
             String uuid = NotBounties.getInstance().loggedPlayers.get(hiddenNames.get(i).toLowerCase());
             if (uuid == null)
@@ -255,7 +255,7 @@ public class SQLGetter {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("REPLACE bounty_data(uuid, immunity) VALUES(? ,?);");
             ps.setString(1, uuid);
             ps.setInt(2, amount);
-            ResultSet rs = ps.executeQuery();
+            ps.executeQuery();
         } catch (SQLException e){
             if (reconnect()){
                 setImmunity(uuid, amount);

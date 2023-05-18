@@ -229,7 +229,7 @@ public class ConfigOptions {
             assert section != null;
             configuration.set("bounty-gui.sort-type", section.get("sort-type"));
             configuration.set("bounty-gui.size", section.get("size"));
-            for (String key : section.getConfigurationSection("custom-items").getKeys(false)) {
+            for (String key : Objects.requireNonNull(section.getConfigurationSection("custom-items")).getKeys(false)) {
                 configuration.set("custom-items." + key, section.get("custom-items." + key));
             }
             configuration.set("bounty-gui.player-slots", section.get("bounty-slots"));
@@ -260,7 +260,7 @@ public class ConfigOptions {
                 }
             }
 
-            for (String key : section.getConfigurationSection("layout").getKeys(false)) {
+            for (String key : Objects.requireNonNull(section.getConfigurationSection("layout")).getKeys(false)) {
                 configuration.set("bounty-gui.layout." + key, section.get("layout." + key));
             }
 
@@ -270,7 +270,7 @@ public class ConfigOptions {
 
         customItems.clear();
         YamlConfiguration guiConfig = YamlConfiguration.loadConfiguration(guiFile);
-        for (String key : guiConfig.getConfigurationSection("custom-items").getKeys(false)){
+        for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)){
 
             Material material = Material.STONE;
             String mat = guiConfig.getString("custom-items." + key + ".material");
