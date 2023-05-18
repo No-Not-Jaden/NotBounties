@@ -24,7 +24,7 @@ import static me.jadenp.notbounties.ConfigOptions.*;
 
 public class GUI implements Listener {
 
-    public static final Map<UUID, Integer> pageNumber = new HashMap<>();
+    public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
     public static void addGUI(GUIOptions gui, String name){
         customGuis.put(name, gui);
@@ -74,14 +74,14 @@ public class GUI implements Listener {
         }
 
         player.openInventory(gui.createInventory(player, page, values, replacements));
-        pageNumber.put(player.getUniqueId(), page);
+        playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, data));
     }
 
 
     // is this called when server forces the inventory to be closed?
     @EventHandler
     public void onGUIClose(InventoryCloseEvent event){
-        pageNumber.remove(event.getPlayer().getUniqueId());
+        playerInfo.remove(event.getPlayer().getUniqueId());
     }
 
     /**
@@ -102,7 +102,7 @@ public class GUI implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!pageNumber.containsKey(event.getWhoClicked().getUniqueId())) // check if they are in a NotBounties GUI
+        if (!playerInfo.containsKey(event.getWhoClicked().getUniqueId())) // check if they are in a NotBounties GUI
             return;
         // find the gui - yeah, a linear search
         GUIOptions gui = getGUIByTitle(event.getView().getTitle());
@@ -158,7 +158,7 @@ public class GUI implements Listener {
                         }
                     } else {
                         if (event.getWhoClicked().hasPermission("notbounties.admin")) {
-                            openGUI((Player) event.getWhoClicked(), "bounty-gui", pageNumber.get(event.getWhoClicked().getUniqueId()));
+                            openGUI((Player) event.getWhoClicked(), "bounty-gui", playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
                             event.getWhoClicked().sendMessage(PlaceholderAPI.setPlaceholders(meta.getOwningPlayer(), parse(speakings.get(0) + speakings.get(8), meta.getOwningPlayer().getName(), null)));
                         }
                     }
@@ -167,7 +167,7 @@ public class GUI implements Listener {
                     openGUI((Player) event.getWhoClicked(), "select-price", minBounty, player.getUniqueId().toString());
                     break;
                 case "select-price":
-                    Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + player.getName() + " " + pageNumber.get(event.getWhoClicked().getUniqueId()));
+                    Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + player.getName() + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
                     event.getView().close();
                     break;
             }
@@ -226,13 +226,32 @@ public class GUI implements Listener {
                     try {
                         amount = Integer.parseInt(command.substring(7));
                     } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
-                    openGUI((Player) event.getWhoClicked(), gui.getType(), pageNumber.get(event.getWhoClicked().getUniqueId()) + amount);
+                    PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
+                    if (guiType.equals("select-price")){
+                        String uuid = (String) info.getData()[0]; //((SkullMeta) event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta()).getOwningPlayer().getUniqueId().toString();
+                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, uuid);
+                    } else if (guiType.equals("leaderboard")){
+                        Leaderboard leaderboard = (Leaderboard) info.getData()[0];
+                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, leaderboard);
+                    } else {
+                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount);
+                    }
+
                 } else if (command.startsWith("[back]")) {
                     int amount = 1;
                     try {
                         amount = Integer.parseInt(command.substring(7));
                     } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
-                    openGUI((Player) event.getWhoClicked(), gui.getType(), pageNumber.get(event.getWhoClicked().getUniqueId()) - amount);
+                    PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
+                    if (guiType.equals("select-price")){
+                        String uuid = (String) info.getData()[0]; //((SkullMeta) event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta()).getOwningPlayer().getUniqueId().toString();
+                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount, uuid);
+                    } else if (guiType.equals("leaderboard")){
+                        Leaderboard leaderboard = (Leaderboard) info.getData()[0];
+                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount, leaderboard);
+                    }  else {
+                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount);
+                    }
                 } else if (command.startsWith("[gui]")){
                     int amount = 1;
                     String guiName = command.substring(6);

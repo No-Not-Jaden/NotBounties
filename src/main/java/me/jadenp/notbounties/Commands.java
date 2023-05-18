@@ -1043,13 +1043,13 @@ public class Commands implements CommandExecutor, TabCompleter {
     public static void reopenBountiesGUI() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                if (!GUI.pageNumber.containsKey(player.getUniqueId()))
+                if (!GUI.playerInfo.containsKey(player.getUniqueId()))
                     continue;
                 GUIOptions gui = GUI.getGUIByTitle(player.getOpenInventory().getTitle());
                 if (gui == null)
                     continue;
                 if (gui.getType().equals("bounty-gui"))
-                    GUI.openGUI(player, gui.getType(), GUI.pageNumber.get(player.getUniqueId()));
+                    GUI.openGUI(player, gui.getType(), GUI.playerInfo.get(player.getUniqueId()).getPage());
             }
         }
     }

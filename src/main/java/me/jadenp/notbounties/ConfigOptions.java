@@ -89,10 +89,16 @@ public class ConfigOptions {
             bounties.getConfig().set("minimum-bounty", 1);
         if (!bounties.getConfig().isSet("bounty-tax"))
             bounties.getConfig().set("bounty-tax", 0.0);
-        if (!bounties.getConfig().isSet("add-currency-commands"))
-            bounties.getConfig().set("add-currency-commands", new ArrayList<String>());
-        if (!bounties.getConfig().isSet("remove-currency-commands"))
-            bounties.getConfig().set("remove-currency-commands", new ArrayList<String>());
+        if (bounties.getConfig().isSet("add-currency-commands")){
+            bounties.getConfig().set("currency.add-commands", bounties.getConfig().getStringList("add-currency-commands"));
+            bounties.getConfig().set("currency.remove-commands", bounties.getConfig().getStringList("remove-currency-commands"));
+            bounties.getConfig().set("add-currency-commands", null);
+            bounties.getConfig().set("remove-currency-commands", null);
+        }
+        if (!bounties.getConfig().isSet("currency.add-commands"))
+            bounties.getConfig().set("currency.add-commands", new ArrayList<>());
+        if (!bounties.getConfig().isSet("currency.remove-commands"))
+            bounties.getConfig().set("currency.remove-commands", new ArrayList<>());
         if (!bounties.getConfig().isSet("bounty-expire")) bounties.getConfig().set("bounty-expire", -1);
         if (bounties.getConfig().isBoolean("reward-heads")) {
             boolean prevOption = bounties.getConfig().getBoolean("reward-heads");
@@ -175,8 +181,8 @@ public class ConfigOptions {
 
         currencyPrefix = color(Objects.requireNonNull(bounties.getConfig().getString("currency.prefix")));
         currencySuffix = color(Objects.requireNonNull(bounties.getConfig().getString("currency.suffix")));
-        addCommands = bounties.getConfig().getStringList("add-currency-commands");
-        removeCommands = bounties.getConfig().getStringList("remove-currency-commands");
+        addCommands = bounties.getConfig().getStringList("currency.add-commands");
+        removeCommands = bounties.getConfig().getStringList("currency.remove-commands");
         bountyExpire = bounties.getConfig().getInt("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");

@@ -221,6 +221,7 @@ select-price:
   head-lore:
     - ''
     - '&7{player}'
+    - '&7Click to set bounty'
     #- '&7Immunity: &f%notbounties_immunity_formatted%'
     - ''
   layout:

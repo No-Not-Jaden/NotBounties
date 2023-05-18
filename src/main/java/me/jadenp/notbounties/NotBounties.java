@@ -152,7 +152,6 @@ public final class NotBounties extends JavaPlugin {
      * currency prefix/suffix - x
      * check your own stats - x
      * new placeholder - x
-     *
      * gui for bounty top - x
      * > new bounty top command - x
      * button in the gui to set a bounty - x
@@ -168,6 +167,9 @@ public final class NotBounties extends JavaPlugin {
      * @ and !@ work in gui - x
      * {slot13} works - x
      *
+     * remove and add commands in config moved - x
+     * select price & leaderboard keeps info - x
+     * leaderboard next page not working
      */
 
     /**
@@ -207,6 +209,11 @@ public final class NotBounties extends JavaPlugin {
     private boolean firstConnect = true;
 
 
+    /**
+     * This method attempts to connect to the MySQL database.
+     * If a connection is successful, local storage will be migrated if that option is enabled
+     * @return true if a connection was successful
+     */
     public boolean tryToConnect(){
         if (!SQL.isConnected()) {
             try {

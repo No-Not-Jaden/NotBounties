@@ -101,7 +101,7 @@ public class GUIOptions {
 
         if (page < 1) {
             page = 1;
-            GUI.pageNumber.replace(player.getUniqueId(), page);
+            GUI.playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(page, GUI.playerInfo.get(player.getUniqueId()).getData()));
         }
         String name = addPage ? this.name + " " + page : this.name;
         Inventory inventory = Bukkit.createInventory(player, size, name);

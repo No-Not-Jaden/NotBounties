@@ -1,4 +1,3 @@
-
 currency:
   # accepts a material or a placeholder
   # if the currency is a material, the plugin will automatically take away the necessary amounts
@@ -6,6 +5,10 @@ currency:
   # before the currency in all occurrences in language.yml
   prefix: '&f'
   suffix: '&b◆'
+  # only needed if you are using a placeholder, but will be called either way.
+  # {player} & {amount} or use a placeholder
+  remove-commands: [] # ['eco take {player} {amount}']
+  add-commands: [] # ['eco give {player} {amount}']
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
 # minimum amount of currency that will broadcast bounties
@@ -14,10 +17,6 @@ minimum-broadcast: 100
 # ex: bounty-tax = 0.25, a bounty set for 100 would cost 125 to be placed
 # use this if players are setting too many bounties
 bounty-tax: 0.0
-# only needed if you are using a placeholder, but will be called either way.
-# {player} & {amount} or use a placeholder
-remove-currency-commands: [] # ['eco take {player} {amount}']
-add-currency-commands: [] # ['eco give {player} {amount}']
 # how many days until bounties expire
 bounty-expire: -1
 # These player's bounty stats will be hidden from bounties top
