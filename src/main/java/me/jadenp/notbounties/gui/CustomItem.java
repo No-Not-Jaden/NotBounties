@@ -1,4 +1,4 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.gui;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;

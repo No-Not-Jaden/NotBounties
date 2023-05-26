@@ -207,8 +207,7 @@ public enum Leaderboard {
     }
     public static LinkedHashMap<String, Integer> sortByName(Map<String, Integer> hm) {
         // Create a list from elements of HashMap
-        List<Map.Entry<String, Integer>> list =
-                new LinkedList<>(hm.entrySet());
+        List<Map.Entry<String, Integer>> list = new LinkedList<>(hm.entrySet());
 
         // Sort the list
         list.sort((o1, o2) -> (Objects.requireNonNull(Bukkit.getOfflinePlayer(UUID.fromString(o2.getKey())).getName())).compareTo(Objects.requireNonNull(Bukkit.getOfflinePlayer(UUID.fromString(o1.getKey())).getName())));

@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.PlaceholderAPI;
+import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
 import net.md_5.bungee.api.ChatMessageType;

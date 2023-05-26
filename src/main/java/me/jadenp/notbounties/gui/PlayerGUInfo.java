@@ -1,4 +1,4 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.gui;
 
 public class PlayerGUInfo {
     private final int page;

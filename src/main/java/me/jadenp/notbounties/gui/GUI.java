@@ -1,6 +1,9 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.gui;
 
 import me.clip.placeholderapi.PlaceholderAPI;
+import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.Leaderboard;
+import me.jadenp.notbounties.NotBounties;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;

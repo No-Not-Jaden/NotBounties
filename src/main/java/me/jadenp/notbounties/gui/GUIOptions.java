@@ -1,5 +1,6 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.gui;
 
+import me.jadenp.notbounties.ConfigOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;

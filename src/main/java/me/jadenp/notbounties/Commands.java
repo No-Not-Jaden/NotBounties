@@ -1,6 +1,8 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.PlaceholderAPI;
+import me.jadenp.notbounties.gui.GUI;
+import me.jadenp.notbounties.gui.GUIOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
