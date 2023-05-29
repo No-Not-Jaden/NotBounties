@@ -26,7 +26,7 @@ grace-period: '&cA bounty had just been claimed on &4{player}&c. Please wait &4{
 min-bounty: '&cThe bounty must be at least &4{amount}&c.'
 unknown-command: '&dUse &9/bounty help &dfor a list of commands.'
 already-bought-perm: '&cYou already have permanent immunity!'
-removed-immunity: '&aSuccessfully removed your immunity to bounties.' #
+removed-immunity: '&aSuccessfully removed your immunity to bounties.'
 removed-other-immunity: '&aSuccessfully removed &2{receiver}''s &aimmunity to bounties.' #
 no-immunity: '&cYou do not have purchased immunity!'
 no-immunity-other: '&4{receiver} &cdoes not have purchased immunity!'
@@ -38,7 +38,7 @@ bounty-tracker-lore:
   - '&7Follow this compass'
   - '&7to find {player}'
   - ''
-tracker-give: '&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.'
+tracker-give: '&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.' #
 tracker-receive: '&eYou have been given a bounty tracker for &6{player}&e.'
 bounty-top: '&9&l{rank}. &d{player} &7> &a{amount}'
 bounty-top-title: '&7&m               &r &d&lBounties &9&lTop &7&m               '
@@ -53,6 +53,9 @@ bounty-voucher-lore:
   - ''
 redeem-voucher: '&aSuccessfully redeemed voucher for {amount}!'
 big-bounty: '&eYour bounty is very impressive!'
+# These are some stat messages.
+# Long is sent when players are viewing their own stats with a command
+# Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
 bounty-stat:
   all:
     long: '&eYour all-time bounty is &2{amount}&e.'
