@@ -748,7 +748,6 @@ public final class NotBounties extends JavaPlugin {
             }
         }
         player.getInventory().setContents(contents);
-        player.updateInventory();
     }
 
     // use this instead?
@@ -782,7 +781,6 @@ public final class NotBounties extends JavaPlugin {
             player.getWorld().dropItem(player.getLocation(), new ItemStack(material, (int) amount));
         }
         player.getInventory().setContents(contents);
-        player.updateInventory();
     }
 
     public void addItem(Player player, ItemStack itemStack) {
@@ -799,7 +797,6 @@ public final class NotBounties extends JavaPlugin {
             player.getWorld().dropItem(player.getLocation(), itemStack);
         } else {
             player.getInventory().setContents(contents);
-            player.updateInventory();
         }
     }
 
@@ -816,7 +813,7 @@ public final class NotBounties extends JavaPlugin {
             bounty.addBounty(setter, amount);
             data.addData(receiver.getUniqueId().toString(),0,0,0,amount,0, 0);
         } else {
-            allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+            allTimeBounty.replace(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
             for (Bounty bountySearch : bountyList) {
                 // if they have a bounty already
                 if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
@@ -874,7 +871,7 @@ public final class NotBounties extends JavaPlugin {
             bounty.addBounty(amount);
             data.addData(receiver.getUniqueId().toString(),0,0,0,amount,0, 0);
         } else {
-            allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+            allTimeBounty.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
             for (Bounty bountySearch : bountyList) {
                 // if they have a bounty already
                 if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
@@ -931,7 +928,7 @@ public final class NotBounties extends JavaPlugin {
             bounty.addBounty(setter, amount);
             data.addData(receiver.getUniqueId().toString(),0,0,0,amount,0, 0);
         } else {
-            allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+            allTimeBounty.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
             for (Bounty bountySearch : bountyList) {
                 // if they have a bounty already
                 if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
@@ -977,7 +974,7 @@ public final class NotBounties extends JavaPlugin {
             bounty.addBounty(amount);
             data.addData(receiver.getUniqueId().toString(),0,0,0,amount,0, 0);
         } else {
-            allTimeBounty.replace(receiver.getUniqueId().toString(), allTimeBounty.get(receiver.getUniqueId().toString()) + amount);
+            allTimeBounty.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
             for (Bounty bountySearch : bountyList) {
                 // if they have a bounty already
                 if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
@@ -1031,8 +1028,6 @@ public final class NotBounties extends JavaPlugin {
         }
         return null;
     }
-
-
 
 
 

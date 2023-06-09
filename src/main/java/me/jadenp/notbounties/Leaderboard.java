@@ -33,26 +33,38 @@ public enum Leaderboard {
             case ALL:
                 if (nb.SQL.isConnected())
                     return nb.data.getAllTime(uuid.toString());
+                if (!nb.allTimeBounty.containsKey(uuid.toString()))
+                    return 0;
                 return nb.allTimeBounty.get(uuid.toString());
             case KILLS:
                 if (nb.SQL.isConnected())
                     return nb.data.getClaimed(uuid.toString());
+                if (!nb.bountiesClaimed.containsKey(uuid.toString()))
+                    return 0;
                 return nb.bountiesClaimed.get(uuid.toString());
             case CLAIMED:
                 if (nb.SQL.isConnected())
                     return nb.data.getTotalClaimed(uuid.toString());
+                if (!nb.allClaimed.containsKey(uuid.toString()))
+                    return 0;
                 return nb.allClaimed.get(uuid.toString());
             case DEATHS:
                 if (nb.SQL.isConnected())
                     return nb.data.getReceived(uuid.toString());
+                if (!nb.bountiesReceived.containsKey(uuid.toString()))
+                    return 0;
                 return nb.bountiesReceived.get(uuid.toString());
             case SET:
                 if (nb.SQL.isConnected())
                     return nb.data.getSet(uuid.toString());
+                if (!nb.bountiesSet.containsKey(uuid.toString()))
+                    return 0;
                 return nb.bountiesSet.get(uuid.toString());
             case IMMUNITY:
                 if (nb.SQL.isConnected())
                     return nb.data.getImmunity(uuid.toString());
+                if (!nb.immunitySpent.containsKey(uuid.toString()))
+                    return 0;
                 return nb.immunitySpent.get(uuid.toString());
             default:
                 return 0;
