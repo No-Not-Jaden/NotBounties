@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.gui;
 
-import me.clip.placeholderapi.PlaceholderAPI;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
@@ -63,6 +62,9 @@ public class GUI implements Listener {
                 break;
             case "set-bounty":
                 values = Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
+                for (Map.Entry<String, String> entry : NotBounties.getInstance().loggedPlayers.entrySet())
+                    if (!values.containsKey(entry.getValue()))
+                        values.put(entry.getValue(), currencyPrefix + "0" + currencySuffix);
                 break;
             case "select-price":
                 String uuid = data.length > 0 && data[0] instanceof String ? (String) data[0] : player.getUniqueId().toString();
@@ -161,7 +163,7 @@ public class GUI implements Listener {
                     } else {
                         if (event.getWhoClicked().hasPermission("notbounties.admin")) {
                             openGUI((Player) event.getWhoClicked(), "bounty-gui", playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
-                            event.getWhoClicked().sendMessage(PlaceholderAPI.setPlaceholders(meta.getOwningPlayer(), parse(speakings.get(0) + speakings.get(8), meta.getOwningPlayer().getName(), null)));
+                            event.getWhoClicked().sendMessage(parse(speakings.get(0) + speakings.get(8), meta.getOwningPlayer().getName(), meta.getOwningPlayer()));
                         }
                     }
                     break;

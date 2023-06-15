@@ -219,9 +219,10 @@ select-price:
     - '13'
   head-name: '&2Price: &a{amount_tax}'
   head-lore:
+    - '&7&oPrice may be adjusted for tax'
     - ''
     - '&7{player}'
-    - '&7Click to set bounty'
+    - '&cClick to set bounty'
     #- '&7Immunity: &f%notbounties_immunity_formatted%'
     - ''
   layout:

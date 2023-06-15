@@ -1,6 +1,5 @@
 package me.jadenp.notbounties;
 
-import me.clip.placeholderapi.PlaceholderAPI;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
 import org.bukkit.Bukkit;
@@ -245,17 +244,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (nb.SQL.isConnected()) {
                                             if (nb.data.getImmunity(player.getUniqueId().toString()) > 0) {
                                                 nb.data.setImmunity(player.getUniqueId().toString(), 0);
-                                                sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(27), player.getName(), null)));
+                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(27), player.getName(), player));
                                             } else {
-                                                sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(29), player.getName(), null)));
+                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(29), player.getName(), player));
                                             }
                                         } else {
                                             if (Leaderboard.IMMUNITY.getStat(player.getUniqueId()) > 0) {
                                                 nb.immunitySpent.replace(player.getUniqueId().toString(), 0);
-                                                sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(27), player.getName(), null)));
+                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(27), player.getName(), player));
                                             } else {
                                                 // doesn't have immunity
-                                                sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(29), player.getName(), null)));
+                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(29), player.getName(), player));
                                             }
                                         }
                                     } else {
@@ -509,9 +508,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (sender instanceof Player) {
                                         Player player = Bukkit.getPlayer(UUID.fromString(toRemove.getUUID()));
                                         if (player != null) {
-                                            sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(14), toRemove.getName(), null)));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(14), toRemove.getName(), player));
                                         } else {
-                                            sender.sendMessage(PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(UUID.fromString(toRemove.getUUID())), parse(speakings.get(0) + speakings.get(14), toRemove.getName(), null)));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(14), toRemove.getName(), Bukkit.getOfflinePlayer(UUID.fromString(toRemove.getUUID()))));
                                         }
                                     }
                                 } else if (args.length == 4) {
@@ -540,9 +539,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (sender instanceof Player) {
                                                 Player player = Bukkit.getPlayer(UUID.fromString(toRemove.getUUID()));
                                                 if (player != null) {
-                                                    sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(14), toRemove.getName(), null)));
+                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(14), toRemove.getName(), player));
                                                 } else {
-                                                    sender.sendMessage(PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(UUID.fromString(toRemove.getUUID())), parse(speakings.get(0) + speakings.get(14), toRemove.getName(), null)));
+                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(14), toRemove.getName(), Bukkit.getOfflinePlayer(UUID.fromString(toRemove.getUUID()))));
                                                 }
                                             }
                                         } else {
@@ -550,9 +549,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (sender instanceof Player) {
                                                 Player player = Bukkit.getPlayer(UUID.fromString(toRemove.getUUID()));
                                                 if (player != null) { // player then receiver
-                                                    sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(16), args[3], toRemove.getName(), null)));
+                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(16), args[3], toRemove.getName(), player));
                                                 } else {
-                                                    sender.sendMessage(PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(UUID.fromString(toRemove.getUUID())), parse(speakings.get(0) + speakings.get(16), args[3], toRemove.getName(), null)));
+                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(16), args[3], toRemove.getName(), Bukkit.getOfflinePlayer(UUID.fromString(toRemove.getUUID()))));
                                                 }
                                             }
                                         }
@@ -617,9 +616,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (sender instanceof Player) {
                                         Player player = Bukkit.getPlayer(UUID.fromString(toEdit.getUUID()));
                                         if (player != null) {
-                                            sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(15), toEdit.getName(), null)));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(15), toEdit.getName(), player));
                                         } else {
-                                            sender.sendMessage(PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(UUID.fromString(toEdit.getUUID())), parse(speakings.get(0) + speakings.get(15), toEdit.getName(), null)));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(15), toEdit.getName(), Bukkit.getOfflinePlayer(UUID.fromString(toEdit.getUUID()))));
                                         }
                                     }
                                 } else if (args.length == 5) {
@@ -654,7 +653,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 if (player != null) {
                                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(15), toEdit.getName(), player));
                                                 } else {
-                                                    sender.sendMessage(PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(UUID.fromString(toEdit.getUUID())), parse(speakings.get(0) + speakings.get(15), toEdit.getName(), null)));
+                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(15), toEdit.getName(), Bukkit.getOfflinePlayer(UUID.fromString(toEdit.getUUID()))));
                                                 }
                                             }
                                         } else {
@@ -662,9 +661,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (sender instanceof Player) {
                                                 Player player = Bukkit.getPlayer(UUID.fromString(toEdit.getUUID()));
                                                 if (player != null) { // player then receiver
-                                                    sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(16), args[3], toEdit.getName(), null)));
+                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(16), args[3], toEdit.getName(), player));
                                                 } else {
-                                                    sender.sendMessage(PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(UUID.fromString(toEdit.getUUID())), parse(speakings.get(0) + speakings.get(16), args[3], toEdit.getName(), null)));
+                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(16), args[3], toEdit.getName(), Bukkit.getOfflinePlayer(UUID.fromString(toEdit.getUUID()))));
                                                 }
                                             }
                                         }
@@ -715,10 +714,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     ItemStack compass = new ItemStack(Material.COMPASS, 1);
                                     ItemMeta meta = compass.getItemMeta();
                                     assert meta != null;
-                                    meta.setDisplayName(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(32), player.getName(), null)));
+                                    meta.setDisplayName(parse(speakings.get(32), player.getName(), player));
+
                                     ArrayList<String> lore = new ArrayList<>();
                                     for (String str : trackerLore) {
-                                        lore.add(PlaceholderAPI.setPlaceholders(player, parse(str, player.getName(), null)));
+                                        lore.add(parse(str, player.getName(), player));
                                     }
                                     int i = 0;
                                     if (nb.trackedBounties.containsValue(tracking.getUUID())) {
@@ -749,9 +749,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             nb.givePlayer(receiver, compass);
                                             // you have been given & you have received
                                             if (sender instanceof Player) {
-                                                sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(33), receiver.getName(), player.getName(), null)));
+                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(33), receiver.getName(), player.getName(), player));
                                             }
-                                            receiver.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(34), player.getName(), null)));
+                                            receiver.sendMessage(parse(speakings.get(0) + speakings.get(34), player.getName(), player));
                                         } else {
                                             if (sender instanceof Player) {
                                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(3), args[2], (Player) sender));
@@ -761,7 +761,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (sender instanceof Player) {
                                             nb.givePlayer((Player) sender, compass);
                                             // you have been given
-                                            sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(34), player.getName(), null)));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(34), player.getName(), player));
                                         } else {
                                             sender.sendMessage("You are not a player!");
                                         }
@@ -876,9 +876,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     } else {
                                         // has immunity
                                         if (permanentImmunity || nb.immunePerms.contains(player.getUniqueId().toString())) {
-                                            sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(18), player.getName(), immunitySpent, null)));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(18), player.getName(), immunitySpent, player));
                                         } else {
-                                            sender.sendMessage(PlaceholderAPI.setPlaceholders(player, parse(speakings.get(0) + speakings.get(19), player.getName(), immunitySpent, null)));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(19), player.getName(), immunitySpent, player));
                                         }
                                     }
                                 } else {

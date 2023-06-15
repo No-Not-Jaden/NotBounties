@@ -1,6 +1,5 @@
 package me.jadenp.notbounties;
 
-import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -11,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
-import static me.jadenp.notbounties.ConfigOptions.papiEnabled;
 
 public enum Leaderboard {
     //(all/kills/claimed/deaths/set/immunity)
@@ -196,10 +194,7 @@ public enum Leaderboard {
     private static String parseStats(String text, int amount, boolean useCurrency, OfflinePlayer player){
         text = useCurrency ? text.replaceAll("\\{amount}", currencyPrefix + amount + currencySuffix) : text.replaceAll("\\{amount}", amount + "");
 
-        if (papiEnabled && player != null) {
-            return PlaceholderAPI.setPlaceholders(player, text);
-        }
-        return text;
+        return parse(text, player);
     }
 
     public static LinkedHashMap<String, Integer> sortByValue(Map<String, Integer> hm) {
@@ -241,10 +236,7 @@ public enum Leaderboard {
         else
             text = text.replaceAll("\\{amount}", amount + "");
 
-        if (papiEnabled && player != null) {
-            return PlaceholderAPI.setPlaceholders(player, text);
-        }
-        return text;
+        return parse(text, player);
     }
 
     public LinkedHashMap<String, String> getFormattedList(int skip, int amount, int sortType){
