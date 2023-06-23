@@ -29,6 +29,7 @@ public class ConfigOptions {
     public static boolean migrateLocalData;
     public static List<String> bBountyCommands = new ArrayList<>();
     public static boolean tracker;
+    public static boolean giveOwnTracker;
     public static int trackerRemove;
     public static int trackerGlow;
     public static boolean trackerActionBar;
@@ -68,6 +69,10 @@ public class ConfigOptions {
     public static List<String> hiddenNames = new ArrayList<>();
     public static boolean updateNotification;
     public static Map<String, CustomItem> customItems = new HashMap<>();
+    public static int numberFormatting;
+    public static String nfThousands;
+    public static int nfDecimals;
+    public static LinkedHashMap<Long, String> nfDivisions = new LinkedHashMap<>();
 
     public static void reloadOptions() throws IOException {
         NotBounties bounties = NotBounties.getInstance();
@@ -92,7 +97,7 @@ public class ConfigOptions {
             bounties.getConfig().set("minimum-bounty", 1);
         if (!bounties.getConfig().isSet("bounty-tax"))
             bounties.getConfig().set("bounty-tax", 0.0);
-        if (bounties.getConfig().isSet("add-currency-commands")){
+        if (bounties.getConfig().isSet("add-currency-commands")) {
             bounties.getConfig().set("currency.add-commands", bounties.getConfig().getStringList("add-currency-commands"));
             bounties.getConfig().set("currency.remove-commands", bounties.getConfig().getStringList("remove-currency-commands"));
             bounties.getConfig().set("add-currency-commands", null);
@@ -130,6 +135,8 @@ public class ConfigOptions {
 
         if (!bounties.getConfig().isSet("bounty-tracker.enabled"))
             bounties.getConfig().set("bounty-tracker.enabled", true);
+        if (!bounties.getConfig().isSet("bounty-tracker.give-own"))
+            bounties.getConfig().set("bounty-tracker.give-own", false);
         if (!bounties.getConfig().isSet("bounty-tracker.remove"))
             bounties.getConfig().set("bounty-tracker.remove", 2);
         if (!bounties.getConfig().isSet("bounty-tracker.glow"))
@@ -176,6 +183,14 @@ public class ConfigOptions {
             bounties.getConfig().set("hide-stats", new ArrayList<>());
         if (!bounties.getConfig().isSet("update-notification"))
             bounties.getConfig().set("update-notification", true);
+        if (!bounties.getConfig().isSet("number-formatting.type"))
+            bounties.getConfig().set("number-formatting.type", 1);
+        if (!bounties.getConfig().isSet("number-formatting.thousands"))
+            bounties.getConfig().set("number-formatting.thousands", ",");
+        if (!bounties.getConfig().isSet("number-formatting.divisions.decimals")) {
+            bounties.getConfig().set("number-formatting.divisions.decimals", 2);
+            bounties.getConfig().set("number-formatting.divisions.1000", "K");
+        }
 
         bounties.saveConfig();
 
@@ -200,6 +215,7 @@ public class ConfigOptions {
         minBounty = bounties.getConfig().getInt("minimum-bounty");
         bountyTax = bounties.getConfig().getDouble("bounty-tax");
         tracker = bounties.getConfig().getBoolean("bounty-tracker.enabled");
+        giveOwnTracker = bounties.getConfig().getBoolean("bounty-tracker.give-own");
         trackerRemove = bounties.getConfig().getInt("bounty-tracker.remove");
         trackerGlow = bounties.getConfig().getInt("bounty-tracker.glow");
         trackerActionBar = bounties.getConfig().getBoolean("bounty-tracker.action-bar.enabled");
@@ -217,8 +233,22 @@ public class ConfigOptions {
         autoConnect = bounties.getConfig().getBoolean("database.auto-connect");
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
         updateNotification = bounties.getConfig().getBoolean("update-notification");
+        numberFormatting = bounties.getConfig().getInt("number-formatting.type");
+        nfThousands = bounties.getConfig().getString("number-formatting.thousands");
+        nfDecimals = bounties.getConfig().getInt("number-formatting.divisions.decimals");
 
-
+        nfDivisions.clear();
+        Map<Long, String> preDivisions = new HashMap<>();
+        for (String s : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("number-formatting.divisions")).getKeys(false)) {
+            if (s.equals("decimals"))
+                continue;
+            try {
+                preDivisions.put(Long.parseLong(s), bounties.getConfig().getString("number-formatting.divisions." + s));
+            } catch (NumberFormatException e) {
+                Bukkit.getLogger().warning("Division is not a number: " + s);
+            }
+        }
+        nfDivisions = sortByValue(preDivisions);
 
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
         if (!guiFile.exists()) {
@@ -243,7 +273,7 @@ public class ConfigOptions {
             configuration.set("bounty-gui.gui-name", "&d&lBounties &9&lPage");
             configuration.set("bounty-gui.add-page", true);
 
-            if (language.exists()){
+            if (language.exists()) {
                 YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(language);
                 if (languageConfig.isSet("bounty-item-name") && languageConfig.isSet("bounty-item-lore") && languageConfig.isSet("bounty-item-lore")) {
                     // convert {amount} to %notbounties_bounty_formatted%
@@ -273,7 +303,7 @@ public class ConfigOptions {
 
         customItems.clear();
         YamlConfiguration guiConfig = YamlConfiguration.loadConfiguration(guiFile);
-        for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)){
+        for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)) {
 
             Material material = Material.STONE;
             String mat = guiConfig.getString("custom-items." + key + ".material");
@@ -313,17 +343,15 @@ public class ConfigOptions {
             CustomItem customItem = new CustomItem(itemStack, itemCommands);
             customItems.put(key, customItem);
         }
-        for (String key : guiConfig.getKeys(false)){
+        for (String key : guiConfig.getKeys(false)) {
             if (key.equals("custom-items"))
                 continue;
             try {
                 GUI.addGUI(new GUIOptions(Objects.requireNonNull(guiConfig.getConfigurationSection(key))), key);
-            } catch (IllegalArgumentException e){
+            } catch (IllegalArgumentException e) {
                 Bukkit.getLogger().warning("Unknown GUI in gui.yml: \"" + key + "\"");
             }
         }
-
-
 
 
         if (!speakings.isEmpty())
@@ -407,6 +435,8 @@ public class ConfigOptions {
             configuration.set("tracker-give", "&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.");
         if (!configuration.isSet("tracker-receive"))
             configuration.set("tracker-receive", "&eYou have been given a bounty tracker for &6{player}&e.");
+        if (!configuration.isSet("tracked-notify"))
+            configuration.set("tracked-notify", "&c&lYou are being tracked!");
         if (!configuration.isSet("bounty-top"))
             configuration.set("bounty-top", "&9&l{rank}. &d{player} &7> &a{amount}");
         if (!configuration.isSet("bounty-top-title"))
@@ -425,7 +455,7 @@ public class ConfigOptions {
             configuration.set("bounty-receiver", "&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}");
         if (!configuration.isSet("big-bounty"))
             configuration.set("big-bounty", "&eYour bounty is very impressive!");
-        if (configuration.isSet("bounty-stat-all")){
+        if (configuration.isSet("bounty-stat-all")) {
             configuration.set("bounty-stat.all.long", configuration.getString("bounty-stat-all"));
             configuration.set("bounty-stat.kills.long", configuration.getString("bounty-stat-kills"));
             configuration.set("bounty-stat.claimed.long", configuration.getString("bounty-stat-claimed"));
@@ -530,8 +560,8 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("tracker-give"))));
         // 34 tracker-receive
         speakings.add(color(Objects.requireNonNull(configuration.getString("tracker-receive"))));
-        // 35 gui-name
-        speakings.add("");
+        // 35 tracked-notify
+        speakings.add(color(Objects.requireNonNull(configuration.getString("tracked-notify"))));
         // 36 bounty-top
         speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-top"))));
         // 37 bounty-top-title
@@ -628,7 +658,7 @@ public class ConfigOptions {
 
     public static String parse(String str, long amount, OfflinePlayer receiver) {
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -644,7 +674,7 @@ public class ConfigOptions {
             str = str.replace("{player}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -660,7 +690,7 @@ public class ConfigOptions {
             str = str.replace("{player}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
         }
         while (str.contains("{bounty}")) {
             str = str.replace("{bounty}", bounty + "");
@@ -680,7 +710,7 @@ public class ConfigOptions {
             str = str.replace("{receiver}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -710,10 +740,10 @@ public class ConfigOptions {
             str = str.replace("{receiver}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + amount + currencySuffix);
+            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
         }
         while (str.contains("{bounty}")) {
-            str = str.replace("{bounty}", currencyPrefix + totalBounty + currencySuffix);
+            str = str.replace("{bounty}", currencyPrefix + formatNumber(totalBounty) + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -723,10 +753,11 @@ public class ConfigOptions {
 
     /**
      * Get the balance of a player. Checks if the currency is a placeholder and parses it, otherwise, gets the amount of items matching the currency material
+     *
      * @param player Player to get balance from
      * @return Balance of player
      */
-    public static double getBalance(Player player){
+    public static double getBalance(Player player) {
         if (usingPapi) {
             // check if papi is enabled - parse to check
             if (papiEnabled) {
@@ -749,7 +780,8 @@ public class ConfigOptions {
 
     /**
      * Check the amount of items matching a material
-     * @param player Player whose inventory will be searched
+     *
+     * @param player   Player whose inventory will be searched
      * @param material Material to check for
      * @return amount of items in the players inventory that are a certain material
      */
@@ -766,5 +798,92 @@ public class ConfigOptions {
         return amount;
     }
 
+    /**
+     * Format a number with number formatting options in the config
+     *
+     * @param number Number to be formatted
+     * @return formatted number
+     */
+    public static String formatNumber(double number) {
+        String value = String.valueOf(number);
+        if (numberFormatting == 1) {
+            // thousands
+            value = addThousands(value);
+        } else if (numberFormatting == 2) {
+            // divisions
+            value = setDivision(value);
+        }
+        return value;
+    }
+
+    public static String formatNumber(String number){
+        if (number.length() == 0)
+            return "";
+        if (isNumber(number))
+            return formatNumber(Double.parseDouble(number));
+        if (!isNumber(number.substring(0,1))){
+            // first digit isn't a number
+            return number.charAt(0) + formatNumber(number.substring(1));
+        }
+        return formatNumber(number.substring(0, number.length()-1)) + number.charAt(number.length()-1);
+
+    }
+
+    public static boolean isNumber(String str){
+        try {
+            Double.parseDouble(str);
+        } catch (NumberFormatException e){
+            return false;
+        }
+        return true;
+    }
+
+    public static String addThousands(String str) {
+        if (str.length() <= 3)
+            return str;
+        if (str.contains(".")) {
+            int endIndex = str.length() - (3 + str.substring(str.indexOf(".")).length());
+            if (endIndex <= 0)
+                return str;
+            return addThousands(str.substring(0, endIndex)) + nfThousands + str.substring(endIndex);
+        }
+        return addThousands(str.substring(0, str.length() - 3)) + nfThousands + str.substring(str.length() - 3);
+    }
+
+    public static String setDivision(String str) {
+        double amount;
+        try {
+            amount = Double.parseDouble(str);
+        } catch (NumberFormatException e) {
+            return str;
+        }
+        for (Map.Entry<Long, String> entry : nfDivisions.entrySet()) {
+            if (amount / entry.getKey() >= 1) {
+                String strCost = ((double) Math.round(amount / entry.getKey() * Math.pow(10, nfDecimals)) / Math.pow(10, nfDecimals)) + "";
+                if (nfDecimals == 0) {
+                    if (strCost.contains("."))
+                        strCost = strCost.substring(0, strCost.indexOf("."));
+                }
+                return strCost + entry.getValue();
+            }
+        }
+        return str;
+    }
+
+    public static LinkedHashMap<Long, String> sortByValue(Map<Long, String> hm) {
+        // Create a list from elements of HashMap
+        List<Map.Entry<Long, String>> list =
+                new LinkedList<>(hm.entrySet());
+
+        // Sort the list
+        list.sort((o1, o2) -> (o2.getKey()).compareTo(o1.getKey()));
+
+        // put data from sorted list to hashmap
+        LinkedHashMap<Long, String> temp = new LinkedHashMap<>();
+        for (Map.Entry<Long, String> aa : list) {
+            temp.put(aa.getKey(), aa.getValue());
+        }
+        return temp;
+    }
 
 }

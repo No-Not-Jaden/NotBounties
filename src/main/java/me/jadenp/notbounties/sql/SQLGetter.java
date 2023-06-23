@@ -27,11 +27,20 @@ public class SQLGetter {
                     "    name VARCHAR(16) NOT NULL," +
                     "    setter VARCHAR(16) NOT NULL," +
                     "    suuid CHAR(36) NOT NULL," +
-                    "    amount BIGINT DEFAULT 0 NOT NULL," +
+                    "    amount FLOAT(53) DEFAULT 0 NOT NULL," +
                     "    notified BOOLEAN DEFAULT TRUE NOT NULL," +
                     "    time BIGINT NOT NULL" +
                     ");");
             ps.executeUpdate();
+            ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = 'jadenplugins' and table_name = 'notbounties' and column_name = 'amount';");
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()){
+                if (rs.getString("data_type").equalsIgnoreCase("bigint")){
+                    Bukkit.getLogger().info("Updating data type for bounties");
+                    ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE notbounties MODIFY COLUMN amount FLOAT(53)");
+                    ps.executeUpdate();
+                }
+            }
         } catch (SQLException e){
             e.printStackTrace();
         }
@@ -42,35 +51,44 @@ public class SQLGetter {
             ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS bounty_data" +
                     "(" +
                     "    uuid CHAR(36) NOT NULL," +
-                    "    claimed INT DEFAULT 0 NOT NULL," +
-                    "    sets INT DEFAULT 0 NOT NULL," +
-                    "    received INT DEFAULT 0 NOT NULL," +
-                    "    alltime INT DEFAULT 0 NOT NULL," +
-                    "    immunity INT DEFAULT 0 NOT NULL," +
-                    "    allclaimed INT DEFAULT 0 NOT NULL," +
+                    "    claimed FLOAT(53) DEFAULT 0 NOT NULL," +
+                    "    sets BIGINT DEFAULT 0 NOT NULL," +
+                    "    received BIGINT DEFAULT 0 NOT NULL," +
+                    "    alltime FLOAT(53) DEFAULT 0 NOT NULL," +
+                    "    immunity FLOAT(53) DEFAULT 0 NOT NULL," +
+                    "    allclaimed FLOAT(53) DEFAULT 0 NOT NULL," +
                     "    PRIMARY KEY (uuid)" +
                     ");");
             ps.executeUpdate();
+            ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = 'jadenplugins' and table_name = 'bounty_data' and column_name = 'claimed';");
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()){
+                if (rs.getString("data_type").equalsIgnoreCase("int")){
+                    Bukkit.getLogger().info("Updating data type for statistics");
+                    ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE bounty_data MODIFY COLUMN claimed FLOAT(53), MODIFY sets BIGINT, MODIFY received BIGINT, MODIFY alltime FLOAT(53), MODIFY immunity FLOAT(53), MODIFY allclaimed FLOAT(53)");
+                    ps.executeUpdate();
+                }
+            }
         } catch (SQLException e){
             e.printStackTrace();
         }
     }
-    public void addData(String uuid, int claimed, int set, int received, int allTime, int immunity, int allClaimed){
+    public void addData(String uuid, long claimed, long set, long received, long allTime, long immunity, long allClaimed){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("INSERT INTO bounty_data(uuid, claimed, sets, received, alltime, immunity, allclaimed) VALUES(?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE claimed = claimed + ?, sets = sets + ?, received = received + ?, alltime = alltime + ?, immunity = immunity + ?, allclaimed = allclaimed + ?;");
             ps.setString(1, uuid);
-            ps.setInt(2, claimed);
-            ps.setInt(3, set);
-            ps.setInt(4, received);
-            ps.setInt(5, allTime);
-            ps.setInt(6, immunity);
-            ps.setInt(7, allClaimed);
-            ps.setInt(8, claimed);
-            ps.setInt(9, set);
-            ps.setInt(10, received);
-            ps.setInt(11, allTime);
-            ps.setInt(12, immunity);
-            ps.setInt(13, allClaimed);
+            ps.setLong(2, claimed);
+            ps.setLong(3, set);
+            ps.setLong(4, received);
+            ps.setLong(5, allTime);
+            ps.setLong(6, immunity);
+            ps.setLong(7, allClaimed);
+            ps.setLong(8, claimed);
+            ps.setLong(9, set);
+            ps.setLong(10, received);
+            ps.setLong(11, allTime);
+            ps.setLong(12, immunity);
+            ps.setLong(13, allClaimed);
             ps.executeUpdate();
         } catch (SQLException e){
             reconnect();
@@ -122,7 +140,7 @@ public class SQLGetter {
      * @param results maximum amount of results that could be returned
      * @return A descending ordered list of entries of a leaderboard stat
      */
-    public LinkedHashMap<String, Integer> getTopStats(Leaderboard leaderboard, List<String> hiddenNames, int skip, int results){
+    public LinkedHashMap<String, Long> getTopStats(Leaderboard leaderboard, List<String> hiddenNames, int skip, int results){
         String listName = "";
         switch (leaderboard){
             case ALL:
@@ -144,7 +162,7 @@ public class SQLGetter {
                 listName = "immunity";
                 break;
         }
-        LinkedHashMap<String, Integer> data = new LinkedHashMap<>();
+        LinkedHashMap<String, Long> data = new LinkedHashMap<>();
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < hiddenNames.size(); i++) {
             String uuid = NotBounties.getInstance().loggedPlayers.get(hiddenNames.get(i).toLowerCase());
@@ -164,7 +182,7 @@ public class SQLGetter {
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
                 String uuid = rs.getString("uuid");
-                int value = rs.getInt(2);
+                long value = rs.getLong(2);
                 data.put(uuid, value);
             }
         } catch (SQLException e){

@@ -123,12 +123,12 @@ public class BountyExpansion extends PlaceholderExpansion {
             } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
                 return null;
             }
-            LinkedHashMap<String, Integer> stat = leaderboard.getTop(rank - 1, 1);
+            LinkedHashMap<String, Long> stat = leaderboard.getTop(rank - 1, 1);
             if (stat.size() == 0)
                 return "";
             boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL;
-            Map.Entry<String, Integer> entry = stat.entrySet().iterator().next();
-            int amount = entry.getValue();
+            Map.Entry<String, Long> entry = stat.entrySet().iterator().next();
+            long amount = entry.getValue();
             OfflinePlayer p = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
             String name = p.getName();
             if (name == null && notBounties.loggedPlayers.containsValue(entry.getKey())) {
@@ -145,7 +145,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (params.endsWith("_full"))
                 return leaderboard.getStatMsg(true);
             if (params.endsWith("_formatted"))
-                return color(currencyPrefix + leaderboard.getStat(player.getUniqueId()) + currencySuffix);
+                return color(currencyPrefix + formatNumber(leaderboard.getStat(player.getUniqueId())) + currencySuffix);
             return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
         }
 
@@ -156,8 +156,8 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (params.endsWith("_full"))
                 return leaderboard.getStatMsg(true);
             if (params.endsWith("_formatted"))
-                return color(currencyPrefix + leaderboard.getStat(player.getUniqueId()) + currencySuffix);
-            return leaderboard.getStat(player.getUniqueId()) + "";
+                return color(currencyPrefix + formatNumber(leaderboard.getStat(player.getUniqueId())) + currencySuffix);
+            return formatNumber(leaderboard.getStat(player.getUniqueId()));
         } catch (IllegalArgumentException ignored){}
 
         return null;

@@ -30,7 +30,7 @@ import java.util.*;
 import static me.jadenp.notbounties.ConfigOptions.*;
 
 /**
- *
+ * change some longs to doubles
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -46,15 +46,15 @@ public final class NotBounties extends JavaPlugin {
 
     public File bounties = new File(this.getDataFolder() + File.separator + "bounties.yml");
 
-    public Map<String, Integer> bountiesClaimed = new HashMap<>();
-    public Map<String, Integer> bountiesSet = new HashMap<>();
-    public Map<String, Integer> bountiesReceived = new HashMap<>();
-    public Map<String, Integer> allTimeBounty = new HashMap<>();
-    public Map<String, Integer> allClaimed = new HashMap<>();
+    public Map<String, Long> bountiesClaimed = new HashMap<>();
+    public Map<String, Long> bountiesSet = new HashMap<>();
+    public Map<String, Long> bountiesReceived = new HashMap<>();
+    public Map<String, Long> allTimeBounty = new HashMap<>();
+    public Map<String, Long> allClaimed = new HashMap<>();
     public Map<String, List<String>> headRewards = new HashMap<>();
     public Map<String, Long> repeatBuyCommand = new HashMap<>();
     public Map<String, Long> repeatBuyCommand2 = new HashMap<>();
-    public Map<String, Integer> immunitySpent = new HashMap<>();
+    public Map<String, Long> immunitySpent = new HashMap<>();
     public Map<String, Long> gracePeriod = new HashMap<>();
     public Map<Integer, String> trackedBounties = new HashMap<>();
     public List<Player> displayParticle = new ArrayList<>();
@@ -106,7 +106,7 @@ public final class NotBounties extends JavaPlugin {
                 }
                 if (bountiesClaimed.size() > 0 && migrateLocalData) {
                     // add entries to database
-                    for (Map.Entry<String, Integer> entry : bountiesClaimed.entrySet()) {
+                    for (Map.Entry<String, Long> entry : bountiesClaimed.entrySet()) {
                         data.addData(entry.getKey(), entry.getValue(), bountiesSet.get(entry.getKey()), bountiesReceived.get(entry.getKey()), allTimeBounty.get(entry.getKey()), immunitySpent.get(entry.getKey()), allClaimed.get(entry.getKey()));
                     }
                     bountiesClaimed.clear();
@@ -196,11 +196,11 @@ public final class NotBounties extends JavaPlugin {
                 i = 0;
                 while (configuration.isSet("data." + i + ".uuid")) {
                     String uuid = configuration.getString("data." + i + ".uuid");
-                    bountiesClaimed.put(uuid, configuration.getInt("data." + i + ".claimed"));
-                    bountiesSet.put(uuid, configuration.getInt("data." + i + ".set"));
-                    bountiesReceived.put(uuid, configuration.getInt("data." + i + ".received"));
+                    bountiesClaimed.put(uuid, configuration.getLong("data." + i + ".claimed"));
+                    bountiesSet.put(uuid, configuration.getLong("data." + i + ".set"));
+                    bountiesReceived.put(uuid, configuration.getLong("data." + i + ".received"));
                     if (configuration.isSet("data." + i + ".all-time")) {
-                        allTimeBounty.put(uuid, configuration.getInt("data." + i + ".all-time"));
+                        allTimeBounty.put(uuid, configuration.getLong("data." + i + ".all-time"));
                     } else {
                         boolean hasABounty = false;
                         for (Bounty bounty : bountyList) {
@@ -213,14 +213,14 @@ public final class NotBounties extends JavaPlugin {
                             }
                         }
                         if (!hasABounty)
-                            allTimeBounty.put(uuid, 0);
+                            allTimeBounty.put(uuid, 0L);
                     }
                     if (configuration.isSet("data." + i + ".all-claimed")) {
-                        allClaimed.put(uuid, configuration.getInt("data." + i + ".all-claimed"));
+                        allClaimed.put(uuid, configuration.getLong("data." + i + ".all-claimed"));
                     } else {
-                        allClaimed.put(uuid, 0);
+                        allClaimed.put(uuid, 0L);
                     }
-                    immunitySpent.put(uuid, configuration.getInt("data." + i + ".immunity"));
+                    immunitySpent.put(uuid, configuration.getLong("data." + i + ".immunity"));
                     if (configuration.isSet("data." + i + ".broadcast")) {
                         disableBroadcast.add(uuid);
                     }
@@ -315,6 +315,7 @@ public final class NotBounties extends JavaPlugin {
                                                                 if (p.getWorld().equals(player.getWorld())) {
                                                                     if (player.getLocation().distance(p.getLocation()) < trackerGlow) {
                                                                         p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 45, 0));
+                                                                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(speakings.get(35), p)));
                                                                     }
                                                                 }
                                                             }
@@ -512,7 +513,7 @@ public final class NotBounties extends JavaPlugin {
                 i++;
             }
             i = 0;
-            for (Map.Entry<String, Integer> mapElement : bountiesClaimed.entrySet()) {
+            for (Map.Entry<String, Long> mapElement : bountiesClaimed.entrySet()) {
                 if (mapElement.getValue() + bountiesSet.get(mapElement.getKey()) + bountiesReceived.get(mapElement.getKey()) + allTimeBounty.get(mapElement.getKey()) + allClaimed.get(mapElement.getKey()) + immunitySpent.get(mapElement.getKey()) == 0 && !disableBroadcast.contains(mapElement.getKey()))
                     continue;
                 configuration.set("data." + i + ".uuid", mapElement.getKey());

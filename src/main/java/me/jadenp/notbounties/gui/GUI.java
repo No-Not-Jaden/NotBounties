@@ -53,7 +53,7 @@ public class GUI implements Listener {
             case "bounty-gui":
                 List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList)
-                    values.put(bounty.getUUID(), currencyPrefix + bounty.getTotalBounty() + currencySuffix);
+                    values.put(bounty.getUUID(), currencyPrefix + String.format("%f", bounty.getTotalBounty()) + currencySuffix);
                 break;
             case "leaderboard":
                 Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard ? (Leaderboard) data[0] : Leaderboard.ALL;

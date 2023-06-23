@@ -40,6 +40,7 @@ bounty-tracker-lore:
   - ''
 tracker-give: '&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.' #
 tracker-receive: '&eYou have been given a bounty tracker for &6{player}&e.'
+tracked-notify: '&c&lYou are being tracked!'
 bounty-top: '&9&l{rank}. &d{player} &7> &a{amount}'
 bounty-top-title: '&7&m               &r &d&lBounties &9&lTop &7&m               '
 enable-broadcast: '&eYou have &aenabled &ebounty broadcast!'

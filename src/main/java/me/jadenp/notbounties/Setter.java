@@ -5,11 +5,11 @@ import javax.annotation.Nullable;
 public class Setter {
     private final String name;
     private final String uuid;
-    private final long amount;
+    private final double amount;
     private final long timeCreated;
     private boolean notified;
 
-    public Setter(String name, String uuid, long amount, long timeCreated, @Nullable Boolean notified){
+    public Setter(String name, String uuid, double amount, long timeCreated, @Nullable Boolean notified){
 
         this.name = name;
         this.uuid = uuid;
@@ -39,7 +39,7 @@ public class Setter {
         return name;
     }
 
-    public long getAmount() {
+    public double getAmount() {
         return amount;
     }
 

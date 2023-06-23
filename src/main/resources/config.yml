@@ -24,6 +24,23 @@ hide-stats:
   - Not_Jaden
 # get notified on NotBounties Updates
 update-notification: true
+# formatting of large numbers
+number-formatting:
+  # 0 - disabled
+  # 1 - thousands
+  # 2 - divisions
+  type: 1
+  # character every 3 digits ex: ',' = 10,000 | '.' = 10.000 | '' = 10000
+  thousands: ','
+  # makes the number smaller and adds a suffix ex: 1000 = 1K | 1234 = 1.23K | 5467900 = 5.47M
+  divisions:
+    # how many decimals to include after a division
+    decimals: 1
+    # the division and suffix
+    1000: K
+    1000000: M
+    1000000000: B
+    1000000000000: T
 reward-heads:
   # give player heads to the setter of the bounty once claimed
   setters: true
@@ -69,6 +86,8 @@ bounty-tracker:
   # whether the compasses will actually track a player
   # does not stop admins from getting new compasses, and they will still be removed
   enabled: true
+  # whether players with notbounties.tracker can give themselves a tracker with the command
+  give-own: false
   # When to remove the compass after the bounty has been claimed
   # the higher the number, the more performance heavy it will be on your server
   # 0 - don't ever remove it
@@ -77,6 +96,7 @@ bounty-tracker:
   # 3 - check inventory every time player opens a container
   remove: 2
   # how many blocks away until it the player starts glowing - 0 to disable
+  # this is also how many blocks away until the tracked player gets a message about being tracked
   glow: 10
   # information to show when a player is holding a tracker
   action-bar:

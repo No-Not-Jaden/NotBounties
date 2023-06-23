@@ -13,7 +13,7 @@ public class Bounty implements Comparable<Bounty>{
     private List<Setter> setters = new ArrayList<>();
 
 
-    public Bounty(Player setter, OfflinePlayer receiver, long amount){
+    public Bounty(Player setter, OfflinePlayer receiver, double amount){
         // save player
         this.uuid = receiver.getUniqueId().toString();
         name = receiver.getName();
@@ -21,7 +21,7 @@ public class Bounty implements Comparable<Bounty>{
         setters.add(new Setter(setter.getName(), setter.getUniqueId().toString(), amount, System.currentTimeMillis(),false));
     }
 
-    public Bounty(OfflinePlayer receiver, long amount){
+    public Bounty(OfflinePlayer receiver, double amount){
         // save player
         this.uuid = receiver.getUniqueId().toString();
         name = receiver.getName();
@@ -63,7 +63,7 @@ public class Bounty implements Comparable<Bounty>{
     }
 
     // console set bounty
-    public void addBounty(long amount){
+    public void addBounty(double amount){
         // first check if player already set a bounty
         for (int i = 0; i < setters.size(); i++){
             if (setters.get(i).getUuid().equalsIgnoreCase("CONSOLE")){
@@ -87,7 +87,7 @@ public class Bounty implements Comparable<Bounty>{
         }
     }
 
-    public void editBounty(UUID uuid, long newAmount){
+    public void editBounty(UUID uuid, double newAmount){
         for (int i = 0; i < setters.size(); i++){
             if (setters.get(i).getUuid().equalsIgnoreCase(uuid.toString())){
                 // same person
@@ -98,8 +98,8 @@ public class Bounty implements Comparable<Bounty>{
     }
 
 
-    public int getTotalBounty(){
-        int total = 0;
+    public double getTotalBounty(){
+        double total = 0;
         for (Setter setters : setters){
             total += setters.getAmount();
         }
@@ -133,6 +133,6 @@ public class Bounty implements Comparable<Bounty>{
 
     @Override
     public int compareTo(@NotNull Bounty o) {
-        return this.getTotalBounty() - o.getTotalBounty();
+        return Double.compare(this.getTotalBounty(), o.getTotalBounty());
     }
 }

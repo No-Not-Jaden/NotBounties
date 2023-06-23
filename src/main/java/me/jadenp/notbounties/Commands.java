@@ -191,7 +191,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                     } else {
                                         if (Leaderboard.IMMUNITY.getStat(((Player) sender).getUniqueId()) > 0) {
-                                            nb.immunitySpent.replace(((Player) sender).getUniqueId().toString(), 0);
+                                            nb.immunitySpent.replace(((Player) sender).getUniqueId().toString(), 0L);
                                             sender.sendMessage(parse(speakings.get(0) + speakings.get(26), (Player) sender));
                                         } else {
                                             // doesn't have immunity
@@ -230,7 +230,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                     } else {
                                         if (Leaderboard.IMMUNITY.getStat(p.getUniqueId()) > 0) {
-                                            nb.immunitySpent.replace(p.getUniqueId().toString(), 0);
+                                            nb.immunitySpent.replace(p.getUniqueId().toString(), 0L);
                                             sender.sendMessage(parse(speakings.get(0) + speakings.get(27), p.getName(), p));
                                         } else {
                                             // doesn't have immunity
@@ -250,7 +250,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                         } else {
                                             if (Leaderboard.IMMUNITY.getStat(player.getUniqueId()) > 0) {
-                                                nb.immunitySpent.replace(player.getUniqueId().toString(), 0);
+                                                nb.immunitySpent.replace(player.getUniqueId().toString(), 0L);
                                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(27), player.getName(), player));
                                             } else {
                                                 // doesn't have immunity
@@ -302,7 +302,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (buyImmunity) {
                                 if (sender.hasPermission("notbounties.buyimmunity")) {
                                     if (permanentImmunity) {
-                                        int immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(((Player) sender).getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(((Player) sender).getUniqueId());
+                                        long immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(((Player) sender).getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(((Player) sender).getUniqueId());
                                         if (immunitySpent < permanentCost && !sender.hasPermission("notbounties.immune")) {
                                             if ((nb.repeatBuyCommand2.containsKey(((Player) sender).getUniqueId().toString()) && System.currentTimeMillis() - nb.repeatBuyCommand2.get(((Player) sender).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
                                                 // try to find bounty and buy it
@@ -699,7 +699,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else if (args[0].equalsIgnoreCase("tracker")) {
                     // give a tracker that points toward a certain player with a bounty
                     if (tracker)
-                        if (sender.hasPermission("notbounties.admin")) {
+                        if (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker"))) {
                             if (args.length > 1) {
                                 Bounty tracking = null;
                                 List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
@@ -743,6 +743,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     compass.setItemMeta(meta);
                                     compass.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
                                     if (args.length > 2) {
+                                        // /bounty tracker (player) (receiver)
+                                        if (!sender.hasPermission("notbounties.admin")){
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(5), (Player) sender));
+                                            return true;
+                                        }
                                         // find player to give to
                                         Player receiver = Bukkit.getPlayer(args[2]);
                                         if (receiver != null) {
@@ -835,7 +840,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             nb.gracePeriod.remove(p.getUniqueId().toString());
                                         }
                                     }
-                                    int immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(p.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(p.getUniqueId());
+                                    long immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(p.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(p.getUniqueId());
                                     if (!p.hasPermission("notbounties.immune") && ((amount > immunitySpent && !permanentImmunity) || (permanentImmunity && immunitySpent < permanentCost))) {
                                         double balance = getBalance((Player) sender);
                                         if (balance >= (int) (amount + (amount * bountyTax))) {
@@ -863,7 +868,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (nb.loggedPlayers.containsKey(args[0].toLowerCase(Locale.ROOT))) {
                                 OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(nb.loggedPlayers.get(args[0].toLowerCase(Locale.ROOT))));
                                 if (sender instanceof Player) {
-                                    int immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(player.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(player.getUniqueId());
+                                    long immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(player.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(player.getUniqueId());
                                     if (!nb.immunePerms.contains(player.getUniqueId().toString()) && ((amount > immunitySpent && !permanentImmunity) || (permanentImmunity && immunitySpent < permanentCost))) {
                                         double balance = getBalance((Player) sender);
                                         if (balance >= (int) (amount + (amount * bountyTax))) {
@@ -930,9 +935,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("remove");
                     tab.add("edit");
                     tab.add("reload");
+                }
+                if (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker")))
                     if (tracker)
                         tab.add("tracker");
-                }
                 if (buyBack) {
                     if (sender.hasPermission("notbounties.buyown")) {
                         tab.add("buy");
@@ -949,7 +955,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
-                } else if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit") || (args[0].equalsIgnoreCase("tracker")) && tracker) && sender.hasPermission("notbounties.admin")) {
+                } else if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit") && sender.hasPermission("notbounties.admin"))) {
                     List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
@@ -966,6 +972,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("deaths");
                     tab.add("set");
                     tab.add("immunity");
+                } else if (args[0].equalsIgnoreCase("tracker") && tracker && (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker")))){
+                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                    for (Bounty bounty : bountyList) {
+                        tab.add(bounty.getName());
+                    }
                 }
             } else if (args.length == 3) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission("notbounties.admin")) {

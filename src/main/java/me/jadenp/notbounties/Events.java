@@ -470,12 +470,12 @@ public class Events implements Listener {
         }
 
         if (!nb.bountiesClaimed.containsKey(event.getPlayer().getUniqueId().toString())) {
-            nb.bountiesClaimed.put(event.getPlayer().getUniqueId().toString(), 0);
-            nb.allClaimed.put(event.getPlayer().getUniqueId().toString(), 0);
-            nb.bountiesSet.put(event.getPlayer().getUniqueId().toString(), 0);
-            nb.bountiesReceived.put(event.getPlayer().getUniqueId().toString(), 0);
-            nb.allTimeBounty.put(event.getPlayer().getUniqueId().toString(), 0);
-            nb.immunitySpent.put(event.getPlayer().getUniqueId().toString(), 0);
+            nb.bountiesClaimed.put(event.getPlayer().getUniqueId().toString(), 0L);
+            nb.allClaimed.put(event.getPlayer().getUniqueId().toString(), 0L);
+            nb.bountiesSet.put(event.getPlayer().getUniqueId().toString(), 0L);
+            nb.bountiesReceived.put(event.getPlayer().getUniqueId().toString(), 0L);
+            nb.allTimeBounty.put(event.getPlayer().getUniqueId().toString(), 0L);
+            nb.immunitySpent.put(event.getPlayer().getUniqueId().toString(), 0L);
         }
 
         if (nb.headRewards.containsKey(event.getPlayer().getUniqueId().toString())) {
