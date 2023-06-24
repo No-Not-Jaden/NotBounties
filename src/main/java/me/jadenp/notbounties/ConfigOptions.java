@@ -656,7 +656,7 @@ public class ConfigOptions {
         return str;
     }
 
-    public static String parse(String str, long amount, OfflinePlayer receiver) {
+    public static String parse(String str, double amount, OfflinePlayer receiver) {
         while (str.contains("{amount}")) {
             str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
         }
@@ -666,7 +666,7 @@ public class ConfigOptions {
         return str;
     }
 
-    public static String parse(String str, String player, long amount, OfflinePlayer receiver) {
+    public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
         while (str.contains("{receiver}")) {
             str = str.replace("{receiver}", player);
         }
@@ -682,7 +682,7 @@ public class ConfigOptions {
         return str;
     }
 
-    public static String parse(String str, String player, long amount, long bounty, OfflinePlayer receiver) {
+    public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
         while (str.contains("{receiver}")) {
             str = str.replace("{receiver}", player);
         }
@@ -702,7 +702,7 @@ public class ConfigOptions {
     }
 
 
-    public static String parse(String str, String sender, String player, long amount, OfflinePlayer receiver) {
+    public static String parse(String str, String sender, String player, double amount, OfflinePlayer receiver) {
         while (str.contains("{player}")) {
             str = str.replace("{player}", sender);
         }
@@ -732,7 +732,7 @@ public class ConfigOptions {
     }
 
 
-    public static String parse(String str, String sender, String player, long amount, long totalBounty, OfflinePlayer receiver) {
+    public static String parse(String str, String sender, String player, double amount, double totalBounty, OfflinePlayer receiver) {
         while (str.contains("{player}")) {
             str = str.replace("{player}", sender);
         }

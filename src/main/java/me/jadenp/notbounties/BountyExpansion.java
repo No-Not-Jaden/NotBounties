@@ -70,21 +70,21 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (notBounties.SQL.isConnected()){
                 return notBounties.data.getClaimed(player.getUniqueId().toString()) + "";
             }
-            return notBounties.bountiesClaimed.get(uuid) + "";
+            return notBounties.killBounties.get(uuid) + "";
         }
 
         if (params.equalsIgnoreCase("bounties_set")){
             if (notBounties.SQL.isConnected()){
                 return notBounties.data.getSet(player.getUniqueId().toString()) + "";
             }
-            return notBounties.bountiesSet.get(uuid) + "";
+            return notBounties.setBounties.get(uuid) + "";
         }
 
         if (params.equalsIgnoreCase("bounties_received")){
             if (notBounties.SQL.isConnected()){
                 return notBounties.data.getReceived(player.getUniqueId().toString()) + "";
             }
-            return notBounties.bountiesReceived.get(uuid) + "";
+            return notBounties.deathBounties.get(uuid) + "";
         }
 
         if (params.equalsIgnoreCase("immunity_spent")){
@@ -98,14 +98,14 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (notBounties.SQL.isConnected()){
                 return notBounties.data.getAllTime(player.getUniqueId().toString()) + "";
             }
-            return notBounties.allTimeBounty.get(player.getUniqueId().toString()) + "";
+            return notBounties.allTimeBounties.get(player.getUniqueId().toString()) + "";
         }
 
         if (params.equalsIgnoreCase("currency_gained")){
             if (notBounties.SQL.isConnected()){
                 return notBounties.data.getTotalClaimed(player.getUniqueId().toString()) + "";
             }
-            return notBounties.allClaimed.get(player.getUniqueId().toString()) + "";
+            return notBounties.allClaimedBounties.get(player.getUniqueId().toString()) + "";
         }
 
         if (params.startsWith("top_")) {
@@ -123,12 +123,12 @@ public class BountyExpansion extends PlaceholderExpansion {
             } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
                 return null;
             }
-            LinkedHashMap<String, Long> stat = leaderboard.getTop(rank - 1, 1);
+            LinkedHashMap<String, Double> stat = leaderboard.getTop(rank - 1, 1);
             if (stat.size() == 0)
                 return "";
             boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL;
-            Map.Entry<String, Long> entry = stat.entrySet().iterator().next();
-            long amount = entry.getValue();
+            Map.Entry<String, Double> entry = stat.entrySet().iterator().next();
+            double amount = entry.getValue();
             OfflinePlayer p = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
             String name = p.getName();
             if (name == null && notBounties.loggedPlayers.containsValue(entry.getKey())) {

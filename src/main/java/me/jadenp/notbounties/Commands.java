@@ -182,23 +182,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (sender.hasPermission("notbounties.removeimmunity") || sender.hasPermission("notbounties.admin")) {
                                 if (sender instanceof Player) {
                                     // remove immunity
-                                    if (nb.SQL.isConnected()) {
-                                        if (nb.data.getImmunity(((Player) sender).getUniqueId().toString()) > 0) {
+                                    double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(((Player) sender).getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(((Player) sender).getUniqueId());
+                                    if (immunitySpent > 0){
+                                        if (nb.SQL.isConnected())
                                             nb.data.setImmunity(((Player) sender).getUniqueId().toString(), 0);
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(26), (Player) sender));
-                                        } else {
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(28), (Player) sender));
-                                        }
+                                        else
+                                            nb.immunitySpent.put(((Player) sender).getUniqueId().toString(), 0.0);
+                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(27), sender.getName(), ((Player) sender)));
                                     } else {
-                                        if (Leaderboard.IMMUNITY.getStat(((Player) sender).getUniqueId()) > 0) {
-                                            nb.immunitySpent.replace(((Player) sender).getUniqueId().toString(), 0L);
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(26), (Player) sender));
-                                        } else {
-                                            // doesn't have immunity
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(28), (Player) sender));
-                                        }
+                                        // doesn't have immunity
+                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(29), sender.getName(), ((Player) sender)));
                                     }
-
                                 } else {
                                     Bukkit.getLogger().info("You don't have immunity!");
                                 }
@@ -221,41 +215,31 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (sender.hasPermission("notbounties.admin")) {
                                 Player p = Bukkit.getPlayer(args[2]);
                                 if (p != null) {
-                                    if (nb.SQL.isConnected()) {
-                                        if (nb.data.getImmunity(p.getUniqueId().toString()) > 0) {
+                                    double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(p.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(p.getUniqueId());
+                                    if (immunitySpent > 0){
+                                        if (nb.SQL.isConnected())
                                             nb.data.setImmunity(p.getUniqueId().toString(), 0);
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(27), p.getName(), p));
-                                        } else {
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(29), p.getName(), p));
-                                        }
+                                        else
+                                            nb.immunitySpent.put(p.getUniqueId().toString(), 0.0);
+                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(27), p.getName(), p));
                                     } else {
-                                        if (Leaderboard.IMMUNITY.getStat(p.getUniqueId()) > 0) {
-                                            nb.immunitySpent.replace(p.getUniqueId().toString(), 0L);
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(27), p.getName(), p));
-                                        } else {
-                                            // doesn't have immunity
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(29), p.getName(), p));
-                                        }
+                                        // doesn't have immunity
+                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(29), p.getName(), p));
                                     }
                                 } else {
                                     // go through logged players
                                     if (nb.loggedPlayers.containsKey(args[2].toLowerCase(Locale.ROOT))) {
                                         OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(nb.loggedPlayers.get(args[2].toLowerCase(Locale.ROOT))));
-                                        if (nb.SQL.isConnected()) {
-                                            if (nb.data.getImmunity(player.getUniqueId().toString()) > 0) {
+                                        double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(player.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(player.getUniqueId());
+                                        if (immunitySpent > 0){
+                                            if (nb.SQL.isConnected())
                                                 nb.data.setImmunity(player.getUniqueId().toString(), 0);
-                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(27), player.getName(), player));
-                                            } else {
-                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(29), player.getName(), player));
-                                            }
+                                            else
+                                                nb.immunitySpent.put(player.getUniqueId().toString(), 0.0);
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(27), player.getName(), player));
                                         } else {
-                                            if (Leaderboard.IMMUNITY.getStat(player.getUniqueId()) > 0) {
-                                                nb.immunitySpent.replace(player.getUniqueId().toString(), 0L);
-                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(27), player.getName(), player));
-                                            } else {
-                                                // doesn't have immunity
-                                                sender.sendMessage(parse(speakings.get(0) + speakings.get(29), player.getName(), player));
-                                            }
+                                            // doesn't have immunity
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(29), player.getName(), player));
                                         }
                                     } else {
                                         // unknown player
@@ -302,7 +286,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (buyImmunity) {
                                 if (sender.hasPermission("notbounties.buyimmunity")) {
                                     if (permanentImmunity) {
-                                        long immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(((Player) sender).getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(((Player) sender).getUniqueId());
+                                        double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(((Player) sender).getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(((Player) sender).getUniqueId());
                                         if (immunitySpent < permanentCost && !sender.hasPermission("notbounties.immune")) {
                                             if ((nb.repeatBuyCommand2.containsKey(((Player) sender).getUniqueId().toString()) && System.currentTimeMillis() - nb.repeatBuyCommand2.get(((Player) sender).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
                                                 // try to find bounty and buy it
@@ -840,7 +824,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             nb.gracePeriod.remove(p.getUniqueId().toString());
                                         }
                                     }
-                                    long immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(p.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(p.getUniqueId());
+                                    double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(p.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(p.getUniqueId());
                                     if (!p.hasPermission("notbounties.immune") && ((amount > immunitySpent && !permanentImmunity) || (permanentImmunity && immunitySpent < permanentCost))) {
                                         double balance = getBalance((Player) sender);
                                         if (balance >= (int) (amount + (amount * bountyTax))) {
@@ -868,7 +852,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (nb.loggedPlayers.containsKey(args[0].toLowerCase(Locale.ROOT))) {
                                 OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(nb.loggedPlayers.get(args[0].toLowerCase(Locale.ROOT))));
                                 if (sender instanceof Player) {
-                                    long immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(player.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(player.getUniqueId());
+                                    double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(player.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(player.getUniqueId());
                                     if (!nb.immunePerms.contains(player.getUniqueId().toString()) && ((amount > immunitySpent && !permanentImmunity) || (permanentImmunity && immunitySpent < permanentCost))) {
                                         double balance = getBalance((Player) sender);
                                         if (balance >= (int) (amount + (amount * bountyTax))) {

@@ -46,15 +46,15 @@ public final class NotBounties extends JavaPlugin {
 
     public File bounties = new File(this.getDataFolder() + File.separator + "bounties.yml");
 
-    public Map<String, Long> bountiesClaimed = new HashMap<>();
-    public Map<String, Long> bountiesSet = new HashMap<>();
-    public Map<String, Long> bountiesReceived = new HashMap<>();
-    public Map<String, Long> allTimeBounty = new HashMap<>();
-    public Map<String, Long> allClaimed = new HashMap<>();
+    public Map<String, Double> killBounties = new HashMap<>();
+    public Map<String, Double> setBounties = new HashMap<>();
+    public Map<String, Double> deathBounties = new HashMap<>();
+    public Map<String, Double> allTimeBounties = new HashMap<>();
+    public Map<String, Double> allClaimedBounties = new HashMap<>();
     public Map<String, List<String>> headRewards = new HashMap<>();
     public Map<String, Long> repeatBuyCommand = new HashMap<>();
     public Map<String, Long> repeatBuyCommand2 = new HashMap<>();
-    public Map<String, Long> immunitySpent = new HashMap<>();
+    public Map<String, Double> immunitySpent = new HashMap<>();
     public Map<String, Long> gracePeriod = new HashMap<>();
     public Map<Integer, String> trackedBounties = new HashMap<>();
     public List<Player> displayParticle = new ArrayList<>();
@@ -104,16 +104,16 @@ public final class NotBounties extends JavaPlugin {
                         e.printStackTrace();
                     }
                 }
-                if (bountiesClaimed.size() > 0 && migrateLocalData) {
+                if (killBounties.size() > 0 && migrateLocalData) {
                     // add entries to database
-                    for (Map.Entry<String, Long> entry : bountiesClaimed.entrySet()) {
-                        data.addData(entry.getKey(), entry.getValue(), bountiesSet.get(entry.getKey()), bountiesReceived.get(entry.getKey()), allTimeBounty.get(entry.getKey()), immunitySpent.get(entry.getKey()), allClaimed.get(entry.getKey()));
+                    for (Map.Entry<String, Double> entry : killBounties.entrySet()) {
+                        data.addData(entry.getKey(), entry.getValue().longValue(), setBounties.get(entry.getKey()).longValue(), deathBounties.get(entry.getKey()).longValue(), allTimeBounties.get(entry.getKey()), immunitySpent.get(entry.getKey()), allClaimedBounties.get(entry.getKey()));
                     }
-                    bountiesClaimed.clear();
-                    bountiesSet.clear();
-                    bountiesReceived.clear();
-                    allClaimed.clear();
-                    allTimeBounty.clear();
+                    killBounties.clear();
+                    setBounties.clear();
+                    deathBounties.clear();
+                    allClaimedBounties.clear();
+                    allTimeBounties.clear();
                     immunitySpent.clear();
                     YamlConfiguration configuration = new YamlConfiguration();
                     try {
@@ -196,31 +196,28 @@ public final class NotBounties extends JavaPlugin {
                 i = 0;
                 while (configuration.isSet("data." + i + ".uuid")) {
                     String uuid = configuration.getString("data." + i + ".uuid");
-                    bountiesClaimed.put(uuid, configuration.getLong("data." + i + ".claimed"));
-                    bountiesSet.put(uuid, configuration.getLong("data." + i + ".set"));
-                    bountiesReceived.put(uuid, configuration.getLong("data." + i + ".received"));
+                    if (configuration.isSet("data." + i + ".claimed"))
+                        killBounties.put(uuid, (double) configuration.getLong("data." + i + ".claimed"));
+                    if (configuration.isSet("data." + i + ".set"))
+                        setBounties.put(uuid, (double) configuration.getLong("data." + i + ".set"));
+                    if (configuration.isSet("data." + i + ".received"))
+                        deathBounties.put(uuid, (double) configuration.getLong("data." + i + ".received"));
                     if (configuration.isSet("data." + i + ".all-time")) {
-                        allTimeBounty.put(uuid, configuration.getLong("data." + i + ".all-time"));
+                        allTimeBounties.put(uuid, configuration.getDouble("data." + i + ".all-time"));
                     } else {
-                        boolean hasABounty = false;
                         for (Bounty bounty : bountyList) {
                             // if they have a bounty already
                             if (bounty.getUUID().equals(uuid)) {
-                                hasABounty = true;
-                                allTimeBounty.put(uuid, bounty.getTotalBounty());
+                                allTimeBounties.put(uuid, bounty.getTotalBounty());
                                 Bukkit.getLogger().info("Missing all time bounty for " + bounty.getName() + ". Setting as current bounty.");
                                 break;
                             }
                         }
-                        if (!hasABounty)
-                            allTimeBounty.put(uuid, 0L);
                     }
                     if (configuration.isSet("data." + i + ".all-claimed")) {
-                        allClaimed.put(uuid, configuration.getLong("data." + i + ".all-claimed"));
-                    } else {
-                        allClaimed.put(uuid, 0L);
+                        allClaimedBounties.put(uuid, configuration.getDouble("data." + i + ".all-claimed"));
                     }
-                    immunitySpent.put(uuid, configuration.getLong("data." + i + ".immunity"));
+                    immunitySpent.put(uuid, configuration.getDouble("data." + i + ".immunity"));
                     if (configuration.isSet("data." + i + ".broadcast")) {
                         disableBroadcast.add(uuid);
                     }
@@ -415,7 +412,7 @@ public final class NotBounties extends JavaPlugin {
                                     Player player = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
                                     if (player != null) {
                                         if (!usingPapi) {
-                                            addItem(player, Material.valueOf(currency), setter.getAmount());
+                                            addItem(player, Material.valueOf(currency), (long) setter.getAmount());
                                         }
                                         doAddCommands(player, setter.getAmount());
                                         player.sendMessage(parse(speakings.get(0) + speakings.get(31), bounty.getName(), setter.getAmount(), player));
@@ -513,16 +510,22 @@ public final class NotBounties extends JavaPlugin {
                 i++;
             }
             i = 0;
-            for (Map.Entry<String, Long> mapElement : bountiesClaimed.entrySet()) {
-                if (mapElement.getValue() + bountiesSet.get(mapElement.getKey()) + bountiesReceived.get(mapElement.getKey()) + allTimeBounty.get(mapElement.getKey()) + allClaimed.get(mapElement.getKey()) + immunitySpent.get(mapElement.getKey()) == 0 && !disableBroadcast.contains(mapElement.getKey()))
+            for (Map.Entry<String, Double> mapElement : killBounties.entrySet()) {
+                if (mapElement.getValue() + setBounties.get(mapElement.getKey()) + deathBounties.get(mapElement.getKey()) + allTimeBounties.get(mapElement.getKey()) + allClaimedBounties.get(mapElement.getKey()) + immunitySpent.get(mapElement.getKey()) == 0 && !disableBroadcast.contains(mapElement.getKey()))
                     continue;
                 configuration.set("data." + i + ".uuid", mapElement.getKey());
-                configuration.set("data." + i + ".claimed", mapElement.getValue());
-                configuration.set("data." + i + ".set", bountiesSet.get(mapElement.getKey()));
-                configuration.set("data." + i + ".received", bountiesReceived.get(mapElement.getKey()));
-                configuration.set("data." + i + ".all-time", allTimeBounty.get(mapElement.getKey()));
-                configuration.set("data." + i + ".all-claimed", allClaimed.get(mapElement.getKey()));
-                configuration.set("data." + i + ".immunity", immunitySpent.get(mapElement.getKey()));
+                if (mapElement.getValue() != 0.0)
+                    configuration.set("data." + i + ".claimed", mapElement.getValue().longValue());
+                if (setBounties.get(mapElement.getKey()) != 0.0)
+                    configuration.set("data." + i + ".set", setBounties.get(mapElement.getKey()).longValue());
+                if (deathBounties.get(mapElement.getKey()) != 0.0)
+                    configuration.set("data." + i + ".received", deathBounties.get(mapElement.getKey()).longValue());
+                if (allTimeBounties.get(mapElement.getKey()) != 0.0)
+                    configuration.set("data." + i + ".all-time", allTimeBounties.get(mapElement.getKey()));
+                if (allClaimedBounties.get(mapElement.getKey()) != 0.0)
+                    configuration.set("data." + i + ".all-claimed", allClaimedBounties.get(mapElement.getKey()));
+                if (immunitySpent.get(mapElement.getKey()) != 0.0)
+                    configuration.set("data." + i + ".immunity", immunitySpent.get(mapElement.getKey()));
                 if (disableBroadcast.contains(mapElement.getKey())) {
                     configuration.set("data." + i + ".broadcast", false);
                 }
@@ -627,13 +630,13 @@ public final class NotBounties extends JavaPlugin {
         return sortedList;
     }
 
-    public void doRemoveCommands(Player p, int amount) {
+    public void doRemoveCommands(Player p, double amount) {
         if (usingPapi) {
             if (removeCommands == null || removeCommands.isEmpty()) {
                 Bukkit.getLogger().warning("NotBounties detected a placeholder as currency, but there are no remove commands to take away money! (Is it formatted correctly?)");
             }
         } else {
-            removeItem(p, Material.valueOf(currency), amount);
+            removeItem(p, Material.valueOf(currency), (long) amount);
         }
         for (String str : removeCommands) {
             while (str.contains("{player}")) {
@@ -687,7 +690,7 @@ public final class NotBounties extends JavaPlugin {
         //sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                        ");
     }
 
-    public void doAddCommands(Player p, long amount) {
+    public void doAddCommands(Player p, double amount) {
         if (usingPapi) {
             if (addCommands == null) {
                 Bukkit.getLogger().warning("We detected a placeholder as currency, but there are no add commands to give players there reward! (Is it formatted correctly?)");
@@ -708,13 +711,13 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public void removeItem(Player player, Material material, int amount) {
+    public void removeItem(Player player, Material material, long amount) {
         ItemStack[] contents = player.getInventory().getContents();
         for (int i = 0; i < contents.length; i++) {
             if (contents[i] != null) {
                 if (contents[i].getType().equals(material)) {
                     if (contents[i].getAmount() > amount) {
-                        contents[i] = new ItemStack(contents[i].getType(), contents[i].getAmount() - amount);
+                        contents[i] = new ItemStack(contents[i].getType(), (int) (contents[i].getAmount() - amount));
                         break;
                     } else if (contents[i].getAmount() < amount) {
                         amount -= contents[i].getAmount();
@@ -792,7 +795,7 @@ public final class NotBounties extends JavaPlugin {
             bounty.addBounty(setter, amount);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, amount, 0, 0);
         } else {
-            allTimeBounty.replace(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
+            allTimeBounties.replace(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
             for (Bounty bountySearch : bountyList) {
                 // if they have a bounty already
                 if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
@@ -850,7 +853,7 @@ public final class NotBounties extends JavaPlugin {
             bounty.addBounty(amount);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, amount, 0, 0);
         } else {
-            allTimeBounty.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
+            allTimeBounties.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
             for (Bounty bountySearch : bountyList) {
                 // if they have a bounty already
                 if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
@@ -907,7 +910,7 @@ public final class NotBounties extends JavaPlugin {
             bounty.addBounty(setter, amount);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, amount, 0, 0);
         } else {
-            allTimeBounty.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
+            allTimeBounties.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
             for (Bounty bountySearch : bountyList) {
                 // if they have a bounty already
                 if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {
@@ -949,7 +952,7 @@ public final class NotBounties extends JavaPlugin {
             bounty.addBounty(amount);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, amount, 0, 0);
         } else {
-            allTimeBounty.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
+            allTimeBounties.put(receiver.getUniqueId().toString(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
             for (Bounty bountySearch : bountyList) {
                 // if they have a bounty already
                 if (bountySearch.getUUID().equals(receiver.getUniqueId().toString())) {

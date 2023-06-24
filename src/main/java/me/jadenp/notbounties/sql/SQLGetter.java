@@ -51,7 +51,7 @@ public class SQLGetter {
             ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS bounty_data" +
                     "(" +
                     "    uuid CHAR(36) NOT NULL," +
-                    "    claimed FLOAT(53) DEFAULT 0 NOT NULL," +
+                    "    claimed BIGINT DEFAULT 0 NOT NULL," +
                     "    sets BIGINT DEFAULT 0 NOT NULL," +
                     "    received BIGINT DEFAULT 0 NOT NULL," +
                     "    alltime FLOAT(53) DEFAULT 0 NOT NULL," +
@@ -65,7 +65,7 @@ public class SQLGetter {
             if (rs.next()){
                 if (rs.getString("data_type").equalsIgnoreCase("int")){
                     Bukkit.getLogger().info("Updating data type for statistics");
-                    ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE bounty_data MODIFY COLUMN claimed FLOAT(53), MODIFY sets BIGINT, MODIFY received BIGINT, MODIFY alltime FLOAT(53), MODIFY immunity FLOAT(53), MODIFY allclaimed FLOAT(53)");
+                    ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE bounty_data MODIFY COLUMN claimed BIGINT, MODIFY sets BIGINT, MODIFY received BIGINT, MODIFY alltime FLOAT(53), MODIFY immunity FLOAT(53), MODIFY allclaimed FLOAT(53)");
                     ps.executeUpdate();
                 }
             }
@@ -73,22 +73,22 @@ public class SQLGetter {
             e.printStackTrace();
         }
     }
-    public void addData(String uuid, long claimed, long set, long received, long allTime, long immunity, long allClaimed){
+    public void addData(String uuid, long claimed, long set, long received, double allTime, double immunity, double allClaimed){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("INSERT INTO bounty_data(uuid, claimed, sets, received, alltime, immunity, allclaimed) VALUES(?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE claimed = claimed + ?, sets = sets + ?, received = received + ?, alltime = alltime + ?, immunity = immunity + ?, allclaimed = allclaimed + ?;");
             ps.setString(1, uuid);
             ps.setLong(2, claimed);
             ps.setLong(3, set);
             ps.setLong(4, received);
-            ps.setLong(5, allTime);
-            ps.setLong(6, immunity);
-            ps.setLong(7, allClaimed);
+            ps.setDouble(5, allTime);
+            ps.setDouble(6, immunity);
+            ps.setDouble(7, allClaimed);
             ps.setLong(8, claimed);
             ps.setLong(9, set);
             ps.setLong(10, received);
-            ps.setLong(11, allTime);
-            ps.setLong(12, immunity);
-            ps.setLong(13, allClaimed);
+            ps.setDouble(11, allTime);
+            ps.setDouble(12, immunity);
+            ps.setDouble(13, allClaimed);
             ps.executeUpdate();
         } catch (SQLException e){
             reconnect();
@@ -97,13 +97,13 @@ public class SQLGetter {
         }
     }
 
-    public int getClaimed(String uuid){
+    public long getClaimed(String uuid){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT claimed FROM bounty_data WHERE uuid = ?;");
             ps.setString(1, uuid);
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
-                return rs.getInt("claimed");
+                return rs.getLong("claimed");
             }
         } catch (SQLException e){
             if (reconnect()){
@@ -115,13 +115,13 @@ public class SQLGetter {
         return 0;
     }
 
-    public int getTotalClaimed(String uuid){
+    public double getTotalClaimed(String uuid){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT allclaimed FROM bounty_data WHERE uuid = ?;");
             ps.setString(1, uuid);
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
-                return rs.getInt("allclaimed");
+                return rs.getDouble("allclaimed");
             }
         } catch (SQLException e){
             if (reconnect()){
@@ -140,7 +140,7 @@ public class SQLGetter {
      * @param results maximum amount of results that could be returned
      * @return A descending ordered list of entries of a leaderboard stat
      */
-    public LinkedHashMap<String, Long> getTopStats(Leaderboard leaderboard, List<String> hiddenNames, int skip, int results){
+    public LinkedHashMap<String, Double> getTopStats(Leaderboard leaderboard, List<String> hiddenNames, int skip, int results){
         String listName = "";
         switch (leaderboard){
             case ALL:
@@ -162,7 +162,7 @@ public class SQLGetter {
                 listName = "immunity";
                 break;
         }
-        LinkedHashMap<String, Long> data = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> data = new LinkedHashMap<>();
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < hiddenNames.size(); i++) {
             String uuid = NotBounties.getInstance().loggedPlayers.get(hiddenNames.get(i).toLowerCase());
@@ -182,8 +182,11 @@ public class SQLGetter {
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
                 String uuid = rs.getString("uuid");
-                long value = rs.getLong(2);
-                data.put(uuid, value);
+                if (leaderboard.isMoney())
+                      data.put(uuid, rs.getDouble(2));
+                else
+                    data.put(uuid, (double) rs.getLong(2));
+
             }
         } catch (SQLException e){
             if (reconnect()){
@@ -195,13 +198,13 @@ public class SQLGetter {
         return data;
     }
 
-    public int getSet(String uuid){
+    public long getSet(String uuid){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT sets FROM bounty_data WHERE uuid = ?;");
             ps.setString(1, uuid);
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
-                return rs.getInt("set");
+                return rs.getLong("set");
             }
         } catch (SQLException e){
             if (reconnect()){
@@ -213,13 +216,13 @@ public class SQLGetter {
         return 0;
     }
 
-    public int getReceived(String uuid){
+    public long getReceived(String uuid){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT received FROM bounty_data WHERE uuid = ?;");
             ps.setString(1, uuid);
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
-                return rs.getInt("received");
+                return rs.getLong("received");
             }
         } catch (SQLException e){
             if (reconnect()){
@@ -231,13 +234,13 @@ public class SQLGetter {
         return 0;
     }
 
-    public int getAllTime(String uuid){
+    public double getAllTime(String uuid){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT alltime FROM bounty_data WHERE uuid = ?;");
             ps.setString(1, uuid);
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
-                return rs.getInt("alltime");
+                return rs.getDouble("alltime");
             }
         } catch (SQLException e){
             if (reconnect()){
@@ -249,13 +252,13 @@ public class SQLGetter {
         return 0;
     }
 
-    public int getImmunity(String uuid){
+    public double getImmunity(String uuid){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT immunity FROM bounty_data WHERE uuid = ?;");
             ps.setString(1, uuid);
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
-                return rs.getInt("immunity");
+                return rs.getDouble("immunity");
             }
         } catch (SQLException e){
             if (reconnect()){
@@ -268,11 +271,11 @@ public class SQLGetter {
     }
 
 
-    public void setImmunity(String uuid, int amount){
+    public void setImmunity(String uuid, double amount){
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("REPLACE bounty_data(uuid, immunity) VALUES(? ,?);");
             ps.setString(1, uuid);
-            ps.setInt(2, amount);
+            ps.setDouble(2, amount);
             ps.executeQuery();
         } catch (SQLException e){
             if (reconnect()){
@@ -292,7 +295,7 @@ public class SQLGetter {
             ps.setString(2, bounty.getName());
             ps.setString(3, setter.getName());
             ps.setString(4, setter.getUuid());
-            ps.setLong(5, setter.getAmount());
+            ps.setDouble(5, setter.getAmount());
             ps.setBoolean(6, setter.isNotified());
             ps.setLong(7, setter.getTimeCreated());
             ps.executeUpdate();
@@ -316,7 +319,7 @@ public class SQLGetter {
                 if (name.equals("")){
                     name = rs.getString("name");
                 }
-                setters.add(new Setter(rs.getString("setter"), rs.getString("suuid"), rs.getLong("amount"), rs.getLong("time"), rs.getBoolean("notified")));
+                setters.add(new Setter(rs.getString("setter"), rs.getString("suuid"), rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified")));
             }
             return new Bounty(uuid, setters, name);
         } catch (SQLException e){
@@ -328,10 +331,10 @@ public class SQLGetter {
         }
         return null;
     }
-    public void editBounty(String uuid, String setterUUID, long amount) {
+    public void editBounty(String uuid, String setterUUID, double amount) {
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("UPDATE notbounties SET amount = amount + ? WHERE uuid = ? AND suuid = ?;");
-            ps.setLong(1, amount);
+            ps.setDouble(1, amount);
             ps.setString(2, uuid);
             ps.setString(3, setterUUID);
             ps.executeUpdate();
@@ -412,9 +415,9 @@ public class SQLGetter {
                 String uuid = resultSet.getString("uuid");
                 if (uuid != null) {
                     if (bountyAmounts.containsKey(uuid)){
-                       bountyAmounts.get(uuid).addBounty(resultSet.getLong("amount"));
+                       bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"));
                     } else {
-                        bountyAmounts.put(uuid, new Bounty(uuid, new ArrayList<>(Collections.singletonList(new Setter("", "", resultSet.getLong("amount"), 0, true))), resultSet.getString("name")));
+                        bountyAmounts.put(uuid, new Bounty(uuid, new ArrayList<>(Collections.singletonList(new Setter("", "", resultSet.getDouble("amount"), 0, true))), resultSet.getString("name")));
                     }
                 }
             }
@@ -435,7 +438,7 @@ public class SQLGetter {
     public int removeExtraData() {
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("DELETE FROM notbounties WHERE amount = ?;");
-            ps.setLong(1, 0L);
+            ps.setDouble(1, 0L);
             return ps.executeUpdate();
         } catch (SQLException e){
             if (reconnect()){
