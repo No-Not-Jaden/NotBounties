@@ -69,6 +69,10 @@ public class GUIOptions {
         }
     }
 
+    public boolean isAddPage() {
+        return addPage;
+    }
+
     public CustomItem[] getCustomItems() {
         return customItems;
     }
@@ -101,7 +105,7 @@ public class GUIOptions {
             page = 1;
             GUI.playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(page, GUI.playerInfo.get(player.getUniqueId()).getData()));
         }
-        String name = addPage ? this.name + " " + formatNumber(page) : this.name;
+        String name = addPage ? this.name + " " + page : this.name;
         Inventory inventory = Bukkit.createInventory(player, size, name);
         ItemStack[] contents = inventory.getContents();
         // set up regular items
@@ -140,8 +144,8 @@ public class GUIOptions {
             List<String> lore = new ArrayList<>(headLore);
 
             try {
-                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber((int) (parseCurrency(finalAmount) * (bountyTax + 1))) + currencySuffix))), p));
-                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber((int) (parseCurrency(finalAmount) * (bountyTax + 1))) + currencySuffix))), p));
+                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber((parseCurrency(finalAmount) * (bountyTax + 1))) + currencySuffix))), p));
+                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber((parseCurrency(finalAmount) * (bountyTax + 1))) + currencySuffix))), p));
             } catch (IllegalArgumentException e){
                 Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             }
@@ -168,15 +172,15 @@ public class GUIOptions {
         
     }
 
-    public static int parseCurrency(String amount){
+    public static double parseCurrency(String amount){
         amount = ChatColor.stripColor(amount);
-        int a = 0;
+        double a = 0;
         try {
-            a = Integer.parseInt(amount);
+            a = Double.parseDouble(amount);
             return a;
         } catch (NumberFormatException ignored){}
         try {
-            a = Integer.parseInt(amount.substring(ChatColor.stripColor(currencyPrefix).length(), amount.length() - ChatColor.stripColor(currencySuffix).length()));
+            a = Double.parseDouble(amount.substring(ChatColor.stripColor(currencyPrefix).length(), amount.length() - ChatColor.stripColor(currencySuffix).length()));
         } catch (NumberFormatException | IndexOutOfBoundsException e){
             Bukkit.getLogger().warning("Unable to parse a currency string! This is probably because of an incompatible usage of {amount_tax}");
 

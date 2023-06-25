@@ -47,7 +47,7 @@ public class Bounty implements Comparable<Bounty>{
         return uuid;
     }
 
-    public void addBounty(Player setter, int amount){
+    public void addBounty(Player setter, double amount){
         // first check if player already set a bounty
         if (Bukkit.getPlayer(UUID.fromString(uuid)) != null) {
             for (int i = 0; i < setters.size(); i++) {

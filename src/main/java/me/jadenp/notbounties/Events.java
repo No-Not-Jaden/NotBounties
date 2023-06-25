@@ -292,15 +292,15 @@ public class Events implements Listener {
                                 String lastLine = item.getItemMeta().getLore().get(item.getItemMeta().getLore().size() - 1);
                                 if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
                                     String reward = ChatColor.stripColor(lastLine).substring(1);
-                                    int amount;
+                                    double amount;
                                     try {
-                                        amount = Integer.parseInt(reward);
+                                        amount = Double.parseDouble(reward);
                                     } catch (NumberFormatException ignored){
                                         player.sendMessage(ChatColor.RED + "Error redeeming reward");
                                         return;
                                     }
                                     if (!usingPapi){
-                                        nb.addItem(player, Material.valueOf(currency), amount);
+                                        nb.addItem(player, Material.valueOf(currency), (long) amount);
                                     }
                                     nb.doAddCommands(player, amount);
                                     player.getInventory().remove(item);
@@ -443,7 +443,7 @@ public class Events implements Listener {
             Bounty bounty = nb.getBounty(event.getPlayer());
             assert bounty != null;
             bounty.setDisplayName(event.getPlayer().getName());
-            int addedAmount = 0;
+            double addedAmount = 0;
             for (Setter setter : bounty.getSetters()){
                 if (!setter.isNotified()){
                     event.getPlayer().sendMessage(parse(speakings.get(0) + speakings.get(12), setter.getName(), setter.getAmount(), event.getPlayer()));

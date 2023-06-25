@@ -160,10 +160,14 @@ public enum Leaderboard {
         for (Map.Entry<String, Double> entry : map.entrySet()){
             if (amount == 0)
                 break;
-            amount--;
-            OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
-            if (player.getName() != null && !hiddenNames.contains(player.getName()))
-                top.put(entry.getKey(), entry.getValue());
+            if (skip == 0) {
+                amount--;
+                OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
+                if (player.getName() != null && !hiddenNames.contains(player.getName()))
+                    top.put(entry.getKey(), entry.getValue());
+            } else {
+                skip--;
+            }
         }
         return top;
     }
@@ -201,7 +205,7 @@ public enum Leaderboard {
 
 
     private static String parseStats(String text, double amount, boolean useCurrency, OfflinePlayer player){
-        text = useCurrency ? text.replaceAll("\\{amount}", currencyPrefix + amount + currencySuffix) : text.replaceAll("\\{amount}", amount + "");
+        text = useCurrency ? text.replaceAll("\\{amount}", currencyPrefix + formatNumber(amount) + currencySuffix) : text.replaceAll("\\{amount}", formatNumber(amount));
 
         return parse(text, player);
     }

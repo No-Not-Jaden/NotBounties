@@ -693,7 +693,7 @@ public class ConfigOptions {
             str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
         }
         while (str.contains("{bounty}")) {
-            str = str.replace("{bounty}", bounty + "");
+            str = str.replace("{bounty}", formatNumber(bounty) + "");
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -805,7 +805,7 @@ public class ConfigOptions {
      * @return formatted number
      */
     public static String formatNumber(double number) {
-        String value = String.valueOf(number);
+        String value = String.format("%f", number);
         if (numberFormatting == 1) {
             // thousands
             value = addThousands(value);
@@ -813,6 +813,9 @@ public class ConfigOptions {
             // divisions
             value = setDivision(value);
         }
+        // remove any unnecessary 0s
+        while (value.contains(".") && (value.charAt(value.length()-1) == '0' || value.charAt(value.length()-1) == '.'))
+            value = value.substring(0, value.length()-1);
         return value;
     }
 

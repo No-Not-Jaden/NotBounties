@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.gui.GUI;
+import me.jadenp.notbounties.gui.GUIOptions;
 import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
 import net.md_5.bungee.api.ChatMessageType;
@@ -30,7 +31,9 @@ import java.util.*;
 import static me.jadenp.notbounties.ConfigOptions.*;
 
 /**
- * change some longs to doubles
+ * changed data types to store bigger numbers and use decimals for currency
+ * /bounty list title is now fixed
+ * disable broadcast not work with sql
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -171,7 +174,7 @@ public final class NotBounties extends JavaPlugin {
                     List<Setter> expiredSetters = new ArrayList<>();
                     int l = 0;
                     while (configuration.getString("bounties." + i + "." + l + ".uuid") != null) {
-                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), configuration.getString("bounties." + i + "." + l + ".uuid"), configuration.getInt("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"));
+                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), configuration.getString("bounties." + i + "." + l + ".uuid"), configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"));
                         if (bountyExpire > 0) {
                             if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
                                 expiredSetters.add(setter);
@@ -192,7 +195,7 @@ public final class NotBounties extends JavaPlugin {
                     i++;
                 }
 
-                // go through player logs
+                // go through player logs - old version
                 i = 0;
                 while (configuration.isSet("data." + i + ".uuid")) {
                     String uuid = configuration.getString("data." + i + ".uuid");
@@ -223,6 +226,28 @@ public final class NotBounties extends JavaPlugin {
                     }
                     i++;
                 }
+                // end old version ^^^
+                // new version vvv
+                if (configuration.isConfigurationSection("data"))
+                    for (String uuid : Objects.requireNonNull(configuration.getConfigurationSection("data")).getKeys(false)){
+                        // old data protection
+                        if (uuid.length() < 10)
+                            continue;
+                        if (configuration.isSet("data." + uuid + ".kills"))
+                            killBounties.put(uuid,(double) configuration.getLong("data." + uuid + ".claimed"));
+                        if (configuration.isSet("data." + uuid + ".set"))
+                            setBounties.put(uuid, (double) configuration.getLong("data." + uuid + ".set"));
+                        if (configuration.isSet("data." + uuid + ".deaths"))
+                            deathBounties.put(uuid, (double) configuration.getLong("data." + uuid + ".deaths"));
+                        if (configuration.isSet("data." + uuid + ".all-time"))
+                            allTimeBounties.put(uuid, configuration.getDouble("data." + uuid + ".all-time"));
+                        if (configuration.isSet("data." + uuid + ".all-claimed"))
+                            allClaimedBounties.put(uuid, configuration.getDouble("data." + uuid + ".all-claimed"));
+                        if (configuration.isSet("data." + uuid + ".immunity"))
+                            immunitySpent.put(uuid, configuration.getDouble("data." + uuid + ".immunity"));
+                    }
+                if (configuration.isSet("disable-broadcast"))
+                    disableBroadcast.addAll(configuration.getStringList("disable-broadcast"));
 
                 i = 0;
                 while (configuration.getString("head-rewards." + i + ".setter") != null) {
@@ -509,29 +534,38 @@ public final class NotBounties extends JavaPlugin {
                 }
                 i++;
             }
-            i = 0;
             for (Map.Entry<String, Double> mapElement : killBounties.entrySet()) {
-                if (mapElement.getValue() + setBounties.get(mapElement.getKey()) + deathBounties.get(mapElement.getKey()) + allTimeBounties.get(mapElement.getKey()) + allClaimedBounties.get(mapElement.getKey()) + immunitySpent.get(mapElement.getKey()) == 0 && !disableBroadcast.contains(mapElement.getKey()))
-                    continue;
-                configuration.set("data." + i + ".uuid", mapElement.getKey());
-                if (mapElement.getValue() != 0.0)
-                    configuration.set("data." + i + ".claimed", mapElement.getValue().longValue());
-                if (setBounties.get(mapElement.getKey()) != 0.0)
-                    configuration.set("data." + i + ".set", setBounties.get(mapElement.getKey()).longValue());
-                if (deathBounties.get(mapElement.getKey()) != 0.0)
-                    configuration.set("data." + i + ".received", deathBounties.get(mapElement.getKey()).longValue());
-                if (allTimeBounties.get(mapElement.getKey()) != 0.0)
-                    configuration.set("data." + i + ".all-time", allTimeBounties.get(mapElement.getKey()));
-                if (allClaimedBounties.get(mapElement.getKey()) != 0.0)
-                    configuration.set("data." + i + ".all-claimed", allClaimedBounties.get(mapElement.getKey()));
-                if (immunitySpent.get(mapElement.getKey()) != 0.0)
-                    configuration.set("data." + i + ".immunity", immunitySpent.get(mapElement.getKey()));
-                if (disableBroadcast.contains(mapElement.getKey())) {
-                    configuration.set("data." + i + ".broadcast", false);
+                if (mapElement.getValue() != 0.0){
+                    configuration.set("data." + mapElement.getKey() + ".kills", mapElement.getValue().longValue());
                 }
-                i++;
+            }
+            for (Map.Entry<String, Double> mapElement : setBounties.entrySet()) {
+                if (mapElement.getValue() != 0.0){
+                    configuration.set("data." + mapElement.getKey() + ".set", mapElement.getValue().longValue());
+                }
+            }
+            for (Map.Entry<String, Double> mapElement : deathBounties.entrySet()) {
+                if (mapElement.getValue() != 0.0){
+                    configuration.set("data." + mapElement.getKey() + ".deaths", mapElement.getValue().longValue());
+                }
+            }
+            for (Map.Entry<String, Double> mapElement : allTimeBounties.entrySet()) {
+                if (mapElement.getValue() != 0.0){
+                    configuration.set("data." + mapElement.getKey() + ".all-time", mapElement.getValue());
+                }
+            }
+            for (Map.Entry<String, Double> mapElement : allClaimedBounties.entrySet()) {
+                if (mapElement.getValue() != 0.0){
+                    configuration.set("data." + mapElement.getKey() + ".all-claimed", mapElement.getValue());
+                }
+            }
+            for (Map.Entry<String, Double> mapElement : immunitySpent.entrySet()) {
+                if (mapElement.getValue() != 0.0){
+                    configuration.set("data." + mapElement.getKey() + ".immunity", mapElement.getValue());
+                }
             }
         }
+        configuration.set("disable-broadcast", disableBroadcast);
         i = 0;
         for (Map.Entry<String, List<String>> mapElement : headRewards.entrySet()) {
             configuration.set("head-rewards." + i + ".setter", mapElement.getKey());
@@ -653,7 +687,14 @@ public final class NotBounties extends JavaPlugin {
     int length = 10;
 
     public void listBounties(CommandSender sender, int page) {
-        sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + speakings.get(35) + " " + (page + 1) + " " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
+        GUIOptions guiOptions = GUI.getGUI("bounty-gui");
+        String title = "";
+        if (guiOptions != null){
+            title = guiOptions.getName();
+            if (guiOptions.isAddPage())
+                title+= " " + (page + 1);
+        }
+        sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + title + " " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
 
         List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties(Objects.requireNonNull(GUI.getGUI("bounty-gui")).getSortType());
         for (int i = page * length; i < (page * length) + length; i++) {
@@ -670,7 +711,12 @@ public final class NotBounties extends JavaPlugin {
         TextComponent leftArrow = new TextComponent(ChatColor.DARK_GRAY + "" + ChatColor.BOLD + "⋘⋘⋘");
         leftArrow.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties list " + page));
         leftArrow.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(net.md_5.bungee.api.ChatColor.of(new Color(232, 26, 225)) + "Last Page")));
-        TextComponent space = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
+        TextComponent space = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                        ");
+        StringBuilder builder = new StringBuilder(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH);
+        for (int i = 0; i < title.length(); i++) {
+            builder.append(" ");
+        }
+        TextComponent titleFill = new TextComponent(builder.toString());
         TextComponent replacement = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "    ");
 
         TextComponent start = new TextComponent("");
@@ -680,6 +726,7 @@ public final class NotBounties extends JavaPlugin {
             start.addExtra(replacement);
         }
         start.addExtra(space);
+        start.addExtra(titleFill);
         //getLogger().info("size: " + bountyList.size() + " page: " + page + " calc: " + ((page * length) + length));
         if (sortedList.size() > (page * length) + length) {
             start.addExtra(rightArrow);
@@ -782,7 +829,7 @@ public final class NotBounties extends JavaPlugin {
         }
     }
 
-    public void addBounty(Player setter, Player receiver, int amount) {
+    public void addBounty(Player setter, Player receiver, double amount) {
         // add to all time bounties
 
         Bounty bounty = null;
@@ -840,7 +887,7 @@ public final class NotBounties extends JavaPlugin {
         }
     }
 
-    public void addBounty(Player receiver, int amount) {
+    public void addBounty(Player receiver, double amount) {
         // add to all time bounties
 
         Bounty bounty = null;
@@ -896,7 +943,7 @@ public final class NotBounties extends JavaPlugin {
 
     }
 
-    public void addBounty(Player setter, OfflinePlayer receiver, int amount) {
+    public void addBounty(Player setter, OfflinePlayer receiver, double amount) {
         // add to all time bounties
 
         Bounty bounty = null;
@@ -939,7 +986,7 @@ public final class NotBounties extends JavaPlugin {
         }
     }
 
-    public void addBounty(OfflinePlayer receiver, int amount) {
+    public void addBounty(OfflinePlayer receiver, double amount) {
         // add to all time bounties
 
         Bounty bounty = null;
