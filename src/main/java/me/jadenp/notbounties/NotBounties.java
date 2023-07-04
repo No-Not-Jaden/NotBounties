@@ -407,7 +407,7 @@ public final class NotBounties extends JavaPlugin {
                     for (Player player : displayParticle) {
                         if (player.isOnline()) {
                             if (bBountyParticle) {
-                                player.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
+                                player.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, player.getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
                             }
                             // other repeating perks would go here vvv
                         }

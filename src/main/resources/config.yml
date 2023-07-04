@@ -63,8 +63,8 @@ immunity:
     enabled: false
     cost: 128
   # immunity will be stronger the more money you spend - only if permanent immunity is disabled
-  # if you buy immunity for 2500, then it protects you from bounties set for 2000, 2499, 1500, etc. (with ratio set to 1)
-  # bounties can be set on you for 3000 though
+  # if you buy immunity for 2500, then it protects you from bounties set for 2500, 2499, 1500, etc. (with ratio set to 1)
+  # bounties can be set on you for 2501 and higher
   scaling-immunity:
     # money spent -> bounty protection
     # ex: if ratio is 0.5, buying immunity for 1000 will protect you from bounties 500 or less

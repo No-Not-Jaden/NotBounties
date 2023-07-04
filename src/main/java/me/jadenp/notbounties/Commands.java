@@ -317,9 +317,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                     } else {
                                         if (args.length > 1) {
-                                            int amount;
+                                            double amount;
                                             try {
-                                                amount = Integer.parseInt(args[1]);
+                                                amount = Double.parseDouble(args[1]);
                                             } catch (NumberFormatException ignored) {
                                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(1), (Player) sender));
                                                 return true;
@@ -328,8 +328,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 // try to find bounty and buy it
                                                 nb.repeatBuyCommand2.remove(((Player) sender).getUniqueId().toString());
                                                 double balance = getBalance((Player) sender);
-                                                if (balance >= (int) (amount * scalingRatio)) {
-                                                    nb.doRemoveCommands((Player) sender, (int) (amount * scalingRatio));
+                                                if (balance >= (amount * scalingRatio)) {
+                                                    nb.doRemoveCommands((Player) sender, (amount * scalingRatio));
                                                     // successfully bought scaling immunity - amount x scalingRatio
                                                     if (nb.SQL.isConnected()) {
                                                         nb.data.addData(((Player) sender).getUniqueId().toString(), 0, 0, 0, 0, amount, 0);
@@ -339,7 +339,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                         sender.sendMessage(parse(speakings.get(0) + speakings.get(21), Leaderboard.IMMUNITY.getStat(((Player) sender).getUniqueId()), (Player) sender));
                                                     }
                                                 } else {
-                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (amount * scalingRatio), (Player) sender));
+                                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (amount * scalingRatio), (Player) sender));
                                                 }
                                             } else {
                                                 // ask to repeat
@@ -375,8 +375,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         // try to find bounty and buy it
                                         nb.repeatBuyCommand.remove(((Player) sender).getUniqueId().toString());
                                         double balance = getBalance((Player) sender);
-                                        if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
-                                            nb.doRemoveCommands((Player) sender, (int) (bounty.getTotalBounty() * buyBackInterest));
+                                        if (balance >=  (bounty.getTotalBounty() * buyBackInterest)) {
+                                            nb.doRemoveCommands((Player) sender, (bounty.getTotalBounty() * buyBackInterest));
                                             if (nb.SQL.isConnected()) {
                                                 nb.data.removeBounty(bounty.getUUID());
                                             } else {
@@ -384,14 +384,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                             sender.sendMessage(parse(speakings.get(0) + speakings.get(14), sender.getName(), (Player) sender));
                                         } else {
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) sender));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(6),  (bounty.getTotalBounty() * buyBackInterest), (Player) sender));
                                         }
 
 
                                     } else {
                                         // ask to repeat
                                         nb.repeatBuyCommand.put(((Player) sender).getUniqueId().toString(), System.currentTimeMillis());
-                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(17), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) sender));
+                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(17), (bounty.getTotalBounty() * buyBackInterest), (Player) sender));
                                     }
                                 } else {
                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(8), sender.getName(), (Player) sender));
@@ -581,9 +581,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                             if (toEdit != null) {
                                 if (args.length == 3) {
-                                    int amount;
+                                    double amount;
                                     try {
-                                        amount = Integer.parseInt(args[2]);
+                                        amount = Double.parseDouble(args[2]);
                                     } catch (NumberFormatException ignored) {
                                         // unknown number - 2?
                                         if (sender instanceof Player) {
@@ -615,9 +615,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                         }
                                         if (actualEdit != null) {
-                                            int amount;
+                                            double amount;
                                             try {
-                                                amount = Integer.parseInt(args[4]);
+                                                amount = Double.parseDouble(args[4]);
                                             } catch (NumberFormatException ignored) {
                                                 // unknown number - 2?
                                                 if (sender instanceof Player) {
