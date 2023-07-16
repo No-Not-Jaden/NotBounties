@@ -199,8 +199,16 @@ public class ConfigOptions {
 
         currencyPrefix = color(Objects.requireNonNull(bounties.getConfig().getString("currency.prefix")));
         currencySuffix = color(Objects.requireNonNull(bounties.getConfig().getString("currency.suffix")));
-        addCommands = bounties.getConfig().getStringList("currency.add-commands");
-        removeCommands = bounties.getConfig().getStringList("currency.remove-commands");
+        if (bounties.getConfig().isList("currency.add-commands")){
+            addCommands = bounties.getConfig().getStringList("currency.add-commands");
+        } else {
+            addCommands = Collections.singletonList(bounties.getConfig().getString("currency.add-commands"));
+        }
+        if (bounties.getConfig().isList("currency.remove-commands")){
+            removeCommands = bounties.getConfig().getStringList("currency.remove-commands");
+        } else {
+            removeCommands = Collections.singletonList(bounties.getConfig().getString("currency.remove-commands"));
+        }
         bountyExpire = bounties.getConfig().getInt("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");

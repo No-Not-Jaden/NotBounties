@@ -318,8 +318,11 @@ public final class NotBounties extends JavaPlugin {
                                                         String actionBar;
                                                         Bounty bounty = getBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))));
                                                         assert bounty != null;
-                                                        Player p = Bukkit.getPlayer(UUID.fromString(bounty.getUUID()));
-                                                        if (p != null) {
+                                                        OfflinePlayer p1 = Bukkit.getOfflinePlayer(UUID.fromString(bounty.getUUID()));
+
+                                                        if (p1.isOnline()) {
+                                                            Player p = p1.getPlayer();
+                                                            assert p != null;
                                                             if (compassMeta.getLodestone() == null) {
                                                                 compassMeta.setLodestone(p.getLocation().getBlock().getLocation());
                                                                 compassMeta.setLodestoneTracked(false);
@@ -607,9 +610,9 @@ public final class NotBounties extends JavaPlugin {
         }
         for (Bounty bounty : topBounties) {
             if (bounty.getTotalBounty() >= bBountyThreshold) {
-                Player player = Bukkit.getPlayer(bounty.getUUID());
-                if (player != null) {
-                    displayParticle.add(player);
+                OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(bounty.getUUID()));
+                if (player.isOnline()) {
+                    displayParticle.add(player.getPlayer());
                 }
             } else {
                 break;
