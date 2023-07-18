@@ -30,7 +30,7 @@ number-formatting:
   # 1 - thousands
   # 2 - divisions
   type: 1
-  # character every 3 digits ex: ',' = 10,000 | '.' = 10.000 | '' = 10000
+  # character every 3 digits ex: ',' = 10,000 | '*' = 10*000 | '' = 10000
   thousands: ','
   # makes the number smaller and adds a suffix ex: 1000 = 1K | 1234 = 1.23K | 5467900 = 5.47M
   divisions:

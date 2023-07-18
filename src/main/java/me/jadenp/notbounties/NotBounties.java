@@ -140,6 +140,8 @@ public final class NotBounties extends JavaPlugin {
         Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(new Commands(this));
         Bukkit.getServer().getPluginManager().registerEvents(new Events(this), this);
         Bukkit.getServer().getPluginManager().registerEvents(new GUI(), this);
+        CurrencySetup currencySetup = new CurrencySetup();
+        Bukkit.getServer().getPluginManager().registerEvents(currencySetup, this);
 
         this.saveDefaultConfig();
 

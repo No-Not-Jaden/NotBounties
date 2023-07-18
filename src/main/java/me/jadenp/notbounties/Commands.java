@@ -82,6 +82,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
 
                     sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
+                } else if (args[0].equalsIgnoreCase("currency")){
+                    if (!sender.hasPermission("notbounties.admin")){
+                        sender.sendMessage(parse(speakings.get(0) + speakings.get(5), (Player) sender));
+                        return true;
+                    }
+                    CurrencySetup.onCommand(sender, args);
                 } else if (args[0].equalsIgnoreCase("set")) {
                     if (sender.hasPermission("notbounties.set")) {
                         if (sender instanceof Player)
@@ -789,7 +795,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(23), minBounty, (Player) sender));
                                 return true;
                             }
-
+                            double total = amount + amount * bountyTax;
+                            if (!usingPapi)
+                                total = Math.round(total);
                             // check if it is a player
                             Player p = Bukkit.getPlayer(args[0]);
                             if (p != null) {
@@ -825,12 +833,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(p.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(p.getUniqueId());
                                     if (!p.hasPermission("notbounties.immune") && ((amount > immunitySpent && !permanentImmunity) || (permanentImmunity && immunitySpent < permanentCost))) {
                                         double balance = getBalance((Player) sender);
-                                        if (balance >= amount + (amount * bountyTax)) {
-                                            nb.doRemoveCommands((Player) sender,  amount + (amount * bountyTax));
+                                        if (balance >= total) {
+                                            nb.doRemoveCommands((Player) sender,  total);
                                             nb.addBounty((Player) sender, p, amount);
                                             reopenBountiesGUI();
                                         } else {
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(6), amount + (amount * bountyTax), (Player) sender));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(6), total, (Player) sender));
                                         }
                                     } else {
                                         // has immunity
@@ -853,12 +861,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(player.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(player.getUniqueId());
                                     if (!nb.immunePerms.contains(player.getUniqueId().toString()) && ((amount > immunitySpent && !permanentImmunity) || (permanentImmunity && immunitySpent < permanentCost))) {
                                         double balance = getBalance((Player) sender);
-                                        if (balance >= amount + (amount * bountyTax)) {
-                                            nb.doRemoveCommands((Player) sender, amount + (amount * bountyTax));
+                                        if (balance >= total) {
+                                            nb.doRemoveCommands((Player) sender, total);
                                             nb.addBounty((Player) sender, player, amount);
                                             reopenBountiesGUI();
                                         } else {
-                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(6), amount + (amount * bountyTax), (Player) sender));
+                                            sender.sendMessage(parse(speakings.get(0) + speakings.get(6), total, (Player) sender));
                                         }
                                     } else {
                                         // has immunity
@@ -917,14 +925,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("remove");
                     tab.add("edit");
                     tab.add("reload");
+                    tab.add("currency");
                 }
                 if (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker")))
                     if (tracker)
                         tab.add("tracker");
-                if (buyBack) {
-                    if (sender.hasPermission("notbounties.buyown")) {
-                        tab.add("buy");
-                    }
+                if (sender.hasPermission("notbounties.buyown") && buyBack) {
+                    tab.add("buy");
                 }
                 if (buyImmunity || sender.hasPermission("notbounties.admin")) {
                     if (sender.hasPermission("notbounties.buyimmunity")) {

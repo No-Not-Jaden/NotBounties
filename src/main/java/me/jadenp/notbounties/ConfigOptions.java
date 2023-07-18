@@ -830,6 +830,10 @@ public class ConfigOptions {
     public static String formatNumber(String number){
         if (number.length() == 0)
             return "";
+        if (number.startsWith(currencyPrefix) && currencyPrefix.length() > 0)
+            return currencyPrefix + formatNumber(number.substring(currencyPrefix.length()));
+        if (number.endsWith(currencySuffix) && currencySuffix.length() > 0)
+            return formatNumber(number.substring(0, number.length() - currencySuffix.length())) + currencySuffix;
         if (isNumber(number))
             return formatNumber(Double.parseDouble(number));
         if (!isNumber(number.substring(0,1))){

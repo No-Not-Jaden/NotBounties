@@ -142,10 +142,13 @@ public class GUIOptions {
             String[] finalReplacements = replacements;
             String playerName = p.getName() != null ? p.getName() : "<?>";
             List<String> lore = new ArrayList<>(headLore);
-
+            double total = parseCurrency(finalAmount) * (bountyTax + 1);
+            if (!usingPapi)
+                total = Math.round(total);
             try {
-                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber((parseCurrency(finalAmount) * (bountyTax + 1))) + currencySuffix))), p));
-                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber((parseCurrency(finalAmount) * (bountyTax + 1))) + currencySuffix))), p));
+                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber(total) + currencySuffix))), p));
+                double finalTotal = total;
+                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber(finalTotal) + currencySuffix))), p));
             } catch (IllegalArgumentException e){
                 Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             }
