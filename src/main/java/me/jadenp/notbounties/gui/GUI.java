@@ -65,6 +65,10 @@ public class GUI implements Listener {
                 for (Map.Entry<String, String> entry : NotBounties.getInstance().loggedPlayers.entrySet())
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getValue(), currencyPrefix + "0" + currencySuffix);
+                if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
+                    // remove offline players
+                    values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(UUID.fromString(e.getKey())).isOnline());
+                }
                 break;
             case "select-price":
                 String uuid = data.length > 0 && data[0] instanceof String ? (String) data[0] : player.getUniqueId().toString();
@@ -259,9 +263,14 @@ public class GUI implements Listener {
                 } else if (command.startsWith("[gui]")){
                     int amount = 1;
                     String guiName = command.substring(6);
-                    if (command.substring(6).contains(" ")) {
+                    if (guiName.contains(" ")) {
                         try {
-                            amount = Integer.parseInt(command.substring(6 + command.substring(6).indexOf(" ")));
+                            String number = guiName.substring(guiName.indexOf(" ") + 1);
+                            if (number.contains(" ")){
+                                amount = Integer.parseInt(number.substring(0, number.indexOf(" ")));
+                            } else {
+                                amount = Integer.parseInt(number);
+                            }
                             guiName = guiName.substring(0, guiName.indexOf(" "));
                         } catch (IndexOutOfBoundsException | NumberFormatException ignored) {
                         }
@@ -272,6 +281,15 @@ public class GUI implements Listener {
                             l = Leaderboard.valueOf(command.substring(command.lastIndexOf(" ") + 1).toUpperCase());
                         } catch (IllegalArgumentException ignored){}
                         openGUI((Player) event.getWhoClicked(), guiName, amount, l);
+                    } else if (guiName.equalsIgnoreCase("set-bounty")){
+                        // [gui] set-bounty 1 offline
+                        if (command.length() > 17 && command.substring(17).contains(" ")){
+                            String afterName = command.substring(17);
+                            String lastArg = afterName.substring(afterName.indexOf(" ") + 1);
+                            openGUI((Player) event.getWhoClicked(), guiName, amount, lastArg);
+                        } else {
+                            openGUI((Player) event.getWhoClicked(), guiName, amount);
+                        }
                     } else {
                         openGUI((Player) event.getWhoClicked(), guiName, amount);
                     }

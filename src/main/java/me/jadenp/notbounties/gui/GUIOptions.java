@@ -177,19 +177,22 @@ public class GUIOptions {
 
     public static double parseCurrency(String amount){
         amount = ChatColor.stripColor(amount);
-        double a = 0;
+        double a;
         try {
             a = Double.parseDouble(amount);
             return a;
         } catch (NumberFormatException ignored){}
         try {
             a = Double.parseDouble(amount.substring(ChatColor.stripColor(currencyPrefix).length(), amount.length() - ChatColor.stripColor(currencySuffix).length()));
+            return a;
         } catch (NumberFormatException | IndexOutOfBoundsException e){
-            Bukkit.getLogger().warning("Unable to parse a currency string! This is probably because of an incompatible usage of {amount_tax}");
+            //Bukkit.getLogger().warning("Unable to parse a currency string! This is probably because of an incompatible usage of {amount_tax}");
 
         }
-        return a;
+        return findFirstNumber(amount);
     }
+
+
 
     public int getSortType() {
         return sortType;

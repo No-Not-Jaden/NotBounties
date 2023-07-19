@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
 
@@ -205,7 +206,7 @@ public enum Leaderboard {
 
 
     private static String parseStats(String text, double amount, boolean useCurrency, OfflinePlayer player){
-        text = useCurrency ? text.replaceAll("\\{amount}", currencyPrefix + formatNumber(amount) + currencySuffix) : text.replaceAll("\\{amount}", formatNumber(amount));
+        text = useCurrency ? text.replaceAll("\\{amount}", Matcher.quoteReplacement(currencyPrefix + formatNumber(amount) + currencySuffix)) : text.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(amount)));
 
         return parse(text, player);
     }
@@ -245,9 +246,9 @@ public enum Leaderboard {
         text = text.replaceAll("\\{rank}", rank + "");
         text = text.replaceAll("\\{player}", playerName);
         if (useCurrency)
-            text = text.replaceAll("\\{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
+            text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(currencyPrefix + formatNumber(amount) + currencySuffix));
         else
-            text = text.replaceAll("\\{amount}", formatNumber(amount));
+            text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(amount)));
 
         return parse(text, player);
     }

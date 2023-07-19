@@ -701,7 +701,7 @@ public class ConfigOptions {
             str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
         }
         while (str.contains("{bounty}")) {
-            str = str.replace("{bounty}", formatNumber(bounty) + "");
+            str = str.replace("{bounty}", currencyPrefix + formatNumber(bounty) + currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -842,6 +842,16 @@ public class ConfigOptions {
         }
         return formatNumber(number.substring(0, number.length()-1)) + number.charAt(number.length()-1);
 
+    }
+
+    public static double findFirstNumber(String str){
+        if (str.length() == 0)
+            return 0;
+        if (isNumber(str))
+            return Double.parseDouble(str);
+        if (isNumber(str.substring(0,1)))
+            return findFirstNumber(str.substring(0, str.length()-1));
+        return findFirstNumber(str.substring(1));
     }
 
     public static boolean isNumber(String str){

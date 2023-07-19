@@ -90,8 +90,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                     CurrencySetup.onCommand(sender, args);
                 } else if (args[0].equalsIgnoreCase("set")) {
                     if (sender.hasPermission("notbounties.set")) {
-                        if (sender instanceof Player)
-                            GUI.openGUI((Player) sender, "set-bounty", 1);
+                        if (sender instanceof Player) {
+                            if (args.length > 1)
+                                GUI.openGUI((Player) sender, "set-bounty", 1, args[1]);
+                            else
+                                GUI.openGUI((Player) sender, "set-bounty", 1);
+                        } else {
+                            sender.sendMessage(speakings.get(0) + ChatColor.RED + "Only players can use this command.");
+                        }
                     } else {
                         // no permission
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(5), (Player) sender));
@@ -966,6 +972,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
+                } else if (args[0].equalsIgnoreCase("set") && sender.hasPermission("notbounties.set")){
+                    tab.add("offline");
                 }
             } else if (args.length == 3) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission("notbounties.admin")) {
