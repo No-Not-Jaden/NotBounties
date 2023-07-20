@@ -9,6 +9,8 @@ currency:
   # {player} & {amount} or use a placeholder
   remove-commands: [] # ['eco take {player} {amount}']
   add-commands: [] # ['eco give {player} {amount}']
+  # How many decimals you want in the messages containing currency (only if there already are decimals in the number)
+  decimals: 2
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
 # minimum amount of currency that will broadcast bounties
@@ -30,12 +32,14 @@ number-formatting:
   # 1 - thousands
   # 2 - divisions
   type: 1
+  # symbol used for the decimal
+  decimal-symbol: '.'
   # character every 3 digits ex: ',' = 10,000 | '*' = 10*000 | '' = 10000
   thousands: ','
   # makes the number smaller and adds a suffix ex: 1000 = 1K | 1234 = 1.23K | 5467900 = 5.47M
   divisions:
     # how many decimals to include after a division
-    decimals: 1
+    decimals: 2
     # the division and suffix
     1000: K
     1000000: M

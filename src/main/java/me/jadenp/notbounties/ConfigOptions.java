@@ -18,6 +18,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,9 +72,13 @@ public class ConfigOptions {
     public static boolean updateNotification;
     public static Map<String, CustomItem> customItems = new HashMap<>();
     public static int numberFormatting;
-    public static String nfThousands;
+    public static char nfThousands;
     public static int nfDecimals;
     public static LinkedHashMap<Long, String> nfDivisions = new LinkedHashMap<>();
+    public static char decimalSymbol;
+    public static DecimalFormat decimalFormat;
+    public static DecimalFormat divisionFormat;
+    public static int decimals;
 
     public static void reloadOptions() throws IOException {
         NotBounties bounties = NotBounties.getInstance();
@@ -89,6 +95,8 @@ public class ConfigOptions {
             bounties.getConfig().set("currency.prefix", "");
             bounties.getConfig().set("currency.suffix", "");
         }
+        if (!bounties.getConfig().isSet("currency.decimals"))
+            bounties.getConfig().set("currency.decimals", 2);
         if (!bounties.getConfig().isSet("currency.prefix"))
             bounties.getConfig().set("currency.prefix", "&f");
         if (!bounties.getConfig().isSet("currency.suffix"))
@@ -191,6 +199,8 @@ public class ConfigOptions {
             bounties.getConfig().set("number-formatting.divisions.decimals", 2);
             bounties.getConfig().set("number-formatting.divisions.1000", "K");
         }
+        if (!bounties.getConfig().isSet("number-formatting.decimal-symbol"))
+            bounties.getConfig().set("number-formatting.decimal-symbol", ".");
 
         bounties.saveConfig();
 
@@ -242,8 +252,45 @@ public class ConfigOptions {
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
         updateNotification = bounties.getConfig().getBoolean("update-notification");
         numberFormatting = bounties.getConfig().getInt("number-formatting.type");
-        nfThousands = bounties.getConfig().getString("number-formatting.thousands");
         nfDecimals = bounties.getConfig().getInt("number-formatting.divisions.decimals");
+        decimals = bounties.getConfig().getInt("currency.decimals");
+        String thousandsSymbol = bounties.getConfig().getString("number-formatting.thousands");
+        assert thousandsSymbol != null;
+        if (thousandsSymbol.isEmpty())
+            thousandsSymbol = " ";
+        nfThousands = thousandsSymbol.charAt(0);
+        String decimalSymbolString = bounties.getConfig().getString("number-formatting.decimal-symbol");
+        assert decimalSymbolString != null;
+        if (decimalSymbolString.isEmpty())
+            decimalSymbolString = " ";
+        decimalSymbol = decimalSymbolString.charAt(0);
+
+        Locale locale = new Locale("en", "US");
+
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(locale);
+        symbols.setDecimalSeparator(decimalSymbol);
+        symbols.setGroupingSeparator(nfThousands);
+
+        StringBuilder pattern = new StringBuilder("#");
+        if (numberFormatting == 1)
+            pattern.append(',');
+        pattern.append("###");
+        pattern.append('.');
+        if (decimals > 0) {
+            for (int i = 0; i < decimals; i++) {
+                pattern.append("#");
+            }
+        }
+        decimalFormat = new DecimalFormat(pattern.toString(), symbols);
+
+        StringBuilder divisionPattern = new StringBuilder("#");
+        divisionPattern.append('.');
+        if (nfDecimals > 0) {
+            for (int i = 0; i < nfDecimals; i++) {
+                divisionPattern.append("#");
+            }
+        }
+        divisionFormat = new DecimalFormat(divisionPattern.toString(), symbols);
 
         nfDivisions.clear();
         Map<Long, String> preDivisions = new HashMap<>();
@@ -806,26 +853,6 @@ public class ConfigOptions {
         return amount;
     }
 
-    /**
-     * Format a number with number formatting options in the config
-     *
-     * @param number Number to be formatted
-     * @return formatted number
-     */
-    public static String formatNumber(double number) {
-        String value = String.format("%f", number);
-        if (numberFormatting == 1) {
-            // thousands
-            value = addThousands(value);
-        } else if (numberFormatting == 2) {
-            // divisions
-            value = setDivision(value);
-        }
-        // remove any unnecessary 0s
-        while (value.contains(".") && (value.charAt(value.length()-1) == '0' || value.charAt(value.length()-1) == '.'))
-            value = value.substring(0, value.length()-1);
-        return value;
-    }
 
     public static String formatNumber(String number){
         if (number.length() == 0)
@@ -862,38 +889,46 @@ public class ConfigOptions {
         }
         return true;
     }
-
-    public static String addThousands(String str) {
-        if (str.length() <= 3)
-            return str;
-        if (str.contains(".")) {
-            int endIndex = str.length() - (3 + str.substring(str.indexOf(".")).length());
-            if (endIndex <= 0)
-                return str;
-            return addThousands(str.substring(0, endIndex)) + nfThousands + str.substring(endIndex);
+    /**
+     * Format a number with number formatting options in the config
+     *
+     * @param number Number to be formatted
+     * @return formatted number
+     */
+    public static String formatNumber(Double number){
+        if (numberFormatting == 2){
+            // set divisions
+            return setDivision(number);
         }
-        return addThousands(str.substring(0, str.length() - 3)) + nfThousands + str.substring(str.length() - 3);
+        String strNum = decimalFormat.format(number);
+        if (decimals == 0)
+            if (strNum.contains(decimalSymbol + ""))
+                strNum = strNum.substring(0, strNum.indexOf(decimalSymbol));
+        return removeUnnecessaryZeros(strNum);
     }
 
-    public static String setDivision(String str) {
-        double amount;
-        try {
-            amount = Double.parseDouble(str);
-        } catch (NumberFormatException e) {
-            return str;
-        }
-        for (Map.Entry<Long, String> entry : nfDivisions.entrySet()) {
-            if (amount / entry.getKey() >= 1) {
-                String strCost = ((double) Math.round(amount / entry.getKey() * Math.pow(10, nfDecimals)) / Math.pow(10, nfDecimals)) + "";
+    public static String setDivision(Double number){
+        for (Map.Entry<Long, String> entry : nfDivisions.entrySet()){
+            if (number / entry.getKey() >= 1){
+                String strCost = divisionFormat.format((double) number / entry.getKey());
                 if (nfDecimals == 0) {
-                    if (strCost.contains("."))
-                        strCost = strCost.substring(0, strCost.indexOf("."));
+                    if (strCost.contains(decimalSymbol + ""))
+                        strCost = strCost.substring(0, strCost.indexOf(decimalSymbol));
                 }
-                return strCost + entry.getValue();
+                return removeUnnecessaryZeros(strCost) + entry.getValue();
             }
         }
-        return str;
+        return removeUnnecessaryZeros(decimalFormat.format(number));
     }
+
+    public static String removeUnnecessaryZeros(String value){
+        if (value.isEmpty())
+            return "";
+        while (value.contains(Character.toString(decimalSymbol)) && (value.charAt(value.length()-1) == '0' || value.charAt(value.length()-1) == decimalSymbol))
+            value = value.substring(0, value.length()-1);
+        return value;
+    }
+
 
     public static LinkedHashMap<Long, String> sortByValue(Map<Long, String> hm) {
         // Create a list from elements of HashMap

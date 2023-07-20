@@ -181,7 +181,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             throw new RuntimeException(e);
                         }
                         if (sender instanceof Player)
-                            sender.sendMessage(parse(speakings.get(0), (Player) sender) + ChatColor.GREEN + " Reloaded NotBounties version " + this.nb.getDescription().getVersion());
+                            sender.sendMessage(parse(speakings.get(0), (Player) sender) + ChatColor.GREEN + "Reloaded NotBounties version " + this.nb.getDescription().getVersion());
                         else
                             Bukkit.getLogger().info("[NotBounties] Reloaded NotBounties version " + this.nb.getDescription().getVersion());
                     } else {
