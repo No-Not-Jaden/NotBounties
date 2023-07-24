@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.gui;
 
 import me.jadenp.notbounties.ConfigOptions;
+import me.jadenp.notbounties.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -15,6 +16,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
+import static me.jadenp.notbounties.NumberFormatting.*;
 
 public class GUIOptions {
     private final List<Integer> playerSlots; // this size of this is how many player slots per page
@@ -137,6 +139,11 @@ public class GUIOptions {
             assert meta != null;
             final OfflinePlayer p = playerItems[i];
             meta.setOwningPlayer(p);
+            if (type.equals("bounty-gui")){
+                amount[i] = currencyPrefix + NumberFormatting.formatNumber(Double.parseDouble(amount[i])) + currencySuffix;
+            } else {
+                amount[i] = formatNumber(amount[i]);
+            }
             final String finalAmount = amount[i];
             final int rank = i + 1;
             String[] finalReplacements = replacements;
@@ -146,9 +153,9 @@ public class GUIOptions {
             if (!usingPapi)
                 total = Math.round(total);
             try {
-                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber(total) + currencySuffix))), p));
+                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), p));
                 double finalTotal = total;
-                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(finalAmount))).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(currencyPrefix + formatNumber(finalTotal) + currencySuffix))), p));
+                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(finalTotal) + NumberFormatting.currencySuffix))), p));
             } catch (IllegalArgumentException e){
                 Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             }
@@ -179,17 +186,17 @@ public class GUIOptions {
         amount = ChatColor.stripColor(amount);
         double a;
         try {
-            a = Double.parseDouble(amount);
+            a = tryParse(amount);
             return a;
         } catch (NumberFormatException ignored){}
         try {
-            a = Double.parseDouble(amount.substring(ChatColor.stripColor(currencyPrefix).length(), amount.length() - ChatColor.stripColor(currencySuffix).length()));
+            a = tryParse(amount.substring(ChatColor.stripColor(NumberFormatting.currencyPrefix).length(), amount.length() - ChatColor.stripColor(NumberFormatting.currencySuffix).length()));
             return a;
         } catch (NumberFormatException | IndexOutOfBoundsException e){
             //Bukkit.getLogger().warning("Unable to parse a currency string! This is probably because of an incompatible usage of {amount_tax}");
 
         }
-        return findFirstNumber(amount);
+        return NumberFormatting.findFirstNumber(amount);
     }
 
 

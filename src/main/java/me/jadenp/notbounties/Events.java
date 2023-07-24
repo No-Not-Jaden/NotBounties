@@ -57,6 +57,8 @@ public class Events implements Listener {
                 if (event.getEntity().getKiller() != null) {
                     if (event.getEntity() != event.getEntity().getKiller()) {
                         Player killer = event.getEntity().getKiller();
+                        if (!npcClaim && killer.hasMetadata("NPC"))
+                            return;
                         Player player = (Player) event.getEntity();
                         Bounty bounty = nb.getBounty(player);
                         nb.displayParticle.remove(player);
@@ -70,7 +72,7 @@ public class Events implements Listener {
                         }
                         if (!usingPapi) {
                             if (!redeemRewardLater) {
-                                nb.addItem(killer, Material.valueOf(currency), (long) bounty.getTotalBounty());
+                                NumberFormatting.givePlayer(killer, new ItemStack(Material.valueOf(NumberFormatting.currency)), (long) bounty.getTotalBounty());
                             }
                         }
                         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
@@ -85,7 +87,7 @@ public class Events implements Listener {
                                     Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
                                     if (p != null) {
                                         if (!rewardHeadClaimed || !Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId().equals(UUID.fromString(setter.getUuid()))) {
-                                            nb.addItem(p, skull);
+                                            NumberFormatting.givePlayer(p, skull, 1);
                                         }
                                     } else {
                                         if (nb.headRewards.containsKey(setter.getUuid())) {
@@ -100,11 +102,11 @@ public class Events implements Listener {
                             }
                         }
                         if (rewardHeadClaimed){
-                                nb.addItem(Objects.requireNonNull(event.getEntity().getKiller()), skull);
+                            NumberFormatting.givePlayer(Objects.requireNonNull(event.getEntity().getKiller()), skull, 1);
                         }
                         // do commands
                         if (!redeemRewardLater) {
-                            nb.doAddCommands(event.getEntity().getKiller(), bounty.getTotalBounty());
+                            NumberFormatting.doAddCommands(event.getEntity().getKiller(), bounty.getTotalBounty());
                         } else {
                             // give voucher
                             ItemStack item = new ItemStack(Material.PAPER);
@@ -120,7 +122,7 @@ public class Events implements Listener {
                             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                             item.setItemMeta(meta);
                             item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
-                            nb.addItem(event.getEntity().getKiller(), item);
+                            NumberFormatting.givePlayer(event.getEntity().getKiller(), item, 1);
                         }
                         if (nb.SQL.isConnected()){
                             nb.data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(), 0, 0);
@@ -130,8 +132,8 @@ public class Events implements Listener {
                             nb.bountyList.remove(bounty);
                             nb.allTimeBounties.put(player.getUniqueId().toString(), Leaderboard.ALL.getStat(player.getUniqueId()) + bounty.getTotalBounty());
                             nb.killBounties.put(killer.getUniqueId().toString(), Leaderboard.KILLS.getStat(killer.getUniqueId()) + 1);
-                            nb.deathBounties.replace(player.getUniqueId().toString(), Leaderboard.DEATHS.getStat(player.getUniqueId()) + 1);
-                            nb.allClaimedBounties.replace(player.getUniqueId().toString(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty());
+                            nb.deathBounties.put(player.getUniqueId().toString(), Leaderboard.DEATHS.getStat(player.getUniqueId()) + 1);
+                            nb.allClaimedBounties.put(player.getUniqueId().toString(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty());
                         }
 
                         for (Setter setter : bounty.getSetters()) {
@@ -139,7 +141,7 @@ public class Events implements Listener {
                                 if (nb.SQL.isConnected()) {
                                     nb.data.addData(setter.getUuid(), 0, 1, 0, 0, 0, 0);
                                 } else {
-                                    nb.setBounties.replace(setter.getUuid(), Leaderboard.SET.getStat(UUID.fromString(setter.getUuid())) + 1);
+                                    nb.setBounties.put(setter.getUuid(), Leaderboard.SET.getStat(UUID.fromString(setter.getUuid())) + 1);
                                 }
                                 Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
                                 if (p != null) {
@@ -147,11 +149,8 @@ public class Events implements Listener {
                                 }
                             }
                         }
-                        if (nb.gracePeriod.containsKey(event.getEntity().getUniqueId().toString())) {
-                            nb.gracePeriod.replace(event.getEntity().getUniqueId().toString(), System.currentTimeMillis());
-                        } else {
-                            nb.gracePeriod.put(event.getEntity().getUniqueId().toString(), System.currentTimeMillis());
-                        }
+                        nb.gracePeriod.put(event.getEntity().getUniqueId().toString(), System.currentTimeMillis());
+
                         if (trackerRemove > 0)
                             for (Player p : Bukkit.getOnlinePlayers()) {
                                 ItemStack[] contents = p.getInventory().getContents();
@@ -300,9 +299,9 @@ public class Events implements Listener {
                                         return;
                                     }
                                     if (!usingPapi){
-                                        nb.addItem(player, Material.valueOf(currency), (long) amount);
+                                        NumberFormatting.givePlayer(player, new ItemStack(Material.valueOf(NumberFormatting.currency)), (long) amount);
                                     }
-                                    nb.doAddCommands(player, amount);
+                                    NumberFormatting.doAddCommands(player, amount);
                                     player.getInventory().remove(item);
                                     player.sendMessage(parse(speakings.get(0) + speakings.get(41), amount, player));
                                 }
@@ -475,7 +474,7 @@ public class Events implements Listener {
                 assert meta != null;
                 meta.setOwningPlayer(Bukkit.getOfflinePlayer(UUID.fromString(uuid)));
                 skull.setItemMeta(meta);
-                nb.addItem(event.getPlayer(), skull);
+                NumberFormatting.givePlayer(event.getPlayer(), skull, 1);
             }
             nb.headRewards.remove(event.getPlayer().getUniqueId().toString());
         }
@@ -493,9 +492,9 @@ public class Events implements Listener {
                     if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
                         // refund money
                         if (!usingPapi) {
-                            nb.addItem(event.getPlayer(), Material.valueOf(currency), (long) setter.getAmount());
+                            NumberFormatting.givePlayer(event.getPlayer(), new ItemStack(Material.valueOf(NumberFormatting.currency)), (long) setter.getAmount());
                         }
-                        nb.doAddCommands(event.getPlayer(), setter.getAmount());
+                        NumberFormatting.doAddCommands(event.getPlayer(), setter.getAmount());
                         event.getPlayer().sendMessage(parse(speakings.get(0) + speakings.get(31), bounty.getName(), setter.getAmount(), event.getPlayer()));
                         setterIterator.remove();
                     }

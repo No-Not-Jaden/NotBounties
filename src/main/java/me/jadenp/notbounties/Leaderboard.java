@@ -206,7 +206,7 @@ public enum Leaderboard {
 
 
     private static String parseStats(String text, double amount, boolean useCurrency, OfflinePlayer player){
-        text = useCurrency ? text.replaceAll("\\{amount}", Matcher.quoteReplacement(currencyPrefix + formatNumber(amount) + currencySuffix)) : text.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(amount)));
+        text = useCurrency ? text.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix)) : text.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.formatNumber(amount)));
 
         return parse(text, player);
     }
@@ -246,9 +246,9 @@ public enum Leaderboard {
         text = text.replaceAll("\\{rank}", rank + "");
         text = text.replaceAll("\\{player}", playerName);
         if (useCurrency)
-            text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(currencyPrefix + formatNumber(amount) + currencySuffix));
+            text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         else
-            text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(formatNumber(amount)));
+            text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.formatNumber(amount)));
 
         return parse(text, player);
     }
@@ -267,12 +267,12 @@ public enum Leaderboard {
                 case ALL:
                 case CLAIMED:
                 case IMMUNITY:
-                    formattedList.put(entry.getKey(), currencyPrefix + formatNumber(entry.getValue()) + currencySuffix);
+                    formattedList.put(entry.getKey(), NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(entry.getValue()) + NumberFormatting.currencySuffix);
                     break;
                 case KILLS:
                 case DEATHS:
                 case SET:
-                    formattedList.put(entry.getKey(), formatNumber(entry.getValue()));
+                    formattedList.put(entry.getKey(), NumberFormatting.formatNumber(entry.getValue()));
                     break;
             }
         }

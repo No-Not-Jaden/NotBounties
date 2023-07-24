@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
+import static me.jadenp.notbounties.NumberFormatting.tryParse;
 
 public class Commands implements CommandExecutor, TabCompleter {
     private final NotBounties nb;
@@ -303,9 +304,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if ((nb.repeatBuyCommand2.containsKey(((Player) sender).getUniqueId().toString()) && System.currentTimeMillis() - nb.repeatBuyCommand2.get(((Player) sender).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
                                                 // try to find bounty and buy it
                                                 nb.repeatBuyCommand2.remove(((Player) sender).getUniqueId().toString());
-                                                double balance = getBalance((Player) sender);
+                                                double balance = NumberFormatting.getBalance((Player) sender);
                                                 if (balance >= permanentCost) {
-                                                    nb.doRemoveCommands((Player) sender, permanentCost);
+                                                    NumberFormatting.doRemoveCommands((Player) sender, permanentCost);
                                                     // successfully bought perm immunity
                                                     if (nb.SQL.isConnected()) {
                                                         nb.data.addData(((Player) sender).getUniqueId().toString(), 0, 0, 0, 0, permanentCost, 0);
@@ -331,7 +332,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (args.length > 1) {
                                             double amount;
                                             try {
-                                                amount = Double.parseDouble(args[1]);
+                                                amount = tryParse(args[1]);
                                             } catch (NumberFormatException ignored) {
                                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(1), (Player) sender));
                                                 return true;
@@ -339,9 +340,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if ((nb.repeatBuyCommand2.containsKey(((Player) sender).getUniqueId().toString()) && System.currentTimeMillis() - nb.repeatBuyCommand2.get(((Player) sender).getUniqueId().toString()) < 30000) || args.length > 2 && args[2].equalsIgnoreCase("--confirm")) {
                                                 // try to find bounty and buy it
                                                 nb.repeatBuyCommand2.remove(((Player) sender).getUniqueId().toString());
-                                                double balance = getBalance((Player) sender);
+                                                double balance = NumberFormatting.getBalance((Player) sender);
                                                 if (balance >= (amount * scalingRatio)) {
-                                                    nb.doRemoveCommands((Player) sender, (amount * scalingRatio));
+                                                    NumberFormatting.doRemoveCommands((Player) sender, (amount * scalingRatio));
                                                     // successfully bought scaling immunity - amount x scalingRatio
                                                     if (nb.SQL.isConnected()) {
                                                         nb.data.addData(((Player) sender).getUniqueId().toString(), 0, 0, 0, 0, amount, 0);
@@ -386,9 +387,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if ((nb.repeatBuyCommand.containsKey(((Player) sender).getUniqueId().toString()) && System.currentTimeMillis() - nb.repeatBuyCommand.get(((Player) sender).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
                                         // try to find bounty and buy it
                                         nb.repeatBuyCommand.remove(((Player) sender).getUniqueId().toString());
-                                        double balance = getBalance((Player) sender);
+                                        double balance = NumberFormatting.getBalance((Player) sender);
                                         if (balance >=  (bounty.getTotalBounty() * buyBackInterest)) {
-                                            nb.doRemoveCommands((Player) sender, (bounty.getTotalBounty() * buyBackInterest));
+                                            NumberFormatting.doRemoveCommands((Player) sender, (bounty.getTotalBounty() * buyBackInterest));
                                             if (nb.SQL.isConnected()) {
                                                 nb.data.removeBounty(bounty.getUUID());
                                             } else {
@@ -595,7 +596,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (args.length == 3) {
                                     double amount;
                                     try {
-                                        amount = Double.parseDouble(args[2]);
+                                        amount = tryParse(args[2]);
                                     } catch (NumberFormatException ignored) {
                                         // unknown number - 2?
                                         if (sender instanceof Player) {
@@ -629,7 +630,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (actualEdit != null) {
                                             double amount;
                                             try {
-                                                amount = Double.parseDouble(args[4]);
+                                                amount = tryParse(args[4]);
                                             } catch (NumberFormatException ignored) {
                                                 // unknown number - 2?
                                                 if (sender instanceof Player) {
@@ -747,7 +748,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         // find player to give to
                                         Player receiver = Bukkit.getPlayer(args[2]);
                                         if (receiver != null) {
-                                            nb.givePlayer(receiver, compass);
+                                            NumberFormatting.givePlayer(receiver, compass, 1);
                                             // you have been given & you have received
                                             if (sender instanceof Player) {
                                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(33), receiver.getName(), player.getName(), player));
@@ -760,7 +761,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                     } else {
                                         if (sender instanceof Player) {
-                                            nb.givePlayer((Player) sender, compass);
+                                            NumberFormatting.givePlayer((Player) sender, compass, 1);
                                             // you have been given
                                             sender.sendMessage(parse(speakings.get(0) + speakings.get(34), player.getName(), player));
                                         } else {
@@ -791,7 +792,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             // put in
                             double amount;
                             try {
-                                amount = Double.parseDouble(args[1]);
+                                amount = tryParse(args[1]);
                             } catch (NumberFormatException ignored) {
                                 if (sender instanceof Player)
                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(1), (Player) sender));
@@ -838,9 +839,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                     double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(p.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(p.getUniqueId());
                                     if (!p.hasPermission("notbounties.immune") && ((amount > immunitySpent && !permanentImmunity) || (permanentImmunity && immunitySpent < permanentCost))) {
-                                        double balance = getBalance((Player) sender);
+                                        double balance = NumberFormatting.getBalance((Player) sender);
                                         if (balance >= total) {
-                                            nb.doRemoveCommands((Player) sender,  total);
+                                            NumberFormatting.doRemoveCommands((Player) sender,  total);
                                             nb.addBounty((Player) sender, p, amount);
                                             reopenBountiesGUI();
                                         } else {
@@ -866,9 +867,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (sender instanceof Player) {
                                     double immunitySpent = nb.SQL.isConnected() ? nb.data.getImmunity(player.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(player.getUniqueId());
                                     if (!nb.immunePerms.contains(player.getUniqueId().toString()) && ((amount > immunitySpent && !permanentImmunity) || (permanentImmunity && immunitySpent < permanentCost))) {
-                                        double balance = getBalance((Player) sender);
+                                        double balance = NumberFormatting.getBalance((Player) sender);
                                         if (balance >= total) {
-                                            nb.doRemoveCommands((Player) sender, total);
+                                            NumberFormatting.doRemoveCommands((Player) sender, total);
                                             nb.addBounty((Player) sender, player, amount);
                                             reopenBountiesGUI();
                                         } else {

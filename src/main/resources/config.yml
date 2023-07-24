@@ -9,8 +9,6 @@ currency:
   # {player} & {amount} or use a placeholder
   remove-commands: [] # ['eco take {player} {amount}']
   add-commands: [] # ['eco give {player} {amount}']
-  # How many decimals you want in the messages containing currency (only if there already are decimals in the number)
-  decimals: 2
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
 # minimum amount of currency that will broadcast bounties
@@ -26,20 +24,20 @@ hide-stats:
   - Not_Jaden
 # get notified on NotBounties Updates
 update-notification: true
+# allow a npc to claim a bounty
+npc-claim: false
 # formatting of large numbers
 number-formatting:
-  # 0 - disabled
-  # 1 - thousands
-  # 2 - divisions
-  type: 1
-  # symbol used for the decimal
-  decimal-symbol: '.'
-  # character every 3 digits ex: ',' = 10,000 | '*' = 10*000 | '' = 10000
-  thousands: ','
+  # Same as essentialsX config
+  # For 1.234,50 use de-DE
+  # For 1,234.50 use en-US
+  # For 1'234,50 use fr-ch
+  format-locale: en-US
+  # pattern for currency to be displayed - symbols are only placeholders, if you want to change the symbols, change format-locale
+  pattern: '#,###.##'
+  use-divisions: true
   # makes the number smaller and adds a suffix ex: 1000 = 1K | 1234 = 1.23K | 5467900 = 5.47M
   divisions:
-    # how many decimals to include after a division
-    decimals: 2
     # the division and suffix
     1000: K
     1000000: M

@@ -18,8 +18,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,13 +55,8 @@ public class ConfigOptions {
     public static double buyBackInterest;
     public static String buyBackLore;
     public static boolean usingPapi;
-    public static String currency;
-    public static List<String> removeCommands;
-    public static List<String> addCommands;
     public static int bountyExpire;
     public static boolean papiEnabled;
-    public static String currencyPrefix;
-    public static String currencySuffix;
     public static File language;
     public static List<String> trackerLore = new ArrayList<>();
     public static List<String> voucherLore = new ArrayList<>();
@@ -71,14 +64,7 @@ public class ConfigOptions {
     public static List<String> hiddenNames = new ArrayList<>();
     public static boolean updateNotification;
     public static Map<String, CustomItem> customItems = new HashMap<>();
-    public static int numberFormatting;
-    public static char nfThousands;
-    public static int nfDecimals;
-    public static LinkedHashMap<Long, String> nfDivisions = new LinkedHashMap<>();
-    public static char decimalSymbol;
-    public static DecimalFormat decimalFormat;
-    public static DecimalFormat divisionFormat;
-    public static int decimals;
+    public static boolean npcClaim;
 
     public static void reloadOptions() throws IOException {
         NotBounties bounties = NotBounties.getInstance();
@@ -95,8 +81,6 @@ public class ConfigOptions {
             bounties.getConfig().set("currency.prefix", "");
             bounties.getConfig().set("currency.suffix", "");
         }
-        if (!bounties.getConfig().isSet("currency.decimals"))
-            bounties.getConfig().set("currency.decimals", 2);
         if (!bounties.getConfig().isSet("currency.prefix"))
             bounties.getConfig().set("currency.prefix", "&f");
         if (!bounties.getConfig().isSet("currency.suffix"))
@@ -191,34 +175,43 @@ public class ConfigOptions {
             bounties.getConfig().set("hide-stats", new ArrayList<>());
         if (!bounties.getConfig().isSet("update-notification"))
             bounties.getConfig().set("update-notification", true);
-        if (!bounties.getConfig().isSet("number-formatting.type"))
-            bounties.getConfig().set("number-formatting.type", 1);
-        if (!bounties.getConfig().isSet("number-formatting.thousands"))
-            bounties.getConfig().set("number-formatting.thousands", ",");
-        if (!bounties.getConfig().isSet("number-formatting.divisions.decimals")) {
-            bounties.getConfig().set("number-formatting.divisions.decimals", 2);
+        if (!bounties.getConfig().isSet("npc-claim"))
+            bounties.getConfig().set("npc-claim", false);
+
+        if (bounties.getConfig().isInt("number-formatting.type")) {
+            switch (bounties.getConfig().getInt("number-formatting.type")) {
+                case 0:
+                    bounties.getConfig().set("number-formatting.pattern", "#.##");
+                    bounties.getConfig().set("number-formatting.use-divisions", true);
+                    break;
+                case 1:
+                    bounties.getConfig().set("number-formatting.use-divisions", false);
+                    break;
+                case 2:
+                    bounties.getConfig().set("number-formatting.use-divisions", true);
+                    break;
+            }
+            bounties.getConfig().set("number-formatting.type", null);
+            bounties.getConfig().set("number-formatting.thousands", null);
+            bounties.getConfig().set("number-formatting.divisions.decimals", null);
+            bounties.getConfig().set("number-formatting.decimal-symbol", null);
+            bounties.getConfig().set("currency.decimals", null);
+        }
+        if (!bounties.getConfig().isSet("number-formatting.use-divisions"))
+            bounties.getConfig().set("number-formatting.use-divisions", true);
+        if (!bounties.getConfig().isSet("number-formatting.pattern"))
+            bounties.getConfig().set("number-formatting.pattern", "#,###.##");
+        if (!bounties.getConfig().isSet("number-formatting.format-locale"))
+            bounties.getConfig().set("number-formatting.format-locale", "en-US");
+        if (!bounties.getConfig().isConfigurationSection("number-formatting.divisions")) {
             bounties.getConfig().set("number-formatting.divisions.1000", "K");
         }
-        if (!bounties.getConfig().isSet("number-formatting.decimal-symbol"))
-            bounties.getConfig().set("number-formatting.decimal-symbol", ".");
+
 
         bounties.saveConfig();
 
-        currency = bounties.getConfig().getString("currency.object");
-        usingPapi = Objects.requireNonNull(bounties.getConfig().getString("currency.object")).contains("%");
+        NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
 
-        currencyPrefix = color(Objects.requireNonNull(bounties.getConfig().getString("currency.prefix")));
-        currencySuffix = color(Objects.requireNonNull(bounties.getConfig().getString("currency.suffix")));
-        if (bounties.getConfig().isList("currency.add-commands")){
-            addCommands = bounties.getConfig().getStringList("currency.add-commands");
-        } else {
-            addCommands = Collections.singletonList(bounties.getConfig().getString("currency.add-commands"));
-        }
-        if (bounties.getConfig().isList("currency.remove-commands")){
-            removeCommands = bounties.getConfig().getStringList("currency.remove-commands");
-        } else {
-            removeCommands = Collections.singletonList(bounties.getConfig().getString("currency.remove-commands"));
-        }
         bountyExpire = bounties.getConfig().getInt("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
@@ -251,59 +244,8 @@ public class ConfigOptions {
         autoConnect = bounties.getConfig().getBoolean("database.auto-connect");
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
         updateNotification = bounties.getConfig().getBoolean("update-notification");
-        numberFormatting = bounties.getConfig().getInt("number-formatting.type");
-        nfDecimals = bounties.getConfig().getInt("number-formatting.divisions.decimals");
-        decimals = bounties.getConfig().getInt("currency.decimals");
-        String thousandsSymbol = bounties.getConfig().getString("number-formatting.thousands");
-        assert thousandsSymbol != null;
-        if (thousandsSymbol.isEmpty())
-            thousandsSymbol = " ";
-        nfThousands = thousandsSymbol.charAt(0);
-        String decimalSymbolString = bounties.getConfig().getString("number-formatting.decimal-symbol");
-        assert decimalSymbolString != null;
-        if (decimalSymbolString.isEmpty())
-            decimalSymbolString = " ";
-        decimalSymbol = decimalSymbolString.charAt(0);
+        npcClaim = bounties.getConfig().getBoolean("npc-claim");
 
-        Locale locale = new Locale("en", "US");
-
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(locale);
-        symbols.setDecimalSeparator(decimalSymbol);
-        symbols.setGroupingSeparator(nfThousands);
-
-        StringBuilder pattern = new StringBuilder("#");
-        if (numberFormatting == 1)
-            pattern.append(',');
-        pattern.append("###");
-        pattern.append('.');
-        if (decimals > 0) {
-            for (int i = 0; i < decimals; i++) {
-                pattern.append("#");
-            }
-        }
-        decimalFormat = new DecimalFormat(pattern.toString(), symbols);
-
-        StringBuilder divisionPattern = new StringBuilder("#");
-        divisionPattern.append('.');
-        if (nfDecimals > 0) {
-            for (int i = 0; i < nfDecimals; i++) {
-                divisionPattern.append("#");
-            }
-        }
-        divisionFormat = new DecimalFormat(divisionPattern.toString(), symbols);
-
-        nfDivisions.clear();
-        Map<Long, String> preDivisions = new HashMap<>();
-        for (String s : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("number-formatting.divisions")).getKeys(false)) {
-            if (s.equals("decimals"))
-                continue;
-            try {
-                preDivisions.put(Long.parseLong(s), bounties.getConfig().getString("number-formatting.divisions." + s));
-            } catch (NumberFormatException e) {
-                Bukkit.getLogger().warning("Division is not a number: " + s);
-            }
-        }
-        nfDivisions = sortByValue(preDivisions);
 
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
         if (!guiFile.exists()) {
@@ -713,7 +655,7 @@ public class ConfigOptions {
 
     public static String parse(String str, double amount, OfflinePlayer receiver) {
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
+            str = str.replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -729,7 +671,7 @@ public class ConfigOptions {
             str = str.replace("{player}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
+            str = str.replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -745,10 +687,10 @@ public class ConfigOptions {
             str = str.replace("{player}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
+            str = str.replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix);
         }
         while (str.contains("{bounty}")) {
-            str = str.replace("{bounty}", currencyPrefix + formatNumber(bounty) + currencySuffix);
+            str = str.replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -765,7 +707,7 @@ public class ConfigOptions {
             str = str.replace("{receiver}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
+            str = str.replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -795,10 +737,10 @@ public class ConfigOptions {
             str = str.replace("{receiver}", player);
         }
         while (str.contains("{amount}")) {
-            str = str.replace("{amount}", currencyPrefix + formatNumber(amount) + currencySuffix);
+            str = str.replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix);
         }
         while (str.contains("{bounty}")) {
-            str = str.replace("{bounty}", currencyPrefix + formatNumber(totalBounty) + currencySuffix);
+            str = str.replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
             return PlaceholderAPI.setPlaceholders(receiver, str);
@@ -806,144 +748,5 @@ public class ConfigOptions {
         return str;
     }
 
-    /**
-     * Get the balance of a player. Checks if the currency is a placeholder and parses it, otherwise, gets the amount of items matching the currency material
-     *
-     * @param player Player to get balance from
-     * @return Balance of player
-     */
-    public static double getBalance(Player player) {
-        if (usingPapi) {
-            // check if papi is enabled - parse to check
-            if (papiEnabled) {
-                double balance;
-                try {
-                    balance = Double.parseDouble(PlaceholderAPI.setPlaceholders(player, currency));
-                } catch (NumberFormatException ignored) {
-                    Bukkit.getLogger().warning("Error getting a number from currency placeholder!");
-                    return 0;
-                }
-                return balance;
-            } else {
-                Bukkit.getLogger().warning("Currency for bounties currently set as placeholder but PlaceholderAPI is not enabled!");
-            }
-        } else {
-            return checkAmount(player, Material.valueOf(currency));
-        }
-        return 0;
-    }
-
-    /**
-     * Check the amount of items matching a material
-     *
-     * @param player   Player whose inventory will be searched
-     * @param material Material to check for
-     * @return amount of items in the players inventory that are a certain material
-     */
-    public static int checkAmount(Player player, Material material) {
-        int amount = 0;
-        ItemStack[] contents = player.getInventory().getContents();
-        for (ItemStack content : contents) {
-            if (content != null) {
-                if (content.getType().equals(material)) {
-                    amount += content.getAmount();
-                }
-            }
-        }
-        return amount;
-    }
-
-
-    public static String formatNumber(String number){
-        if (number.length() == 0)
-            return "";
-        if (number.startsWith(currencyPrefix) && currencyPrefix.length() > 0)
-            return currencyPrefix + formatNumber(number.substring(currencyPrefix.length()));
-        if (number.endsWith(currencySuffix) && currencySuffix.length() > 0)
-            return formatNumber(number.substring(0, number.length() - currencySuffix.length())) + currencySuffix;
-        if (isNumber(number))
-            return formatNumber(Double.parseDouble(number));
-        if (!isNumber(number.substring(0,1))){
-            // first digit isn't a number
-            return number.charAt(0) + formatNumber(number.substring(1));
-        }
-        return formatNumber(number.substring(0, number.length()-1)) + number.charAt(number.length()-1);
-
-    }
-
-    public static double findFirstNumber(String str){
-        if (str.length() == 0)
-            return 0;
-        if (isNumber(str))
-            return Double.parseDouble(str);
-        if (isNumber(str.substring(0,1)))
-            return findFirstNumber(str.substring(0, str.length()-1));
-        return findFirstNumber(str.substring(1));
-    }
-
-    public static boolean isNumber(String str){
-        try {
-            Double.parseDouble(str);
-        } catch (NumberFormatException e){
-            return false;
-        }
-        return true;
-    }
-    /**
-     * Format a number with number formatting options in the config
-     *
-     * @param number Number to be formatted
-     * @return formatted number
-     */
-    public static String formatNumber(Double number){
-        if (numberFormatting == 2){
-            // set divisions
-            return setDivision(number);
-        }
-        String strNum = decimalFormat.format(number);
-        if (decimals == 0)
-            if (strNum.contains(decimalSymbol + ""))
-                strNum = strNum.substring(0, strNum.indexOf(decimalSymbol));
-        return removeUnnecessaryZeros(strNum);
-    }
-
-    public static String setDivision(Double number){
-        for (Map.Entry<Long, String> entry : nfDivisions.entrySet()){
-            if (number / entry.getKey() >= 1){
-                String strCost = divisionFormat.format((double) number / entry.getKey());
-                if (nfDecimals == 0) {
-                    if (strCost.contains(decimalSymbol + ""))
-                        strCost = strCost.substring(0, strCost.indexOf(decimalSymbol));
-                }
-                return removeUnnecessaryZeros(strCost) + entry.getValue();
-            }
-        }
-        return removeUnnecessaryZeros(decimalFormat.format(number));
-    }
-
-    public static String removeUnnecessaryZeros(String value){
-        if (value.isEmpty())
-            return "";
-        while (value.contains(Character.toString(decimalSymbol)) && (value.charAt(value.length()-1) == '0' || value.charAt(value.length()-1) == decimalSymbol))
-            value = value.substring(0, value.length()-1);
-        return value;
-    }
-
-
-    public static LinkedHashMap<Long, String> sortByValue(Map<Long, String> hm) {
-        // Create a list from elements of HashMap
-        List<Map.Entry<Long, String>> list =
-                new LinkedList<>(hm.entrySet());
-
-        // Sort the list
-        list.sort((o1, o2) -> (o2.getKey()).compareTo(o1.getKey()));
-
-        // put data from sorted list to hashmap
-        LinkedHashMap<Long, String> temp = new LinkedHashMap<>();
-        for (Map.Entry<Long, String> aa : list) {
-            temp.put(aa.getKey(), aa.getValue());
-        }
-        return temp;
-    }
 
 }

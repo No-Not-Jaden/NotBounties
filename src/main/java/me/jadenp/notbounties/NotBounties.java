@@ -236,7 +236,7 @@ public final class NotBounties extends JavaPlugin {
                         if (uuid.length() < 10)
                             continue;
                         if (configuration.isSet("data." + uuid + ".kills"))
-                            killBounties.put(uuid,(double) configuration.getLong("data." + uuid + ".claimed"));
+                            killBounties.put(uuid,(double) configuration.getLong("data." + uuid + ".kills"));
                         if (configuration.isSet("data." + uuid + ".set"))
                             setBounties.put(uuid, (double) configuration.getLong("data." + uuid + ".set"));
                         if (configuration.isSet("data." + uuid + ".deaths"))
@@ -442,9 +442,9 @@ public final class NotBounties extends JavaPlugin {
                                     Player player = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
                                     if (player != null) {
                                         if (!usingPapi) {
-                                            addItem(player, Material.valueOf(currency), (long) setter.getAmount());
+                                            NumberFormatting.givePlayer(player, new ItemStack(Material.valueOf(NumberFormatting.currency)), (long) setter.getAmount());
                                         }
-                                        doAddCommands(player, setter.getAmount());
+                                        NumberFormatting.doAddCommands(player, setter.getAmount());
                                         player.sendMessage(parse(speakings.get(0) + speakings.get(31), bounty.getName(), setter.getAmount(), player));
                                     } else {
                                         expiredSetters.add(setter);
@@ -669,26 +669,6 @@ public final class NotBounties extends JavaPlugin {
         return sortedList;
     }
 
-    public void doRemoveCommands(Player p, double amount) {
-        if (usingPapi) {
-            if (removeCommands == null || removeCommands.isEmpty()) {
-                Bukkit.getLogger().warning("NotBounties detected a placeholder as currency, but there are no remove commands to take away money! (Is it formatted correctly?)");
-            }
-        } else {
-            removeItem(p, Material.valueOf(currency), (long) amount);
-        }
-        for (String str : removeCommands) {
-            while (str.contains("{player}")) {
-                str = str.replace("{player}", p.getName());
-            }
-            while (str.contains("{amount}")) {
-                str = str.replace("{amount}", amount + "");
-            }
-            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(str, p));
-        }
-
-    }
-
     int length = 10;
 
     public void listBounties(CommandSender sender, int page) {
@@ -742,97 +722,6 @@ public final class NotBounties extends JavaPlugin {
         //sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                        ");
     }
 
-    public void doAddCommands(Player p, double amount) {
-        if (usingPapi) {
-            if (addCommands == null) {
-                Bukkit.getLogger().warning("We detected a placeholder as currency, but there are no add commands to give players there reward! (Is it formatted correctly?)");
-            }
-            if (addCommands.isEmpty()) {
-                Bukkit.getLogger().warning("We detected a placeholder as currency, but there are no add commands to give players there reward! (Is it formatted correctly?)");
-            }
-        }
-        for (String str : addCommands) {
-            while (str.contains("{player}")) {
-                str = str.replace("{player}", p.getName());
-            }
-            while (str.contains("{amount}")) {
-                str = str.replace("{amount}", amount + "");
-            }
-            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(str, p));
-        }
-    }
-
-
-    public void removeItem(Player player, Material material, long amount) {
-        ItemStack[] contents = player.getInventory().getContents();
-        for (int i = 0; i < contents.length; i++) {
-            if (contents[i] != null) {
-                if (contents[i].getType().equals(material)) {
-                    if (contents[i].getAmount() > amount) {
-                        contents[i] = new ItemStack(contents[i].getType(), (int) (contents[i].getAmount() - amount));
-                        break;
-                    } else if (contents[i].getAmount() < amount) {
-                        amount -= contents[i].getAmount();
-                        contents[i] = null;
-                    } else {
-                        contents[i] = null;
-                        break;
-                    }
-                }
-            }
-        }
-        player.getInventory().setContents(contents);
-    }
-
-    // use this instead?
-    public void givePlayer(Player p, ItemStack itemStack) {
-        HashMap<Integer, ItemStack> leftOver = new HashMap<>((p.getInventory().addItem(itemStack)));
-        if (!leftOver.isEmpty()) {
-            Location loc = p.getLocation();
-            p.getWorld().dropItem(loc, leftOver.get(0));
-        }
-    }
-
-    public void addItem(Player player, Material material, long amount) {
-        ItemStack[] contents = player.getInventory().getContents();
-        for (int i = 0; i < contents.length; i++) {
-            if (contents[i] == null) {
-                if (amount > material.getMaxStackSize()) {
-                    contents[i] = new ItemStack(material, material.getMaxStackSize());
-                    amount -= material.getMaxStackSize();
-                } else {
-                    contents[i] = new ItemStack(material, (int) amount);
-                    amount = 0;
-                    break;
-                }
-            }
-        }
-        if (amount > 0) {
-            for (int i = 0; i < amount / material.getMaxStackSize(); i++) {
-                player.getWorld().dropItem(player.getLocation(), new ItemStack(material, material.getMaxStackSize()));
-                amount -= material.getMaxStackSize();
-            }
-            player.getWorld().dropItem(player.getLocation(), new ItemStack(material, (int) amount));
-        }
-        player.getInventory().setContents(contents);
-    }
-
-    public void addItem(Player player, ItemStack itemStack) {
-        ItemStack[] contents = player.getInventory().getContents();
-        boolean given = false;
-        for (int i = 0; i < contents.length; i++) {
-            if (contents[i] == null) {
-                contents[i] = itemStack;
-                given = true;
-                break;
-            }
-        }
-        if (!given) {
-            player.getWorld().dropItem(player.getLocation(), itemStack);
-        } else {
-            player.getInventory().setContents(contents);
-        }
-    }
 
     public void addBounty(Player setter, Player receiver, double amount) {
         // add to all time bounties

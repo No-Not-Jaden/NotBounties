@@ -3,6 +3,7 @@ package me.jadenp.notbounties.gui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.NumberFormatting;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -53,7 +54,7 @@ public class GUI implements Listener {
             case "bounty-gui":
                 List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList)
-                    values.put(bounty.getUUID(), currencyPrefix + String.format("%f", bounty.getTotalBounty()) + currencySuffix);
+                    values.put(bounty.getUUID(), String.format("%f", bounty.getTotalBounty()));
                 break;
             case "leaderboard":
                 Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard ? (Leaderboard) data[0] : Leaderboard.ALL;
@@ -64,7 +65,7 @@ public class GUI implements Listener {
                 values = Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
                 for (Map.Entry<String, String> entry : NotBounties.getInstance().loggedPlayers.entrySet())
                     if (!values.containsKey(entry.getValue()))
-                        values.put(entry.getValue(), currencyPrefix + "0" + currencySuffix);
+                        values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
                 if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
                     // remove offline players
                     values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(UUID.fromString(e.getKey())).isOnline());
@@ -154,7 +155,7 @@ public class GUI implements Listener {
                             } else {
                                 if (bounty.getUUID().equals(event.getWhoClicked().getUniqueId().toString())) {
                                     if (buyBack) {
-                                        double balance = getBalance((Player) event.getWhoClicked());
+                                        double balance = NumberFormatting.getBalance((Player) event.getWhoClicked());
                                         if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
                                             openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), (int) (buyBackInterest * bounty.getTotalBounty()));
                                         } else {

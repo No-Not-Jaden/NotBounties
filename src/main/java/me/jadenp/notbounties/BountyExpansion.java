@@ -60,7 +60,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId().toString()) : notBounties.getBounty(player);
             if (bounty != null){
                 if (params.endsWith("_formatted"))
-                    return color(currencyPrefix + bounty.getTotalBounty() + currencySuffix);
+                    return color(NumberFormatting.currencyPrefix + bounty.getTotalBounty() + NumberFormatting.currencySuffix);
                 return bounty.getTotalBounty() + "";
             }
             return "0";
@@ -145,7 +145,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (params.endsWith("_full"))
                 return leaderboard.getStatMsg(true);
             if (params.endsWith("_formatted"))
-                return color(currencyPrefix + formatNumber(leaderboard.getStat(player.getUniqueId())) + currencySuffix);
+                return color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId())) + NumberFormatting.currencySuffix);
             return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
         }
 
@@ -156,8 +156,8 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (params.endsWith("_full"))
                 return leaderboard.getStatMsg(true);
             if (params.endsWith("_formatted"))
-                return color(currencyPrefix + formatNumber(leaderboard.getStat(player.getUniqueId())) + currencySuffix);
-            return formatNumber(leaderboard.getStat(player.getUniqueId()));
+                return color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId())) + NumberFormatting.currencySuffix);
+            return NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId()));
         } catch (IllegalArgumentException ignored){}
 
         return null;
