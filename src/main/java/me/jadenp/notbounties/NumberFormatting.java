@@ -17,22 +17,76 @@ import java.util.*;
 import static me.jadenp.notbounties.ConfigOptions.*;
 
 public class NumberFormatting {
-    public static String currency;
+    public static List<String> currency = new ArrayList<>();
+    public static List<Float> currencyValues = new ArrayList<>();
+    public static List<Float> currencyWeights = new ArrayList<>();
     public static List<String> removeCommands;
     public static List<String> addCommands;
-    public static String currencyPrefix;
-    public static String currencySuffix;
+    public static String currencyPrefix = "";
+    public static String currencySuffix = "";
     public static boolean useDivisions;
     public static LinkedHashMap<Long, String> nfDivisions = new LinkedHashMap<>();
     public static DecimalFormat decimalFormat;
 
 
     public static void setCurrencyOptions(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
-        currency = currencyOptions.getString("object");
+        currency.clear();
+        if (currencyOptions.isString("object")){
+            currency = Collections.singletonList(currencyOptions.getString("object"));
+        } else if (currencyOptions.isList("object")){
+            currency = currencyOptions.getStringList("object");
+        }
+
+        // check if all items are valid materials
+        ListIterator<String> currencyIterator = currency.listIterator();
+        while (currencyIterator.hasNext()){
+            String currencyName = currencyIterator.next();
+            String weight = "";
+            // seperate weight attached if there is any
+            if (currencyName.contains(" ")){
+                weight = currencyName.substring(currencyName.indexOf(" ") + 1);
+                currencyName = currencyName.substring(0, currencyName.indexOf(" "));
+            }
+            // placeholder or item
+            if (currencyName.contains("%")){
+                if (!papiEnabled) {
+                    Bukkit.getLogger().warning("Detected a placeholder as currency, but PlaceholderAPI is not enabled!");
+                    Bukkit.getLogger().warning("Ignoring placeholder from currency.");
+                    currencyIterator.remove();
+                    continue;
+                }
+            } else {
+                try {
+                    Material.valueOf(currencyName);
+                } catch (IllegalArgumentException e) {
+                    Bukkit.getLogger().warning("Could not get an item from: " + currencyName + "!");
+                    Bukkit.getLogger().warning("Ignoring item from currency.");
+                    currencyIterator.remove();
+                    continue;
+                }
+            }
+            if (weight.isEmpty())
+                currencyWeights.add(0f);
+            else
+                try {
+                    currencyWeights.add(Float.parseFloat(weight));
+                } catch (NumberFormatException e) {
+                    Bukkit.getLogger().warning("Could not get a number from weight " + weight + " after currency " + currencyName + "!");
+                    currencyWeights.add(0f);
+                }
+        }
+        // in case all the currency is invalid
+        if (currency.isEmpty() && currencyOptions.isSet("object")){
+            Bukkit.getLogger().info("No currency to use. Defaulting to DIAMOND as currency");
+            currency.add("DIAMOND");
+        }
+
         usingPapi = Objects.requireNonNull(currencyOptions.getString("object")).contains("%");
 
-        currencyPrefix = color(Objects.requireNonNull(currencyOptions.getString("prefix")));
-        currencySuffix = color(Objects.requireNonNull(currencyOptions.getString("suffix")));
+        if (currencyOptions.isSet("prefix"))
+            currencyPrefix = color(Objects.requireNonNull(currencyOptions.getString("prefix")));
+        if (currencyOptions.isSet("suffix"))
+            currencySuffix = color(Objects.requireNonNull(currencyOptions.getString("suffix")));
         if (currencyOptions.isList("add-commands"))
             addCommands = currencyOptions.getStringList("add-commands");
         else addCommands = Collections.singletonList(currencyOptions.getString("add-commands"));
@@ -163,6 +217,88 @@ public class NumberFormatting {
 
     }
 
+    public static double[] removeCurrency(double amount, float[] currencyWeights, double[] currentBalance){
+        float totalWeight = addUp(currencyWeights);
+        if (totalWeight == 0){
+            Arrays.fill(currencyWeights, 1);
+            totalWeight = currencyWeights.length;
+        }
+
+        double[] balancedRemove = new double[currency.size()];
+        double excessCurrency = 0;
+        for (int i = 0; i < currency.size(); i++) {
+            if (currencyWeights[i] == 0)
+                continue;
+            // amount to be taken out of balance with currency weight accounted for
+            double shareAmount = amount * (currencyWeights[i] / totalWeight);
+            if (currentBalance[i] >= shareAmount){
+                // player has enough currency
+                balancedRemove[i] = shareAmount;
+                currentBalance[i]-= shareAmount;
+            } else {
+                // player doesn't have enough currency
+                balancedRemove[i] = currentBalance[i];
+                excessCurrency+= shareAmount - currentBalance[i];  // add to excess currency
+                currentBalance[i] = 0;
+                currencyWeights[i] = 0;
+            }
+        }
+
+        if (excessCurrency > 0){
+            double[] adjusted = removeCurrency(excessCurrency, currencyWeights, currentBalance);
+            for (int i = 0; i < adjusted.length; i++) {
+                balancedRemove[i]+= adjusted[i];
+                currentBalance[i]-= adjusted[i];
+            }
+        }
+
+        // round currencies that are items and can't have decimals
+        double excessRounding = 0;
+        for (int i = 0; i < currency.size(); i++) {
+            if (!currency.get(i).contains("%")){
+                double currencyRemove = balancedRemove[i];
+                balancedRemove[i] = (int) currencyRemove;
+                excessRounding += balancedRemove[i] - currencyRemove;
+            }
+        }
+        // adding the excess currency from rounding back onto anywhere it can
+        for (int i = 0; i < currency.size(); i++) {
+            if (currency.get(i).contains("%")) {
+                if (currentBalance[i] == 0)
+                    continue;
+                if (currentBalance[i] >= excessRounding) {
+                    balancedRemove[i] += excessRounding;
+                    currentBalance[i] -= excessRounding;
+                    break;
+                }
+                balancedRemove[i] += currentBalance[i];
+                excessRounding -= currentBalance[i];
+                currentBalance[i] = 0;
+            } else if (excessRounding >= 1){
+                if (currentBalance[i] == 0)
+                    continue;
+                if (currentBalance[i] >= excessRounding) {
+                    balancedRemove[i] += (int) excessRounding;
+                    currentBalance[i] -= (int) excessRounding;
+                    break;
+                }
+                balancedRemove[i] += (int) currentBalance[i];
+                excessRounding -= (int) currentBalance[i];
+                currentBalance[i] = 0;
+            }
+        }
+
+        return balancedRemove;
+    }
+
+    public static float addUp(float[] numbers){
+        float total = 0;
+        for (float f : numbers)
+            total+= f;
+        return total;
+    }
+
+
     public static void doAddCommands(Player p, double amount) {
         if (usingPapi)
             if (addCommands == null || addCommands.isEmpty())
@@ -229,25 +365,35 @@ public class NumberFormatting {
      * @return Balance of player
      */
     public static double getBalance(Player player) {
-        if (usingPapi) {
-            // check if papi is enabled - parse to check
-            if (ConfigOptions.papiEnabled) {
-                double balance;
-                String placeholder = PlaceholderAPI.setPlaceholders(player, currency);
+        if (currency.isEmpty()){
+            Bukkit.getLogger().warning("[NotBounties] Cannot get balance of player because there is nothing setup for currency!");
+        }
+        double amount = 0;
+        for (String currencyName : currency){
+            amount+= getBalance(player, currencyName);
+        }
+        return amount;
+    }
+
+    public static double getBalance(Player player, String currencyName){
+        if (currencyName.contains("%")) {
+            if (papiEnabled) {
+                // using placeholderAPI
+                String placeholder = new PlaceholderAPIClass().parse(player, currencyName);
                 try {
-                    balance = tryParse(placeholder);
-                } catch (NumberFormatException e2) {
-                    Bukkit.getLogger().warning("Error getting a number from currency placeholder!");
+                    return tryParse(placeholder);
+                } catch (NumberFormatException e) {
+                    Bukkit.getLogger().warning("Error getting a number from the currency placeholder " + currencyName + "!");
                     return 0;
                 }
-                return balance;
             } else {
-                Bukkit.getLogger().warning("Currency for bounties currently set as placeholder but PlaceholderAPI is not enabled!");
+                Bukkit.getLogger().warning("Currency " + currencyName + " for bounties is a placeholder but PlaceholderAPI is not enabled!");
+                return 0;
             }
         } else {
-            return checkAmount(player, Material.valueOf(currency));
+            // item
+            return checkAmount(player, Material.valueOf(currencyName));
         }
-        return 0;
     }
 
     public static double tryParse(String number) throws NumberFormatException {

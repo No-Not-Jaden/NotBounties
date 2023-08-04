@@ -54,7 +54,7 @@ public class ConfigOptions {
     public static boolean buyBack;
     public static double buyBackInterest;
     public static String buyBackLore;
-    public static boolean usingPapi;
+    //public static boolean usingPapi;
     public static int bountyExpire;
     public static boolean papiEnabled;
     public static File language;
