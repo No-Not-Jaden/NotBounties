@@ -9,6 +9,8 @@ currency:
   # {player} & {amount} or use a placeholder
   remove-commands: [] # ['eco take {player} {amount}']
   add-commands: [] # ['eco give {player} {amount}']
+  # if you are using multiple currencies, true will add only the first currency - false will split the different currencies and will account for weight if any is set
+  add-single-currency: true
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
 # minimum amount of currency that will broadcast bounties
@@ -17,6 +19,10 @@ minimum-broadcast: 100
 # ex: bounty-tax = 0.25, a bounty set for 100 would cost 125 to be placed
 # use this if players are setting too many bounties
 bounty-tax: 0.0
+# same as bounty-tax, except the player who dies has to pay this
+# ex: death-tax = 0.1, a bounty set for 100 would cost the player 10 when they die
+# players cannot go into debt
+death-tax: 0.0
 # how many days until bounties expire
 bounty-expire: -1
 # These player's bounty stats will be hidden from bounties top
@@ -26,6 +32,16 @@ hide-stats:
 update-notification: true
 # allow a npc to claim a bounty
 npc-claim: false
+# cost to add 1 player to the bounty whitelist - up to 10 players can be added
+bounty-whitelist-cost: 10
+# filter on where bounties can be claimed
+world-filter:
+  # true to whitelist the list of worlds
+  # false to blacklist the list of worlds
+  whitelist: false
+  # world names to whitelist or blacklist
+  worlds:
+    - SafeWorld
 # formatting of large numbers
 number-formatting:
   # Same as essentialsX config
@@ -59,10 +75,14 @@ buy-own-bounties:
   lore-addition: '&9Left Click &7to buy back for &a{amount}'
 immunity:
   # players can buy immunity from having bounties set on them as opposed to having immunity from the permission node
-  buy-immunity: true
+  # Immunity types:
+  # 0 - disabled
+  # 1 - permanent immunity
+  # 2 - scaling immunity
+  # 3 - time immunity
+  type: 2
   # immunity will never run out
   permanent-immunity:
-    enabled: false
     cost: 128
   # immunity will be stronger the more money you spend - only if permanent immunity is disabled
   # if you buy immunity for 2500, then it protects you from bounties set for 2500, 2499, 1500, etc. (with ratio set to 1)
@@ -71,6 +91,11 @@ immunity:
     # money spent -> bounty protection
     # ex: if ratio is 0.5, buying immunity for 1000 will protect you from bounties 500 or less
     ratio: 1.0
+  # immunity wil only last for a period of time
+  time-immunity:
+    # how many seconds 1 currency will add to your immunity
+    # ex: spending $15 with seconds: 3600 will give you 54000 seconds of immunity, or 15 hours
+    seconds: 3600
   # in SECONDS how long before a player can set a bounty on a player that was just killed with a bounty
   grace-period: 10
 # give players with big bounties perks

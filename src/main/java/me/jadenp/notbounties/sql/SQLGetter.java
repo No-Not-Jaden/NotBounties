@@ -2,6 +2,8 @@ package me.jadenp.notbounties.sql;
 
 import me.jadenp.notbounties.*;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.jetbrains.annotations.Nullable;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,7 +31,8 @@ public class SQLGetter {
                     "    suuid CHAR(36) NOT NULL," +
                     "    amount FLOAT(53) DEFAULT 0 NOT NULL," +
                     "    notified BOOLEAN DEFAULT TRUE NOT NULL," +
-                    "    time BIGINT NOT NULL" +
+                    "    time BIGINT NOT NULL," +
+                    "    whitelist VARCHAR(369)" +
                     ");");
             ps.executeUpdate();
             ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = 'jadenplugins' and table_name = 'notbounties' and column_name = 'amount';");
@@ -37,10 +40,17 @@ public class SQLGetter {
             if (rs.next()){
                 if (rs.getString("data_type").equalsIgnoreCase("bigint")){
                     Bukkit.getLogger().info("Updating data type for bounties");
-                    ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE notbounties MODIFY COLUMN amount FLOAT(53)");
+                    ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE notbounties MODIFY COLUMN amount FLOAT(53);");
                     ps.executeUpdate();
                 }
             }
+            ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SHOW COLUMNS FROM `notbounties` LIKE 'whitelist';");
+            rs = ps.executeQuery();
+            if (!rs.next()){
+                ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE notbounties ADD whitelist VARCHAR(369);");
+                ps.executeUpdate();
+            }
+
         } catch (SQLException e){
             e.printStackTrace();
         }
@@ -65,7 +75,7 @@ public class SQLGetter {
             if (rs.next()){
                 if (rs.getString("data_type").equalsIgnoreCase("int")){
                     Bukkit.getLogger().info("Updating data type for statistics");
-                    ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE bounty_data MODIFY COLUMN claimed BIGINT, MODIFY sets BIGINT, MODIFY received BIGINT, MODIFY alltime FLOAT(53), MODIFY immunity FLOAT(53), MODIFY allclaimed FLOAT(53)");
+                    ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("ALTER TABLE bounty_data MODIFY COLUMN claimed BIGINT, MODIFY sets BIGINT, MODIFY received BIGINT, MODIFY alltime FLOAT(53), MODIFY immunity FLOAT(53), MODIFY allclaimed FLOAT(53);");
                     ps.executeUpdate();
                 }
             }
@@ -165,7 +175,13 @@ public class SQLGetter {
         LinkedHashMap<String, Double> data = new LinkedHashMap<>();
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < hiddenNames.size(); i++) {
-            String uuid = NotBounties.getInstance().loggedPlayers.get(hiddenNames.get(i).toLowerCase());
+            OfflinePlayer player = NotBounties.getInstance().getPlayer(hiddenNames.get(i));
+            if (player == null) {
+                builder = new StringBuilder();
+                Bukkit.getLogger().warning("[NotBounties] Error getting player: " + hiddenNames.get(i) + " from hidden players!");
+                break;
+            }
+            String uuid = player.getUniqueId().toString();
             if (uuid == null)
                 continue;
             if (i < hiddenNames.size() - 1)
@@ -173,12 +189,14 @@ public class SQLGetter {
             else
                 builder.append(uuid);
         }
+        String end = ";";
+        if (skip + results > 0) {
+            end = " LIMIT " + skip + "," + (skip + results) + ";";
+        }
 
         try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, `" + listName + "` FROM bounty_data WHERE uuid != '" + builder + "' ORDER BY ? DESC LIMIT ?,?;");
+            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, `" + listName + "` FROM bounty_data WHERE uuid != '" + builder + "' ORDER BY ? DESC" + end);
             ps.setString(1, listName);
-            ps.setInt(2, skip);
-            ps.setInt(3, skip + results);
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
                 String uuid = rs.getString("uuid");
@@ -196,6 +214,63 @@ public class SQLGetter {
                 e.printStackTrace();
         }
         return data;
+    }
+
+    /**
+     * Get a list of UUIDs from a string separating UUIDs with ','
+     * @param whitelist Single string of uuids
+     * @return a list of UUIDs. Returns an empty list if whitelist is null or empty
+     */
+    public List<UUID> decodeWhitelist(@Nullable String whitelist){
+        if (whitelist == null || whitelist.isEmpty())
+            return new ArrayList<>();
+        String[] split = whitelist.split(",");
+        List<UUID> uuids = new ArrayList<>();
+        for (String uuidString : split) {
+            try {
+                uuids.add(UUID.fromString(uuidString));
+            } catch (IllegalArgumentException e) {
+                if (debug)
+                    e.printStackTrace();
+            }
+        }
+        return uuids;
+    }
+
+    /**
+     * Get a single string separating all the UUIDs with ','
+     * @param whitelist list of UUIDs to encode
+     * @return a string with separated UUIDs or an empty string if the list is empty
+     */
+    public String encodeWhitelist(List<UUID> whitelist){
+        StringBuilder combinedUuids = new StringBuilder();
+        for (UUID uuid : whitelist){
+            combinedUuids.append(uuid).append(",");
+        }
+        if (combinedUuids.length() > 0)
+            combinedUuids.deleteCharAt(combinedUuids.length()-1);
+        return combinedUuids.toString();
+    }
+
+    // <Setter UUID, whitelist UUIDS>
+    public Map<UUID, List<UUID>> getWhitelist(String uuid){
+        try {
+            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT suuid, whitelist FROM bounty_data WHERE uuid = ?;");
+            ps.setString(1, uuid);
+            ResultSet rs = ps.executeQuery();
+            Map<UUID, List<UUID>> setterWhitelists = new HashMap<>();
+            while (rs.next()){
+                setterWhitelists.put(UUID.fromString(rs.getString("suuid")), decodeWhitelist(rs.getString("whitelist")));
+            }
+            return setterWhitelists;
+        } catch (SQLException e){
+            if (reconnect()){
+                return getWhitelist(uuid);
+            }
+            if (debug)
+                e.printStackTrace();
+        }
+        return new HashMap<>();
     }
 
     public long getSet(String uuid){
@@ -273,10 +348,10 @@ public class SQLGetter {
 
     public void setImmunity(String uuid, double amount){
         try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("REPLACE bounty_data(uuid, immunity) VALUES(? ,?);");
-            ps.setString(1, uuid);
-            ps.setDouble(2, amount);
-            ps.executeQuery();
+            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("UPDATE bounty_data SET immunity = ? WHERE uuid = ?;");
+            ps.setDouble(1, amount);
+            ps.setString(2, uuid);
+            ps.executeUpdate();
         } catch (SQLException e){
             if (reconnect()){
                 setImmunity(uuid, amount);
@@ -290,14 +365,15 @@ public class SQLGetter {
 
     public void addBounty(Bounty bounty, Setter setter){
         try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, time) VALUES(?, ?, ?, ?, ?, ?, ?);");
-            ps.setString(1, bounty.getUUID());
+            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, time, whitelist) VALUES(?, ?, ?, ?, ?, ?, ?, ?);");
+            ps.setString(1, bounty.getUUID().toString());
             ps.setString(2, bounty.getName());
             ps.setString(3, setter.getName());
-            ps.setString(4, setter.getUuid());
+            ps.setString(4, setter.getUuid().toString());
             ps.setDouble(5, setter.getAmount());
             ps.setBoolean(6, setter.isNotified());
             ps.setLong(7, setter.getTimeCreated());
+            ps.setString(8, encodeWhitelist(setter.getWhitelist()));
             ps.executeUpdate();
         } catch (SQLException e){
             if (reconnect()){
@@ -307,11 +383,15 @@ public class SQLGetter {
                 e.printStackTrace();
         }
     }
+    public void addBounty(Bounty bounty){
+        for (Setter setter : bounty.getSetters())
+            addBounty(bounty, setter);
+    }
 
-    public Bounty getBounty(String uuid) {
+    public Bounty getBounty(UUID uuid) {
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT * FROM notbounties WHERE uuid = ?;");
-            ps.setString(1, uuid);
+            ps.setString(1, uuid.toString());
             ResultSet rs = ps.executeQuery();
             List<Setter> setters = new ArrayList<>();
             String name = "";
@@ -319,7 +399,7 @@ public class SQLGetter {
                 if (name.equals("")){
                     name = rs.getString("name");
                 }
-                setters.add(new Setter(rs.getString("setter"), rs.getString("suuid"), rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified")));
+                setters.add(new Setter(rs.getString("setter"), UUID.fromString(rs.getString("suuid")), rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist"))));
             }
             return new Bounty(uuid, setters, name);
         } catch (SQLException e){
@@ -331,12 +411,16 @@ public class SQLGetter {
         }
         return null;
     }
-    public void editBounty(String uuid, String setterUUID, double amount) {
+    public void updateBounty(Bounty bounty) {
+        removeBounty(bounty.getUUID());
+        addBounty(bounty);
+    }
+    public void editBounty(UUID uuid, UUID setterUUID, double amount) {
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("UPDATE notbounties SET amount = amount + ? WHERE uuid = ? AND suuid = ?;");
             ps.setDouble(1, amount);
-            ps.setString(2, uuid);
-            ps.setString(3, setterUUID);
+            ps.setString(2, uuid.toString());
+            ps.setString(3, setterUUID.toString());
             ps.executeUpdate();
         } catch (SQLException e){
             if (reconnect()){
@@ -346,10 +430,10 @@ public class SQLGetter {
                 e.printStackTrace();
         }
     }
-    public void removeBounty(String uuid) {
+    public void removeBounty(UUID uuid) {
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ?");
-            ps.setString(1, uuid);
+            ps.setString(1, uuid.toString());
             ps.executeUpdate();
         } catch (SQLException e){
             if (reconnect()){
@@ -359,11 +443,11 @@ public class SQLGetter {
                 e.printStackTrace();
         }
     }
-    public void removeSetter(String uuid, String setterUUID) {
+    public void removeSetter(UUID uuid, UUID setterUUID) {
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("DELETE notbounties WHERE uuid = ? AND suuid = ?;");
-            ps.setString(1, uuid);
-            ps.setString(2, setterUUID);
+            ps.setString(1, uuid.toString());
+            ps.setString(2, setterUUID.toString());
             ps.executeUpdate();
         } catch (SQLException e){
             if (reconnect()){
@@ -407,7 +491,7 @@ public class SQLGetter {
 
     public List<Bounty> getTopBounties() {
         try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, name, amount FROM notbounties;");
+            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, name, amount, whitelist FROM notbounties;");
             ResultSet resultSet = ps.executeQuery();
 
             Map<String, Bounty> bountyAmounts = new HashMap<>();
@@ -415,9 +499,9 @@ public class SQLGetter {
                 String uuid = resultSet.getString("uuid");
                 if (uuid != null) {
                     if (bountyAmounts.containsKey(uuid)){
-                       bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"));
+                       bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"), new ArrayList<>());
                     } else {
-                        bountyAmounts.put(uuid, new Bounty(uuid, new ArrayList<>(Collections.singletonList(new Setter("", "", resultSet.getDouble("amount"), 0, true))), resultSet.getString("name")));
+                        bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(new Setter("", UUID.randomUUID(), resultSet.getDouble("amount"), 0, true, decodeWhitelist(resultSet.getString("whitelist"))))), resultSet.getString("name")));
                     }
                 }
             }

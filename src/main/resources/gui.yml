@@ -50,6 +50,12 @@ custom-items:
     name: '&c&lSet Bounty'
     commands:
       - '[p] bounty set'
+  set-whitelist:
+    material: PAPER
+    amount: 1
+    name: '&f&lSet Whitelist'
+    commands:
+      - '[p] bounty whitelist'
   add1:
     material: LIME_STAINED_GLASS_PANE
     amount: 1
@@ -106,6 +112,19 @@ custom-items:
     name: '&7See all players'
     commands:
       - '[gui] set-bounty 1 offline'
+  add-offline-whitelist:
+    material: LEVER
+    amount: 1
+    name: '&7See all players'
+    commands:
+      - '[gui] set-whitelist 1 offline'
+  reset-whitelist:
+    material: MILK_BUCKET
+    amount: 1
+    name: '&fReset whitelist'
+    commands:
+      - '[p] bounty whitelist reset'
+      - '[gui] set-whitelist 1'
 # for customizing the layout of the regular bounty GUI
 bounty-gui:
   # how the bounty menu is sorted
@@ -144,7 +163,7 @@ bounty-gui:
     # clicking this item will exit the GUI
     2:
       item: exit
-      slot: 48
+      slot: 49
     # these next 2 will only appear when there are multiple pages
     # they switch between the pages
     3:
@@ -155,7 +174,10 @@ bounty-gui:
       slot: 53
     5:
       item: set-bounty
-      slot: 50
+      slot: 51
+    6:
+      item: set-whitelist
+      slot: 47
 leaderboard:
   # 1 for highest value
   # 2 for lowest value
@@ -217,18 +239,53 @@ set-bounty:
     5:
       item: add-offline
       slot: 50
+set-whitelist:
+  # also sorts by immunity
+  sort-type: 3
+  size: 54
+  gui-name: '&d&lSelect &7&lWhitelisted &9&lPlayers'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    - '0-44'
+  head-name: '&e&l{player}'
+  head-lore:
+    - ''
+    - '&6Immunity: {amount}'
+    - '&7Click to toggle whitelist'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 45-53
+    2:
+      item: exit
+      slot: 49
+    3:
+      item: next
+      slot: 53
+    4:
+      item: back
+      slot: 45
+    5:
+      item: add-offline-whitelist
+      slot: 51
+    6:
+      item: reset-whitelist
+      slot: 47
 # the page of this is the price
 select-price:
   sort-type: 1
   size: 54
-  gui-name: '&d&lSelect &9&lBase Value:&f'
+  gui-name: '&d&lSelect &9&lBounty Value:&f'
   add-page: true
   remove-page-items: false
   player-slots:
     - '13'
   head-name: '&2Price: &a{amount_tax}'
   head-lore:
-    - '&7&oPrice may be adjusted for tax'
+    - '&7&oPrice may be adjusted for '
+    - '&7&otax and whitelisted players'
     - ''
     - '&7{player}'
     - '&cClick to set bounty'

@@ -57,7 +57,7 @@ public class BountyExpansion extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, String params){
         String uuid = player.getUniqueId().toString();
         if (params.startsWith("bounty")){
-            Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId().toString()) : notBounties.getBounty(player);
+            Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId()) : notBounties.getBounty(player);
             if (bounty != null){
                 if (params.endsWith("_formatted"))
                     return color(NumberFormatting.currencyPrefix + bounty.getTotalBounty() + NumberFormatting.currencySuffix);

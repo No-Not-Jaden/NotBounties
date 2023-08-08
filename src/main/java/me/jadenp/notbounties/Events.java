@@ -4,6 +4,7 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,6 +25,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.*;
+import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.ConfigOptions.*;
 
@@ -57,24 +59,35 @@ public class Events implements Listener {
                 if (event.getEntity().getKiller() != null) {
                     if (event.getEntity() != event.getEntity().getKiller()) {
                         Player killer = event.getEntity().getKiller();
+                        // check world filter
+                        if (worldFilter && !worldFilterNames.contains(event.getEntity().getWorld().getName()))
+                            return;
+                        if (!worldFilter && worldFilterNames.contains(event.getEntity().getWorld().getName()))
+                            return;
+                        // check if it is a npc
                         if (!npcClaim && killer.hasMetadata("NPC"))
                             return;
                         Player player = (Player) event.getEntity();
                         Bounty bounty = nb.getBounty(player);
-                        nb.displayParticle.remove(player);
                         assert bounty != null;
-                        String message = parse(speakings.get(0) + speakings.get(7), killer.getName(), player.getName(), bounty.getTotalBounty(), player);
+                        // check if killer can claim it
+                        if (bounty.getTotalBounty(killer) == 0)
+                            return;
+                        List<Setter> claimedBounties = new ArrayList<>(bounty.getSetters());
+                        claimedBounties.removeIf(setter -> !setter.canClaim(killer));
+
+                        nb.displayParticle.remove(player);
+
+                        // broadcast message
+                        String message = parse(speakings.get(0) + speakings.get(7), killer.getName(), player.getName(), bounty.getTotalBounty(killer), player);
                         Bukkit.getConsoleSender().sendMessage(message);
                         for (Player p : Bukkit.getOnlinePlayers()){
                             if (!nb.disableBroadcast.contains(p.getUniqueId().toString()) || p.getUniqueId().equals(event.getEntity().getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId())){
                                 p.sendMessage(message);
                             }
                         }
-                        if (!usingPapi) {
-                            if (!redeemRewardLater) {
-                                NumberFormatting.givePlayer(killer, new ItemStack(Material.valueOf(NumberFormatting.currency)), (long) bounty.getTotalBounty());
-                            }
-                        }
+
+                        // reward head
                         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
                         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
                         assert skullMeta != null;
@@ -82,68 +95,102 @@ public class Events implements Listener {
                         skull.setItemMeta(skullMeta);
 
                         if (rewardHeadSetter) {
-                            for (Setter setter : bounty.getSetters()) {
-                                if (!setter.getUuid().equalsIgnoreCase("CONSOLE")) {
-                                    Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
+                            for (Setter setter : claimedBounties) {
+                                if (!setter.getUuid().equals(new UUID(0,0))) {
+                                    Player p = Bukkit.getPlayer(setter.getUuid());
                                     if (p != null) {
-                                        if (!rewardHeadClaimed || !Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId().equals(UUID.fromString(setter.getUuid()))) {
+                                        if (!rewardHeadClaimed || !Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId().equals(setter.getUuid())) {
                                             NumberFormatting.givePlayer(p, skull, 1);
                                         }
                                     } else {
-                                        if (nb.headRewards.containsKey(setter.getUuid())) {
-                                            List<String> heads = nb.headRewards.get(setter.getUuid());
+                                        if (nb.headRewards.containsKey(setter.getUuid().toString())) {
+                                            List<String> heads = new ArrayList<>(nb.headRewards.get(setter.getUuid().toString()));
                                             heads.add(player.getUniqueId().toString());
-                                            nb.headRewards.replace(setter.getUuid(), heads);
+                                            nb.headRewards.replace(setter.getUuid().toString(), heads);
                                         } else {
-                                            nb.headRewards.put(setter.getUuid(), Collections.singletonList(player.getUniqueId().toString()));
+                                            nb.headRewards.put(setter.getUuid().toString(), Collections.singletonList(player.getUniqueId().toString()));
                                         }
                                     }
                                 }
                             }
                         }
                         if (rewardHeadClaimed){
-                            NumberFormatting.givePlayer(Objects.requireNonNull(event.getEntity().getKiller()), skull, 1);
+                            NumberFormatting.givePlayer(killer, skull, 1);
                         }
                         // do commands
+                        if (deathTax > 0) {
+                            Map<Material, Long> removedItems = NumberFormatting.doRemoveCommands(player, bounty.getTotalBounty(killer) * deathTax, event.getDrops());
+                            if (removedItems.size() > 0) {
+                                // send message
+                                long totalLoss = 0;
+                                StringBuilder builder = new StringBuilder();
+                                for (Map.Entry<Material, Long> entry : removedItems.entrySet()) {
+                                    builder.append(entry.getValue()).append("x").append(entry.getKey().toString()).append(", ");
+                                    totalLoss += entry.getValue();
+                                }
+                                builder.replace(builder.length() - 2, builder.length(), "");
+                                if (totalLoss > 0) {
+                                    player.sendMessage(parse(speakings.get(0) + speakings.get(64).replaceAll("\\{items}", Matcher.quoteReplacement(builder.toString())), player));
+                                    // modify drops
+                                    ListIterator<ItemStack> dropsIterator = event.getDrops().listIterator();
+                                    while (dropsIterator.hasNext()) {
+                                        ItemStack drop = dropsIterator.next();
+                                        if (removedItems.containsKey(drop.getType())) {
+                                            if (removedItems.get(drop.getType()) > drop.getAmount()) {
+                                                removedItems.replace(drop.getType(), removedItems.get(drop.getType()) - drop.getAmount());
+                                                dropsIterator.remove();
+                                            } else if (removedItems.get(drop.getType()) == drop.getAmount()) {
+                                                removedItems.remove(drop.getType());
+                                                dropsIterator.remove();
+                                            } else {
+                                                drop.setAmount((int) (drop.getAmount() - removedItems.get(drop.getType())));
+                                                dropsIterator.set(drop);
+                                                removedItems.remove(drop.getType());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         if (!redeemRewardLater) {
-                            NumberFormatting.doAddCommands(event.getEntity().getKiller(), bounty.getTotalBounty());
+                            NumberFormatting.doAddCommands(event.getEntity().getKiller(), bounty.getTotalBounty(killer));
                         } else {
                             // give voucher
                             ItemStack item = new ItemStack(Material.PAPER);
                             ItemMeta meta = item.getItemMeta();
                             assert meta != null;
-                            meta.setDisplayName(parse(speakings.get(40), event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(), (Player) event.getEntity()));
+                            meta.setDisplayName(parse(speakings.get(40), event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(killer), (Player) event.getEntity()));
                             ArrayList<String> lore = new ArrayList<>();
                             for (String str : voucherLore){
-                                lore.add(parse(str,  event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(), (Player) event.getEntity()));
+                                lore.add(parse(str,  event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(killer), (Player) event.getEntity()));
                             }
-                            lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + "" + ChatColor.UNDERLINE + "" + ChatColor.ITALIC + "@" + bounty.getTotalBounty());
+                            lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + "" + ChatColor.UNDERLINE + "" + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));
                             meta.setLore(lore);
                             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                             item.setItemMeta(meta);
                             item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
                             NumberFormatting.givePlayer(event.getEntity().getKiller(), item, 1);
                         }
+                        bounty.claimBounty(killer);
+                        nb.updateBounty(bounty);
                         if (nb.SQL.isConnected()){
-                            nb.data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(), 0, 0);
-                            nb.data.addData(killer.getUniqueId().toString(), 1,0,0,0,0, bounty.getTotalBounty());
-                            nb.data.removeBounty(bounty.getUUID());
+                            nb.data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(killer), 0, 0);
+                            nb.data.addData(killer.getUniqueId().toString(), 1,0,0,0,0, bounty.getTotalBounty(killer));
                         } else {
-                            nb.bountyList.remove(bounty);
-                            nb.allTimeBounties.put(player.getUniqueId().toString(), Leaderboard.ALL.getStat(player.getUniqueId()) + bounty.getTotalBounty());
+                            nb.allTimeBounties.put(player.getUniqueId().toString(), Leaderboard.ALL.getStat(player.getUniqueId()) + bounty.getTotalBounty(killer));
                             nb.killBounties.put(killer.getUniqueId().toString(), Leaderboard.KILLS.getStat(killer.getUniqueId()) + 1);
                             nb.deathBounties.put(player.getUniqueId().toString(), Leaderboard.DEATHS.getStat(player.getUniqueId()) + 1);
-                            nb.allClaimedBounties.put(player.getUniqueId().toString(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty());
+                            nb.allClaimedBounties.put(player.getUniqueId().toString(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty(killer));
                         }
 
-                        for (Setter setter : bounty.getSetters()) {
-                            if (!setter.getUuid().equalsIgnoreCase("CONSOLE")) {
+                        for (Setter setter : claimedBounties) {
+                            if (!setter.getUuid().equals(new UUID(0,0))) {
                                 if (nb.SQL.isConnected()) {
-                                    nb.data.addData(setter.getUuid(), 0, 1, 0, 0, 0, 0);
+                                    nb.data.addData(setter.getUuid().toString(), 0, 1, 0, 0, 0, 0);
                                 } else {
-                                    nb.setBounties.put(setter.getUuid(), Leaderboard.SET.getStat(UUID.fromString(setter.getUuid())) + 1);
+                                    nb.setBounties.put(setter.getUuid().toString(), Leaderboard.SET.getStat(setter.getUuid()) + 1);
                                 }
-                                Player p = Bukkit.getPlayer(UUID.fromString(setter.getUuid()));
+                                Player p = Bukkit.getPlayer(setter.getUuid());
                                 if (p != null) {
                                     p.playSound(p.getEyeLocation(), Sound.BLOCK_BEEHIVE_SHEAR, 1, 1);
                                 }
@@ -217,7 +264,7 @@ public class Events implements Listener {
                                                     String actionBar;
                                                     Bounty bounty = nb.getBounty(Bukkit.getOfflinePlayer(UUID.fromString(nb.trackedBounties.get(number))));
                                                     assert bounty != null;
-                                                    Player p = Bukkit.getPlayer(UUID.fromString(bounty.getUUID()));
+                                                    Player p = Bukkit.getPlayer(bounty.getUUID());
                                                     if (p != null) {
                                                         compassMeta.setLodestone(p.getLocation());
                                                         compassMeta.setLodestoneTracked(false);
@@ -297,9 +344,6 @@ public class Events implements Listener {
                                     } catch (NumberFormatException ignored){
                                         player.sendMessage(ChatColor.RED + "Error redeeming reward");
                                         return;
-                                    }
-                                    if (!usingPapi){
-                                        NumberFormatting.givePlayer(player, new ItemStack(Material.valueOf(NumberFormatting.currency)), (long) amount);
                                     }
                                     NumberFormatting.doAddCommands(player, amount);
                                     player.getInventory().remove(item);
@@ -451,6 +495,7 @@ public class Events implements Listener {
                 }
             }
             bounty.combineSetters();
+            nb.updateBounty(bounty);
             if (bounty.getTotalBounty() - addedAmount < bBountyThreshold && bounty.getTotalBounty() > bBountyThreshold){
                 event.getPlayer().sendMessage(parse(speakings.get(0) + speakings.get(43), event.getPlayer()));
                 if (bBountyCommands != null && !bBountyCommands.isEmpty()){
@@ -491,9 +536,6 @@ public class Events implements Listener {
                     // check if past expire time
                     if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
                         // refund money
-                        if (!usingPapi) {
-                            NumberFormatting.givePlayer(event.getPlayer(), new ItemStack(Material.valueOf(NumberFormatting.currency)), (long) setter.getAmount());
-                        }
                         NumberFormatting.doAddCommands(event.getPlayer(), setter.getAmount());
                         event.getPlayer().sendMessage(parse(speakings.get(0) + speakings.get(31), bounty.getName(), setter.getAmount(), event.getPlayer()));
                         setterIterator.remove();

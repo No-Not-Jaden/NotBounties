@@ -1,14 +1,17 @@
 package me.jadenp.notbounties.gui;
 
 import me.jadenp.notbounties.ConfigOptions;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 
@@ -140,7 +143,7 @@ public class GUIOptions {
             final OfflinePlayer p = playerItems[i];
             meta.setOwningPlayer(p);
             if (type.equals("bounty-gui")){
-                amount[i] = currencyPrefix + NumberFormatting.formatNumber(Double.parseDouble(amount[i])) + currencySuffix;
+                amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
             } else {
                 amount[i] = formatNumber(amount[i]);
             }
@@ -149,18 +152,15 @@ public class GUIOptions {
             String[] finalReplacements = replacements;
             String playerName = p.getName() != null ? p.getName() : "<?>";
             List<String> lore = new ArrayList<>(headLore);
-            double total = parseCurrency(finalAmount) * (bountyTax + 1);
-            if (!usingPapi)
-                total = Math.round(total);
+            double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).size() * bountyWhitelistCost;
             try {
                 meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), p));
-                double finalTotal = total;
-                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(finalTotal) + NumberFormatting.currencySuffix))), p));
+                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), p));
             } catch (IllegalArgumentException e){
                 Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             }
             // extra lore stuff
-            if (type.equals("bounty-gui"))
+            if (type.equals("bounty-gui")) {
                 if (player.hasPermission("notbounties.admin")) {
                     lore.add(ChatColor.RED + "Left Click" + ChatColor.GRAY + " to Remove");
                     lore.add(ChatColor.YELLOW + "Right Click" + ChatColor.GRAY + " to Edit");
@@ -172,6 +172,17 @@ public class GUIOptions {
                             lore.add("");
                         }
                     }
+                }
+                if (Objects.requireNonNull(NotBounties.getInstance().getBounty(p)).getAllWhitelists().contains(player.getUniqueId())) {
+                    lore.add(parse(speakings.get(63), player));
+                    lore.add("");
+                }
+            }
+            if (type.equalsIgnoreCase("set-whitelist"))
+                if (NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).contains(p.getUniqueId())) {
+                    skull.addUnsafeEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                    lore.add(parse(speakings.get(59), player));
                 }
             meta.setLore(lore);
             skull.setItemMeta(meta);

@@ -53,8 +53,11 @@ public class GUI implements Listener {
         switch (name){
             case "bounty-gui":
                 List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.sortBounties(gui.getSortType());
-                for (Bounty bounty : sortedList)
-                    values.put(bounty.getUUID(), String.format("%f", bounty.getTotalBounty()));
+                for (Bounty bounty : sortedList) {
+                    double bountyAmount = bounty.getTotalBounty(player);
+                    if (bountyAmount > 0)
+                        values.put(bounty.getUUID().toString(), String.format("%f", bountyAmount));
+                }
                 break;
             case "leaderboard":
                 Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard ? (Leaderboard) data[0] : Leaderboard.ALL;
@@ -63,6 +66,21 @@ public class GUI implements Listener {
                 break;
             case "set-bounty":
                 values = Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
+                for (Map.Entry<String, String> entry : NotBounties.getInstance().loggedPlayers.entrySet())
+                    if (!values.containsKey(entry.getValue()))
+                        values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
+                if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
+                    // remove offline players
+                    values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(UUID.fromString(e.getKey())).isOnline());
+                }
+                break;
+            case "set-whitelist":
+                List<UUID> whitelist = NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId());
+                for (UUID uuid : whitelist)
+                    values.put(uuid.toString(), NumberFormatting.currencyPrefix + Leaderboard.IMMUNITY.getStat(uuid) + NumberFormatting.currencySuffix);
+                for (Map.Entry<String, String> entry : Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet())
+                    if (!values.containsKey(entry.getValue()))
+                        values.put(entry.getKey(), entry.getValue());
                 for (Map.Entry<String, String> entry : NotBounties.getInstance().loggedPlayers.entrySet())
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
@@ -153,7 +171,7 @@ public class GUI implements Listener {
                                 openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), 0);
 
                             } else {
-                                if (bounty.getUUID().equals(event.getWhoClicked().getUniqueId().toString())) {
+                                if (bounty.getUUID().equals(event.getWhoClicked().getUniqueId())) {
                                     if (buyBack) {
                                         double balance = NumberFormatting.getBalance((Player) event.getWhoClicked());
                                         if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
@@ -174,6 +192,19 @@ public class GUI implements Listener {
                     break;
                 case "set-bounty":
                     openGUI((Player) event.getWhoClicked(), "select-price", minBounty, player.getUniqueId().toString());
+                    break;
+                case "set-whitelist":
+                    List<UUID> whitelist = NotBounties.getInstance().getPlayerWhitelist(event.getWhoClicked().getUniqueId());
+                    if (!whitelist.remove(player.getUniqueId())) {
+                        if (whitelist.size() < 10)
+                            whitelist.add(player.getUniqueId());
+                        else
+                            event.getWhoClicked().sendMessage(parse(speakings.get(0) + speakings.get(56), (Player) event.getWhoClicked()));
+                    }
+                    if (player.isOnline())
+                        openGUI((Player) event.getWhoClicked(), "set-whitelist", 1);
+                    else
+                        openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, "offline");
                     break;
                 case "select-price":
                     Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + player.getName() + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
@@ -282,10 +313,11 @@ public class GUI implements Listener {
                             l = Leaderboard.valueOf(command.substring(command.lastIndexOf(" ") + 1).toUpperCase());
                         } catch (IllegalArgumentException ignored){}
                         openGUI((Player) event.getWhoClicked(), guiName, amount, l);
-                    } else if (guiName.equalsIgnoreCase("set-bounty")){
+                    } else if (guiName.equalsIgnoreCase("set-bounty") || guiName.equalsIgnoreCase("set-whitelist")){
                         // [gui] set-bounty 1 offline
-                        if (command.length() > 17 && command.substring(17).contains(" ")){
-                            String afterName = command.substring(17);
+                        int length = 7 + guiType.length();
+                        if (command.length() > length && command.substring(length + 1).contains(" ")){
+                            String afterName = command.substring(length + 1);
                             String lastArg = afterName.substring(afterName.indexOf(" ") + 1);
                             openGUI((Player) event.getWhoClicked(), guiName, amount, lastArg);
                         } else {

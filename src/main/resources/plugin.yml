@@ -40,3 +40,6 @@ permissions:
   notbounties.tracker:
     default: true
     description: use a bounty tracker
+  notbounties.whitelist:
+    default: true
+    description: whitelist players to claim your bounty

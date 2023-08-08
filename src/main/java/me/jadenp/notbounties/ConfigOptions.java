@@ -1,6 +1,6 @@
 package me.jadenp.notbounties;
 
-import me.clip.placeholderapi.PlaceholderAPI;
+
 import me.jadenp.notbounties.gui.CustomItem;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
@@ -41,8 +41,8 @@ public class ConfigOptions {
     public static int minBroadcast;
     public static int bBountyThreshold;
     public static boolean bBountyParticle;
-    public static boolean buyImmunity;
-    public static boolean permanentImmunity;
+    public static int immunityType;
+    public static double timeImmunity;
     public static int permanentCost;
     public static double scalingRatio;
     public static int graceTime;
@@ -65,6 +65,10 @@ public class ConfigOptions {
     public static boolean updateNotification;
     public static Map<String, CustomItem> customItems = new HashMap<>();
     public static boolean npcClaim;
+    public static double deathTax;
+    public static boolean worldFilter;
+    public static List<String> worldFilterNames = new ArrayList<>();
+    public static double bountyWhitelistCost;
 
     public static void reloadOptions() throws IOException {
         NotBounties bounties = NotBounties.getInstance();
@@ -85,6 +89,8 @@ public class ConfigOptions {
             bounties.getConfig().set("currency.prefix", "&f");
         if (!bounties.getConfig().isSet("currency.suffix"))
             bounties.getConfig().set("currency.suffix", "&b◆");
+        if (!bounties.getConfig().isSet("currency.add-single-currency"))
+            bounties.getConfig().set("currency.add-single-currency", true);
         if (!bounties.getConfig().isSet("minimum-bounty"))
             bounties.getConfig().set("minimum-bounty", 1);
         if (!bounties.getConfig().isSet("bounty-tax"))
@@ -115,16 +121,23 @@ public class ConfigOptions {
             bounties.getConfig().set("buy-own-bounties.cost-multiply", 1.25);
         if (!bounties.getConfig().isSet("buy-own-bounties.lore-addition"))
             bounties.getConfig().set("buy-own-bounties.lore-addition", "&9Left Click &7to buy back for &a{amount}");
-        if (!bounties.getConfig().isSet("immunity.buy-immunity"))
-            bounties.getConfig().set("immunity.buy-immunity", false);
-        if (!bounties.getConfig().isSet("immunity.permanent-immunity.enabled"))
-            bounties.getConfig().set("immunity.permanent-immunity.enabled", false);
+        if (bounties.getConfig().isSet("immunity.buy-immunity")) {
+            if (bounties.getConfig().getBoolean("immunity.buy-immunity")) bounties.getConfig().set("immunity.type", 0);
+            else if (bounties.getConfig().getBoolean("immunity.permanent-immunity.enabled")) bounties.getConfig().set("immunity.type", 1);
+            else bounties.getConfig().set("immunity.type", 2);
+            bounties.getConfig().set("immunity.buy-immunity", null);
+            bounties.getConfig().set("immunity.permanent-immunity.enabled", null);
+        }
+        if (!bounties.getConfig().isSet("immunity.type"))
+            bounties.getConfig().set("immunity.type", 2);
         if (!bounties.getConfig().isSet("immunity.permanent-immunity.cost"))
             bounties.getConfig().set("immunity.permanent-immunity.cost", 128);
         if (!bounties.getConfig().isSet("immunity.scaling-immunity.ratio"))
             bounties.getConfig().set("immunity.scaling-immunity.ratio", 1.0);
-        if (!bounties.getConfig().isSet("immunity.grace-period")) bounties.getConfig().set("immunity.grace-period", 10);
-
+        if (!bounties.getConfig().isSet("immunity.time-immunity.seconds"))
+            bounties.getConfig().set("immunity.time-immunity.seconds", 3600);
+        if (!bounties.getConfig().isSet("immunity.grace-period"))
+            bounties.getConfig().set("immunity.grace-period", 10);
         if (!bounties.getConfig().isSet("bounty-tracker.enabled"))
             bounties.getConfig().set("bounty-tracker.enabled", true);
         if (!bounties.getConfig().isSet("bounty-tracker.give-own"))
@@ -177,6 +190,14 @@ public class ConfigOptions {
             bounties.getConfig().set("update-notification", true);
         if (!bounties.getConfig().isSet("npc-claim"))
             bounties.getConfig().set("npc-claim", false);
+        if (!bounties.getConfig().isSet("death-tax"))
+            bounties.getConfig().set("death-tax", 0);
+        if (!bounties.getConfig().isSet("world-filter")){
+            bounties.getConfig().set("world-filter.whitelist", false);
+            bounties.getConfig().set("world-filter.worlds", new ArrayList<>());
+        }
+        if (!bounties.getConfig().isSet("bounty-whitelist-cost"))
+            bounties.getConfig().set("bounty-whitelist-cost", 10);
 
         if (bounties.getConfig().isInt("number-formatting.type")) {
             switch (bounties.getConfig().getInt("number-formatting.type")) {
@@ -218,8 +239,8 @@ public class ConfigOptions {
         buyBack = bounties.getConfig().getBoolean("buy-own-bounties.enabled");
         buyBackInterest = bounties.getConfig().getDouble("buy-own-bounties.cost-multiply");
         buyBackLore = color(Objects.requireNonNull(bounties.getConfig().getString("buy-own-bounties.lore-addition")));
-        buyImmunity = bounties.getConfig().getBoolean("immunity.buy-immunity");
-        permanentImmunity = bounties.getConfig().getBoolean("immunity.permanent-immunity.enabled");
+        immunityType = bounties.getConfig().getInt("immunity.type");
+        timeImmunity = bounties.getConfig().getDouble("immunity.time-immunity.seconds");
         permanentCost = bounties.getConfig().getInt("immunity.permanent-immunity.cost");
         scalingRatio = bounties.getConfig().getDouble("immunity.scaling-immunity.ratio");
         graceTime = bounties.getConfig().getInt("immunity.grace-period");
@@ -245,7 +266,19 @@ public class ConfigOptions {
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
         updateNotification = bounties.getConfig().getBoolean("update-notification");
         npcClaim = bounties.getConfig().getBoolean("npc-claim");
+        deathTax = bounties.getConfig().getDouble("death-tax");
+        worldFilter = bounties.getConfig().getBoolean("world-filter.whitelist");
+        worldFilterNames = bounties.getConfig().getStringList("world-filter.worlds");
+        bountyWhitelistCost = bounties.getConfig().getDouble("bounty-whitelist-cost");
 
+        // add immunity that isn't in time tracker - this should only do anything when immunity is switched to time immunity
+        if (immunityType == 3) {
+            Map<String, Double> immunity = NotBounties.getInstance().SQL.isConnected() ? NotBounties.getInstance().data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : NotBounties.getInstance().immunitySpent;
+            for (Map.Entry<String, Double> entry : immunity.entrySet()) {
+                if (!NotBounties.getInstance().immunityTimeTracker.containsKey(UUID.fromString(entry.getKey())))
+                    NotBounties.getInstance().immunityTimeTracker.put(UUID.fromString(entry.getKey()), (long) ((entry.getValue() * timeImmunity * 1000) + System.currentTimeMillis()));
+            }
+        }
 
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
         if (!guiFile.exists()) {
@@ -300,6 +333,36 @@ public class ConfigOptions {
 
         customItems.clear();
         YamlConfiguration guiConfig = YamlConfiguration.loadConfiguration(guiFile);
+        if (!guiConfig.isSet("set-whitelist")) {
+            guiConfig.set("set-whitelist.sort-type", 3);
+            guiConfig.set("set-whitelist.size", 54);
+            guiConfig.set("set-whitelist.gui-name", "&d&lSelect &7&lWhitelisted &9&lPlayers");
+            guiConfig.set("set-whitelist.add-page", false);
+            guiConfig.set("set-whitelist.remove-page-items", true);
+            guiConfig.set("set-whitelist.player-slots", Collections.singletonList("0-44"));
+            guiConfig.set("set-whitelist.head-name", "&e&l{player}");
+            guiConfig.set("set-whitelist.head-lore", Arrays.asList("", "&6Immunity: {amount}", "&7Click to toggle whitelist", ""));
+            guiConfig.set("set-whitelist.layout.1.item", "fill");
+            guiConfig.set("set-whitelist.layout.1.slot", "45-53");
+            guiConfig.set("set-whitelist.layout.2.item", "exit");
+            guiConfig.set("set-whitelist.layout.2.slot", "49");
+            guiConfig.set("set-whitelist.layout.3.item", "next");
+            guiConfig.set("set-whitelist.layout.3.slot", "53");
+            guiConfig.set("set-whitelist.layout.4.item", "back");
+            guiConfig.set("set-whitelist.layout.4.slot", "45");
+            guiConfig.set("set-whitelist.layout.5.item", "add-offline-whitelist");
+            guiConfig.set("set-whitelist.layout.5.slot", "51");
+            guiConfig.set("set-whitelist.layout.6.item", "reset-whitelist");
+            guiConfig.set("set-whitelist.layout.6.slot", "47");
+            guiConfig.set("custom-items.add-offline-whitelist.material", "LEVER");
+            guiConfig.set("custom-items.add-offline-whitelist.amount", 1);
+            guiConfig.set("custom-items.add-offline-whitelist.name", "&7See all players");
+            guiConfig.set("custom-items.add-offline-whitelist.commands", Collections.singletonList("[gui] set-whitelist 1 offline"));
+            guiConfig.set("custom-items.reset-whitelist.material", "MILK_BUCKET");
+            guiConfig.set("custom-items.reset-whitelist.amount", 1);
+            guiConfig.set("custom-items.reset-whitelist.name", "&fReset whitelist");
+            guiConfig.set("custom-items.reset-whitelist.commands", Arrays.asList("[p] bounty whitelist reset", "[gui] set-whitelist 1"));
+        }
         for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)) {
 
             Material material = Material.STONE;
@@ -340,6 +403,7 @@ public class ConfigOptions {
             CustomItem customItem = new CustomItem(itemStack, itemCommands);
             customItems.put(key, customItem);
         }
+
         for (String key : guiConfig.getKeys(false)) {
             if (key.equals("custom-items"))
                 continue;
@@ -349,6 +413,8 @@ public class ConfigOptions {
                 Bukkit.getLogger().warning("Unknown GUI in gui.yml: \"" + key + "\"");
             }
         }
+
+        guiConfig.save(guiFile);
 
 
         if (!speakings.isEmpty())
@@ -402,10 +468,14 @@ public class ConfigOptions {
             configuration.set("permanent-immunity", "&6{player} &eis immune to bounties!");
         if (!configuration.isSet("scaling-immunity"))
             configuration.set("scaling-immunity", "&6{player} &eis immune to bounties less than &e{amount}&6.");
+        if (!configuration.isSet("time-immunity"))
+            configuration.set("time-immunity", "&6{player} &eis immune to bounties for &e{time}&6.");
         if (!configuration.isSet("buy-permanent-immunity"))
             configuration.set("buy-permanent-immunity", "&aYou have bought immunity from bounties.");
         if (!configuration.isSet("buy-scaling-immunity"))
             configuration.set("buy-scaling-immunity", "&aYou have bought immunity from bounties under the amount of &2{amount}&a.");
+        if (!configuration.isSet("buy-time-immunity"))
+            configuration.set("buy-time-immunity", "&aYou have bought immunity from bounties for &2{time}&a.");
         if (!configuration.isSet("grace-period"))
             configuration.set("grace-period", "&cA bounty had just been claimed on &4{player}&c. Please wait &4{time}&c until you try again.");
         if (!configuration.isSet("min-bounty"))
@@ -417,7 +487,7 @@ public class ConfigOptions {
         if (!configuration.isSet("removed-immunity"))
             configuration.set("removed-immunity", "&aSuccessfully removed your immunity to bounties.");
         if (!configuration.isSet("removed-other-immunity"))
-            configuration.set("removed-other-immunity", "&aSuccessfully removed &2{receiver}''s &aimmunity to bounties.");
+            configuration.set("removed-other-immunity", "&aSuccessfully removed &2{receiver}'s &aimmunity to bounties.");
         if (!configuration.isSet("no-immunity"))
             configuration.set("no-immunity", "&cYou do not have purchased immunity!");
         if (!configuration.isSet("no-immunity-other"))
@@ -484,6 +554,23 @@ public class ConfigOptions {
             configuration.set("bounty-stat.set.short", "&6Bounties set: &e{amount}");
         if (!configuration.isSet("bounty-stat.immunity.short"))
             configuration.set("bounty-stat.immunity.short", "&6Bounty immunity: &e{amount}");
+        if (!configuration.isSet("whitelisted-players"))
+            configuration.set("whitelisted-players", "&fYour whitelisted players:&7");
+        if (!configuration.isSet("whitelist-max"))
+            configuration.set("whitelist-max", "&cYou've reached the maximum amount of whitelisted players.");
+        if (!configuration.isSet("whitelist-reset"))
+            configuration.set("whitelist-reset", "&fYour whitelisted players have been reset.");
+        if (!configuration.isSet("whitelist-change"))
+            configuration.set("whitelist-change", "&eYour whitelisted players have been changed.");
+        if (!configuration.isSet("whitelisted-lore"))
+            configuration.set("whitelist-lore", "&f&lThis player is whitelisted.");
+        if (!configuration.isSet("whitelist-notify"))
+            configuration.set("whitelist-notify", "&fYou are whitelisted to this bounty!");
+        if (!configuration.isSet("immunity-expire"))
+            configuration.set("immunity-expire", "&cYour bounty immunity has expired!");
+        if (!configuration.isSet("death-tax"))
+            configuration.set("death-tax", "&cYou were killed because of a bounty. You lost &4{items}&c.");
+
 
         configuration.save(language);
 
@@ -513,8 +600,8 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("list-total"))));
         // 12 offline-bounty
         speakings.add(color(Objects.requireNonNull(configuration.getString("offline-bounty"))));
-        // 13 bounty-item-name
-        speakings.add("");
+        // 13 whitelisted-players
+        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelisted-players"))));
         // 14 success-remove-bounty
         speakings.add(color(Objects.requireNonNull(configuration.getString("success-remove-bounty"))));
         // 15 success-edit-bounty
@@ -600,7 +687,24 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.set.short"))));
         // 55 immunity.short
         speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.immunity.short"))));
-
+        // 56 whitelist-max
+        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-max"))));
+        // 57 whitelist-reset
+        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-reset"))));
+        // 58 whitelist-change
+        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-change"))));
+        // 59 whitelist-lore
+        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-lore"))));
+        // 60 immunity-expire
+        speakings.add(color(Objects.requireNonNull(configuration.getString("immunity-expire"))));
+        // 61 buy-time-immunity
+        speakings.add(color(Objects.requireNonNull(configuration.getString("buy-time-immunity"))));
+        // 62 time-immunity
+        speakings.add(color(Objects.requireNonNull(configuration.getString("time-immunity"))));
+        // 63 whitelist-notify
+        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-notify"))));
+        // 64 death-tax
+        speakings.add(color(Objects.requireNonNull(configuration.getString("death-tax"))));
 
         voucherLore.clear();
         for (String str : configuration.getStringList("bounty-voucher-lore")) {
@@ -641,14 +745,15 @@ public class ConfigOptions {
             str = str.replace("{player}", player);
         }
         if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
+            return new PlaceholderAPIClass().parse(receiver, str);
         }
         return str;
     }
 
     public static String parse(String str, OfflinePlayer receiver) {
         if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
+
+            return new PlaceholderAPIClass().parse(receiver, str);
         }
         return str;
     }
@@ -658,7 +763,7 @@ public class ConfigOptions {
             str = str.replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
+            return new PlaceholderAPIClass().parse(receiver, str);
         }
         return str;
     }
@@ -674,7 +779,7 @@ public class ConfigOptions {
             str = str.replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
+            return new PlaceholderAPIClass().parse(receiver, str);
         }
         return str;
     }
@@ -693,7 +798,7 @@ public class ConfigOptions {
             str = str.replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
+            return new PlaceholderAPIClass().parse(receiver, str);
         }
         return str;
     }
@@ -710,7 +815,7 @@ public class ConfigOptions {
             str = str.replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
+            return new PlaceholderAPIClass().parse(receiver, str);
         }
         return str;
     }
@@ -723,7 +828,7 @@ public class ConfigOptions {
             str = str.replace("{receiver}", player);
         }
         if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
+            return new PlaceholderAPIClass().parse(receiver, str);
         }
         return str;
     }
@@ -743,7 +848,7 @@ public class ConfigOptions {
             str = str.replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix);
         }
         if (papiEnabled && receiver != null) {
-            return PlaceholderAPI.setPlaceholders(receiver, str);
+            return new PlaceholderAPIClass().parse(receiver, str);
         }
         return str;
     }

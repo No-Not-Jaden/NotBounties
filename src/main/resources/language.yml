@@ -20,8 +20,10 @@ repeat-command-bounty: '&6Please type this command in again in the next 30 secon
 repeat-command-immunity: '&6Please type this command in again in the next 30 seconds to confirm buying immunity for &e{amount}&6.'
 permanent-immunity: '&6{player} &eis immune to bounties!'
 scaling-immunity: '&6{player} &eis immune to bounties less than &e{amount}&6.'
+time-immunity: '&6{player} &eis immune to bounties for &e{time}&6.'
 buy-permanent-immunity: '&aYou have bought immunity from bounties.'
 buy-scaling-immunity: '&aYou have bought immunity from bounties under the amount of &2{amount}&a.'
+buy-time-immunity: '&aYou have bought immunity from bounties for &2{time}&a.'
 grace-period: '&cA bounty had just been claimed on &4{player}&c. Please wait &4{time}&c until you try again.'
 min-bounty: '&cThe bounty must be at least &4{amount}&c.'
 unknown-command: '&dUse &9/bounty help &dfor a list of commands.'
@@ -30,6 +32,7 @@ removed-immunity: '&aSuccessfully removed your immunity to bounties.'
 removed-other-immunity: '&aSuccessfully removed &2{receiver}''s &aimmunity to bounties.' #
 no-immunity: '&cYou do not have purchased immunity!'
 no-immunity-other: '&4{receiver} &cdoes not have purchased immunity!'
+immunity-expire: '&cYour bounty immunity has expired!'
 expired-bounty: '&eYour bounty on &6{player}&e has expired. You have been refunded &2{amount}&e.'
 # uses placeholders for the player with the bounty, but they are not updated after the item is given
 bounty-tracker-name: '&eBounty Tracker: &6&l{player}'
@@ -54,6 +57,13 @@ bounty-voucher-lore:
   - ''
 redeem-voucher: '&aSuccessfully redeemed voucher for {amount}!'
 big-bounty: '&eYour bounty is very impressive!'
+whitelisted-players: '&fYour whitelisted players:&7' # player names will follow this
+whitelist-max: '&cYou''ve reached the maximum amount of whitelisted players.'
+whitelist-reset: '&fYour whitelisted players have been reset.'
+whitelist-change: '&eYour whitelisted players have been changed.'
+whitelist-lore: '&f&lThis player is whitelisted.'
+whitelist-notify: '&fYou are whitelisted to this bounty!'
+death-tax: '&cYou were killed because of a bounty. You lost &4{items}&c.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

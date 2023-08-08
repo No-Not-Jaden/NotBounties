@@ -1,0 +1,23 @@
+currency:
+  # accepts a material or a placeholder
+  # if the currency is a material, the plugin will automatically take away the necessary amounts
+  object:
+    #         vvv This number is the currency value. You can set a bounty of 5 with just 1 diamond.
+    - 'DIAMOND 5'
+    # If you do not specify a currency value, it defaults to 1. You can use decimal values with placeholders but not items
+    #                       vvv This second number is the currency weight. The default weight is 0
+    - '%vault_eco_balance% 1 1'
+    # If only one weight is set for all the currencies, then that currency will be used until their balance is empty.
+    - 'GOLD_INGOT 2'
+    # With the weights like this, setting a bounty for 30 will use 10 vault currency and 20 nottokens if the player has the balance.
+    # if the player doesn't have vault or token currencies, the plugin will look for diamonds and gold ingots in the player's inventory
+    - '%nottokens_amount% 10 2'
+  # before the currency in all occurrences in language.yml
+  prefix: '&f'
+  suffix: '&b◆'
+  # only needed if you are using a placeholder, but will be called either way.
+  # {player} & {amount} or use a placeholder
+  remove-commands: [] # ['eco take {player} {amount}']
+  add-commands: [] # ['eco give {player} {amount}']
+  # if you are using multiple currencies, true will add only the first currency - false will split the different currencies and will account for weight if any is set
+  add-single-currency: true

@@ -49,18 +49,15 @@ public class CurrencySetup implements Listener {
                 nb.getConfig().set("currency.add-commands", Collections.singletonList("eco give {player} {amount}"));
                 nb.getConfig().set("currency.remove-commands", Collections.singletonList("eco take {player} {amount}"));
                 nb.saveConfig();
-                admin.sendMessage(parse(speakings.get(0) + ChatColor.YELLOW + "Currency add and remove commands set to Vault.", admin));
-                if (papiEnabled) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "papi ecloud download Vault");
-                    new BukkitRunnable(){
-                        @Override
-                        public void run() {
-                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "papi reload");
-                        }
-                    }.runTaskLater(NotBounties.getInstance(), 20);
-                }
-                if (!Bukkit.getPluginManager().isPluginEnabled("Vault"))
-                    admin.sendMessage(parse(speakings.get(0) + ChatColor.RED + "Vault must be installed to use this!", admin));
+                admin.sendMessage(parse(speakings.get(0) + ChatColor.YELLOW + "Currency add and remove commands set to Essentials.", admin));
+                currencySetupStage = 4;
+            }
+            if (currencySetupStage == 8) {
+                NotBounties nb = NotBounties.getInstance();
+                nb.getConfig().set("currency.add-commands", new ArrayList<>());
+                nb.getConfig().set("currency.remove-commands", new ArrayList<>());
+                nb.saveConfig();
+                admin.sendMessage(parse(speakings.get(0) + ChatColor.YELLOW + "Cleared add and remove commands", admin));
                 currencySetupStage = 4;
             }
             // 0 - currency type
@@ -89,7 +86,13 @@ public class CurrencySetup implements Listener {
                     break;
                 case 1:
                     admin.sendMessage(parse(speakings.get(0) + ChatColor.YELLOW + "Do you want to change the add and remove commands?" + ChatColor.GRAY + " (Click)", admin));
-                    admin.sendMessage(parse(speakings.get(0) + ChatColor.GRAY + "If an item is set as the currency, you do not need add or remove commands.", admin));
+                    TextComponent start2 = new TextComponent(parse(speakings.get(0) + ChatColor.GRAY + "If an item is set as the currency, you do not need add or remove commands. Click", admin));
+                    TextComponent here2 = new TextComponent(ChatColor.WHITE + "" + ChatColor.ITALIC + " here ");
+                    here2.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 8"));
+                    here2.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GRAY + "Clear add and remove commands")));
+                    TextComponent end2 = new TextComponent(ChatColor.GRAY + "to clear add and remove commands.");
+                    BaseComponent[] addCommand = new BaseComponent[]{start2, here2, end2};
+                    admin.spigot().sendMessage(addCommand);
                     TextComponent no = new TextComponent(ChatColor.RED + "" + ChatColor.BOLD + "" + ChatColor.UNDERLINE + "No");
                     no.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 4"));
                     TextComponent yes = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "" + ChatColor.UNDERLINE + "Yes");
@@ -103,9 +106,9 @@ public class CurrencySetup implements Listener {
                     TextComponent here = new TextComponent(ChatColor.GOLD + "" + ChatColor.ITALIC + " here ");
                     here.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 7"));
                     here.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GRAY + "eco give/take {player} {amount}")));
-                    TextComponent end = new TextComponent(ChatColor.YELLOW + "if you are using Vault.");
-                    BaseComponent[] addCommand = new BaseComponent[]{start, here, end};
-                    admin.spigot().sendMessage(addCommand);
+                    TextComponent end = new TextComponent(ChatColor.YELLOW + "if you are using Essentials.");
+                    BaseComponent[] addCommand2 = new BaseComponent[]{start, here, end};
+                    admin.spigot().sendMessage(addCommand2);
                     admin.sendMessage(speakings.get(0) + ChatColor.GRAY + "Substitute the player for {player} and the amount for {amount}. Type \"skip\" to not have an add command.");
                     admin.sendMessage(" ");
                     break;
@@ -168,6 +171,24 @@ public class CurrencySetup implements Listener {
                     event.getPlayer().sendMessage(speakings.get(0) + ChatColor.YELLOW + "Currency is now set to the placeholder: " + ChatColor.WHITE + currency);
                     if (!papiEnabled)
                         event.getPlayer().sendMessage(parse(speakings.get(0) + ChatColor.RED + "PlaceholderAPI must be installed to use this!", event.getPlayer()));
+                    if (currency.equalsIgnoreCase("%vault_eco_balance%")) {
+                        if (papiEnabled) {
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "papi ecloud download Vault");
+                                }
+                            }.runTask(NotBounties.getInstance());
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "papi reload");
+                                }
+                            }.runTaskLater(NotBounties.getInstance(), 20);
+                        }
+                        if (!Bukkit.getPluginManager().isPluginEnabled("Vault"))
+                            event.getPlayer().sendMessage(parse(speakings.get(0) + ChatColor.RED + "Vault must be installed to use this!", event.getPlayer()));
+                    }
                     currencySetupStage++;
                 } else {
                     Material material;
