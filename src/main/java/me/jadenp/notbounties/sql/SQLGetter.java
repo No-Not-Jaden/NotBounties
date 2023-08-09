@@ -399,7 +399,8 @@ public class SQLGetter {
                 if (name.equals("")){
                     name = rs.getString("name");
                 }
-                setters.add(new Setter(rs.getString("setter"), UUID.fromString(rs.getString("suuid")), rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist"))));
+                UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(rs.getString("suuid"));
+                setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist"))));
             }
             return new Bounty(uuid, setters, name);
         } catch (SQLException e){

@@ -251,7 +251,8 @@ public final class NotBounties extends JavaPlugin {
                         List<UUID> convertedUUIDs = new ArrayList<>();
                         for (String uuid : whitelistUUIDs)
                             convertedUUIDs.add(UUID.fromString(uuid));
-                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid"))), configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), convertedUUIDs);
+                        UUID setterUUID = Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")).equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")));
+                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), setterUUID, configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), convertedUUIDs);
                         if (bountyExpire > 0) {
                             if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
                                 expiredSetters.add(setter);
