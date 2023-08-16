@@ -26,6 +26,10 @@ custom-items:
     # {player} will be replaced with the name of the player who clicked
     # {slot<x>} will be replaced with the name of the owner of the skull in that slot, or if there is no skull, it will be replaced with the item name
     commands: []
+  custom-head:
+    material: player_head eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWRjZjJjMTk4ZjYxZGY1YTZkMGJhOTdkYmY5MGMzMzc5OTU0MDVjMTczOTZjMDE2Yzg1ZjZmM2ZlYTUyYzkwNiJ9fX0=
+    amount: 1
+    name: '&cSkull'
   exit:
     material: BARRIER
     amount: 1
@@ -125,6 +129,12 @@ custom-items:
     commands:
       - '[p] bounty whitelist reset'
       - '[gui] set-whitelist 1'
+  return:
+    material: WHITE_BED
+    amount: 1
+    name: '&6&lReturn'
+    commands:
+      - '[gui] bounty-gui 1'
 # for customizing the layout of the regular bounty GUI
 bounty-gui:
   # how the bounty menu is sorted
@@ -206,7 +216,7 @@ leaderboard:
       item: fill
       slot: 0-35
     2:
-      item: exit
+      item: return
       slot: 31
 set-bounty:
   # same sort for leaderboard, but this sorts immunity
@@ -228,7 +238,7 @@ set-bounty:
       item: fill
       slot: 45-53
     2:
-      item: exit
+      item: return
       slot: 48
     3:
       item: next
@@ -259,7 +269,7 @@ set-whitelist:
       item: fill
       slot: 45-53
     2:
-      item: exit
+      item: return
       slot: 49
     3:
       item: next
@@ -296,7 +306,7 @@ select-price:
       item: fill
       slot: 0-53
     2:
-      item: exit
+      item: return
       slot: 49
     3:
       item: remove1
@@ -335,7 +345,7 @@ confirm:
       item: fill
       slot: 0-53
     2:
-      item: exit
+      item: return
       slot: 49
     3:
       item: no

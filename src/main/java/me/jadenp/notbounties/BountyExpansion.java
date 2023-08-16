@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import me.jadenp.notbounties.utils.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
@@ -9,7 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static me.jadenp.notbounties.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class BountyExpansion extends PlaceholderExpansion {
 

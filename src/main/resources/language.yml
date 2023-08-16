@@ -10,7 +10,7 @@ broke: '&cYou do not have enough currency for this! &8Required: &7{amount}'
 claim-bounty-broadcast: '&e{player}&6 has claimed the bounty of &f{amount}&6 on &e{receiver}&6!'
 no-bounty: '&4{receiver} &cdoes not have a bounty!'
 check-bounty: '&e{receiver}&a has a bounty of &e{amount}&a.'
-list-setter: '&e{player} &7> &a{amount}'
+list-setter: '&e{player} &7> &a{amount} &8{time}'
 list-total: '&e{player} &7> &a{amount}'
 offline-bounty: '&e{player}&6 has set a bounty of &e{amount}&6 on you while you were offline!'
 success-remove-bounty: '&aSuccessfully removed &2{receiver}''s &abounty.'  #
@@ -63,7 +63,20 @@ whitelist-reset: '&fYour whitelisted players have been reset.'
 whitelist-change: '&eYour whitelisted players have been changed.'
 whitelist-lore: '&f&lThis player is whitelisted.'
 whitelist-notify: '&fYou are whitelisted to this bounty!'
+not-whitelisted: #
+  - '&cPart of this bounty is whitelisted.'
 death-tax: '&cYou were killed because of a bounty. You lost &4{items}&c.'
+max-setters: '&cThe maximum amount of setters for this player has been reached.'
+map-name: '&6&lWANTED: &f{player}'
+map-lore:
+  - ''
+  - '&6&oREWARD:'
+  - '&2{amount}'
+  - '&6&oAS OF'
+  - '&7{time}'
+  - ''
+map-give: '&eYou have given &6{receiver}&e a bounty poster of {player}.' #
+map-receive: '&eYou have been given a bounty poster of &6{player}&e.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

@@ -32,8 +32,26 @@ hide-stats:
 update-notification: true
 # allow a npc to claim a bounty
 npc-claim: false
-# cost to add 1 player to the bounty whitelist - up to 10 players can be added
-bounty-whitelist-cost: 10
+# limit bounties to a max number of setters - other players can't set a bounty on a player if the maximum has been hit - (-1) to disable
+max-setters: -1
+# wanted posters of bounty
+bounty-posters:
+  # players can give themselves bounty posters of any bounty, otherwise, only admins can give posters
+  give-own: false
+  # display bounty reward on the poster
+  # note: changing this will change the position of the names and can cause text to overlap
+  #       if you want to change this, I suggest deleting all the made maps in plugins/NotBounties/posters
+  display-reward: true
+  # reward text below name if display-reward is enabled
+  reward-text: 'REWARD: ' # total bounty will follow this
+  # lock the bounty map - this will improve performance, but the maps will not update after they are created
+  # if you turn this on, I advise disabling display-reward to avoid confusing your players
+  lock-maps: false
+  # true adds the currency prefix and suffix to the reward text
+  # Some special characters like ◆ do not work on the poster
+  currency-wrap: false
+  # how many milliseconds between map updates
+  update-interval: 1000
 # filter on where bounties can be claimed
 world-filter:
   # true to whitelist the list of worlds
@@ -42,6 +60,11 @@ world-filter:
   # world names to whitelist or blacklist
   worlds:
     - SafeWorld
+bounty-whitelist:
+  # allow players to whitelist other players to claim bounties they set
+  enabled: true
+  # cost to add 1 player to the bounty whitelist - up to 10 players can be added
+  cost: 10
 # formatting of large numbers
 number-formatting:
   # Same as essentialsX config
@@ -72,7 +95,8 @@ buy-own-bounties:
   # bounty set for $100 would have to be bought for $125
   cost-multiply: 1.25
   # what is added to the lore in the GUI if the bounty is on the GUI viewer
-  lore-addition: '&9Left Click &7to buy back for &a{amount}'
+  lore-addition:
+    - '&9Left Click &7to buy back for &a{amount}'
 immunity:
   # players can buy immunity from having bounties set on them as opposed to having immunity from the permission node
   # Immunity types:

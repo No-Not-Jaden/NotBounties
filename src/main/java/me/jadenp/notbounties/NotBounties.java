@@ -2,8 +2,13 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
+import me.jadenp.notbounties.map.BountyMap;
 import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
+import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.CurrencySetup;
+import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.UpdateChecker;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -30,74 +35,20 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
-import static me.jadenp.notbounties.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 /**
- * bounty whitelist w/ GUI
- * can edit console bounties
- * bounty time immunity
- * world whitelist/blacklist
- * multiple currencies
- * death tax
- * changed currency setup
- * <p>
- * whitelist saves after restart x
- * SQL updates with new column x
- * whitelist is encoded & decoded from sql x
- * time immunity syncs with mySQL every 5 min x
- * time immunity updates every 2 seconds x
- * time immunity expires x
- * time immunity block bounty set x
- * buy scaling immunity x
- * buy time immunity x
- * add bounty with whitelisted players x
- * whitelist GUI toggles players & maxes out at 10 x
- * whitelist command directly and adding x
- * whitelist reset x
- * whitelist view x
- * whitelist lore addition/ enchantment x
- * whitelist cost & shows in gui x
- * whitelist tab complete x
- * cant claim bounty if not whitelisted x
- * claim partial bounty with whitelist x
- * bounty updated after partial claim x
- * can't see whitelisted bounties in GUI x
- * can see own bounty if whitelisted x
- * multiple currencies
- * - split remove x
- * - split add or add single currency x
- * - papi and items x
- * - weights and value x
- * death tax x
- * world filter stops bounty claim x
- * <p>
- * messages:
- * deny bounty set w/ time immunity x
- * buy time immunity x
- * view whitelisted players x
- * max whitelisted players x
- * reset whitelist x
- * change whitelist x
- * immunity expire x
- * Vault -> Essentials in currency setup x
- * death tax x
- * <p>
- * whitelist gui doesn't work - x
- * could not find player whitelist - unknown player - x
- * add unknown player when trying to remove someone who doesn't exist in whitelist - x
- * can add multiple people to your whitelist - x
- * bounty immunity not adding previous immunity when reloading config to time immunity -
- * lore addition to specific whitelisted bounties - x
- * death tax takes less than needed with multiple currencies - x
- * don't broadcast bounties to non-whitelisted players - add extra message - x
- * don't broadcast bounties to setter if whitelisted - x
- * bounty is removed after partial claim - x
- * put whitelisted players at the top of the whitelist gui - x
- * whitelist not multiplied by cost in gui display - x
- * reopen bounty gui when player buys back x
- * add single currency doesn't work - x
- * currency values don't work - x
- * don't combine setters with different whitelists x
+ * custom heads work with base64 and hdb - x
+ * Big bounty and bounty tracker don't work when player is hidden - x
+ * page items don't work when there aren't more pages - x
+ * multiple lines in buy own bounty lore - x
+ * buy back is formatted correctly with divisions - x
+ * option to only have one bounty set at a time - x
+ * admins can see whitelisted bounties - x
+ * save maps when created
+ * time can be used -
+ *
+ * 2 messages
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -209,13 +160,15 @@ public final class NotBounties extends JavaPlugin {
         Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(new Commands(this));
         Bukkit.getServer().getPluginManager().registerEvents(new Events(this), this);
         Bukkit.getServer().getPluginManager().registerEvents(new GUI(), this);
-        CurrencySetup currencySetup = new CurrencySetup();
-        Bukkit.getServer().getPluginManager().registerEvents(currencySetup, this);
+        Bukkit.getServer().getPluginManager().registerEvents(new CurrencySetup(), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new BountyMap(), this);
 
         this.saveDefaultConfig();
 
         this.SQL = new MySQL(this);
         this.data = new SQLGetter();
+
+        BountyMap.initialize();
 
         try {
             loadConfig();
@@ -251,7 +204,7 @@ public final class NotBounties extends JavaPlugin {
                         List<UUID> convertedUUIDs = new ArrayList<>();
                         for (String uuid : whitelistUUIDs)
                             convertedUUIDs.add(UUID.fromString(uuid));
-                        UUID setterUUID = Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")).equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")));
+                        UUID setterUUID = Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")).equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")));
                         Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), setterUUID, configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), convertedUUIDs);
                         if (bountyExpire > 0) {
                             if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
@@ -408,7 +361,7 @@ public final class NotBounties extends JavaPlugin {
                                                         assert bounty != null;
                                                         OfflinePlayer p1 = Bukkit.getOfflinePlayer(bounty.getUUID());
 
-                                                        if (p1.isOnline()) {
+                                                        if (p1.isOnline() && player.canSee(Objects.requireNonNull(p1.getPlayer()))) {
                                                             Player p = p1.getPlayer();
                                                             assert p != null;
                                                             if (compassMeta.getLodestone() == null) {
@@ -494,15 +447,15 @@ public final class NotBounties extends JavaPlugin {
 
                 // big bounty particle
                 if (bBountyThreshold != -1) {
-
-                    for (Player player : displayParticle) {
-                        if (player.isOnline()) {
-                            if (bBountyParticle) {
-                                player.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, player.getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
+                    if (bBountyParticle)
+                        for (Player player : displayParticle) {
+                            if (player.isOnline()) {
+                                for (Player viewer : Bukkit.getOnlinePlayers()) {
+                                    if (viewer.canSee(player) && viewer.getWorld().equals(player.getWorld()) && viewer.getLocation().distance(player.getLocation()) < 256)
+                                        viewer.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
+                                }
                             }
-                            // other repeating perks would go here vvv
                         }
-                    }
                 }
                 if (immunityType == 3) {
                     // iterate through immunity and update it
@@ -590,6 +543,11 @@ public final class NotBounties extends JavaPlugin {
                 }
 
                 save();
+                try {
+                    BountyMap.save();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
 
                 if (trackerRemove > 1) {
                     for (Player player : Bukkit.getOnlinePlayers()) {
@@ -773,6 +731,11 @@ public final class NotBounties extends JavaPlugin {
         // Plugin shutdown logic
         // save bounties & logged players
         save();
+        try {
+            BountyMap.save();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

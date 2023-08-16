@@ -100,6 +100,9 @@ public class Bounty implements Comparable<Bounty>{
         }
     }
 
+    public long getLatestSetter() {
+        return setters.stream().mapToLong(Setter::getTimeCreated).filter(setter -> setter >= 0).max().orElse(0);
+    }
 
     public double getTotalBounty(){
         double total = 0;

@@ -3,7 +3,7 @@ package me.jadenp.notbounties.gui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.NumberFormatting;
+import me.jadenp.notbounties.utils.NumberFormatting;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class GUI implements Listener {
 
@@ -39,9 +39,9 @@ public class GUI implements Listener {
 
     public GUI(){}
 
-    public static void openGUI(Player player, String name, int page, Object... data) {
+    public static LinkedHashMap<String, String> getGUIValues(Player player, String name, int page, Object[] data) {
         if (!customGuis.containsKey(name))
-            return;
+            return new LinkedHashMap<>();
         GUIOptions gui = customGuis.get(name);
         if (page < 1)
             page = 1;
@@ -49,12 +49,11 @@ public class GUI implements Listener {
 
         LinkedHashMap<String, String> values = new LinkedHashMap<>();
         NotBounties nb = NotBounties.getInstance();
-        String[] replacements = new String[0];
         switch (name){
             case "bounty-gui":
                 List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList) {
-                    double bountyAmount = bounty.getTotalBounty(player);
+                    double bountyAmount = player.hasPermission("notbounties.admin") ? bounty.getTotalBounty() : bounty.getTotalBounty(player);
                     if (bountyAmount > 0)
                         values.put(bounty.getUUID().toString(), String.format("%f", bountyAmount));
                 }
@@ -62,7 +61,6 @@ public class GUI implements Listener {
             case "leaderboard":
                 Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard ? (Leaderboard) data[0] : Leaderboard.ALL;
                 values = leaderboard.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
-                replacements = new String[]{leaderboard.toString()};
                 break;
             case "set-bounty":
                 values = Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
@@ -98,6 +96,24 @@ public class GUI implements Listener {
                 int price = data.length > 1 && data[1] instanceof Integer ? (int) data[1] : 0;
                 values.put(uuid, price + "");
                 break;
+        }
+        return values;
+
+    }
+
+    public static void openGUI(Player player, String name, int page, Object... data) {
+        if (!customGuis.containsKey(name))
+            return;
+        GUIOptions gui = customGuis.get(name);
+        if (page < 1)
+            page = 1;
+
+
+        LinkedHashMap<String, String> values = getGUIValues(player, name, page, data);
+        String[] replacements = new String[0];
+        if ("leaderboard".equals(name)) {
+            Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard ? (Leaderboard) data[0] : Leaderboard.ALL;
+            replacements = new String[]{leaderboard.toString()};
         }
 
         player.openInventory(gui.createInventory(player, page, values, replacements));
@@ -212,7 +228,8 @@ public class GUI implements Listener {
                     break;
             }
         } else {
-            CustomItem customItem = gui.getCustomItems()[event.getSlot()];
+            PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
+            CustomItem customItem = gui.getCustomItem(event.getSlot(), info.getPage(), getGUIValues((Player) event.getWhoClicked(), guiType, info.getPage(), info.getData()).size());
             if (customItem == null)
                 return;
             for (String command : customItem.getCommands()){
@@ -266,7 +283,6 @@ public class GUI implements Listener {
                     try {
                         amount = Integer.parseInt(command.substring(7));
                     } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
-                    PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
                     if (guiType.equals("select-price")){
                         String uuid = (String) info.getData()[0]; //((SkullMeta) event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta()).getOwningPlayer().getUniqueId().toString();
                         openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, uuid);
@@ -282,7 +298,6 @@ public class GUI implements Listener {
                     try {
                         amount = Integer.parseInt(command.substring(7));
                     } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
-                    PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
                     if (guiType.equals("select-price")){
                         String uuid = (String) info.getData()[0]; //((SkullMeta) event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta()).getOwningPlayer().getUniqueId().toString();
                         openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount, uuid);

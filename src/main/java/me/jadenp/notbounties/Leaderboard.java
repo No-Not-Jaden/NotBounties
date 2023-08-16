@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.utils.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -10,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public enum Leaderboard {
     //(all/kills/claimed/deaths/set/immunity)

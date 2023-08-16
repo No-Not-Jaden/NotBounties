@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.sql;
 
 import me.jadenp.notbounties.*;
+import me.jadenp.notbounties.utils.ConfigOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.Nullable;

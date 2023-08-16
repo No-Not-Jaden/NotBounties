@@ -1,8 +1,10 @@
 package me.jadenp.notbounties.gui;
 
-import me.jadenp.notbounties.ConfigOptions;
+import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.NumberFormatting;
+import me.jadenp.notbounties.utils.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -18,8 +20,8 @@ import org.bukkit.inventory.meta.SkullMeta;
 import java.util.*;
 import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.ConfigOptions.*;
-import static me.jadenp.notbounties.NumberFormatting.*;
+import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.NumberFormatting.*;
 
 public class GUIOptions {
     private final List<Integer> playerSlots; // this size of this is how many player slots per page
@@ -32,7 +34,7 @@ public class GUIOptions {
     private final List<String> headLore;
     private final boolean addPage;
     private final String type;
-    private final List<CustomItem> pageReplacements = new ArrayList<>();
+    private final Map<Integer, CustomItem> pageReplacements = new HashMap<>();
 
     public GUIOptions(ConfigurationSection settings){
         type = settings.getName();
@@ -55,7 +57,7 @@ public class GUIOptions {
                     //Bukkit.getLogger().info(i + "");
                     if (customItems[i] != null){
                         if (getPageType(customItem.getCommands()) > 0){
-                            pageReplacements.add(customItems[i]);
+                            pageReplacements.put(i, customItems[i]);
                         }
                     }
                     customItems[i] = customItem;
@@ -78,8 +80,23 @@ public class GUIOptions {
         return addPage;
     }
 
-    public CustomItem[] getCustomItems() {
-        return customItems;
+    public CustomItem getCustomItem(int slot, int page, int entryAmount) {
+        if (slot >= customItems.length)
+            return null;
+        CustomItem item = customItems[slot];
+        // next
+        if (getPageType(item.getCommands()) == 1 && page * playerSlots.size() >= entryAmount){
+            if (pageReplacements.containsKey(slot))
+                return pageReplacements.get(slot);
+            return null;
+        }
+        // back
+        if (getPageType(item.getCommands()) == 2 && page == 1){
+            if (pageReplacements.containsKey(slot))
+                return pageReplacements.get(slot);
+            return null;
+        }
+        return item;
     }
 
     /**
@@ -114,7 +131,6 @@ public class GUIOptions {
         Inventory inventory = Bukkit.createInventory(player, size, name);
         ItemStack[] contents = inventory.getContents();
         // set up regular items
-        int replacementIndex = 0;
         for (int i = 0; i < contents.length; i++) {
             if (customItems[i] == null)
                 continue;
@@ -122,14 +138,12 @@ public class GUIOptions {
             if (removePageItems){
                 // next
                 if (getPageType(customItems[i].getCommands()) == 1 && page * playerSlots.size() >= amount.length){
-                    contents[i] = pageReplacements.get(replacementIndex).getFormattedItem(player, replacements);
-                    replacementIndex++;
+                    contents[i] = pageReplacements.get(i).getFormattedItem(player, replacements);
                     continue;
                 }
                 // back
                 if (getPageType(customItems[i].getCommands()) == 2 && page == 1){
-                    contents[i] = pageReplacements.get(replacementIndex).getFormattedItem(player, replacements);
-                    replacementIndex++;
+                    contents[i] = pageReplacements.get(i).getFormattedItem(player, replacements);
                     continue;
                 }
             }
@@ -142,11 +156,14 @@ public class GUIOptions {
             assert meta != null;
             final OfflinePlayer p = playerItems[i];
             meta.setOwningPlayer(p);
+            long time = System.currentTimeMillis();
             if (type.equals("bounty-gui")){
                 amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
+                time = Objects.requireNonNull(NotBounties.getInstance().getBounty(p)).getLatestSetter();
             } else {
                 amount[i] = formatNumber(amount[i]);
             }
+
             final String finalAmount = amount[i];
             final int rank = i + 1;
             String[] finalReplacements = replacements;
@@ -154,8 +171,9 @@ public class GUIOptions {
             List<String> lore = new ArrayList<>(headLore);
             double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).size() * bountyWhitelistCost;
             try {
-                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), p));
-                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), p));
+                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), time, p));
+                long finalTime = time;
+                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), finalTime, p));
             } catch (IllegalArgumentException e){
                 Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             }
@@ -168,14 +186,26 @@ public class GUIOptions {
                 } else {
                     if (buyBack) {
                         if (p.getUniqueId().equals(player.getUniqueId())) {
-                            lore.add(parse(buyBackLore, (int) (parseCurrency(finalAmount) * buyBackInterest), player));
+                            buyBackLore.stream().map(bbLore -> parse(bbLore, (parseCurrency(finalAmount) * buyBackInterest), player)).forEach(lore::add);
                             lore.add("");
                         }
                     }
                 }
-                if (Objects.requireNonNull(NotBounties.getInstance().getBounty(p)).getAllWhitelists().contains(player.getUniqueId())) {
+                // whitelist
+                Bounty bounty = NotBounties.getInstance().getBounty(p);
+                assert bounty != null;
+                if (bounty.getAllWhitelists().contains(player.getUniqueId())) {
                     lore.add(parse(speakings.get(63), player));
                     lore.add("");
+                } else if (player.hasPermission("notbounties.admin")) {
+                    // not whitelisted
+                    for (Setter setter : bounty.getSetters()) {
+                        if (!setter.canClaim(player)) {
+                            lore.addAll(notWhitelistedLore);
+                            lore.add("");
+                            break;
+                        }
+                    }
                 }
             }
             if (type.equalsIgnoreCase("set-whitelist"))
@@ -193,22 +223,7 @@ public class GUIOptions {
         
     }
 
-    public static double parseCurrency(String amount){
-        amount = ChatColor.stripColor(amount);
-        double a;
-        try {
-            a = tryParse(amount);
-            return a;
-        } catch (NumberFormatException ignored){}
-        try {
-            a = tryParse(amount.substring(ChatColor.stripColor(NumberFormatting.currencyPrefix).length(), amount.length() - ChatColor.stripColor(NumberFormatting.currencySuffix).length()));
-            return a;
-        } catch (NumberFormatException | IndexOutOfBoundsException e){
-            //Bukkit.getLogger().warning("Unable to parse a currency string! This is probably because of an incompatible usage of {amount_tax}");
 
-        }
-        return NumberFormatting.findFirstNumber(amount);
-    }
 
 
 
