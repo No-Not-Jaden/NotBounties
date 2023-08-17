@@ -9,7 +9,8 @@ dead bounty.png will overlay the head when the player doesn't have a bounty. Thi
 Changes will take effect after a server restart
 
 *=* Custom Font *=*
-In the poster template and the default playerfont.ttf file, the font is SimSun-ExtB
+To use your own font, add a true text file called playerfont.ttf to the posters folder
+The WANTED text in the poster image is Simsun-ExtB
 playerfont.ttf is used to generate the player name and reward text
 The text is black
 

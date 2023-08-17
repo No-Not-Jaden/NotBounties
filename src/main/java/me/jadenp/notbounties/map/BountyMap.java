@@ -43,8 +43,6 @@ public class BountyMap implements Listener {
     public static void initialize(){
         posterDirectory = new File(NotBounties.getInstance().getDataFolder() + File.separator + "posters");
         posterDirectory.mkdir();
-        if (!new File(posterDirectory + File.separator + "playerfont.ttf").exists())
-            NotBounties.getInstance().saveResource("posters/playerfont.ttf", false);
         if (!new File(posterDirectory + File.separator + "bounty poster.png").exists())
             NotBounties.getInstance().saveResource("posters/bounty poster.png", false);
         if (!new File(posterDirectory + File.separator + "poster template.png").exists())
@@ -99,10 +97,16 @@ public class BountyMap implements Listener {
     }
 
     public static void loadFont() {
-        try {
-            playerFont = Font.createFont(Font.TRUETYPE_FONT, new File(BountyMap.posterDirectory + File.separator + "playerfont.ttf"));
-        } catch (IOException | FontFormatException e) {
-            e.printStackTrace();
+        if (new File(posterDirectory + File.separator + "playerfont.ttf").exists()) {
+            try {
+                playerFont = Font.createFont(Font.TRUETYPE_FONT, new File(BountyMap.posterDirectory + File.separator + "playerfont.ttf"));
+            } catch (IOException | FontFormatException e) {
+                Bukkit.getLogger().warning("Error loading custom font! Using default.");
+                //e.printStackTrace();
+                playerFont = new Font("Serif", Font.PLAIN, 20);
+            }
+        } else {
+            playerFont = new Font("Serif", Font.PLAIN, 20);
         }
     }
     public static Font getPlayerFont(float fontSize, boolean bold) {

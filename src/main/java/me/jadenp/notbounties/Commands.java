@@ -1012,6 +1012,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     return true;
                                 }
 
+                                /*if (!args[args.length-1].equalsIgnoreCase("--confirm"))  {
+                                    GUI.openGUI((Player) sender, "confirm", 1);
+                                    return true;
+                                }*/
+
                                 if (checkBalance((Player) sender, total)) {
                                     NumberFormatting.doRemoveCommands((Player) sender, total, new ArrayList<>());
                                     nb.addBounty((Player) sender, player, amount, whitelist);

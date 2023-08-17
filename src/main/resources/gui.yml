@@ -104,6 +104,13 @@ custom-items:
       - '!@notbounties.admin [p] bounty buy --confirm'
       - '@notbounties.admin [p] bounty remove {slot13}'
       - '[close]'
+  yes-bounty:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 1
+    name: '&a&lYes'
+    commands:
+      - '[p] bounty {slot13} {amount} --confirm'
+      - '[close]'
   no:
     material: RED_STAINED_GLASS_PANE
     amount: 1
@@ -365,6 +372,43 @@ confirm:
     8:
       item: yes
       slot: 41-43
+confirm-bounty:
+  sort-type: 1
+  size: 54
+  gui-name: '&6&lBounty Cost: &2{amount_tax}'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    '13'
+  head-name: '&e&lSet bounty of {amount}'
+  head-lore:
+    - ''
+    - '&7{player}'
+    - ''
+  1:
+    item: fill
+    slot: 0-53
+  2:
+    item: return
+    slot: 49
+  3:
+    item: no
+    slot: 28-30
+  4:
+    item: no
+    slot: 19-21
+  5:
+    item: no
+    slot: 37-39
+  6:
+    item: yes-bounty
+    slot: 23-25
+  7:
+    item: yes-bounty
+    slot: 32-34
+  8:
+    item: yes-bounty
+    slot: 41-43
 
 
 
