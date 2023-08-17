@@ -21,6 +21,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
@@ -39,7 +40,7 @@ public class GUI implements Listener {
 
     public GUI(){}
 
-    public static LinkedHashMap<String, String> getGUIValues(Player player, String name, int page, Object[] data) {
+    public static LinkedHashMap<String, String> getGUIValues(Player player, String name, long page, Object[] data) {
         if (!customGuis.containsKey(name))
             return new LinkedHashMap<>();
         GUIOptions gui = customGuis.get(name);
@@ -93,15 +94,20 @@ public class GUI implements Listener {
                 break;
             case "confirm":
                 uuid = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
-                int price = data.length > 1 && data[1] instanceof Integer ? (int) data[1] : 0;
-                values.put(uuid, price + "");
+                double price = data.length > 1 && data[1] instanceof Double ? (double) data[1] : 0;
+                values.put(uuid, String.format("%.8f", price));
+                break;
+            case "confirm-bounty":
+                uuid = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
+                long price2 = data.length > 1 && data[1] instanceof Long ? (long) data[1] : 0;
+                values.put(uuid, price2 + "");
                 break;
         }
         return values;
 
     }
 
-    public static void openGUI(Player player, String name, int page, Object... data) {
+    public static void openGUI(Player player, String name, long page, Object... data) {
         if (!customGuis.containsKey(name))
             return;
         GUIOptions gui = customGuis.get(name);
@@ -117,7 +123,7 @@ public class GUI implements Listener {
         }
 
         player.openInventory(gui.createInventory(player, page, values, replacements));
-        playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, data));
+        playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, name, data));
     }
 
 
@@ -148,7 +154,7 @@ public class GUI implements Listener {
         if (!playerInfo.containsKey(event.getWhoClicked().getUniqueId())) // check if they are in a NotBounties GUI
             return;
         // find the gui - yeah, a linear search
-        GUIOptions gui = getGUIByTitle(event.getView().getTitle());
+        GUIOptions gui = getGUI(playerInfo.get(event.getWhoClicked().getUniqueId()).getGuiType());
 
         if (gui == null) // JIC a player has a page number, but they aren't in a gui
             return;
@@ -191,9 +197,9 @@ public class GUI implements Listener {
                                     if (buyBack) {
                                         double balance = NumberFormatting.getBalance((Player) event.getWhoClicked());
                                         if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
-                                            openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), (int) (buyBackInterest * bounty.getTotalBounty()));
+                                            openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), (buyBackInterest * bounty.getTotalBounty()));
                                         } else {
-                                            event.getWhoClicked().sendMessage(parse(speakings.get(0) + speakings.get(6), (int) (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
+                                            event.getWhoClicked().sendMessage(parse(speakings.get(0) + speakings.get(6), (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
                                         }
                                     }
                                 }
@@ -224,8 +230,13 @@ public class GUI implements Listener {
                     break;
                 case "select-price":
                     Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + player.getName() + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
-                    event.getView().close();
+                    if (!confirmation)
+                        event.getView().close();
                     break;
+                /*case "confirm-bounty":
+                    Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + player.getName() + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage() + " --confirm");
+                    event.getView().close();
+                    break;*/
             }
         } else {
             PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
@@ -233,7 +244,8 @@ public class GUI implements Listener {
             if (customItem == null)
                 return;
             for (String command : customItem.getCommands()){
-                command = command.replaceAll("\\{player}", event.getWhoClicked().getName());
+                command = command.replaceAll("\\{player}", Matcher.quoteReplacement(event.getWhoClicked().getName()));
+                command = command.replaceAll("\\{page}", Matcher.quoteReplacement(playerInfo.get(event.getWhoClicked().getUniqueId()).getPage() + ""));
                 while (command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")){
                     String replacement = "";
                     try {
@@ -284,7 +296,7 @@ public class GUI implements Listener {
                         amount = Integer.parseInt(command.substring(7));
                     } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
                     if (guiType.equals("select-price")){
-                        String uuid = (String) info.getData()[0]; //((SkullMeta) event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta()).getOwningPlayer().getUniqueId().toString();
+                        String uuid = info.getData().length > 0 ? (String) info.getData()[0] : Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
                         openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, uuid);
                     } else if (guiType.equals("leaderboard")){
                         Leaderboard leaderboard = (Leaderboard) info.getData()[0];
@@ -345,6 +357,7 @@ public class GUI implements Listener {
                 } else {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                 }
+                //Bukkit.getLogger().info(command);
             }
         }
 

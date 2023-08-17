@@ -1,20 +1,26 @@
 package me.jadenp.notbounties.gui;
 
 public class PlayerGUInfo {
-    private final int page;
+    private final long page;
     private final Object[] data;
+    private final String guiType;
 
-    public PlayerGUInfo(int page, Object[] data){
+    public PlayerGUInfo(long page, String guiType, Object[] data){
 
         this.page = page;
         this.data = data;
+        this.guiType = guiType;
     }
 
-    public int getPage() {
+    public long getPage() {
         return page;
     }
 
     public Object[] getData() {
         return data;
+    }
+
+    public String getGuiType() {
+        return guiType;
     }
 }

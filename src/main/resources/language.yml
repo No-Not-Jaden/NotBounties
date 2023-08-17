@@ -77,6 +77,13 @@ map-lore:
   - ''
 map-give: '&eYou have given &6{receiver}&e a bounty poster of {player}.' #
 map-receive: '&eYou have been given a bounty poster of &6{player}&e.'
+admin-edit-lore:
+  - '&cLeft Click &7to Remove'
+  - '&eRight Click &7to Edit'
+  - ''
+buy-back-lore:
+  - '&9Left Click &7to buy back for &a{amount}'
+  - ''
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

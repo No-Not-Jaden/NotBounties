@@ -49,6 +49,14 @@ import static me.jadenp.notbounties.utils.ConfigOptions.*;
  * time can be used -
  *
  * 2 messages
+ *
+ * buy back changed x
+ * confirm-bounty gui fixed  x
+ * confirmation x
+ * confirm bounty works x
+ * admin buy back lore x
+ * price is accurate in buy back x
+ * select price fixed x
  */
 
 public final class NotBounties extends JavaPlugin {

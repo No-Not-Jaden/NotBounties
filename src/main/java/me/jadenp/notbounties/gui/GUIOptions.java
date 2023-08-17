@@ -36,7 +36,7 @@ public class GUIOptions {
     private final String type;
     private final Map<Integer, CustomItem> pageReplacements = new HashMap<>();
 
-    public GUIOptions(ConfigurationSection settings){
+    public GUIOptions(ConfigurationSection settings) {
         type = settings.getName();
         name = color(settings.getString("gui-name"));
         playerSlots = new ArrayList<>();
@@ -47,27 +47,28 @@ public class GUIOptions {
         headName = settings.getString("head-name");
         headLore = settings.getStringList("head-lore");
         customItems = new CustomItem[size];
-        for (String key : Objects.requireNonNull(settings.getConfigurationSection("layout")).getKeys(false)) {
-            String item = settings.getString("layout." + key + ".item");
-            int[] slots = getRange(settings.getString("layout." + key + ".slot"));
-            //Bukkit.getLogger().info(item);
-            if (ConfigOptions.customItems.containsKey(item)) {
-                CustomItem customItem = ConfigOptions.customItems.get(item);
-                for (int i : slots){
-                    //Bukkit.getLogger().info(i + "");
-                    if (customItems[i] != null){
-                        if (getPageType(customItem.getCommands()) > 0){
-                            pageReplacements.put(i, customItems[i]);
+        if (settings.isConfigurationSection("layout"))
+            for (String key : Objects.requireNonNull(settings.getConfigurationSection("layout")).getKeys(false)) {
+                String item = settings.getString("layout." + key + ".item");
+                int[] slots = getRange(settings.getString("layout." + key + ".slot"));
+                //Bukkit.getLogger().info(item);
+                if (ConfigOptions.customItems.containsKey(item)) {
+                    CustomItem customItem = ConfigOptions.customItems.get(item);
+                    for (int i : slots) {
+                        //Bukkit.getLogger().info(i + "");
+                        if (customItems[i] != null) {
+                            if (getPageType(customItem.getCommands()) > 0) {
+                                pageReplacements.put(i, customItems[i]);
+                            }
                         }
+                        customItems[i] = customItem;
                     }
-                    customItems[i] = customItem;
+                } else {
+                    // unknown item
+                    Bukkit.getLogger().warning("Unknown item \"" + item + "\" in gui: " + settings.getName());
                 }
-            } else {
-                // unknown item
-                Bukkit.getLogger().warning("Unknown item \"" + item + "\" in gui: " + settings.getName());
-            }
 
-        }
+            }
         for (String bSlots : settings.getStringList("player-slots")) {
             int[] range = getRange(bSlots);
             for (int j : range) {
@@ -80,36 +81,39 @@ public class GUIOptions {
         return addPage;
     }
 
-    public CustomItem getCustomItem(int slot, int page, int entryAmount) {
+    public CustomItem getCustomItem(int slot, long page, int entryAmount) {
         if (slot >= customItems.length)
             return null;
         CustomItem item = customItems[slot];
-        // next
-        if (getPageType(item.getCommands()) == 1 && page * playerSlots.size() >= entryAmount){
-            if (pageReplacements.containsKey(slot))
-                return pageReplacements.get(slot);
-            return null;
-        }
-        // back
-        if (getPageType(item.getCommands()) == 2 && page == 1){
-            if (pageReplacements.containsKey(slot))
-                return pageReplacements.get(slot);
-            return null;
+        if (!type.equals("select-price")) {
+            // next
+            if (getPageType(item.getCommands()) == 1 && page * playerSlots.size() >= entryAmount) {
+                if (pageReplacements.containsKey(slot))
+                    return pageReplacements.get(slot);
+                return null;
+            }
+            // back
+            if (getPageType(item.getCommands()) == 2 && page == 1) {
+                if (pageReplacements.containsKey(slot))
+                    return pageReplacements.get(slot);
+                return null;
+            }
         }
         return item;
     }
 
     /**
      * Get the formatted custom inventory
+     *
      * @param player Player that owns the inventory and will be parsed for any placeholders
-     * @param page Page of gui - This will change the items in player slots and page items if enabled
+     * @param page   Page of gui - This will change the items in player slots and page items if enabled
      * @return Custom GUI Inventory
      */
-    public Inventory createInventory(Player player, int page, LinkedHashMap<String, String> values, String... replacements){
+    public Inventory createInventory(Player player, long page, LinkedHashMap<String, String> values, String... replacements) {
         OfflinePlayer[] playerItems = new OfflinePlayer[values.size()];
         String[] amount = new String[values.size()];
         int index = 0;
-        for (Map.Entry<String, String> entry : values.entrySet()){
+        for (Map.Entry<String, String> entry : values.entrySet()) {
             playerItems[index] = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
             amount[index] = entry.getValue();
             index++;
@@ -125,9 +129,15 @@ public class GUIOptions {
 
         if (page < 1) {
             page = 1;
-            GUI.playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(page, GUI.playerInfo.get(player.getUniqueId()).getData()));
+            GUI.playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(page, type, GUI.playerInfo.get(player.getUniqueId()).getData()));
         }
         String name = addPage ? this.name + " " + page : this.name;
+        if (amount.length > 0) {
+            double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).size() * bountyWhitelistCost;
+            String playerName = playerItems[0].getName() != null ? playerItems[0].getName() : "<?>";
+            name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", playerName);
+            name = parse(name, player);
+        }
         Inventory inventory = Bukkit.createInventory(player, size, name);
         ItemStack[] contents = inventory.getContents();
         // set up regular items
@@ -135,14 +145,14 @@ public class GUIOptions {
             if (customItems[i] == null)
                 continue;
             // check if item is a page item
-            if (removePageItems){
+            if (removePageItems) {
                 // next
-                if (getPageType(customItems[i].getCommands()) == 1 && page * playerSlots.size() >= amount.length){
+                if (getPageType(customItems[i].getCommands()) == 1 && page * playerSlots.size() >= amount.length) {
                     contents[i] = pageReplacements.get(i).getFormattedItem(player, replacements);
                     continue;
                 }
                 // back
-                if (getPageType(customItems[i].getCommands()) == 2 && page == 1){
+                if (getPageType(customItems[i].getCommands()) == 2 && page == 1) {
                     contents[i] = pageReplacements.get(i).getFormattedItem(player, replacements);
                     continue;
                 }
@@ -150,14 +160,14 @@ public class GUIOptions {
             contents[i] = customItems[i].getFormattedItem(player, replacements);
         }
         // set up player slots
-        for (int i = type.equals("select-price") ? 0 : (page-1) * playerSlots.size(); i < Math.min(playerSlots.size(), playerItems.length); i++){
+        for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * playerSlots.size()); i < Math.min(playerSlots.size(), playerItems.length); i++) {
             ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) skull.getItemMeta();
             assert meta != null;
             final OfflinePlayer p = playerItems[i];
             meta.setOwningPlayer(p);
             long time = System.currentTimeMillis();
-            if (type.equals("bounty-gui")){
+            if (type.equals("bounty-gui")) {
                 amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
                 time = Objects.requireNonNull(NotBounties.getInstance().getBounty(p)).getLatestSetter();
             } else {
@@ -165,7 +175,7 @@ public class GUIOptions {
             }
 
             final String finalAmount = amount[i];
-            final int rank = i + 1;
+            final long rank = i + 1;
             String[] finalReplacements = replacements;
             String playerName = p.getName() != null ? p.getName() : "<?>";
             List<String> lore = new ArrayList<>(headLore);
@@ -174,20 +184,17 @@ public class GUIOptions {
                 meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), time, p));
                 long finalTime = time;
                 lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), finalTime, p));
-            } catch (IllegalArgumentException e){
+            } catch (IllegalArgumentException e) {
                 Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             }
             // extra lore stuff
             if (type.equals("bounty-gui")) {
                 if (player.hasPermission("notbounties.admin")) {
-                    lore.add(ChatColor.RED + "Left Click" + ChatColor.GRAY + " to Remove");
-                    lore.add(ChatColor.YELLOW + "Right Click" + ChatColor.GRAY + " to Edit");
-                    lore.add("");
+                    adminEditLore.stream().map(bbLore -> parse(bbLore, player)).forEach(lore::add);
                 } else {
                     if (buyBack) {
                         if (p.getUniqueId().equals(player.getUniqueId())) {
                             buyBackLore.stream().map(bbLore -> parse(bbLore, (parseCurrency(finalAmount) * buyBackInterest), player)).forEach(lore::add);
-                            lore.add("");
                         }
                     }
                 }
@@ -220,11 +227,8 @@ public class GUIOptions {
         }
         inventory.setContents(contents);
         return inventory;
-        
+
     }
-
-
-
 
 
     public int getSortType() {
@@ -243,16 +247,17 @@ public class GUIOptions {
      * Get an array of desired numbers from a string from (x)-(y). Both x and y are inclusive.
      * <p>"1" -> [1]</p>
      * <p>"3-6" -> [3, 4, 5, 6]</p>
+     *
      * @param str String to parse
      * @return desired range of numbers sorted numerically or an empty list if there is a formatting error
      */
-    private static int[] getRange(String str){
+    private static int[] getRange(String str) {
         try {
             // check if it is a single number
             int i = Integer.parseInt(str);
             // return if an exception was not thrown
             return new int[]{i};
-        } catch (NumberFormatException e){
+        } catch (NumberFormatException e) {
             // there is a dash we need to get out
         }
         String[] split = str.split("-");
@@ -263,10 +268,10 @@ public class GUIOptions {
 
             for (int i = Math.min(bound1, bound2); i < Math.max(bound1, bound2) + 1; i++) {
                 //Bukkit.getLogger().info(i + "");
-                result[i-Math.min(bound1, bound2)] = i;
+                result[i - Math.min(bound1, bound2)] = i;
             }
             return result;
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e){
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
             // formatting error
             return new int[0];
         }
@@ -274,11 +279,12 @@ public class GUIOptions {
 
     /**
      * Parses through commands for "[next]" and "[back]"
+     *
      * @param commands Commands of the CustomItem
      * @return 1 for next, 2 for back, 0 for no page item
      */
-    public static int getPageType(List<String> commands){
-        for (String command : commands){
+    public static int getPageType(List<String> commands) {
+        for (String command : commands) {
             if (command.startsWith("[next]"))
                 return 1;
             if (command.startsWith("[back]"))

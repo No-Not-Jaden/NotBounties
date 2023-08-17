@@ -80,6 +80,8 @@ public class ConfigOptions {
     public static boolean currencyWrap;
     public static boolean bountyWhitelistEnabled;
     public static int updateInterval;
+    public static boolean confirmation;
+    public static List<String> adminEditLore;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -258,21 +260,11 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-posters.currency-wrap", false);
         if (!bounties.getConfig().isSet("bounty-posters.update-interval"))
             bounties.getConfig().set("bounty-posters.update-interval", 1000);
+        if (!bounties.getConfig().isSet("confirmation"))
+            bounties.getConfig().set("confirmation", true);
 
-
-
-        bounties.saveConfig();
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
-
-        List<String> bbLore;
-        if (bounties.getConfig().isList("buy-own-bounties.lore-addition")) {
-         bbLore = bounties.getConfig().getStringList("buy-own-bounties.lore-addition");
-        } else {
-            bbLore = Collections.singletonList(bounties.getConfig().getString("buy-own-bounties.lore-addition"));
-        }
-        buyBackLore = new ArrayList<>();
-        bbLore.forEach(str -> buyBackLore.add(color(str)));
 
 
         bountyExpire = bounties.getConfig().getInt("bounty-expire");
@@ -320,6 +312,7 @@ public class ConfigOptions {
         lockMap = bounties.getConfig().getBoolean("bounty-posters.lock-maps");
         currencyWrap = bounties.getConfig().getBoolean("bounty-posters.currency-wrap");
         updateInterval = bounties.getConfig().getInt("bounty-posters.update-interval");
+        confirmation = bounties.getConfig().getBoolean("confirmation");
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
 
@@ -396,7 +389,7 @@ public class ConfigOptions {
             guiConfig.set("set-whitelist.head-lore", Arrays.asList("", "&6Immunity: {amount}", "&7Click to toggle whitelist", ""));
             guiConfig.set("set-whitelist.layout.1.item", "fill");
             guiConfig.set("set-whitelist.layout.1.slot", "45-53");
-            guiConfig.set("set-whitelist.layout.2.item", "exit");
+            guiConfig.set("set-whitelist.layout.2.item", "return");
             guiConfig.set("set-whitelist.layout.2.slot", "49");
             guiConfig.set("set-whitelist.layout.3.item", "next");
             guiConfig.set("set-whitelist.layout.3.slot", "53");
@@ -414,6 +407,46 @@ public class ConfigOptions {
             guiConfig.set("custom-items.reset-whitelist.amount", 1);
             guiConfig.set("custom-items.reset-whitelist.name", "&fReset whitelist");
             guiConfig.set("custom-items.reset-whitelist.commands", Arrays.asList("[p] bounty whitelist reset", "[gui] set-whitelist 1"));
+        }
+        if (!guiConfig.isSet("confirm-bounty.layout")) {
+            guiConfig.set("confirm-bounty.sort-type", 1);
+            guiConfig.set("confirm-bounty.size", 54);
+            guiConfig.set("confirm-bounty.gui-name", "&6&lBounty Cost: &2{amount_tax}");
+            guiConfig.set("confirm-bounty.add-page", false);
+            guiConfig.set("confirm-bounty.remove-page-items", true);
+            guiConfig.set("confirm-bounty.player-slots", Collections.singletonList("13"));
+            guiConfig.set("confirm-bounty.head-name", "&e&lSet bounty of {amount}");
+            guiConfig.set("confirm-bounty.head-lore", Arrays.asList("", "&7{player}", ""));
+            guiConfig.set("confirm-bounty.layout.1.item", "fill");
+            guiConfig.set("confirm-bounty.layout.1.slot", "0-53");
+            guiConfig.set("confirm-bounty.layout.2.item", "return-select-price");
+            guiConfig.set("confirm-bounty.layout.2.slot", "49");
+            guiConfig.set("confirm-bounty.layout.3.item", "false");
+            guiConfig.set("confirm-bounty.layout.3.slot", "19-21");
+            guiConfig.set("confirm-bounty.layout.4.item", "false");
+            guiConfig.set("confirm-bounty.layout.4.slot", "37-39");
+            guiConfig.set("confirm-bounty.layout.5.item", "false");
+            guiConfig.set("confirm-bounty.layout.5.slot", "28-30");
+            guiConfig.set("confirm-bounty.layout.6.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.6.slot", "23-25");
+            guiConfig.set("confirm-bounty.layout.7.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.7.slot", "32-34");
+            guiConfig.set("confirm-bounty.layout.8.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.8.slot", "41-43");
+            guiConfig.set("custom-items.yes-bounty.material", "LIME_STAINED_GLASS_PANE");
+            guiConfig.set("custom-items.yes-bounty.amount", 1);
+            guiConfig.set("custom-items.yes-bounty.name", "&a&lYes");
+            guiConfig.set("custom-items.yes-bounty.commands", Arrays.asList("[p] bounty {slot13} {page} --confirm", "[close]"));
+            guiConfig.set("custom-items.return-set-bounty.material", "WHITE_BED");
+            guiConfig.set("custom-items.return-set-bounty.amount", 1);
+            guiConfig.set("custom-items.return-set-bounty.name", "&6&lReturn");
+            guiConfig.set("custom-items.return-set-bounty.lore", Collections.singletonList("&7Return to player selection"));
+            guiConfig.set("custom-items.return-set-bounty.commands", Collections.singletonList("[gui] set-bounty 1"));
+            guiConfig.set("custom-items.return-select-price.material", "WHITE_BED");
+            guiConfig.set("custom-items.return-select-price.amount", 1);
+            guiConfig.set("custom-items.return-select-price.name", "&6&lReturn");
+            guiConfig.set("custom-items.return-select-price.lore", Collections.singletonList("&7Return to price selection"));
+            guiConfig.set("custom-items.return-select-price.commands", Collections.singletonList("[gui] select-price {page}"));
         }
         for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)) {
             CustomItem customItem = new CustomItem(Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items." + key)));
@@ -598,7 +631,21 @@ public class ConfigOptions {
             configuration.set("map-give", "&eYou have given &6{receiver}&e a bounty poster of {player}.");
         if (!configuration.isSet("map-receive"))
             configuration.set("map-receive", "&eYou have been given a bounty poster of &6{player}&e.");
+        if (bounties.getConfig().isSet("buy-own-bounties.lore-addition")) {
+            List<String> bbLore;
+            if (bounties.getConfig().isList("buy-own-bounties.lore-addition")) {
+                bbLore = bounties.getConfig().getStringList("buy-own-bounties.lore-addition");
+            } else {
+                bbLore = Collections.singletonList(bounties.getConfig().getString("buy-own-bounties.lore-addition"));
+            }
+            configuration.set("buy-back-lore", bbLore);
+            bounties.getConfig().set("buy-own-bounties.lore-addition", null);
+        }
+        if (!configuration.isSet("admin-edit-lore"))
+            configuration.set("admin-edit-lore", Arrays.asList("&cLeft Click &7to Remove", "&eRight Click &7to Edit", ""));
 
+
+        bounties.saveConfig();
         configuration.save(language);
 
         // 0 prefix
@@ -749,6 +796,10 @@ public class ConfigOptions {
         configuration.getStringList("not-whitelisted").forEach(str -> notWhitelistedLore.add(color(str)));
         mapLore = new ArrayList<>();
         configuration.getStringList("map-lore").forEach(lore -> mapLore.add(color(lore)));
+        buyBackLore = new ArrayList<>();
+        configuration.getStringList("buy-back-lore").forEach(lore -> buyBackLore.add(color(lore)));
+        adminEditLore = new ArrayList<>();
+        configuration.getStringList("admin-edit-lore").forEach(lore -> adminEditLore.add(color(lore)));
     }
 
 
