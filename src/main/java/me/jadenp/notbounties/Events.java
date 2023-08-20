@@ -80,7 +80,7 @@ public class Events implements Listener {
                         nb.displayParticle.remove(player);
 
                         // broadcast message
-                        String message = parse(speakings.get(0) + speakings.get(7), killer.getName(), player.getName(), bounty.getTotalBounty(killer), player);
+                        String message = parse(speakings.get(0) + speakings.get(7), player.getName(), killer.getName(), bounty.getTotalBounty(killer), player);
                         Bukkit.getConsoleSender().sendMessage(message);
                         for (Player p : Bukkit.getOnlinePlayers()){
                             if (!nb.disableBroadcast.contains(p.getUniqueId().toString()) || p.getUniqueId().equals(event.getEntity().getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId())){

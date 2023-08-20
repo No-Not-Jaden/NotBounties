@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.utils.ConfigOptions;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,7 +31,13 @@ public class Setter implements Comparable<Setter>{
     }
 
     public boolean canClaim(Player player) {
-        return whitelist.isEmpty() || whitelist.contains(player.getUniqueId());
+        if (player == null)
+            return true;
+        if (whitelist.isEmpty())
+            return true;
+        if (ConfigOptions.variableWhitelist)
+            return NotBounties.getInstance().getPlayerWhitelist(uuid).contains(player.getUniqueId()) || NotBounties.getInstance().getPlayerWhitelist(uuid).isEmpty();
+        return whitelist.contains(player.getUniqueId());
     }
 
     public boolean isNotified() {

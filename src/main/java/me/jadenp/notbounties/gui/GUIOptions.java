@@ -1,12 +1,11 @@
 package me.jadenp.notbounties.gui;
 
 import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.utils.ConfigOptions;
-import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -202,14 +201,12 @@ public class GUIOptions {
                 Bounty bounty = NotBounties.getInstance().getBounty(p);
                 assert bounty != null;
                 if (bounty.getAllWhitelists().contains(player.getUniqueId())) {
-                    lore.add(parse(speakings.get(63), player));
-                    lore.add("");
-                } else if (player.hasPermission("notbounties.admin")) {
+                    whitelistNotify.stream().map(str -> parse(str, player)).forEach(lore::add);
+                } else if (showWhitelistedBounties || player.hasPermission("notbounties.admin")) {
                     // not whitelisted
                     for (Setter setter : bounty.getSetters()) {
                         if (!setter.canClaim(player)) {
-                            lore.addAll(notWhitelistedLore);
-                            lore.add("");
+                            notWhitelistedLore.stream().map(str -> parse(str, player)).forEach(lore::add);
                             break;
                         }
                     }
@@ -219,7 +216,7 @@ public class GUIOptions {
                 if (NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).contains(p.getUniqueId())) {
                     skull.addUnsafeEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                    lore.add(parse(speakings.get(59), player));
+                    whitelistLore.stream().map(str -> parse(str, player)).forEach(lore::add);
                 }
             meta.setLore(lore);
             skull.setItemMeta(meta);

@@ -82,6 +82,10 @@ public class ConfigOptions {
     public static int updateInterval;
     public static boolean confirmation;
     public static List<String> adminEditLore;
+    public static boolean showWhitelistedBounties;
+    public static boolean variableWhitelist;
+    public static List<String> whitelistNotify;
+    public static List<String> whitelistLore;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -218,6 +222,10 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-whitelist.cost", 10);
         if (!bounties.getConfig().isSet("bounty-whitelist.enabled"))
             bounties.getConfig().set("bounty-whitelist.enabled", true);
+        if (!bounties.getConfig().isSet("bounty-whitelist.show-all-bounty"))
+            bounties.getConfig().set("bounty-whitelist.show-all-bounty", false);
+        if (!bounties.getConfig().isSet("bounty-whitelist.variable-whitelist"))
+            bounties.getConfig().set("bounty-whitelist.variable-whitelist", false);
 
         if (bounties.getConfig().isInt("number-formatting.type")) {
             switch (bounties.getConfig().getInt("number-formatting.type")) {
@@ -262,6 +270,7 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-posters.update-interval", 1000);
         if (!bounties.getConfig().isSet("confirmation"))
             bounties.getConfig().set("confirmation", true);
+
 
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
@@ -313,6 +322,9 @@ public class ConfigOptions {
         currencyWrap = bounties.getConfig().getBoolean("bounty-posters.currency-wrap");
         updateInterval = bounties.getConfig().getInt("bounty-posters.update-interval");
         confirmation = bounties.getConfig().getBoolean("confirmation");
+        showWhitelistedBounties = bounties.getConfig().getBoolean("bounty-whitelist.show-all-bounty");
+        variableWhitelist = bounties.getConfig().getBoolean("bounty-whitelist.variable-whitelist");
+
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
 
@@ -612,9 +624,9 @@ public class ConfigOptions {
         if (!configuration.isSet("whitelist-change"))
             configuration.set("whitelist-change", "&eYour whitelisted players have been changed.");
         if (!configuration.isSet("whitelisted-lore"))
-            configuration.set("whitelist-lore", "&f&lThis player is whitelisted.");
+            configuration.set("whitelist-lore", Arrays.asList("&f&lThis player is whitelisted.", ""));
         if (!configuration.isSet("whitelist-notify"))
-            configuration.set("whitelist-notify", "&fYou are whitelisted to this bounty!");
+            configuration.set("whitelist-notify", Arrays.asList("&fYou are whitelisted to this bounty!", ""));
         if (!configuration.isSet("immunity-expire"))
             configuration.set("immunity-expire", "&cYour bounty immunity has expired!");
         if (!configuration.isSet("death-tax"))
@@ -643,7 +655,10 @@ public class ConfigOptions {
         }
         if (!configuration.isSet("admin-edit-lore"))
             configuration.set("admin-edit-lore", Arrays.asList("&cLeft Click &7to Remove", "&eRight Click &7to Edit", ""));
-
+        if (configuration.isString("whitelist-lore"))
+            configuration.set("whitelist-lore", Arrays.asList(configuration.getString("whitelist-lore"), ""));
+        if (configuration.isString("whitelist-notify"))
+            configuration.set("whitelist-notify", Arrays.asList(configuration.getString("whitelist-notify"), ""));
 
         bounties.saveConfig();
         configuration.save(language);
@@ -767,16 +782,16 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-reset"))));
         // 58 whitelist-change
         speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-change"))));
-        // 59 whitelist-lore
-        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-lore"))));
+        // 59
+        speakings.add("");
         // 60 immunity-expire
         speakings.add(color(Objects.requireNonNull(configuration.getString("immunity-expire"))));
         // 61 buy-time-immunity
         speakings.add(color(Objects.requireNonNull(configuration.getString("buy-time-immunity"))));
         // 62 time-immunity
         speakings.add(color(Objects.requireNonNull(configuration.getString("time-immunity"))));
-        // 63 whitelist-notify
-        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-notify"))));
+        // 63
+        speakings.add("");
         // 64 death-tax
         speakings.add(color(Objects.requireNonNull(configuration.getString("death-tax"))));
         // 65 max-setters
@@ -800,6 +815,10 @@ public class ConfigOptions {
         configuration.getStringList("buy-back-lore").forEach(lore -> buyBackLore.add(color(lore)));
         adminEditLore = new ArrayList<>();
         configuration.getStringList("admin-edit-lore").forEach(lore -> adminEditLore.add(color(lore)));
+        whitelistNotify = new ArrayList<>();
+        configuration.getStringList("whitelist-notify").forEach(lore -> whitelistNotify.add(color(lore)));
+        whitelistLore = new ArrayList<>();
+        configuration.getStringList("whitelist-lore").forEach(lore -> whitelistLore.add(color(lore)));
     }
 
 

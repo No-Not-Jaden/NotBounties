@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.utils.ConfigOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -52,9 +53,8 @@ public class Bounty implements Comparable<Bounty>{
         // first check if player already set a bounty
         if (Bukkit.getPlayer(uuid) != null) {
             for (int i = 0; i < setters.size(); i++) {
-                if (setters.get(i).getUuid().equals(setter.getUniqueId())) {
+                if (setters.get(i).getUuid().equals(setter.getUniqueId()) && compareWhitelists(whitelist, setters.get(i).getWhitelist())) {
                     // same person
-                    whitelist.addAll(setters.get(i).getWhitelist());
                     setters.set(i, new Setter(setter.getName(), setter.getUniqueId(), setters.get(i).getAmount() + amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
                     return;
                 }
@@ -68,9 +68,8 @@ public class Bounty implements Comparable<Bounty>{
     public void addBounty(double amount, List<UUID> whitelist){
         // first check if player already set a bounty
         for (int i = 0; i < setters.size(); i++){
-            if (setters.get(i).getUuid().equals(new UUID(0,0))){
+            if (setters.get(i).getUuid().equals(new UUID(0,0)) && compareWhitelists(whitelist, setters.get(i).getWhitelist())){
                 // same person
-                whitelist.addAll(setters.get(i).getWhitelist());
                 setters.set(i, new Setter("CONSOLE", new UUID(0,0), setters.get(i).getAmount() + amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
                 return;
             }
@@ -166,6 +165,9 @@ public class Bounty implements Comparable<Bounty>{
     }
 
     public List<UUID> getAllWhitelists() {
+        if (ConfigOptions.variableWhitelist) {
+            return setters.stream().flatMap(setter -> NotBounties.getInstance().getPlayerWhitelist(setter.getUuid()).stream()).collect(Collectors.toList());
+        }
         return setters.stream().flatMap(setter -> setter.getWhitelist().stream()).collect(Collectors.toList());
     }
 

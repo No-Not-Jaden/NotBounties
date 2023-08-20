@@ -54,7 +54,7 @@ public class GUI implements Listener {
             case "bounty-gui":
                 List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList) {
-                    double bountyAmount = player.hasPermission("notbounties.admin") ? bounty.getTotalBounty() : bounty.getTotalBounty(player);
+                    double bountyAmount = showWhitelistedBounties || player.hasPermission("notbounties.admin") ? bounty.getTotalBounty() : bounty.getTotalBounty(player);
                     if (bountyAmount > 0)
                         values.put(bounty.getUUID().toString(), String.format("%f", bountyAmount));
                 }
@@ -85,7 +85,7 @@ public class GUI implements Listener {
                         values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
                 if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
                     // remove offline players
-                    values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(UUID.fromString(e.getKey())).isOnline());
+                    values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(UUID.fromString(e.getKey())).isOnline() && !whitelist.contains(UUID.fromString(e.getKey())));
                 }
                 break;
             case "select-price":
@@ -233,10 +233,6 @@ public class GUI implements Listener {
                     if (!confirmation)
                         event.getView().close();
                     break;
-                /*case "confirm-bounty":
-                    Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + player.getName() + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage() + " --confirm");
-                    event.getView().close();
-                    break;*/
             }
         } else {
             PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());

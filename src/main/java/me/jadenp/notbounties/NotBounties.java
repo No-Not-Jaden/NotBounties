@@ -38,25 +38,14 @@ import java.util.stream.Collectors;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 /**
- * custom heads work with base64 and hdb - x
- * Big bounty and bounty tracker don't work when player is hidden - x
- * page items don't work when there aren't more pages - x
- * multiple lines in buy own bounty lore - x
- * buy back is formatted correctly with divisions - x
- * option to only have one bounty set at a time - x
- * admins can see whitelisted bounties - x
- * save maps when created
- * time can be used -
- *
- * 2 messages
- *
- * buy back changed x
- * confirm-bounty gui fixed  x
- * confirmation x
- * confirm bounty works x
- * admin buy back lore x
- * price is accurate in buy back x
- * select price fixed x
+ * Can use placeholders in gui title - x
+ * show all bounty x
+ * variable whitelist - x
+ * claimed bounty message backwards - x
+ * the gui will be reopened after the plugin is reloaded - x
+ * whitelist-lore and whitelist-notify can now be multiple lines - x
+ * not-whitelisted-lore will display in /bounty check - x
+ * bounty whitelist will show whitelisted players even if they are offline -
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -284,6 +273,12 @@ public final class NotBounties extends JavaPlugin {
                             allClaimedBounties.put(uuid, configuration.getDouble("data." + uuid + ".all-claimed"));
                         if (configuration.isSet("data." + uuid + ".immunity"))
                             immunitySpent.put(uuid, configuration.getDouble("data." + uuid + ".immunity"));
+                        if (variableWhitelist && configuration.isSet("data." + uuid + ".whitelist"))
+                            try {
+                                playerWhitelist.put(UUID.fromString(uuid), configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).collect(Collectors.toList()));
+                            } catch (IllegalArgumentException e) {
+                                Bukkit.getLogger().warning("Failed to get whitelisted uuids from: " + uuid + "\nThis list will be overwritten in 5 minutes");
+                            }
                     }
                 if (configuration.isSet("disable-broadcast"))
                     disableBroadcast.addAll(configuration.getStringList("disable-broadcast"));
@@ -661,7 +656,13 @@ public final class NotBounties extends JavaPlugin {
                     configuration.set("data." + mapElement.getKey() + ".immunity", mapElement.getValue());
                 }
             }
+
         }
+        if (variableWhitelist)
+            for (Map.Entry<UUID, List<UUID>> mapElement : playerWhitelist.entrySet()) {
+                List<String> stringList = mapElement.getValue().stream().map(UUID::toString).collect(Collectors.toList());
+                configuration.set("data." + mapElement.getKey().toString() + ".whitelist", stringList);
+            }
         configuration.set("disable-broadcast", disableBroadcast);
         i = 0;
         for (Map.Entry<String, List<String>> mapElement : headRewards.entrySet()) {
@@ -886,7 +887,9 @@ public final class NotBounties extends JavaPlugin {
                 if (player == null || player.getUniqueId().equals(receiver.getUniqueId()) || player.getUniqueId().equals(setter.getUniqueId()))
                     continue;
                 player.sendMessage(message);
-                player.sendMessage(parse(speakings.get(0) + speakings.get(63), player));
+                for (String str : whitelistNotify)
+                    if (!str.isEmpty())
+                        player.sendMessage(parse(speakings.get(0) + str, player));
             }
         }
 

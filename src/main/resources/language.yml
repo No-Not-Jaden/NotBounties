@@ -61,10 +61,15 @@ whitelisted-players: '&fYour whitelisted players:&7' # player names will follow 
 whitelist-max: '&cYou''ve reached the maximum amount of whitelisted players.'
 whitelist-reset: '&fYour whitelisted players have been reset.'
 whitelist-change: '&eYour whitelisted players have been changed.'
-whitelist-lore: '&f&lThis player is whitelisted.'
-whitelist-notify: '&fYou are whitelisted to this bounty!'
+whitelist-lore:
+  - '&f&lThis player is whitelisted.'
+  - ''
+whitelist-notify:
+  - '&fYou are whitelisted to this bounty!'
+  - ''
 not-whitelisted: #
   - '&cPart of this bounty is whitelisted.'
+  - ''
 death-tax: '&cYou were killed because of a bounty. You lost &4{items}&c.'
 max-setters: '&cThe maximum amount of setters for this player has been reached.'
 map-name: '&6&lWANTED: &f{player}'
@@ -77,7 +82,7 @@ map-lore:
   - ''
 map-give: '&eYou have given &6{receiver}&e a bounty poster of {player}.' #
 map-receive: '&eYou have been given a bounty poster of &6{player}&e.'
-admin-edit-lore:
+admin-edit-lore: #
   - '&cLeft Click &7to Remove'
   - '&eRight Click &7to Edit'
   - ''
