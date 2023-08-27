@@ -86,6 +86,10 @@ public class ConfigOptions {
     public static boolean variableWhitelist;
     public static List<String> whitelistNotify;
     public static List<String> whitelistLore;
+    public static int murderCooldown;
+    public static double murderBountyIncrease;
+    public static boolean murderExcludeClaiming;
+    public static String consoleName;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -270,6 +274,14 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-posters.update-interval", 1000);
         if (!bounties.getConfig().isSet("confirmation"))
             bounties.getConfig().set("confirmation", true);
+        if (!bounties.getConfig().isSet("murder-bounty.player-cooldown"))
+            bounties.getConfig().set("murder-bounty.player-cooldown", 360);
+        if (!bounties.getConfig().isSet("murder-bounty.bounty-increase"))
+            bounties.getConfig().set("murder-bounty.bounty-increase", 0);
+        if (!bounties.getConfig().isSet("murder-bounty.exclude-claiming"))
+            bounties.getConfig().set("murder-bounty.exclude-claiming", true);
+        if (!bounties.getConfig().isSet("console-bounty-name"))
+            bounties.getConfig().set("console-bounty-name", "Sheriff");
 
 
 
@@ -324,6 +336,10 @@ public class ConfigOptions {
         confirmation = bounties.getConfig().getBoolean("confirmation");
         showWhitelistedBounties = bounties.getConfig().getBoolean("bounty-whitelist.show-all-bounty");
         variableWhitelist = bounties.getConfig().getBoolean("bounty-whitelist.variable-whitelist");
+        murderCooldown = bounties.getConfig().getInt("murder-bounty.player-cooldown");
+        murderBountyIncrease = bounties.getConfig().getDouble("murder-bounty.bounty-increase");
+        consoleName = bounties.getConfig().getString("console-bounty-name");
+        murderExcludeClaiming = bounties.getConfig().getBoolean("murder-bounty.exclude-claiming");
 
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
@@ -659,6 +675,8 @@ public class ConfigOptions {
             configuration.set("whitelist-lore", Arrays.asList(configuration.getString("whitelist-lore"), ""));
         if (configuration.isString("whitelist-notify"))
             configuration.set("whitelist-notify", Arrays.asList(configuration.getString("whitelist-notify"), ""));
+        if (!configuration.isSet("murder"))
+            configuration.set("murder", "&cYour bounty has been increased for murdering &4{player}&c!");
 
         bounties.saveConfig();
         configuration.save(language);
@@ -782,8 +800,8 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-reset"))));
         // 58 whitelist-change
         speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-change"))));
-        // 59
-        speakings.add("");
+        // 59 murder
+        speakings.add(color(Objects.requireNonNull(configuration.getString("murder"))));
         // 60 immunity-expire
         speakings.add(color(Objects.requireNonNull(configuration.getString("immunity-expire"))));
         // 61 buy-time-immunity

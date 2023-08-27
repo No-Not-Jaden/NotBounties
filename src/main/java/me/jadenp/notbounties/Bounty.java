@@ -28,7 +28,7 @@ public class Bounty implements Comparable<Bounty>{
         this.uuid = receiver.getUniqueId();
         name = receiver.getName();
         // add to the total bounty
-        setters.add(new Setter("CONSOLE", new UUID(0,0), amount, System.currentTimeMillis(), false, whitelist));
+        setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, System.currentTimeMillis(), false, whitelist));
     }
 
     public Bounty(UUID uuid, List<Setter> setters, String name){
@@ -70,12 +70,12 @@ public class Bounty implements Comparable<Bounty>{
         for (int i = 0; i < setters.size(); i++){
             if (setters.get(i).getUuid().equals(new UUID(0,0)) && compareWhitelists(whitelist, setters.get(i).getWhitelist())){
                 // same person
-                setters.set(i, new Setter("CONSOLE", new UUID(0,0), setters.get(i).getAmount() + amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
+                setters.set(i, new Setter(ConfigOptions.consoleName, new UUID(0,0), setters.get(i).getAmount() + amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
                 return;
             }
         }
         // otherwise, add a new setter
-        setters.add(new Setter("CONSOLE", new UUID(0,0), amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
+        setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
     }
 
     public void removeBounty(UUID uuid){

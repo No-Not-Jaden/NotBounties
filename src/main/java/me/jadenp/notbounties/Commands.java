@@ -43,7 +43,7 @@ public class Commands implements CommandExecutor, TabCompleter {
         if (command.getName().equalsIgnoreCase("notbounties")) {
             Player parser = getParser(sender);
             if (args.length > 0) {
-                if (args[0].equalsIgnoreCase("help")) {
+                if (args[0].equalsIgnoreCase("help") && sender.hasPermission("notbounties.basic")) {
                     sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.BLUE + "" + ChatColor.BOLD + " Not" + ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Bounties " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
                     sender.sendMessage(ChatColor.DARK_BLUE + "Bounty tax is currently: " + ChatColor.DARK_PURPLE + (bountyTax * 100) + "%");
                     sender.sendMessage(ChatColor.DARK_BLUE + "Whitelist cost is currently: " + ChatColor.DARK_PURPLE + currencyPrefix + bountyWhitelistCost + currencySuffix + " per player.");
@@ -107,7 +107,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
 
                     sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
-                } else if (args[0].equalsIgnoreCase("tutorial")) {
+                } else if (args[0].equalsIgnoreCase("tutorial") && sender.hasPermission("notbounties.basic")) {
                     Tutorial.onCommand(sender, args);
                     return true;
                 } else if (args[0].equalsIgnoreCase("whitelist") && bountyWhitelistEnabled) {
@@ -153,12 +153,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(3), args[i], parser));
                                     return true;
                                 }
-                                if (!whitelist.contains(player.getUniqueId()) && !previousWhitelist.contains(player.getUniqueId()))
+                                if (!whitelist.contains(player.getUniqueId()))
                                     whitelist.add(player.getUniqueId());
                             }
 
                             if (args[1].equalsIgnoreCase("add")) {
-                                previousWhitelist.addAll(whitelist);
+                                whitelist.stream().filter(uuid -> !previousWhitelist.contains(uuid)).forEach(previousWhitelist::add);
                                 while (previousWhitelist.size() > 10)
                                     previousWhitelist.remove(10);
                                 nb.playerWhitelist.put((parser).getUniqueId(), previousWhitelist);
@@ -217,7 +217,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         // no permission
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(5), parser));
                     }
-                } else if (args[0].equalsIgnoreCase("bdc")) {
+                } else if (args[0].equalsIgnoreCase("bdc") && sender.hasPermission("notbounties.basic")) {
                     if (sender instanceof Player) {
                         if (nb.disableBroadcast.contains((parser).getUniqueId().toString())) {
                             // enable
@@ -1043,9 +1043,11 @@ public class Commands implements CommandExecutor, TabCompleter {
         List<String> tab = new ArrayList<>();
         if (command.getName().equalsIgnoreCase("notbounties")) {
             if (args.length == 1) {
-                tab.add("help");
-                tab.add("bdc");
-                tab.add("tutorial");
+                if (sender.hasPermission("notbounties.basic")) {
+                    tab.add("help");
+                    tab.add("bdc");
+                    tab.add("tutorial");
+                }
                 if (sender.hasPermission("notbounties.set")) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         tab.add(p.getName());

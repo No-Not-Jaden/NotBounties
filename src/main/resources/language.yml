@@ -89,6 +89,7 @@ admin-edit-lore: #
 buy-back-lore:
   - '&9Left Click &7to buy back for &a{amount}'
   - ''
+murder: '&cYour bounty has been increased for murdering &4{player}&c!'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

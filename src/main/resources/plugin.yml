@@ -44,3 +44,6 @@ permissions:
   notbounties.whitelist:
     default: true
     description: whitelist players to claim your bounty
+  notbounties.basic:
+    default: true
+    description: use help, tutorial, and broadcast commands

@@ -38,14 +38,17 @@ import java.util.stream.Collectors;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 /**
- * Can use placeholders in gui title - x
- * show all bounty x
- * variable whitelist - x
- * claimed bounty message backwards - x
- * the gui will be reopened after the plugin is reloaded - x
- * whitelist-lore and whitelist-notify can now be multiple lines - x
- * not-whitelisted-lore will display in /bounty check - x
- * bounty whitelist will show whitelisted players even if they are offline -
+ * bounty whitelist will show whitelisted players even if they are offline - x
+ * can change console name - x
+ * murder bounty cooldown - x
+ * murder bounty increase - x
+ * exclude claiming - x
+ * murder message - x
+ * extra permission for base commands - x
+ * whitelist set will not remove duplicates - x
+ * min broadcast for claiming a bounty
+ * switched sender and receiver for setting a bounty
+ * sql error -x
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -201,6 +204,7 @@ public final class NotBounties extends JavaPlugin {
                         List<UUID> convertedUUIDs = new ArrayList<>();
                         for (String uuid : whitelistUUIDs)
                             convertedUUIDs.add(UUID.fromString(uuid));
+                        // check for old CONSOLE UUID
                         UUID setterUUID = Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")).equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")));
                         Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), setterUUID, configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), convertedUUIDs);
                         if (bountyExpire > 0) {
@@ -507,6 +511,7 @@ public final class NotBounties extends JavaPlugin {
         new BukkitRunnable() {
             @Override
             public void run() {
+                Events.cleanPlayerKills();
                 // if they have expire-time enabled
                 if (bountyExpire > 0) {
                     // go through all the bounties and remove setters if it has been more than expire time
@@ -871,7 +876,7 @@ public final class NotBounties extends JavaPlugin {
         setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, bounty.getTotalBounty(), receiver));
         setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1, 1);
 
-        String message = parse(speakings.get(0) + speakings.get(4), setter.getName(), receiver.getName(), amount, bounty.getTotalBounty(), receiver);
+        String message = parse(speakings.get(0) + speakings.get(4), receiver.getName(), setter.getName(), amount, bounty.getTotalBounty(), receiver);
 
         Bukkit.getConsoleSender().sendMessage(message);
         if (whitelist.isEmpty()) {
@@ -904,7 +909,7 @@ public final class NotBounties extends JavaPlugin {
             if (bounty == null) {
                 bounty = new Bounty(receiver, amount, whitelist);
             }
-            data.addBounty(new Bounty(receiver, amount, whitelist), new Setter("CONSOLE", new UUID(0, 0), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist));
+            data.addBounty(new Bounty(receiver, amount, whitelist), new Setter(consoleName, new UUID(0, 0), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist));
             bounty.addBounty(amount, whitelist);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, amount, 0, 0);
         } else {
@@ -937,11 +942,11 @@ public final class NotBounties extends JavaPlugin {
                 }
             }
             // send messages
-            onlineReceiver.sendMessage(parse(speakings.get(0) + speakings.get(42), "CONSOLE", amount, bounty.getTotalBounty(), receiver));
+            onlineReceiver.sendMessage(parse(speakings.get(0) + speakings.get(42), consoleName, amount, bounty.getTotalBounty(), receiver));
             onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
         }
         // send messages
-        String message = parse(speakings.get(0) + speakings.get(4), "CONSOLE", receiver.getName(), amount, bounty.getTotalBounty(), receiver);
+        String message = parse(speakings.get(0) + speakings.get(4), receiver.getName(), consoleName , amount, bounty.getTotalBounty(), receiver);
         Bukkit.getConsoleSender().sendMessage(message);
         if (whitelist.isEmpty()) {
             if (amount >= minBroadcast)

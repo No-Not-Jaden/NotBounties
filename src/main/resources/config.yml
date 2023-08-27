@@ -14,7 +14,7 @@ currency:
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
 # minimum amount of currency that will broadcast bounties
-minimum-broadcast: 100
+minimum-broadcast: 50
 # percent extra they have to pay to set a bounty - uses a DECIMAL
 # ex: bounty-tax = 0.25, a bounty set for 100 would cost 125 to be placed
 # use this if players are setting too many bounties
@@ -36,6 +36,16 @@ npc-claim: false
 max-setters: -1
 # prompt the player with the confirm-bounty gui before they set a bounty
 confirmation: true
+# The name of bounties set by console. The murder bounties will also use this name
+console-bounty-name: Sheriff
+# add a bounty if a player kills another player
+murder-bounty:
+  # How many seconds before you can kill the same person and increase your bounty
+  player-cooldown: 360
+  # how much the bounty increases per player kill. Consider raising minimum-broadcast if you change this if you don't want a message in chat
+  bounty-increase: 10
+  # you will be excluded from the bounty increase if you are claiming another bounty
+  exclude-claiming: true
 # wanted posters of bounty
 bounty-posters:
   # players can give themselves bounty posters of any bounty, otherwise, only admins can give posters
@@ -180,6 +190,3 @@ database:
   migrate-local-data: true
   # automatically try to connect to the database if a connection was lost
   auto-connect: false
-
-
-
