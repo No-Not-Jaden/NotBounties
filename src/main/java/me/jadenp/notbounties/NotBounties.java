@@ -38,17 +38,8 @@ import java.util.stream.Collectors;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 /**
- * bounty whitelist will show whitelisted players even if they are offline - x
- * can change console name - x
- * murder bounty cooldown - x
- * murder bounty increase - x
- * exclude claiming - x
- * murder message - x
- * extra permission for base commands - x
- * whitelist set will not remove duplicates - x
- * min broadcast for claiming a bounty
- * switched sender and receiver for setting a bounty
- * sql error -x
+ * group permission works -
+ * random bounty works
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -84,7 +75,7 @@ public final class NotBounties extends JavaPlugin {
     private static NotBounties instance;
     public MySQL SQL;
     public SQLGetter data;
-
+    public long nextRandomBounty = 0;
     private BukkitTask autoConnectTask = null;
 
     private boolean firstConnect = true;
@@ -297,6 +288,13 @@ public final class NotBounties extends JavaPlugin {
                     trackedBounties.put(configuration.getInt("tracked-bounties." + i + ".number"), configuration.getString("tracked-bounties." + i + ".uuid"));
                     i++;
                 }
+                if (configuration.isSet("next-random-bounty"))
+                    nextRandomBounty = configuration.getLong("next-random-bounty");
+                if (randomBountyMinTime == 0) {
+                    nextRandomBounty = 0;
+                } else if (nextRandomBounty == 0) {
+                    setNextRandomBounty();
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -505,6 +503,17 @@ public final class NotBounties extends JavaPlugin {
                             immunitySpent.put(uuid.toString(), 0.0);
                     }
                 }
+
+                // random bounties
+                if (randomBountyMinTime != 0 && nextRandomBounty != 0 && System.currentTimeMillis() > nextRandomBounty) {
+                    String uuid = (String) loggedPlayers.values().toArray()[(int) (Math.random() * loggedPlayers.values().size())];
+                    try {
+                        addBounty(Bukkit.getOfflinePlayer(UUID.fromString(uuid)), randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice), new ArrayList<>());
+                        setNextRandomBounty();
+                    } catch (IllegalArgumentException e) {
+                        Bukkit.getLogger().info("[NotBounties] Invalid UUID of picked player for random bounty: " + uuid);
+                    }
+                }
             }
         }.runTaskTimer(this, 100, 40);
         // auto save bounties every 5 min & remove bounty tracker
@@ -681,7 +690,8 @@ public final class NotBounties extends JavaPlugin {
             configuration.set("tracked-bounties." + i + ".uuid", mapElement.getValue());
             i++;
         }
-
+        if (randomBountyMinTime != 0)
+            configuration.set("next-random-bounty", nextRandomBounty);
         try {
             configuration.save(bounties);
         } catch (IOException e) {
@@ -1092,5 +1102,8 @@ public final class NotBounties extends JavaPlugin {
         return null;
     }
 
-
+    public void setNextRandomBounty() {
+        nextRandomBounty = System.currentTimeMillis() + randomBountyMinTime * 1000L + (long) (Math.random() * (randomBountyMaxTime - randomBountyMinTime) * 1000L);
+        //Bukkit.getLogger().info(nextRandomBounty + "");
+    }
 }

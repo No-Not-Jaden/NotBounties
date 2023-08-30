@@ -46,6 +46,16 @@ murder-bounty:
   bounty-increase: 10
   # you will be excluded from the bounty increase if you are claiming another bounty
   exclude-claiming: true
+# set a random bounty every once in a while
+random-bounties:
+  # minimum seconds between next random bounty - 0 to disable
+  min-time: 0 # 86400 seconds in a day
+  # maximum seconds between next random bounty
+  max-time: 0
+  # minimum bounty price
+  min-price: 10
+  # maximum bounty price
+  max-price: 100
 # wanted posters of bounty
 bounty-posters:
   # players can give themselves bounty posters of any bounty, otherwise, only admins can give posters

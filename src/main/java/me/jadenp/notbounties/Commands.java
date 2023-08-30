@@ -1026,13 +1026,16 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
 
                     } else {
-                        if (sender instanceof Player)
                             sender.sendMessage(parse(speakings.get(0) + speakings.get(5), parser));
                     }
                 }
             } else {
                 // open gui
-                openGUI(parser, "bounty-gui", 1);
+                if (sender.hasPermission("notbounties.view")) {
+                    openGUI(parser, "bounty-gui", 1);
+                } else {
+                    sender.sendMessage(parse(speakings.get(5), parser));
+                }
             }
         }
         return true;

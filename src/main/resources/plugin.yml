@@ -47,3 +47,14 @@ permissions:
   notbounties.basic:
     default: true
     description: use help, tutorial, and broadcast commands
+  notbounties.player:
+    description: all the basic player permissions
+    children:
+      - notbounties.set
+      - notbounties.view
+      - notbounties.buyown
+      - notbounties.buyimmunity
+      - notbounties.removeimmunity
+      - notbounties.tracker
+      - notbounties.whitelist
+      - notbounties.basic

@@ -90,6 +90,10 @@ public class ConfigOptions {
     public static double murderBountyIncrease;
     public static boolean murderExcludeClaiming;
     public static String consoleName;
+    public static int randomBountyMinTime;
+    public static int randomBountyMaxTime;
+    public static double randomBountyMinPrice;
+    public static double randomBountyMaxPrice;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -282,6 +286,14 @@ public class ConfigOptions {
             bounties.getConfig().set("murder-bounty.exclude-claiming", true);
         if (!bounties.getConfig().isSet("console-bounty-name"))
             bounties.getConfig().set("console-bounty-name", "Sheriff");
+        if (!bounties.getConfig().isSet("random-bounties.min-time"))
+            bounties.getConfig().set("random-bounties.min-time", 0);
+        if (!bounties.getConfig().isSet("random-bounties.max-time"))
+            bounties.getConfig().set("random-bounties.max-time", 0);
+        if (!bounties.getConfig().isSet("random-bounties.min-price"))
+            bounties.getConfig().set("random-bounties.min-price", 10);
+        if (!bounties.getConfig().isSet("random-bounties.max-price"))
+            bounties.getConfig().set("random-bounties.max-price", 100);
 
 
 
@@ -340,6 +352,10 @@ public class ConfigOptions {
         murderBountyIncrease = bounties.getConfig().getDouble("murder-bounty.bounty-increase");
         consoleName = bounties.getConfig().getString("console-bounty-name");
         murderExcludeClaiming = bounties.getConfig().getBoolean("murder-bounty.exclude-claiming");
+        randomBountyMinTime = bounties.getConfig().getInt("random-bounties.min-time");
+        randomBountyMaxTime = bounties.getConfig().getInt("random-bounties.max-time");
+        randomBountyMinPrice = bounties.getConfig().getDouble("random-bounties.min-price");
+        randomBountyMaxPrice = bounties.getConfig().getDouble("random-bounties.max-price");
 
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
@@ -352,6 +368,12 @@ public class ConfigOptions {
                     NotBounties.getInstance().immunityTimeTracker.put(UUID.fromString(entry.getKey()), (long) ((entry.getValue() * timeImmunity * 1000) + System.currentTimeMillis()));
             }
         }
+
+        // stop next random bounty if it is changed
+        if (randomBountyMinTime == 0 && NotBounties.getInstance().nextRandomBounty != 0)
+            NotBounties.getInstance().nextRandomBounty = 0;
+        if (randomBountyMinTime != 0 && NotBounties.getInstance().nextRandomBounty == 0)
+            NotBounties.getInstance().setNextRandomBounty();
 
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
         if (!guiFile.exists()) {
