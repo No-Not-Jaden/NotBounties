@@ -100,8 +100,8 @@ public class BountyMap implements Listener {
         if (new File(posterDirectory + File.separator + "playerfont.ttf").exists()) {
             try {
                 playerFont = Font.createFont(Font.TRUETYPE_FONT, new File(BountyMap.posterDirectory + File.separator + "playerfont.ttf"));
-            } catch (IOException | FontFormatException e) {
-                Bukkit.getLogger().warning("Error loading custom font! Using default.");
+            } catch (IOException | FontFormatException | NullPointerException e) {
+                Bukkit.getLogger().info("Using default font.");
                 //e.printStackTrace();
                 playerFont = new Font("Serif", Font.PLAIN, 20);
             }
