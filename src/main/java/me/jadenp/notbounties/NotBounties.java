@@ -77,7 +77,6 @@ public final class NotBounties extends JavaPlugin {
     public SQLGetter data;
     public long nextRandomBounty = 0;
     private BukkitTask autoConnectTask = null;
-
     private boolean firstConnect = true;
 
 

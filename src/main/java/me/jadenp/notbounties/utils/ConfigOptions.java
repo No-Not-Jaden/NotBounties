@@ -131,6 +131,8 @@ public class ConfigOptions {
             bounties.getConfig().set("currency.add-commands", new ArrayList<>());
         if (!bounties.getConfig().isSet("currency.remove-commands"))
             bounties.getConfig().set("currency.remove-commands", new ArrayList<>());
+        if (!bounties.getConfig().isSet("currency.override-vault"))
+            bounties.getConfig().set("currency.override-vault", true);
         if (!bounties.getConfig().isSet("bounty-expire")) bounties.getConfig().set("bounty-expire", -1);
         if (bounties.getConfig().isBoolean("reward-heads")) {
             boolean prevOption = bounties.getConfig().getBoolean("reward-heads");
@@ -294,7 +296,6 @@ public class ConfigOptions {
             bounties.getConfig().set("random-bounties.min-price", 10);
         if (!bounties.getConfig().isSet("random-bounties.max-price"))
             bounties.getConfig().set("random-bounties.max-price", 100);
-
 
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));

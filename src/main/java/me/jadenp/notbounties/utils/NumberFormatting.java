@@ -34,9 +34,18 @@ public class NumberFormatting {
     public static Locale locale;
     public static boolean addSingleCurrency = true;
     public static boolean usingPapi = false;
+    private static VaultClass vaultClass = null;
+    private static boolean vaultEnabled;
+    public static boolean overrideVault;
 
 
     public static void setCurrencyOptions(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
+        vaultEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
+        overrideVault = currencyOptions.getBoolean("override-vault");
+        if (vaultEnabled && !overrideVault) {
+            vaultClass = new VaultClass();
+            Bukkit.getLogger().info("Using Vault as currency!");
+        }
         currency = new ArrayList<>();
         currencyWeights = new ArrayList<>();
         currencyValues = new LinkedHashMap<>();
@@ -243,6 +252,13 @@ public class NumberFormatting {
 
 
     public static Map<Material, Long> doRemoveCommands(Player p, double amount, List<ItemStack> additionalItems) {
+        if (vaultEnabled && !overrideVault) {
+            if (vaultClass.withdraw(p, amount)) {
+                return new HashMap<>();
+            } else {
+                Bukkit.getLogger().warning("Error withdrawing currency with vault!");
+            }
+        }
         if (currency.isEmpty()){
             Bukkit.getLogger().warning("Currency is not set up! Run /currency in-game to fix.");
             return new HashMap<>();
@@ -469,6 +485,13 @@ public class NumberFormatting {
 
 
     public static void doAddCommands(Player p, double amount) {
+        if (vaultEnabled && !overrideVault) {
+            if (vaultClass.deposit(p, amount)) {
+                return;
+            } else {
+                Bukkit.getLogger().warning("Error depositing currency with vault!");
+            }
+        }
         if (currency.isEmpty()){
             Bukkit.getLogger().warning("Currency is not set up! Run /currency in-game to fix.");
             return;
@@ -533,6 +556,8 @@ public class NumberFormatting {
     }
 
     public static boolean checkBalance(Player player, double amount) {
+        if (vaultEnabled && !overrideVault)
+            return vaultClass.checkBalance(player, amount);
         double bal = getBalance(player);
         if (!usingPapi)
             bal = (long) bal;

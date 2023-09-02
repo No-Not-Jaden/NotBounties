@@ -61,52 +61,52 @@ public class BountyExpansion extends PlaceholderExpansion {
             Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId()) : notBounties.getBounty(player);
             if (bounty != null){
                 if (params.endsWith("_formatted"))
-                    return color(NumberFormatting.currencyPrefix + bounty.getTotalBounty() + NumberFormatting.currencySuffix);
-                return bounty.getTotalBounty() + "";
+                    return color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty()) + NumberFormatting.currencySuffix);
+                return String.valueOf(bounty.getTotalBounty());
             }
             return "0";
         }
 
         if (params.equalsIgnoreCase("bounties_claimed")){
             if (notBounties.SQL.isConnected()){
-                return notBounties.data.getClaimed(player.getUniqueId().toString()) + "";
+                return String.valueOf(notBounties.data.getClaimed(player.getUniqueId().toString()));
             }
-            return notBounties.killBounties.get(uuid) + "";
+            return String.valueOf(notBounties.killBounties.get(uuid));
         }
 
         if (params.equalsIgnoreCase("bounties_set")){
             if (notBounties.SQL.isConnected()){
-                return notBounties.data.getSet(player.getUniqueId().toString()) + "";
+                return String.valueOf(notBounties.data.getSet(player.getUniqueId().toString()));
             }
-            return notBounties.setBounties.get(uuid) + "";
+            return String.valueOf(notBounties.setBounties.get(uuid));
         }
 
         if (params.equalsIgnoreCase("bounties_received")){
             if (notBounties.SQL.isConnected()){
-                return notBounties.data.getReceived(player.getUniqueId().toString()) + "";
+                return String.valueOf(notBounties.data.getReceived(player.getUniqueId().toString()));
             }
-            return notBounties.deathBounties.get(uuid) + "";
+            return String.valueOf(notBounties.deathBounties.get(uuid));
         }
 
         if (params.equalsIgnoreCase("immunity_spent")){
             if (notBounties.SQL.isConnected()){
-                return notBounties.data.getImmunity(player.getUniqueId().toString()) + "";
+                return String.valueOf(notBounties.data.getImmunity(player.getUniqueId().toString()));
             }
-            return notBounties.immunitySpent.get(player.getUniqueId().toString()) + "";
+            return String.valueOf(notBounties.immunitySpent.get(player.getUniqueId().toString()));
         }
 
         if (params.equalsIgnoreCase("all_time_bounty")){
             if (notBounties.SQL.isConnected()){
-                return notBounties.data.getAllTime(player.getUniqueId().toString()) + "";
+                return String.valueOf(notBounties.data.getAllTime(player.getUniqueId().toString()));
             }
-            return notBounties.allTimeBounties.get(player.getUniqueId().toString()) + "";
+            return String.valueOf(notBounties.allTimeBounties.get(player.getUniqueId().toString()));
         }
 
         if (params.equalsIgnoreCase("currency_gained")){
             if (notBounties.SQL.isConnected()){
-                return notBounties.data.getTotalClaimed(player.getUniqueId().toString()) + "";
+                return String.valueOf(notBounties.data.getTotalClaimed(player.getUniqueId().toString()));
             }
-            return notBounties.allClaimedBounties.get(player.getUniqueId().toString()) + "";
+            return String.valueOf(notBounties.allClaimedBounties.get(player.getUniqueId().toString()));
         }
 
         if (params.startsWith("top_")) {
@@ -130,19 +130,9 @@ public class BountyExpansion extends PlaceholderExpansion {
             boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL;
             Map.Entry<String, Double> entry = stat.entrySet().iterator().next();
             double amount = entry.getValue();
-            OfflinePlayer p = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
-            String name = p.getName();
-            if (name == null && notBounties.loggedPlayers.containsValue(entry.getKey())) {
-                for (Map.Entry<String, String> logged : notBounties.loggedPlayers.entrySet()) {
-                    if (logged.getValue().equals(entry.getKey())) {
-                        name = logged.getKey();
-                        break;
-                    }
-                    name = "???";
-                }
-            } else {
-                name = "???";
-            }
+            UUID uuid1 = UUID.fromString(entry.getKey());
+            String name = NotBounties.getInstance().getPlayerName(uuid1);
+            OfflinePlayer p = Bukkit.getOfflinePlayer(uuid1);
             if (params.endsWith("_full"))
                 return leaderboard.getStatMsg(true);
             if (params.endsWith("_formatted"))

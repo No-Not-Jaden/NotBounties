@@ -7,6 +7,7 @@ description: kill...
 softdepend:
   - PlaceholderAPI
   - HeadDataBase
+  - Vault
 commands:
   notbounties:
     aliases:
