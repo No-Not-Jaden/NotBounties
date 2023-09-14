@@ -132,7 +132,7 @@ public class GUIOptions {
         }
         String name = addPage ? this.name + " " + page : this.name;
         if (amount.length > 0) {
-            double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).size() * bountyWhitelistCost;
+            double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
             String playerName = playerItems[0].getName() != null ? playerItems[0].getName() : "<?>";
             name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", playerName);
             name = parse(name, player);
@@ -178,7 +178,7 @@ public class GUIOptions {
             String[] finalReplacements = replacements;
             String playerName = p.getName() != null ? p.getName() : "<?>";
             List<String> lore = new ArrayList<>(headLore);
-            double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).size() * bountyWhitelistCost;
+            double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
             try {
                 meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), time, p));
                 long finalTime = time;
@@ -202,6 +202,8 @@ public class GUIOptions {
                 assert bounty != null;
                 if (bounty.getAllWhitelists().contains(player.getUniqueId())) {
                     whitelistNotify.stream().map(str -> parse(str, player)).forEach(lore::add);
+                } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId())) {
+                    whitelistNotify.stream().map(str -> parse(str, player)).forEach(lore::add);
                 } else if (showWhitelistedBounties || player.hasPermission("notbounties.admin")) {
                     // not whitelisted
                     for (Setter setter : bounty.getSetters()) {
@@ -213,10 +215,13 @@ public class GUIOptions {
                 }
             }
             if (type.equalsIgnoreCase("set-whitelist"))
-                if (NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).contains(p.getUniqueId())) {
+                if (NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().contains(p.getUniqueId())) {
                     skull.addUnsafeEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                    whitelistLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+                    if (NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).isBlacklist())
+                        blacklistLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+                    else
+                        whitelistLore.stream().map(str -> parse(str, player)).forEach(lore::add);
                 }
             meta.setLore(lore);
             skull.setItemMeta(meta);

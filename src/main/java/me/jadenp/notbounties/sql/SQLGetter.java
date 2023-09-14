@@ -2,6 +2,7 @@ package me.jadenp.notbounties.sql;
 
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.Nullable;
@@ -222,10 +223,11 @@ public class SQLGetter {
      * @param whitelist Single string of uuids
      * @return a list of UUIDs. Returns an empty list if whitelist is null or empty
      */
-    public List<UUID> decodeWhitelist(@Nullable String whitelist){
+    public Whitelist decodeWhitelist(@Nullable String whitelist){
         if (whitelist == null || whitelist.isEmpty())
-            return new ArrayList<>();
-        String[] split = whitelist.split(",");
+            return new Whitelist(new ArrayList<>(), false);
+        boolean blacklist = whitelist.contains(".");
+        String[] split = blacklist ? whitelist.split("\\.") : whitelist.split(",");
         List<UUID> uuids = new ArrayList<>();
         for (String uuidString : split) {
             try {
@@ -235,7 +237,7 @@ public class SQLGetter {
                     e.printStackTrace();
             }
         }
-        return uuids;
+        return new Whitelist(uuids, blacklist);
     }
 
     /**
@@ -243,16 +245,20 @@ public class SQLGetter {
      * @param whitelist list of UUIDs to encode
      * @return a string with separated UUIDs or an empty string if the list is empty
      */
-    public String encodeWhitelist(List<UUID> whitelist){
+    public String encodeWhitelist(Whitelist whitelist){
         StringBuilder combinedUuids = new StringBuilder();
-        for (UUID uuid : whitelist){
-            combinedUuids.append(uuid).append(",");
+        for (UUID uuid : whitelist.getList()){
+            combinedUuids.append(uuid);
+            if (whitelist.isBlacklist())
+                combinedUuids.append(".");
+            else
+                combinedUuids.append(",");
         }
-        if (combinedUuids.length() > 0)
+        if (combinedUuids.length() > 0 && combinedUuids.length() > 37)
             combinedUuids.deleteCharAt(combinedUuids.length()-1);
         return combinedUuids.toString();
     }
-
+/*
     // <Setter UUID, whitelist UUIDS>
     public Map<UUID, List<UUID>> getWhitelist(String uuid){
         try {
@@ -272,7 +278,7 @@ public class SQLGetter {
                 e.printStackTrace();
         }
         return new HashMap<>();
-    }
+    }*/
 
     public long getSet(String uuid){
         try {
@@ -501,7 +507,7 @@ public class SQLGetter {
                 String uuid = resultSet.getString("uuid");
                 if (uuid != null) {
                     if (bountyAmounts.containsKey(uuid)){
-                       bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"), new ArrayList<>());
+                       bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"), new Whitelist(new ArrayList<>(), false));
                     } else {
                         bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(new Setter("", UUID.randomUUID(), resultSet.getDouble("amount"), 0, true, decodeWhitelist(resultSet.getString("whitelist"))))), resultSet.getString("name")));
                     }

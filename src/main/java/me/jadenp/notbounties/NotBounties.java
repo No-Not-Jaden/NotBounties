@@ -5,10 +5,7 @@ import me.jadenp.notbounties.gui.GUIOptions;
 import me.jadenp.notbounties.map.BountyMap;
 import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
-import me.jadenp.notbounties.utils.ConfigOptions;
-import me.jadenp.notbounties.utils.CurrencySetup;
-import me.jadenp.notbounties.utils.NumberFormatting;
-import me.jadenp.notbounties.utils.UpdateChecker;
+import me.jadenp.notbounties.utils.*;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -38,8 +35,10 @@ import java.util.stream.Collectors;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 /**
- * group permission works -
- * random bounty works
+ * 1.16 plays a different sound
+ * if u update to a newer version no update message
+ * Get player name when setting bounty through GUI jic offlineplayer is null
+ * added blacklist
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -55,7 +54,7 @@ public final class NotBounties extends JavaPlugin {
     /**
      * Player UUID, Whitelist UUIDs
      */
-    public Map<UUID, List<UUID>> playerWhitelist = new HashMap<>();
+    public Map<UUID, Whitelist> playerWhitelist = new HashMap<>();
 
     public File bounties = new File(this.getDataFolder() + File.separator + "bounties.yml");
 
@@ -78,6 +77,7 @@ public final class NotBounties extends JavaPlugin {
     public long nextRandomBounty = 0;
     private BukkitTask autoConnectTask = null;
     private boolean firstConnect = true;
+    public static boolean latestVersion = true;
 
 
     /**
@@ -191,12 +191,14 @@ public final class NotBounties extends JavaPlugin {
                         List<String> whitelistUUIDs = new ArrayList<>();
                         if (configuration.isSet("bounties." + i + "." + l + ".whitelist"))
                             whitelistUUIDs = configuration.getStringList("bounties." + i + "." + l + ".whitelist");
+                        boolean blacklist = configuration.isSet("bounties." + i + "." + l + ".blacklist") && configuration.getBoolean("bounties." + i + "." + l + ".blacklist");
+
                         List<UUID> convertedUUIDs = new ArrayList<>();
                         for (String uuid : whitelistUUIDs)
                             convertedUUIDs.add(UUID.fromString(uuid));
                         // check for old CONSOLE UUID
                         UUID setterUUID = Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")).equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")));
-                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), setterUUID, configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), convertedUUIDs);
+                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), setterUUID, configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), new Whitelist(convertedUUIDs, blacklist));
                         if (bountyExpire > 0) {
                             if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
                                 expiredSetters.add(setter);
@@ -269,10 +271,11 @@ public final class NotBounties extends JavaPlugin {
                             immunitySpent.put(uuid, configuration.getDouble("data." + uuid + ".immunity"));
                         if (variableWhitelist && configuration.isSet("data." + uuid + ".whitelist"))
                             try {
-                                playerWhitelist.put(UUID.fromString(uuid), configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).collect(Collectors.toList()));
+                                playerWhitelist.put(UUID.fromString(uuid), new Whitelist(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).collect(Collectors.toList()), configuration.getBoolean("data." + uuid + ".blacklist")));
                             } catch (IllegalArgumentException e) {
                                 Bukkit.getLogger().warning("Failed to get whitelisted uuids from: " + uuid + "\nThis list will be overwritten in 5 minutes");
                             }
+
                     }
                 if (configuration.isSet("disable-broadcast"))
                     disableBroadcast.addAll(configuration.getStringList("disable-broadcast"));
@@ -317,11 +320,42 @@ public final class NotBounties extends JavaPlugin {
         // update checker
         if (updateNotification) {
             new UpdateChecker(this, 104484).getVersion(version -> {
-                if (this.getDescription().getVersion().equals(version) || this.getDescription().getVersion().contains("dev")) {
-                    getLogger().info("Running latest version of NotBounties.");
-                } else {
-                    getLogger().info("A new update is available for NotBounties. Current version: " + this.getDescription().getVersion() + " Latest version: " + version);
-                    getLogger().info("Download a new version here: https://www.spigotmc.org/resources/104484/");
+                if (getDescription().getVersion().contains("dev"))
+                    return;
+                if (getDescription().getVersion().equals(version))
+                    return;
+                // split the numbers
+                String[] versionSplit = version.split("\\.");
+                String[] currentSplit = getDescription().getVersion().split("\\.");
+                // convert to integers
+                int[] versionNumbers = new int[versionSplit.length];
+                for (int i = 0; i < versionSplit.length; i++) {
+                    try {
+                        versionNumbers[i] = Integer.parseInt(versionSplit[i]);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                int[] currentNumbers = new int[currentSplit.length];
+                for (int i = 0; i < currentNumbers.length; i++) {
+                    try {
+                        currentNumbers[i] = Integer.parseInt(currentSplit[i]);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                boolean needsUpdate = false;
+                for (int i = 0; i < currentNumbers.length; i++) {
+                    if (currentNumbers[i] < versionNumbers[i]) {
+                        needsUpdate = true;
+                        break;
+                    }
+                }
+                if (!needsUpdate && currentNumbers.length < versionNumbers.length)
+                    needsUpdate = true;
+                latestVersion = !needsUpdate;
+
+                if (needsUpdate) {
+                    Bukkit.getLogger().info("[NotBounties] A new update is available. Current version: " + getDescription().getVersion() + " Latest version: " + version);
+                    Bukkit.getLogger().info("[NotBounties] Download a new version here:" + " https://www.spigotmc.org/resources/104484/");
                 }
             });
         }
@@ -507,7 +541,7 @@ public final class NotBounties extends JavaPlugin {
                 if (randomBountyMinTime != 0 && nextRandomBounty != 0 && System.currentTimeMillis() > nextRandomBounty) {
                     String uuid = (String) loggedPlayers.values().toArray()[(int) (Math.random() * loggedPlayers.values().size())];
                     try {
-                        addBounty(Bukkit.getOfflinePlayer(UUID.fromString(uuid)), randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice), new ArrayList<>());
+                        addBounty(Bukkit.getOfflinePlayer(UUID.fromString(uuid)), randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice), new Whitelist(new ArrayList<>(), false));
                         setNextRandomBounty();
                     } catch (IllegalArgumentException e) {
                         Bukkit.getLogger().info("[NotBounties] Invalid UUID of picked player for random bounty: " + uuid);
@@ -633,8 +667,9 @@ public final class NotBounties extends JavaPlugin {
                     configuration.set("bounties." + i + "." + f + ".amount", setters.getAmount());
                     configuration.set("bounties." + i + "." + f + ".time-created", setters.getTimeCreated());
                     configuration.set("bounties." + i + "." + f + ".notified", setters.isNotified());
-                    List<String> whitelist = setters.getWhitelist().stream().map(UUID::toString).collect(Collectors.toList());
+                    List<String> whitelist = setters.getWhitelist().getList().stream().map(UUID::toString).collect(Collectors.toList());
                     configuration.set("bounties." + i + "." + f + ".whitelist", whitelist);
+                    configuration.set("bounties." + i + "." + f + ".blacklist", setters.getWhitelist().isBlacklist());
                     f++;
                 }
                 i++;
@@ -671,11 +706,14 @@ public final class NotBounties extends JavaPlugin {
             }
 
         }
-        if (variableWhitelist)
-            for (Map.Entry<UUID, List<UUID>> mapElement : playerWhitelist.entrySet()) {
-                List<String> stringList = mapElement.getValue().stream().map(UUID::toString).collect(Collectors.toList());
+        if (variableWhitelist) {
+            for (Map.Entry<UUID, Whitelist> mapElement : playerWhitelist.entrySet()) {
+                List<String> stringList = mapElement.getValue().getList().stream().map(UUID::toString).collect(Collectors.toList());
                 configuration.set("data." + mapElement.getKey().toString() + ".whitelist", stringList);
+                if (mapElement.getValue().isBlacklist())
+                    configuration.set("data." + mapElement.getKey().toString() + ".blacklist", true);
             }
+        }
         configuration.set("disable-broadcast", disableBroadcast);
         i = 0;
         for (Map.Entry<String, List<String>> mapElement : headRewards.entrySet()) {
@@ -835,7 +873,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public void addBounty(Player setter, OfflinePlayer receiver, double amount, List<UUID> whitelist) {
+    public void addBounty(Player setter, OfflinePlayer receiver, double amount, Whitelist whitelist) {
         // add to all time bounties
 
         Bounty bounty = null;
@@ -879,16 +917,27 @@ public final class NotBounties extends JavaPlugin {
             }
             // send messages
             onlineReceiver.sendMessage(parse(speakings.get(0) + speakings.get(42), setter.getName(), amount, bounty.getTotalBounty(), receiver));
-            onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
+            String version = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
+            if (version.contains("16")) {
+                onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
+            } else {
+                onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
+            }
+
         }
         // send messages
         setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, bounty.getTotalBounty(), receiver));
-        setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1, 1);
+        String version = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
+        if (version.contains("16")) {
+            setter.playSound(setter.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
+        } else {
+            setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1, 1);
+        }
 
         String message = parse(speakings.get(0) + speakings.get(4), receiver.getName(), setter.getName(), amount, bounty.getTotalBounty(), receiver);
 
         Bukkit.getConsoleSender().sendMessage(message);
-        if (whitelist.isEmpty()) {
+        if (whitelist.getList().isEmpty()) {
             if (amount >= minBroadcast)
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (!disableBroadcast.contains(player.getUniqueId().toString()) && !player.getUniqueId().equals(receiver.getUniqueId()) && !player.getUniqueId().equals(setter.getUniqueId())) {
@@ -896,20 +945,26 @@ public final class NotBounties extends JavaPlugin {
                     }
                 }
         } else {
-            for (UUID uuid : whitelist) {
-                Player player = Bukkit.getPlayer(uuid);
-                if (player == null || player.getUniqueId().equals(receiver.getUniqueId()) || player.getUniqueId().equals(setter.getUniqueId()))
-                    continue;
-                player.sendMessage(message);
-                for (String str : whitelistNotify)
-                    if (!str.isEmpty())
-                        player.sendMessage(parse(speakings.get(0) + str, player));
+            if (whitelist.isBlacklist()) {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (player.getUniqueId().equals(receiver.getUniqueId()) || player.getUniqueId().equals(setter.getUniqueId()) || whitelist.getList().contains(player.getUniqueId()))
+                        continue;
+                    whitelistNotify.stream().filter(str -> !str.isEmpty()).forEach(str -> player.sendMessage(parse(speakings.get(0) + str, player)));
+                }
+            } else {
+                for (UUID uuid : whitelist.getList()) {
+                    Player player = Bukkit.getPlayer(uuid);
+                    if (player == null || player.getUniqueId().equals(receiver.getUniqueId()) || player.getUniqueId().equals(setter.getUniqueId()))
+                        continue;
+                    player.sendMessage(message);
+                    whitelistNotify.stream().filter(str -> !str.isEmpty()).forEach(str -> player.sendMessage(parse(speakings.get(0) + str, player)));
+                }
             }
         }
 
     }
 
-    public void addBounty(OfflinePlayer receiver, double amount, List<UUID> whitelist) {
+    public void addBounty(OfflinePlayer receiver, double amount, Whitelist whitelist) {
         // add to all time bounties
 
         Bounty bounty = null;
@@ -952,12 +1007,17 @@ public final class NotBounties extends JavaPlugin {
             }
             // send messages
             onlineReceiver.sendMessage(parse(speakings.get(0) + speakings.get(42), consoleName, amount, bounty.getTotalBounty(), receiver));
-            onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
+            String version = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
+            if (version.contains("16")) {
+                onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
+            } else {
+                onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
+            }
         }
         // send messages
-        String message = parse(speakings.get(0) + speakings.get(4), receiver.getName(), consoleName , amount, bounty.getTotalBounty(), receiver);
+        String message = parse(speakings.get(0) + speakings.get(4), receiver.getName(), consoleName, amount, bounty.getTotalBounty(), receiver);
         Bukkit.getConsoleSender().sendMessage(message);
-        if (whitelist.isEmpty()) {
+        if (whitelist.getList().isEmpty()) {
             if (amount >= minBroadcast)
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (!disableBroadcast.contains(player.getUniqueId().toString()) && !player.getUniqueId().equals(receiver.getUniqueId())) {
@@ -965,7 +1025,7 @@ public final class NotBounties extends JavaPlugin {
                     }
                 }
         } else {
-            for (UUID uuid : whitelist) {
+            for (UUID uuid : whitelist.getList()) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player == null || player.getUniqueId().equals(receiver.getUniqueId()))
                     continue;
@@ -1003,8 +1063,14 @@ public final class NotBounties extends JavaPlugin {
         return uuid.toString();
     }
 
-    public List<UUID> getPlayerWhitelist(UUID uuid) {
-        return playerWhitelist.containsKey(uuid) ? playerWhitelist.get(uuid) : new ArrayList<>();
+    public Whitelist getPlayerWhitelist(UUID uuid) {
+        if (playerWhitelist.containsKey(uuid)) {
+            return playerWhitelist.get(uuid);
+        }
+        Whitelist whitelist = new Whitelist(new ArrayList<>(), false);
+        playerWhitelist.put(uuid, whitelist);
+
+        return whitelist;
     }
 
 
@@ -1031,34 +1097,6 @@ public final class NotBounties extends JavaPlugin {
         }
     }
 
-    public boolean compareBounties(Bounty b1, Bounty b2) {
-        if (b1.getUUID() != b2.getUUID())
-            return false;
-        if (b1.getTotalBounty() != b2.getTotalBounty())
-            return false;
-        List<Setter> s1 = b1.getSetters();
-        List<Setter> s2 = b2.getSetters();
-        Collections.sort(s1);
-        Collections.sort(s2);
-        if (s1.size() != s2.size())
-            return false;
-        for (int i = 0; i < s1.size(); i++) {
-            if (!compareSetters(s1.get(i), s2.get(i)))
-                return false;
-        }
-        return true;
-    }
-
-    public boolean compareSetters(Setter s1, Setter s2) {
-        if (s1.getUuid() != s2.getUuid())
-            return false;
-        if (s1.getAmount() != s2.getAmount())
-            return false;
-        for (UUID uuid : s1.getWhitelist())
-            if (!s2.getWhitelist().contains(uuid))
-                return false;
-        return true;
-    }
 
     public boolean hasBounty(OfflinePlayer receiver) {
         if (SQL.isConnected()) {

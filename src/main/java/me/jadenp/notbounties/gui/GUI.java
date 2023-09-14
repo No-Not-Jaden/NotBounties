@@ -74,7 +74,7 @@ public class GUI implements Listener {
                 }
                 break;
             case "set-whitelist":
-                List<UUID> whitelist = NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId());
+                List<UUID> whitelist = NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList();
                 for (UUID uuid : whitelist)
                     values.put(uuid.toString(), NumberFormatting.currencyPrefix + Leaderboard.IMMUNITY.getStat(uuid) + NumberFormatting.currencySuffix);
                 for (Map.Entry<String, String> entry : Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet())
@@ -170,6 +170,7 @@ public class GUI implements Listener {
             assert meta != null;
             assert meta.getOwningPlayer() != null;
             OfflinePlayer player = meta.getOwningPlayer();
+            String playerName = NotBounties.getInstance().getPlayerName(player.getUniqueId());
             switch (guiType) {
                 case "bounty-gui":
                     // remove, edit, and buy back
@@ -216,7 +217,7 @@ public class GUI implements Listener {
                     openGUI((Player) event.getWhoClicked(), "select-price", minBounty, player.getUniqueId().toString());
                     break;
                 case "set-whitelist":
-                    List<UUID> whitelist = NotBounties.getInstance().getPlayerWhitelist(event.getWhoClicked().getUniqueId());
+                    List<UUID> whitelist = NotBounties.getInstance().getPlayerWhitelist(event.getWhoClicked().getUniqueId()).getList();
                     if (!whitelist.remove(player.getUniqueId())) {
                         if (whitelist.size() < 10)
                             whitelist.add(player.getUniqueId());
@@ -229,7 +230,7 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, "offline");
                     break;
                 case "select-price":
-                    Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + player.getName() + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
+                    Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
                     if (!confirmation)
                         event.getView().close();
                     break;
@@ -241,7 +242,7 @@ public class GUI implements Listener {
                 return;
             for (String command : customItem.getCommands()){
                 command = command.replaceAll("\\{player}", Matcher.quoteReplacement(event.getWhoClicked().getName()));
-                command = command.replaceAll("\\{page}", Matcher.quoteReplacement(playerInfo.get(event.getWhoClicked().getUniqueId()).getPage() + ""));
+                command = command.replaceAll("\\{page}", Matcher.quoteReplacement(info.getPage() + ""));
                 while (command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")){
                     String replacement = "";
                     try {

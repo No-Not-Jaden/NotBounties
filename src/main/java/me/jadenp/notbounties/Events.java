@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.NumberFormatting;
 import me.jadenp.notbounties.utils.UpdateChecker;
+import me.jadenp.notbounties.utils.Whitelist;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -55,7 +56,7 @@ public class Events implements Listener {
 
     }
 
-    public static void cleanPlayerKills(){
+    public static void cleanPlayerKills() {
         Map<UUID, Map<UUID, Long>> updatedMap = new HashMap<>();
         for (Map.Entry<UUID, Map<UUID, Long>> entry : playerKills.entrySet()) {
             Map<UUID, Long> deaths = entry.getValue();
@@ -85,7 +86,7 @@ public class Events implements Listener {
                         playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) {
                     if (!murderExcludeClaiming || !nb.hasBounty(player) || Objects.requireNonNull(nb.getBounty(player)).getTotalBounty(killer) < 0.01) {
                         // increase
-                        NotBounties.getInstance().addBounty(killer, murderBountyIncrease, new ArrayList<>());
+                        NotBounties.getInstance().addBounty(killer, murderBountyIncrease, new Whitelist(new ArrayList<>(), false));
                         killer.sendMessage(parse(speakings.get(0) + speakings.get(59), player.getName(), Objects.requireNonNull(nb.getBounty(killer)).getTotalBounty(), killer));
                         Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
                         kills.put(player.getUniqueId(), System.currentTimeMillis());
@@ -586,19 +587,18 @@ public class Events implements Listener {
         }
 
         // check for updates
-        if (updateNotification) {
+        if (updateNotification && !NotBounties.latestVersion) {
             if (event.getPlayer().hasPermission("notbounties.admin")) {
                 new UpdateChecker(nb, 104484).getVersion(version -> {
-
-                    if (!nb.getDescription().getVersion().equals(version) && !nb.getDescription().getVersion().contains("dev")) {
-                        event.getPlayer().sendMessage(parse(speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
-                        event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
-
-                    }
+                    if (nb.getDescription().getVersion().contains("dev"))
+                        return;
+                    if (nb.getDescription().getVersion().equals(version))
+                        return;
+                    event.getPlayer().sendMessage(parse(speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
+                    event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
                 });
             }
         }
 
     }
-
 }

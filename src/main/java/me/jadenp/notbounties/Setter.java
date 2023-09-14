@@ -1,11 +1,11 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.UUID;
 
 public class Setter implements Comparable<Setter>{
@@ -14,9 +14,9 @@ public class Setter implements Comparable<Setter>{
     private final double amount;
     private final long timeCreated;
     private boolean notified;
-    private final List<UUID> whitelist;
+    private final Whitelist whitelist;
 
-    public Setter(String name, UUID uuid, double amount, long timeCreated, @Nullable Boolean notified, List<UUID> whitelist){
+    public Setter(String name, UUID uuid, double amount, long timeCreated, @Nullable Boolean notified, Whitelist whitelist){
 
         this.name = name;
         this.uuid = uuid;
@@ -33,18 +33,18 @@ public class Setter implements Comparable<Setter>{
     public boolean canClaim(Player player) {
         if (player == null)
             return true;
-        if (whitelist.isEmpty())
+        if (whitelist.getList().isEmpty())
             return true;
         if (ConfigOptions.variableWhitelist)
-            return NotBounties.getInstance().getPlayerWhitelist(uuid).contains(player.getUniqueId()) || NotBounties.getInstance().getPlayerWhitelist(uuid).isEmpty();
-        return whitelist.contains(player.getUniqueId());
+            return (NotBounties.getInstance().getPlayerWhitelist(uuid).getList().isEmpty() || NotBounties.getInstance().getPlayerWhitelist(uuid).isBlacklist()) != NotBounties.getInstance().getPlayerWhitelist(uuid).getList().contains(player.getUniqueId());
+        return whitelist.isBlacklist() != whitelist.getList().contains(player.getUniqueId());
     }
 
     public boolean isNotified() {
         return notified;
     }
 
-    public List<UUID> getWhitelist() {
+    public Whitelist getWhitelist() {
         return whitelist;
     }
 

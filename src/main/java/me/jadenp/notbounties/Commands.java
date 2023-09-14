@@ -6,6 +6,7 @@ import me.jadenp.notbounties.map.BountyMap;
 import me.jadenp.notbounties.utils.CurrencySetup;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import me.jadenp.notbounties.utils.Tutorial;
+import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -43,10 +44,11 @@ public class Commands implements CommandExecutor, TabCompleter {
         if (command.getName().equalsIgnoreCase("notbounties")) {
             Player parser = getParser(sender);
             if (args.length > 0) {
+                final String whitelistText = "whitelist";
                 if (args[0].equalsIgnoreCase("help") && sender.hasPermission("notbounties.basic")) {
                     sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.BLUE + "" + ChatColor.BOLD + " Not" + ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Bounties " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
                     sender.sendMessage(ChatColor.DARK_BLUE + "Bounty tax is currently: " + ChatColor.DARK_PURPLE + (bountyTax * 100) + "%");
-                    sender.sendMessage(ChatColor.DARK_BLUE + "Whitelist cost is currently: " + ChatColor.DARK_PURPLE + currencyPrefix + bountyWhitelistCost + currencySuffix + " per player.");
+                    sender.sendMessage(ChatColor.DARK_BLUE + whitelistText + " cost is currently: " + ChatColor.DARK_PURPLE + currencyPrefix + bountyWhitelistCost + currencySuffix + " per player.");
                     sender.sendMessage(ChatColor.BLUE + "/bounty help" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Shows this message.");
                     sender.sendMessage(ChatColor.BLUE + "/bounty tutorial" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Shows this message.");
                     sender.sendMessage(ChatColor.BLUE + "/bounty bdc" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Toggles the bounty broadcast message.");
@@ -58,14 +60,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(ChatColor.BLUE + "/bounty" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Opens bounty GUI.");
                     }
                     if (sender.hasPermission("notbounties.set")) {
-                        sender.sendMessage(ChatColor.BLUE + "/bounty (player) (amount) <whitelisted players>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Adds a bounty to a player.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty (player) (amount) <" + whitelistText + "ed players>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Adds a bounty to a player.");
                         sender.sendMessage(ChatColor.BLUE + "/bounty set <offline>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Opens the set bounty GUI.");
                     }
                     if (sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled) {
-                        sender.sendMessage(ChatColor.BLUE + "/bounty whitelist (add/remove/set) (whitelisted players)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Change the players that can claim the bounties you set.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty whitelist <offline>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Opens the set whitelist GUI.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty whitelist reset" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Resets your whitelisted players.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty whitelist view" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Displays your whitelisted players in chat.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " (add/remove/set) (" + whitelistText + "ed players)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Change the players that can claim the bounties you set.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " <offline>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Opens the set whitelist GUI.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " reset" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Resets your whitelisted players.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " view" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Displays your whitelisted players in chat.");
+                        if (enableBlacklist) {
+                            sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " toggle" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Toggles your whitelist into a blacklist or vice versa.");
+                        }
                     }
                     if (sender.hasPermission("notbounties.buyown") & buyBack) {
                         sender.sendMessage(ChatColor.BLUE + "/bounty buy" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buys your own bounty for " + buyBackInterest + "x the price.");
@@ -125,12 +130,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                             return true;
                         }
                         if (args[1].equalsIgnoreCase("reset")){
-                            nb.playerWhitelist.put((parser).getUniqueId(), new ArrayList<>());
+                            nb.getPlayerWhitelist(parser.getUniqueId()).setList(new ArrayList<>());
                             sender.sendMessage(parse(speakings.get(0) + speakings.get(57), parser));
                             return true;
                         }
                         if (args[1].equalsIgnoreCase("view")){
-                            List<UUID> whitelist = nb.getPlayerWhitelist((parser).getUniqueId());
+                            List<UUID> whitelist = nb.getPlayerWhitelist((parser).getUniqueId()).getList();
                             StringBuilder names = new StringBuilder(" ");
                             for (UUID uuid : whitelist) {
                                 names.append(nb.getPlayerName(uuid)).append(", ");
@@ -143,9 +148,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(parse(speakings.get(0) + speakings.get(13) + names, parser));
                             return true;
                         }
+                        if (args[1].equalsIgnoreCase("toggle") && enableBlacklist) {
+                            if (NotBounties.getInstance().getPlayerWhitelist(((Player) sender).getUniqueId()).toggleBlacklist()) {
+                                sender.sendMessage(parse(speakings.get(0) + speakings.get(69), parser));
+                            } else {
+                                sender.sendMessage(parse(speakings.get(0) + speakings.get(63), parser));
+                            }
+                            return true;
+                        }
                         if (args.length > 2) {
                             List<UUID> whitelist = new ArrayList<>();
-                            List<UUID> previousWhitelist = nb.playerWhitelist.containsKey((parser).getUniqueId()) ? nb.playerWhitelist.get((parser).getUniqueId()) : new ArrayList<>();
+                            List<UUID> previousWhitelist = nb.playerWhitelist.containsKey((parser).getUniqueId()) ? nb.playerWhitelist.get((parser).getUniqueId()).getList() : new ArrayList<>();
                             for (int i = 2; i < Math.min(args.length, 12); i++) {
                                 OfflinePlayer player = nb.getPlayer(args[i]);
                                 if (player == null) {
@@ -161,7 +174,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 whitelist.stream().filter(uuid -> !previousWhitelist.contains(uuid)).forEach(previousWhitelist::add);
                                 while (previousWhitelist.size() > 10)
                                     previousWhitelist.remove(10);
-                                nb.playerWhitelist.put((parser).getUniqueId(), previousWhitelist);
+                                nb.getPlayerWhitelist(parser.getUniqueId()).setList(previousWhitelist);
                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(58), parser));
                                 if (previousWhitelist.size() == 10)
                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(56), parser));
@@ -177,22 +190,22 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(speakings.get(0) + speakings.get(3), builder.toString(), parser));
                                     return true;
                                 }
-                                nb.playerWhitelist.put((parser).getUniqueId(), previousWhitelist);
+                                nb.getPlayerWhitelist(parser.getUniqueId()).setList(previousWhitelist);
                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(58), parser));
                                 return true;
                             }
                             if (args[1].equalsIgnoreCase("set")) {
-                                nb.playerWhitelist.put((parser).getUniqueId(), whitelist);
+                                nb.getPlayerWhitelist(parser.getUniqueId()).setList(whitelist);
                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(58), parser));
                                 return true;
                             }
                         }
                         // usage
                         sender.sendMessage(parse(speakings.get(0) + speakings.get(24), parser));
-                        sender.sendMessage(ChatColor.BLUE + "/bounty whitelist (add/remove/set) (whitelisted players)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Change the players that can claim the bounties you set.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty whitelist <offline>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Opens the set whitelist GUI.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty whitelist reset" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Resets your whitelisted players.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty whitelist view" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Displays your whitelisted players in chat.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " (add/remove/set) (" + whitelistText + "ed players)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Change the players that can claim the bounties you set.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " <offline>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Opens the set whitelist GUI.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " reset" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Resets your whitelisted players.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " view" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Displays your whitelisted players in chat.");
                         return true;
                     } else {
                         sender.sendMessage(speakings.get(0) + ChatColor.RED + "Only players can use this command.");
@@ -698,7 +711,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (nb.SQL.isConnected()) {
                                         nb.data.editBounty(toEdit.getUUID(), new UUID(0, 0), amount - toEdit.getTotalBounty());
                                     } else {
-                                        toEdit.addBounty(amount - toEdit.getTotalBounty(), new ArrayList<>());
+                                        toEdit.addBounty(amount - toEdit.getTotalBounty(), new Whitelist(new ArrayList<>(), false));
                                     }
                                     // successfully edited bounty
                                         Player player = Bukkit.getPlayer(toEdit.getUUID());
@@ -932,9 +945,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
 
                         // get whitelisted people
-                        List<UUID> whitelist = (sender instanceof Player) && sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled ? nb.getPlayerWhitelist((parser).getUniqueId()) : new ArrayList<>();
+                        Whitelist whitelist = (sender instanceof Player) && sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled ? nb.getPlayerWhitelist((parser).getUniqueId()) : new Whitelist(new ArrayList<>(), false);
                         if (args.length > 3 && sender.hasPermission("notbounties.whitelist")) {
-                            whitelist.clear();
+                            List<UUID> newWhitelist = new ArrayList<>();
                             for (int i = 3; i < Math.min(args.length, 13); i++) {
                                 if (args[i].equalsIgnoreCase("--confirm"))
                                     continue;
@@ -944,8 +957,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         sender.sendMessage(parse(speakings.get(0) + speakings.get(3), args[i], parser));
                                     return true;
                                 }
-                                whitelist.add(p.getUniqueId());
+                                newWhitelist.add(p.getUniqueId());
                             }
+                            whitelist.setList(newWhitelist);
                         }
 
                         // check if max setters reached
@@ -972,7 +986,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(23), minBounty, parser));
                             return true;
                         }
-                        double total = amount + amount * bountyTax + whitelist.size() * bountyWhitelistCost;
+                        double total = amount + amount * bountyTax + whitelist.getList().size() * bountyWhitelistCost;
 
                         // check if it is a player
 
@@ -1122,6 +1136,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("offline");
                     tab.add("reset");
                     tab.add("view");
+                    if (enableBlacklist)
+                        tab.add("toggle");
                 } else if (args[0].equalsIgnoreCase("poster") && (sender.hasPermission("notbounties.admin") || giveOwnMap)) {
                     List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
                     for (Bounty bounty : bountyList) {
@@ -1172,7 +1188,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("notbounties.set") && isNumber && confirmation)
                     tab.add("--confirm");
                 if (args[0].equalsIgnoreCase("whitelist") && args[1].equalsIgnoreCase("remove") && sender.hasPermission("notbounties.whitelist")) {
-                    for (UUID uuid : nb.getPlayerWhitelist(((Player) sender).getUniqueId())) {
+                    for (UUID uuid : nb.getPlayerWhitelist(((Player) sender).getUniqueId()).getList()) {
                         tab.add(nb.getPlayerName(uuid));
                     }
                 }

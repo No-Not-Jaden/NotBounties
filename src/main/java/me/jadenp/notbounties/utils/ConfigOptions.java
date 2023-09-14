@@ -94,6 +94,8 @@ public class ConfigOptions {
     public static int randomBountyMaxTime;
     public static double randomBountyMinPrice;
     public static double randomBountyMaxPrice;
+    public static boolean enableBlacklist;
+    public static List<String> blacklistLore;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -236,7 +238,8 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-whitelist.show-all-bounty", false);
         if (!bounties.getConfig().isSet("bounty-whitelist.variable-whitelist"))
             bounties.getConfig().set("bounty-whitelist.variable-whitelist", false);
-
+        if (!bounties.getConfig().isSet("bounty-whitelist.enable-blacklist"))
+            bounties.getConfig().set("bounty-whitelist.enable-blacklist", true);
         if (bounties.getConfig().isInt("number-formatting.type")) {
             switch (bounties.getConfig().getInt("number-formatting.type")) {
                 case 0:
@@ -357,6 +360,7 @@ public class ConfigOptions {
         randomBountyMaxTime = bounties.getConfig().getInt("random-bounties.max-time");
         randomBountyMinPrice = bounties.getConfig().getDouble("random-bounties.min-price");
         randomBountyMaxPrice = bounties.getConfig().getDouble("random-bounties.max-price");
+        enableBlacklist = bounties.getConfig().getBoolean("bounty-whitelist.enable-blacklist");
 
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
@@ -662,7 +666,7 @@ public class ConfigOptions {
             configuration.set("whitelist-reset", "&fYour whitelisted players have been reset.");
         if (!configuration.isSet("whitelist-change"))
             configuration.set("whitelist-change", "&eYour whitelisted players have been changed.");
-        if (!configuration.isSet("whitelisted-lore"))
+        if (!configuration.isSet("whitelist-lore"))
             configuration.set("whitelist-lore", Arrays.asList("&f&lThis player is whitelisted.", ""));
         if (!configuration.isSet("whitelist-notify"))
             configuration.set("whitelist-notify", Arrays.asList("&fYou are whitelisted to this bounty!", ""));
@@ -682,7 +686,7 @@ public class ConfigOptions {
             configuration.set("map-give", "&eYou have given &6{receiver}&e a bounty poster of {player}.");
         if (!configuration.isSet("map-receive"))
             configuration.set("map-receive", "&eYou have been given a bounty poster of &6{player}&e.");
-        if (bounties.getConfig().isSet("buy-own-bounties.lore-addition")) {
+        if (bounties.getConfig().isSet("buy-own-bounties.lore-addition") && !configuration.isSet("buy-back-lore")) {
             List<String> bbLore;
             if (bounties.getConfig().isList("buy-own-bounties.lore-addition")) {
                 bbLore = bounties.getConfig().getStringList("buy-own-bounties.lore-addition");
@@ -696,10 +700,16 @@ public class ConfigOptions {
             configuration.set("admin-edit-lore", Arrays.asList("&cLeft Click &7to Remove", "&eRight Click &7to Edit", ""));
         if (configuration.isString("whitelist-lore"))
             configuration.set("whitelist-lore", Arrays.asList(configuration.getString("whitelist-lore"), ""));
+        if (!configuration.isSet("blacklist-lore"))
+            configuration.set("blacklist-lore", Arrays.asList("&f&lThis player is blacklisted.", ""));
         if (configuration.isString("whitelist-notify"))
             configuration.set("whitelist-notify", Arrays.asList(configuration.getString("whitelist-notify"), ""));
         if (!configuration.isSet("murder"))
             configuration.set("murder", "&cYour bounty has been increased for murdering &4{player}&c!");
+        if (!configuration.isSet("whitelist-toggle"))
+            configuration.set("whitelist-toggle", "&fYour whitelist has been set to normal.");
+        if (!configuration.isSet("blacklist-toggle"))
+            configuration.set("blacklist-toggle", "&fYour whitelist is now on blacklist mode.");
 
         bounties.saveConfig();
         configuration.save(language);
@@ -831,8 +841,8 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("buy-time-immunity"))));
         // 62 time-immunity
         speakings.add(color(Objects.requireNonNull(configuration.getString("time-immunity"))));
-        // 63
-        speakings.add("");
+        // 63 whitelist-toggle
+        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-toggle"))));
         // 64 death-tax
         speakings.add(color(Objects.requireNonNull(configuration.getString("death-tax"))));
         // 65 max-setters
@@ -843,6 +853,8 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("map-give"))));
         // 68 map-receive
         speakings.add(color(Objects.requireNonNull(configuration.getString("map-receive"))));
+        // 69 blacklist-toggle
+        speakings.add(color(Objects.requireNonNull(configuration.getString("blacklist-toggle"))));
 
         voucherLore = new ArrayList<>();
         configuration.getStringList("bounty-voucher-lore").forEach(str -> voucherLore.add(color(str)));
@@ -860,6 +872,8 @@ public class ConfigOptions {
         configuration.getStringList("whitelist-notify").forEach(lore -> whitelistNotify.add(color(lore)));
         whitelistLore = new ArrayList<>();
         configuration.getStringList("whitelist-lore").forEach(lore -> whitelistLore.add(color(lore)));
+        blacklistLore = new ArrayList<>();
+        configuration.getStringList("blacklist-lore").forEach(lore -> blacklistLore.add(color(lore)));
     }
 
 

@@ -61,13 +61,18 @@ whitelisted-players: '&fYour whitelisted players:&7' # player names will follow 
 whitelist-max: '&cYou''ve reached the maximum amount of whitelisted players.'
 whitelist-reset: '&fYour whitelisted players have been reset.'
 whitelist-change: '&eYour whitelisted players have been changed.'
+whitelist-toggle: '&fYour whitelist has been set to normal.'
+blacklist-toggle: '&fYour whitelist is now on blacklist mode.'
 whitelist-lore:
   - '&f&lThis player is whitelisted.'
+  - ''
+blacklist-lore:
+  - '&f&lThis player is blacklisted.'
   - ''
 whitelist-notify:
   - '&fYou are whitelisted to this bounty!'
   - ''
-not-whitelisted: #
+not-whitelisted:
   - '&cPart of this bounty is whitelisted.'
   - ''
 death-tax: '&cYou were killed because of a bounty. You lost &4{items}&c.'

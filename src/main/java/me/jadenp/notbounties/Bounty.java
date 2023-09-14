@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -15,7 +16,7 @@ public class Bounty implements Comparable<Bounty>{
     private List<Setter> setters = new ArrayList<>();
 
 
-    public Bounty(Player setter, OfflinePlayer receiver, double amount, List<UUID> whitelist){
+    public Bounty(Player setter, OfflinePlayer receiver, double amount, Whitelist whitelist){
         // save player
         this.uuid = receiver.getUniqueId();
         name = receiver.getName();
@@ -23,7 +24,7 @@ public class Bounty implements Comparable<Bounty>{
         setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(),false, whitelist));
     }
 
-    public Bounty(OfflinePlayer receiver, double amount, List<UUID> whitelist){
+    public Bounty(OfflinePlayer receiver, double amount, Whitelist whitelist){
         // save player
         this.uuid = receiver.getUniqueId();
         name = receiver.getName();
@@ -49,7 +50,7 @@ public class Bounty implements Comparable<Bounty>{
         return uuid;
     }
 
-    public void addBounty(Player setter, double amount, List<UUID> whitelist){
+    public void addBounty(Player setter, double amount, Whitelist whitelist){
         // first check if player already set a bounty
         if (Bukkit.getPlayer(uuid) != null) {
             for (int i = 0; i < setters.size(); i++) {
@@ -65,7 +66,7 @@ public class Bounty implements Comparable<Bounty>{
     }
 
     // console set bounty
-    public void addBounty(double amount, List<UUID> whitelist){
+    public void addBounty(double amount, Whitelist whitelist){
         // first check if player already set a bounty
         for (int i = 0; i < setters.size(); i++){
             if (setters.get(i).getUuid().equals(new UUID(0,0)) && compareWhitelists(whitelist, setters.get(i).getWhitelist())){
@@ -145,15 +146,17 @@ public class Bounty implements Comparable<Bounty>{
         setters = new ArrayList<>(setterMap.values());
     }
 
-    private boolean compareWhitelists(List<UUID> w1, List<UUID> w2) {
-        if ((w1 == null || w1.isEmpty()) && (w2 == null || w2.isEmpty()))
+    private boolean compareWhitelists(Whitelist w1, Whitelist w2) {
+        if ((w1 == null || w1.getList().isEmpty()) && (w2 == null || w2.getList().isEmpty()))
             return true;
         if (w1 == null || w2 == null)
             return false;
-        if (w1.size() != w2.size())
+        if (w1.getList().size() != w2.getList().size())
             return false;
-        for (UUID uuid : w1) {
-            if (!w2.contains(uuid))
+        if (w1.isBlacklist() != w2.isBlacklist())
+            return false;
+        for (UUID uuid : w1.getList()) {
+            if (!w2.getList().contains(uuid))
                 return false;
         }
         return true;
@@ -161,14 +164,20 @@ public class Bounty implements Comparable<Bounty>{
 
     public Map<UUID, List<UUID>> getWhitelists(){
         //combineSetters();
-        return setters.stream().filter(setter -> !setter.getWhitelist().isEmpty()).collect(Collectors.toMap(Setter::getUuid, Setter::getWhitelist, (a, b) -> b));
+        return setters.stream().filter(setter -> !setter.getWhitelist().getList().isEmpty()).collect(Collectors.toMap(Setter::getUuid, setter -> setter.getWhitelist().getList(), (a, b) -> b));
     }
 
     public List<UUID> getAllWhitelists() {
         if (ConfigOptions.variableWhitelist) {
-            return setters.stream().flatMap(setter -> NotBounties.getInstance().getPlayerWhitelist(setter.getUuid()).stream()).collect(Collectors.toList());
+            return setters.stream().map(setter -> NotBounties.getInstance().getPlayerWhitelist(setter.getUuid())).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
         }
-        return setters.stream().flatMap(setter -> setter.getWhitelist().stream()).collect(Collectors.toList());
+        return setters.stream().map(Setter::getWhitelist).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
+    }
+    public List<UUID> getAllBlacklists() {
+        if (ConfigOptions.variableWhitelist) {
+            return setters.stream().map(setter -> NotBounties.getInstance().getPlayerWhitelist(setter.getUuid())).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
+        }
+        return setters.stream().map(Setter::getWhitelist).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
     }
 
     @Override
