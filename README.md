@@ -69,6 +69,8 @@ Run /bounty currency in-game to change your currency type. The currency can be a
 
 notbounties.immune - is immune from having bounties placed on them
 notbounties.tracker - allows players to use the bounty tracker (default true)
+notbounties.player - all of the basic player permissions
+notbounties.basic - use help, tutorial, and broadcast commands
 </details>
 
 ## Hex in [Language.yml](src/main/resources/language.yml)
