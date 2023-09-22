@@ -26,10 +26,8 @@ import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.List;
 
 public class BountyMap implements Listener {
 
@@ -73,6 +71,21 @@ public class BountyMap implements Listener {
                 Bukkit.getLogger().warning("Found a key in mapdata.yml that isn't a UUID. \"" + key + "\". This will be overwritten in 5 minutes.");
             }
         }
+    }
+
+    private static final List<String> posterFiles = Arrays.asList("bounty poster.png", "dead bounty.png", "mapdata.yml", "poster template.png", "READ_ME.txt", "playerfont.ttf");
+    public static void cleanPosters() {
+        int deletedFiles = 0;
+        File[] files = posterDirectory.listFiles();
+        if (files == null)
+            return;
+        for (File file : files) {
+            if (!posterFiles.contains(file.getName()))
+                if (file.delete())
+                    deletedFiles++;
+        }
+        if (deletedFiles > 0)
+            Bukkit.getLogger().info("[NotBounties] Cleaned out " + deletedFiles + " poster templates.");
     }
 
     public static void save() throws IOException {

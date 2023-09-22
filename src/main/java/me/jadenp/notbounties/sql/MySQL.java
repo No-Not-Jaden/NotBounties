@@ -2,7 +2,9 @@ package me.jadenp.notbounties.sql;
 
 import org.bukkit.plugin.Plugin;
 
+import java.net.ConnectException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -27,7 +29,7 @@ public class MySQL {
         useSSL = (plugin.getConfig().isSet("database.use-ssl") && plugin.getConfig().getBoolean("database.use-ssl"));
     }
 
-    public void reconnect() throws SQLException, ClassNotFoundException {
+    public void reconnect() throws SQLException, ClassNotFoundException, ConnectException {
         if (isConnected())
             connection.close();
         connection = null;
@@ -44,11 +46,21 @@ public class MySQL {
         return connection != null;
     }
 
-    public void connect() throws ClassNotFoundException, SQLException {
+    public void connect() throws ClassNotFoundException, SQLException, ConnectException {
         if (!isConnected())
             connection = DriverManager.getConnection("jdbc:mysql://" +
                             host + ":" + port + "/" + database + "?useSSL=" + useSSL,
                     username, password);
+    }
+
+    public String getDatabaseType() throws SQLException {
+        if (isConnected()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            return metaData.getDatabaseProductName();
+        } else {
+            return "N/A";
+        }
+
     }
 
     public void disconnect(){

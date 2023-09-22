@@ -26,6 +26,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
@@ -33,12 +34,26 @@ import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
+import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * 1.16 plays a different sound
- * if u update to a newer version no update message
- * Get player name when setting bounty through GUI jic offlineplayer is null
- * added blacklist
+ * added /bounty debug x
+ * no error for console doing /bounty x
+ * added litebans support x
+ * added remove-banned-players config option x
+ * banned players check before auto-bounty x
+ * refund removed bounties x
+ * notified not working correctly  - x
+ * bounty map:
+ *   reward text is centered x
+ *   can customize name line x
+ *   placeholders x
+ *   chat colors x
+ *   always update x
+ *   save templates x
+ *   clean posters x
+ *   reward line changed x
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -70,6 +85,7 @@ public final class NotBounties extends JavaPlugin {
     public Map<UUID, Long> immunityTimeTracker = new HashMap<>();
     public Map<String, Long> gracePeriod = new HashMap<>();
     public Map<Integer, String> trackedBounties = new HashMap<>();
+    public Map<UUID, Double> refundedBounties = new HashMap<>();
     public List<Player> displayParticle = new ArrayList<>();
     private static NotBounties instance;
     public MySQL SQL;
@@ -90,7 +106,7 @@ public final class NotBounties extends JavaPlugin {
         if (!SQL.isConnected()) {
             try {
                 SQL.connect();
-            } catch (ClassNotFoundException | SQLException e) {
+            } catch (ClassNotFoundException | SQLException | ConnectException e) {
                 //e.printStackTrace();
                 return false;
             }
@@ -275,6 +291,8 @@ public final class NotBounties extends JavaPlugin {
                             } catch (IllegalArgumentException e) {
                                 Bukkit.getLogger().warning("Failed to get whitelisted uuids from: " + uuid + "\nThis list will be overwritten in 5 minutes");
                             }
+                        if (configuration.isSet("data." + uuid + ".refund"))
+                            refundedBounties.put(UUID.fromString(uuid), configuration.getDouble("data." + uuid + ".refund"));
 
                     }
                 if (configuration.isSet("disable-broadcast"))
@@ -307,6 +325,10 @@ public final class NotBounties extends JavaPlugin {
             saveResource("language.yml", false);
         }
 
+        // clean out posters that aren't supposed to be there
+        if (!saveTemplates) {
+            BountyMap.cleanPosters();
+        }
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new BountyExpansion(this).register();
@@ -539,14 +561,35 @@ public final class NotBounties extends JavaPlugin {
 
                 // random bounties
                 if (randomBountyMinTime != 0 && nextRandomBounty != 0 && System.currentTimeMillis() > nextRandomBounty) {
-                    String uuid = (String) loggedPlayers.values().toArray()[(int) (Math.random() * loggedPlayers.values().size())];
-                    try {
-                        addBounty(Bukkit.getOfflinePlayer(UUID.fromString(uuid)), randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice), new Whitelist(new ArrayList<>(), false));
-                        setNextRandomBounty();
-                    } catch (IllegalArgumentException e) {
-                        Bukkit.getLogger().info("[NotBounties] Invalid UUID of picked player for random bounty: " + uuid);
+
+                        String uuid = (String) loggedPlayers.values().toArray()[(int) (Math.random() * loggedPlayers.values().size())];
+                        try {
+                            OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
+                            if (!player.isBanned()) {
+                                if (liteBansEnabled) {
+                                    new BukkitRunnable() {
+                                        @Override
+                                        public void run() {
+                                            if (new LiteBansClass().isPlayerNotBanned(player.getUniqueId()))
+                                                // back into sync thread
+                                                new BukkitRunnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        addBounty(player, randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice), new Whitelist(new ArrayList<>(), false));
+                                                    }
+                                                }.runTask(NotBounties.getInstance());
+                                        }
+                                    }.runTaskAsynchronously(NotBounties.getInstance());
+                                } else {
+                                    addBounty(player, randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice), new Whitelist(new ArrayList<>(), false));
+                                }
+                                setNextRandomBounty();
+                            }
+                        } catch (IllegalArgumentException e) {
+                            Bukkit.getLogger().info("[NotBounties] Invalid UUID of picked player for random bounty: " + uuid);
+                        }
                     }
-                }
+
             }
         }.runTaskTimer(this, 100, 40);
         // auto save bounties every 5 min & remove bounty tracker
@@ -558,7 +601,10 @@ public final class NotBounties extends JavaPlugin {
                 if (bountyExpire > 0) {
                     // go through all the bounties and remove setters if it has been more than expire time
                     if (SQL.isConnected()) {
-                        data.removeOldBounties();
+                        List<Setter> setters = data.removeOldBounties();
+                        for (Setter setter : setters){
+                            refundSetter(setter);
+                        }
                     } else {
                         ListIterator<Bounty> bountyIterator = bountyList.listIterator();
                         while (bountyIterator.hasNext()) {
@@ -636,7 +682,39 @@ public final class NotBounties extends JavaPlugin {
                     }
                 }
             }
-        }.runTaskTimer(this, 3600, 3600);
+        }.runTaskTimer(this, 6000, 6000);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (removeBannedPlayers) {
+                    List<Bounty> bountyListCopy = SQL.isConnected() ? data.getTopBounties() : new ArrayList<>(bountyList);
+                    for (Bounty bounty : bountyListCopy) {
+                        OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
+                        if (player.isBanned()) {
+                            if (SQL.isConnected()) {
+                                data.removeBounty(bounty.getUUID());
+                            } else {
+                                bountyList.remove(bounty);
+                            }
+                        }
+                        if (liteBansEnabled) {
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    if (!new LiteBansClass().isPlayerNotBanned(bounty.getUUID())) {
+                                        if (SQL.isConnected()) {
+                                            data.removeBounty(bounty.getUUID());
+                                        } else {
+                                            bountyList.remove(bounty);
+                                        }
+                                    }
+                                }
+                            }.runTaskAsynchronously(NotBounties.getInstance());
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(NotBounties.getInstance(), 100, 12000);
     }
 
     public static NotBounties getInstance() {
@@ -714,6 +792,9 @@ public final class NotBounties extends JavaPlugin {
                     configuration.set("data." + mapElement.getKey().toString() + ".blacklist", true);
             }
         }
+        for (Map.Entry<UUID, Double> entry : refundedBounties.entrySet()) {
+            configuration.set("data." + entry.getKey().toString() + ".refund", entry.getValue());
+        }
         configuration.set("disable-broadcast", disableBroadcast);
         i = 0;
         for (Map.Entry<String, List<String>> mapElement : headRewards.entrySet()) {
@@ -769,12 +850,16 @@ public final class NotBounties extends JavaPlugin {
         if (autoConnectTask != null) {
             autoConnectTask.cancel();
         }
-        if ((SQL.isConnected() || autoConnect) && !firstConnect) {
-            SQL.reconnect();
+        try {
+            if ((SQL.isConnected() || autoConnect) && !firstConnect) {
+                SQL.reconnect();
+            }
+        } catch (SQLException | ClassNotFoundException | ConnectException ignored) {
+
         }
-        if (firstConnect) {
-            firstConnect = false;
-        }
+            if (firstConnect) {
+                firstConnect = false;
+            }
         if (autoConnect) {
             autoConnectTask = new BukkitRunnable() {
                 @Override
@@ -1142,5 +1227,58 @@ public final class NotBounties extends JavaPlugin {
     public void setNextRandomBounty() {
         nextRandomBounty = System.currentTimeMillis() + randomBountyMinTime * 1000L + (long) (Math.random() * (randomBountyMaxTime - randomBountyMinTime) * 1000L);
         //Bukkit.getLogger().info(nextRandomBounty + "");
+    }
+
+    public void refundBounty(Bounty bounty) {
+        for (Setter setter : bounty.getSetters()) {
+            refundSetter(setter);
+        }
+    }
+
+    public void refundSetter(Setter setter) {
+        if (vaultEnabled && !overrideVault) {
+            OfflinePlayer player = Bukkit.getOfflinePlayer(setter.getUuid());
+            if (!NumberFormatting.getVaultClass().deposit(player, setter.getAmount())) {
+                Bukkit.getLogger().warning("Error depositing currency with vault!");
+                addRefund(player.getUniqueId(), setter.getAmount());
+            }
+        } else {
+            Player player = Bukkit.getPlayer(setter.getUuid());
+            if (player != null)
+                NumberFormatting.doAddCommands(player, setter.getAmount());
+            else
+                addRefund(setter.getUuid(), setter.getAmount());
+        }
+    }
+
+    private void addRefund(UUID uuid, double amount) {
+        if (refundedBounties.containsKey(uuid)){
+            refundedBounties.replace(uuid, refundedBounties.get(uuid) + amount);
+        } else {
+            refundedBounties.put(uuid, amount);
+        }
+    }
+
+    public void sendDebug(CommandSender sender) throws SQLException {
+        sender.sendMessage(parse(speakings.get(0) + ChatColor.WHITE + "NotBounties debug info:", null));
+        String connected = SQL.isConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
+        sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + SQL.getDatabaseType() + ChatColor.YELLOW + " Local Bounties: " + ChatColor.WHITE + bountyList.size());
+        sender.sendMessage(ChatColor.GOLD + "General > "  + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Version: " + ChatColor.WHITE + getDescription().getVersion());
+        String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
+        String papi = papiEnabled ? ChatColor.GREEN + "PlaceholderAPI" : ChatColor.RED + "PlaceholderAPI";
+        String hdb = HDBEnabled ? ChatColor.GREEN + "HeadDataBase" : ChatColor.RED + "HeadDataBase";
+        String liteBans = liteBansEnabled ? ChatColor.GREEN + "LiteBans" : ChatColor.RED + "LiteBans";
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "]");
+        sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
+        TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
+        discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));
+        TextComponent spigot = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(240, 149, 45)) + "Spigot: " + ChatColor.GRAY + "https://www.spigotmc.org/resources/notbounties.104484/");
+        spigot.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://www.spigotmc.org/resources/notbounties.104484/"));
+        TextComponent github = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(230, 237, 243)) + "Github: " + ChatColor.GRAY + "https://github.com/No-Not-Jaden/NotBounties");
+        github.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/No-Not-Jaden/NotBounties"));
+        sender.spigot().sendMessage(discord);
+        sender.spigot().sendMessage(spigot);
+        sender.spigot().sendMessage(github);
+        sender.sendMessage("");
     }
 }

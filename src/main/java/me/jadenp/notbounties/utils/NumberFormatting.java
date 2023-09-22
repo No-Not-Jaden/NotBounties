@@ -35,7 +35,7 @@ public class NumberFormatting {
     public static boolean addSingleCurrency = true;
     public static boolean usingPapi = false;
     private static VaultClass vaultClass = null;
-    private static boolean vaultEnabled;
+    public static boolean vaultEnabled;
     public static boolean overrideVault;
 
 
@@ -483,6 +483,9 @@ public class NumberFormatting {
         return total;
     }
 
+    public static VaultClass getVaultClass() {
+        return vaultClass;
+    }
 
     public static void doAddCommands(Player p, double amount) {
         if (vaultEnabled && !overrideVault) {

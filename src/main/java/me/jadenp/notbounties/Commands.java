@@ -3,10 +3,7 @@ package me.jadenp.notbounties;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
 import me.jadenp.notbounties.map.BountyMap;
-import me.jadenp.notbounties.utils.CurrencySetup;
-import me.jadenp.notbounties.utils.NumberFormatting;
-import me.jadenp.notbounties.utils.Tutorial;
-import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -21,6 +18,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -105,6 +103,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a player's total bounty.");
                         sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) from (setter) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a specific bounty put on a player.");
                         sender.sendMessage(ChatColor.BLUE + "/bounty reload" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Reloads the plugin.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty debug" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Shows debugging info.");
                     }
 
                     if (sender.hasPermission("notbounties.immune")) {
@@ -112,6 +111,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
 
                     sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
+                } else if (args[0].equalsIgnoreCase("debug")) {
+                    if (!sender.hasPermission("notbounties.admin")) {
+                        sender.sendMessage(parse(speakings.get(0) + speakings.get(5), parser));
+                        return true;
+                    }
+                    try {
+                        NotBounties.getInstance().sendDebug(sender);
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return true;
                 } else if (args[0].equalsIgnoreCase("tutorial") && sender.hasPermission("notbounties.basic")) {
                     Tutorial.onCommand(sender, args);
                     return true;
@@ -608,7 +618,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     } else {
                                         nb.bountyList.remove(toRemove);
                                     }
-
+                                    nb.refundBounty(toRemove);
                                     // successfully removed
                                         Player player = Bukkit.getPlayer(toRemove.getUUID());
                                         if (player != null) {
@@ -636,6 +646,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             } else if (nb.SQL.isConnected()) {
                                                 nb.data.removeSetter(toRemove.getUUID(), actualRemove.getUuid());
                                             }
+                                            nb.refundSetter(actualRemove);
                                             // reopen gui for everyone
                                             reopenBountiesGUI();
                                             // successfully removed
@@ -1025,11 +1036,42 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 openGUI(parser, "confirm-bounty", (long) amount, player.getUniqueId(), (long) amount);
                                 return true;
                             }
+                            if (player.isBanned()) {
+                                // has permanent immunity
+                                sender.sendMessage(parse(speakings.get(0) + speakings.get(18), player.getName(), immunitySpent, player));
+                            }
 
                             if (checkBalance(parser, total)) {
-                                NumberFormatting.doRemoveCommands(parser, total, new ArrayList<>());
-                                nb.addBounty(parser, player, amount, whitelist);
-                                reopenBountiesGUI();
+                                if (liteBansEnabled) {
+                                    // async bounty check
+                                    new BukkitRunnable() {
+                                        @Override
+                                        public void run() {
+                                            if (new LiteBansClass().isPlayerNotBanned(player.getUniqueId())) {
+                                                new BukkitRunnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        NumberFormatting.doRemoveCommands(parser, total, new ArrayList<>());
+                                                        nb.addBounty(parser, player, amount, whitelist);
+                                                        reopenBountiesGUI();
+                                                    }
+                                                }.runTask(NotBounties.getInstance());
+                                            } else {
+                                                new BukkitRunnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        // has permanent immunity
+                                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(18), player.getName(), immunitySpent, player));
+                                                    }
+                                                }.runTask(NotBounties.getInstance());
+                                            }
+                                        }
+                                    }.runTaskAsynchronously(NotBounties.getInstance());
+                                } else {
+                                    NumberFormatting.doRemoveCommands(parser, total, new ArrayList<>());
+                                    nb.addBounty(parser, player, amount, whitelist);
+                                    reopenBountiesGUI();
+                                }
                             } else {
                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(6), total, parser));
                             }
@@ -1045,10 +1087,20 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             } else {
                 // open gui
-                if (sender.hasPermission("notbounties.view")) {
-                    openGUI(parser, "bounty-gui", 1);
+                if (sender instanceof Player) {
+                    if (sender.hasPermission("notbounties.view")) {
+                        openGUI(parser, "bounty-gui", 1);
+                    } else {
+                        sender.sendMessage(parse(speakings.get(5), parser));
+                    }
                 } else {
-                    sender.sendMessage(parse(speakings.get(5), parser));
+                    if (sender.hasPermission("notbounties.admin")) {
+                        try {
+                            NotBounties.getInstance().sendDebug(sender);
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                 }
             }
         }
@@ -1082,6 +1134,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("edit");
                     tab.add("reload");
                     tab.add("currency");
+                    tab.add("debug");
                 }
                 if (sender.hasPermission("notbounties.admin") || giveOwnMap)
                     tab.add("poster");

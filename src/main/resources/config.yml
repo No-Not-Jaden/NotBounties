@@ -40,6 +40,8 @@ max-setters: -1
 confirmation: true
 # The name of bounties set by console. The murder bounties will also use this name
 console-bounty-name: Sheriff
+# this will remove bounties of banned players - checks are run every 10 minutes
+remove-banned-players: true
 # add a bounty if a player kills another player
 murder-bounty:
   # How many seconds before you can kill the same person and increase your bounty
@@ -64,18 +66,31 @@ bounty-posters:
   give-own: false
   # display bounty reward on the poster
   # note: changing this will change the position of the names and can cause text to overlap
-  #       if you want to change this, I suggest deleting all the made maps in plugins/NotBounties/posters
+  #       if you want to change this, I suggest setting clean-posters to true
   display-reward: true
   # reward text below name if display-reward is enabled
-  reward-text: 'REWARD: ' # total bounty will follow this
+  # placeholders can be used here
+  reward-text: 'REWARD: {reward}'
   # lock the bounty map - this will improve performance, but the maps will not update after they are created
   # if you turn this on, I advise disabling display-reward to avoid confusing your players
   lock-maps: false
   # true adds the currency prefix and suffix to the reward text
   # Some special characters like ◆ do not work on the poster
   currency-wrap: false
+  # The line right below the player head
+  # placeholders can be used in here, but will only get updated every server restart if save-templates is false
+  # Long text here may make the names illegible
+  name-line: '{name}'
   # how many milliseconds between map updates
-  update-interval: 1000
+  update-interval: 2000
+  # always update the map even if the bounty hasn't changed
+  always-update: false
+  # save created maps to be used later - player heads will not change unless the player changes their name
+  save-templates: true
+  # delete all the saved poster templates in the NotBounties/posters folder
+  # set this to true if you change anything about what is displayed on the poster besides reward-text and currency-wrap
+  # this will be set to false again automatically after a clean has been done
+  clean-posters: false
 # filter on where bounties can be claimed
 world-filter:
   # true to whitelist the list of worlds

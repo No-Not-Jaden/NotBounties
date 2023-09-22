@@ -600,5 +600,12 @@ public class Events implements Listener {
             }
         }
 
+        // check if they had a bounty refunded
+        if (nb.refundedBounties.containsKey(event.getPlayer().getUniqueId())) {
+            NumberFormatting.doAddCommands(event.getPlayer(), nb.refundedBounties.get(event.getPlayer().getUniqueId()));
+            nb.refundedBounties.remove(event.getPlayer().getUniqueId());
+        }
+
+
     }
 }

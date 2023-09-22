@@ -258,27 +258,6 @@ public class SQLGetter {
             combinedUuids.deleteCharAt(combinedUuids.length()-1);
         return combinedUuids.toString();
     }
-/*
-    // <Setter UUID, whitelist UUIDS>
-    public Map<UUID, List<UUID>> getWhitelist(String uuid){
-        try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT suuid, whitelist FROM bounty_data WHERE uuid = ?;");
-            ps.setString(1, uuid);
-            ResultSet rs = ps.executeQuery();
-            Map<UUID, List<UUID>> setterWhitelists = new HashMap<>();
-            while (rs.next()){
-                setterWhitelists.put(UUID.fromString(rs.getString("suuid")), decodeWhitelist(rs.getString("whitelist")));
-            }
-            return setterWhitelists;
-        } catch (SQLException e){
-            if (reconnect()){
-                return getWhitelist(uuid);
-            }
-            if (debug)
-                e.printStackTrace();
-        }
-        return new HashMap<>();
-    }*/
 
     public long getSet(String uuid){
         try {
@@ -465,19 +444,29 @@ public class SQLGetter {
                 e.printStackTrace();
         }
     }
-    public void removeOldBounties() {
+    public List<Setter> removeOldBounties() {
         long minTime = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * ConfigOptions.bountyExpire;
         try {
             PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("DELETE notbounties WHERE time <= ?;");
+            PreparedStatement ps1 = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT * FROM notbounties WHERE time <= ?;");
             ps.setLong(1, minTime);
+            ps1.setLong(1, minTime);
+            List<Setter> setters = new ArrayList<>();
+            ResultSet rs = ps1.executeQuery();
+            while (rs.next()){
+                UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(rs.getString("suuid"));
+                setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist"))));
+            }
             ps.executeUpdate();
+            return setters;
         } catch (SQLException e){
             if (reconnect()){
-                removeOldBounties();
+               return removeOldBounties();
             }
             if (debug)
                 e.printStackTrace();
         }
+        return new ArrayList<>();
     }
     /*
     public void setBounty(String uuid, String setterUUID, long amount) {

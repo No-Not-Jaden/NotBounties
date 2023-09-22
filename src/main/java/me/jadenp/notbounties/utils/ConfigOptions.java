@@ -96,12 +96,18 @@ public class ConfigOptions {
     public static double randomBountyMaxPrice;
     public static boolean enableBlacklist;
     public static List<String> blacklistLore;
+    public static boolean liteBansEnabled;
+    public static boolean removeBannedPlayers;
+    public static boolean saveTemplates;
+    public static String nameLine;
+    public static boolean alwaysUpdate;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
         NotBounties bounties = NotBounties.getInstance();
 
-        papiEnabled = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
+        papiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+        liteBansEnabled = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
         language = new File(bounties.getDataFolder() + File.separator + "language.yml");
 
         bounties.reloadConfig();
@@ -274,7 +280,7 @@ public class ConfigOptions {
         if (!bounties.getConfig().isSet("bounty-posters.display-reward"))
             bounties.getConfig().set("bounty-posters.display-reward", true);
         if (!bounties.getConfig().isSet("bounty-posters.reward-text"))
-            bounties.getConfig().set("bounty-posters.reward-text", "REWARD: ");
+            bounties.getConfig().set("bounty-posters.reward-text", "REWARD: {reward}");
         if (!bounties.getConfig().isSet("bounty-posters.lock-maps"))
             bounties.getConfig().set("bounty-posters.lock-maps", false);
         if (!bounties.getConfig().isSet("bounty-posters.currency-wrap"))
@@ -299,6 +305,27 @@ public class ConfigOptions {
             bounties.getConfig().set("random-bounties.min-price", 10);
         if (!bounties.getConfig().isSet("random-bounties.max-price"))
             bounties.getConfig().set("random-bounties.max-price", 100);
+        if (!bounties.getConfig().isSet("remove-banned-players"))
+            bounties.getConfig().set("remove-banned-players", true);
+        if (!bounties.getConfig().isSet("bounty-posters.save-templates")) {
+            bounties.getConfig().set("bounty-posters.save-templates", true);
+            BountyMap.cleanPosters();
+            String rewardText = bounties.getConfig().getString("bounty-posters.reward-text");
+            rewardText = rewardText + "{reward}";
+            bounties.getConfig().set("bounty-posters.reward-text", rewardText);
+        }
+        if (!bounties.getConfig().isSet("bounty-posters.clean-posters"))
+            bounties.getConfig().set("bounty-posters.clean-posters", false);
+        if (bounties.getConfig().getBoolean("bounty-posters.clean-posters")) {
+            BountyMap.cleanPosters();
+            bounties.getConfig().set("bounty-posters.clean-posters", false);
+        }
+        if (!bounties.getConfig().isSet("bounty-posters.name-line"))
+            bounties.getConfig().set("bounty-posters.name-line", "{name}");
+        if (!bounties.getConfig().isSet("bounty-posters.always-update"))
+            bounties.getConfig().set("bounty-posters.always-update", false);
+
+
 
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
@@ -361,6 +388,10 @@ public class ConfigOptions {
         randomBountyMinPrice = bounties.getConfig().getDouble("random-bounties.min-price");
         randomBountyMaxPrice = bounties.getConfig().getDouble("random-bounties.max-price");
         enableBlacklist = bounties.getConfig().getBoolean("bounty-whitelist.enable-blacklist");
+        removeBannedPlayers = bounties.getConfig().getBoolean("remove-banned-players");
+        saveTemplates = bounties.getConfig().getBoolean("bounty-posters.save-templates");
+        nameLine = bounties.getConfig().getString("bounty-posters.name-line");
+        alwaysUpdate = bounties.getConfig().getBoolean("bounty-posters.always-update");
 
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);

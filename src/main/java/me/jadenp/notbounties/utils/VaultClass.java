@@ -37,11 +37,7 @@ public class VaultClass {
         return !working;
     }
 
-    public boolean isWorking() {
-        return working;
-    }
-
-    public boolean deposit(Player player, double amount) {
+    public boolean deposit(OfflinePlayer player, double amount) {
         if (!working && tryRegister())
             return false;
         EconomyResponse response = economy.depositPlayer(player, amount);

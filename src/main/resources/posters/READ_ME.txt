@@ -14,3 +14,7 @@ The WANTED text in the poster image is Simsun-ExtB
 playerfont.ttf is used to generate the player name and reward text
 The text is black
 
+*=* Other Features *=*
+You can configure the posters more in the config.yml file.
+The posters file will be cleaned regularly if save-templates is disabled in the config
+
