@@ -101,6 +101,7 @@ public class ConfigOptions {
     public static boolean saveTemplates;
     public static String nameLine;
     public static boolean alwaysUpdate;
+    public static List<String> bountyClaimCommands = new ArrayList<>();
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -324,6 +325,10 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-posters.name-line", "{name}");
         if (!bounties.getConfig().isSet("bounty-posters.always-update"))
             bounties.getConfig().set("bounty-posters.always-update", false);
+        if (bounties.getConfig().isString("bounty-claim-commands"))
+            bounties.getConfig().set("bounty-claim-commands", Collections.singletonList(bounties.getConfig().getString("bounty-claim-commands")));
+        if (!bounties.getConfig().isSet("bounty-claim-commands"))
+            bounties.getConfig().set("bounty-claim-commands", new ArrayList<>());
 
 
 
@@ -392,6 +397,7 @@ public class ConfigOptions {
         saveTemplates = bounties.getConfig().getBoolean("bounty-posters.save-templates");
         nameLine = bounties.getConfig().getString("bounty-posters.name-line");
         alwaysUpdate = bounties.getConfig().getBoolean("bounty-posters.always-update");
+        bountyClaimCommands = bounties.getConfig().getStringList("bounty-claim-commands");
 
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);

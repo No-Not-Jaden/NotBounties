@@ -1,8 +1,6 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.utils.NumberFormatting;
-import me.jadenp.notbounties.utils.UpdateChecker;
-import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.*;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -25,6 +23,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -155,7 +154,7 @@ public class Events implements Listener {
         // do commands
         if (deathTax > 0) {
             Map<Material, Long> removedItems = NumberFormatting.doRemoveCommands(player, bounty.getTotalBounty(killer) * deathTax, event.getDrops());
-            if (removedItems.size() > 0) {
+            if (!removedItems.isEmpty()) {
                 // send message
                 long totalLoss = 0;
                 StringBuilder builder = new StringBuilder();
@@ -267,7 +266,62 @@ public class Events implements Listener {
             }
         Commands.reopenBountiesGUI();
 
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // {player} is replaced with the person whose bounty was claimed
+                // {killer} is replaced with the person who claimed the bounty
+                // starting with [player] will run the command for the person whose bounty was claimed
+                // starting with [killer] will run the command for the person who claimed the bounty\
+                // starting with nothing will run the command as console
+                // adding @(player/killer)permission or !@(player/killer)permission before everything with check for a permission of the player or killer to run the command
+                // This will check if the killer has the permission and will message the person they killed
+                // ex: @(killer)notbounties.view [killer] msg {player} It wasn't personal.
+                // a command that is just <respawn> will force the player to respawn. This is useful if you want to tp them somewhere after they die
+                // You can use placeholders, but they will always be parsed for the player who died
+                for (String command : bountyClaimCommands) {
+                    if (command.equalsIgnoreCase("<respawn>")) {
+                        if (player.isDead())
+                            player.spigot().respawn();
+                        continue;
+                    }
+                    command = command.replaceAll("\\{player}", Matcher.quoteReplacement(player.getName()));
+                    command = command.replaceAll("\\{killer}", Matcher.quoteReplacement(killer.getName()));
+                    if (papiEnabled)
+                        command = new PlaceholderAPIClass().parse(player, command);
+                    if (command.startsWith("@(player)")) {
+                        String permission = command.substring(9, command.indexOf(" "));
+                        if (!player.hasPermission(permission))
+                            continue;
+                        command = command.substring(command.indexOf(" ") + 1);
+                    } else if (command.startsWith("!@(player)")) {
+                        String permission = command.substring(10, command.indexOf(" "));
+                        if (player.hasPermission(permission))
+                            continue;
+                        command = command.substring(command.indexOf(" ") + 1);
+                    } else if (command.startsWith("@(killer)")) {
+                        String permission = command.substring(9, command.indexOf(" "));
+                        if (!killer.hasPermission(permission))
+                            continue;
+                        command = command.substring(command.indexOf(" ") + 1);
+                    } else if (command.startsWith("!@(killer)")) {
+                        String permission = command.substring(10, command.indexOf(" "));
+                        if (killer.hasPermission(permission))
+                            continue;
+                        command = command.substring(command.indexOf(" ") + 1);
+                    }
 
+                    if (command.startsWith("[player]")) {
+                        Bukkit.dispatchCommand(player, command.substring(8));
+                    } else if (command.startsWith("[killer]")) {
+                        Bukkit.dispatchCommand(killer, command.substring(8));
+                    } else {
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                    }
+                }
+
+            }
+        }.runTaskLater(NotBounties.getInstance(), 10);
     }
 
     @EventHandler

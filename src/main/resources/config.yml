@@ -42,6 +42,18 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 10 minutes
 remove-banned-players: true
+# commands to be executed when a bounty is claimed
+  # {player} is replaced with the person whose bounty was claimed
+  # {killer} is replaced with the person who claimed the bounty
+  # starting with [player] will run the command for the person whose bounty was claimed
+  # starting with [killer] will run the command for the person who claimed the bounty
+  # starting with nothing will run the command as console
+  # adding @(player/killer)permission or !@(player/killer)permission before everything with check for a permission of the player or killer to run the command
+  # This will check if the killer has the permission and will message the person they killed
+  # ex: @(killer)notbounties.view [killer] msg {player} It wasn''t personal.
+  # a command that is just <respawn> will force the player to respawn. This is useful if you want to tp them somewhere after they die
+  # You can use placeholders, but they will always be parsed for the player who died
+bounty-claim-commands: []
 # add a bounty if a player kills another player
 murder-bounty:
   # How many seconds before you can kill the same person and increase your bounty
