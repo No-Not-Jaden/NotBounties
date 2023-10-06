@@ -186,7 +186,7 @@ public class Renderer extends MapRenderer {
                 char code = text.charAt(i+1);
                 if (!colorTranslations.containsKey(code))
                     continue;
-                if (currentText.length() > 0) {
+                if (!currentText.isEmpty()) {
                     graphics.setColor(currentColor);
                     graphics.drawString(currentText, x, y);
                     x+= metrics.stringWidth(currentText);

@@ -312,8 +312,11 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-posters.save-templates", true);
             BountyMap.cleanPosters();
             String rewardText = bounties.getConfig().getString("bounty-posters.reward-text");
-            rewardText = rewardText + "{reward}";
-            bounties.getConfig().set("bounty-posters.reward-text", rewardText);
+            assert rewardText != null;
+            if (!rewardText.contains("{reward}")) {
+                rewardText = rewardText + "{reward}";
+                bounties.getConfig().set("bounty-posters.reward-text", rewardText);
+            }
         }
         if (!bounties.getConfig().isSet("bounty-posters.clean-posters"))
             bounties.getConfig().set("bounty-posters.clean-posters", false);

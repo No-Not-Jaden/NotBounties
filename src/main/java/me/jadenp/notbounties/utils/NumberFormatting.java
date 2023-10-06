@@ -73,7 +73,7 @@ public class NumberFormatting {
             }
             // placeholder or item
             if (currencyName.contains("%")){
-                if (!papiEnabled) {
+                if (!papiEnabled && !(vaultEnabled && !overrideVault)) {
                     Bukkit.getLogger().warning("Detected a placeholder as currency, but PlaceholderAPI is not enabled!");
                     Bukkit.getLogger().warning("Ignoring placeholder from currency.");
                     currencyIterator.remove();
@@ -177,11 +177,11 @@ public class NumberFormatting {
     }
 
     public static String formatNumber(String number) {
-        if (number.length() == 0)
+        if (number.isEmpty())
             return "";
-        if (number.startsWith(currencyPrefix) && currencyPrefix.length() > 0)
+        if (number.startsWith(currencyPrefix) && !currencyPrefix.isEmpty())
             return currencyPrefix + formatNumber(number.substring(currencyPrefix.length()));
-        if (number.endsWith(currencySuffix) && currencySuffix.length() > 0)
+        if (number.endsWith(currencySuffix) && !currencySuffix.isEmpty())
             return formatNumber(number.substring(0, number.length() - currencySuffix.length())) + currencySuffix;
         if (isNumber(number))
             return formatNumber(tryParse(number));
@@ -194,7 +194,7 @@ public class NumberFormatting {
     }
 
     public static double findFirstNumber(String str) {
-        if (str.length() == 0)
+        if (str.isEmpty())
             return 0;
         if (isNumber(str))
             return Double.parseDouble(str);
@@ -421,7 +421,7 @@ public class NumberFormatting {
             return 0;
         if (useDivisions && nfDivisions.containsValue(divisionString.toString())) {
             for (Map.Entry<Long, String> entry : nfDivisions.entrySet()) {
-                if (entry.getValue().equals(divisionString.toString())) {
+                if (entry.getValue().contentEquals(divisionString)) {
                     multiplyValue = entry.getKey();
                     break;
                 }
