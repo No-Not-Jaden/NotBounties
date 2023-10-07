@@ -38,22 +38,7 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * added /bounty debug x
- * no error for console doing /bounty x
- * added litebans support x
- * added remove-banned-players config option x
- * banned players check before auto-bounty x
- * refund removed bounties x
- * notified not working correctly  - x
- * bounty map:
- *   reward text is centered x
- *   can customize name line x
- *   placeholders x
- *   chat colors x
- *   always update x
- *   save templates x
- *   clean posters x
- *   reward line changed x
+ *
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -115,7 +100,7 @@ public final class NotBounties extends JavaPlugin {
                 Bukkit.getLogger().info("Database is connected!");
                 data.createTable();
                 data.createDataTable();
-                if (bountyList.size() > 0 && migrateLocalData) {
+                if (!bountyList.isEmpty() && migrateLocalData) {
                     Bukkit.getLogger().info("Migrating local storage to database");
                     // add entries to database
                     for (Bounty bounty : bountyList) {
@@ -133,7 +118,7 @@ public final class NotBounties extends JavaPlugin {
                         e.printStackTrace();
                     }
                 }
-                if (killBounties.size() > 0 && migrateLocalData) {
+                if (!killBounties.isEmpty() && migrateLocalData) {
                     // add entries to database
                     for (Map.Entry<String, Double> entry : killBounties.entrySet()) {
                         data.addData(entry.getKey(), entry.getValue().longValue(), setBounties.get(entry.getKey()).longValue(), deathBounties.get(entry.getKey()).longValue(), allTimeBounties.get(entry.getKey()), immunitySpent.get(entry.getKey()), allClaimedBounties.get(entry.getKey()));
@@ -631,7 +616,7 @@ public final class NotBounties extends JavaPlugin {
                             }
                             //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
                             // remove bounty if all the setters have been removed
-                            if (bounty.getSetters().size() == 0) {
+                            if (bounty.getSetters().isEmpty()) {
                                 bountyIterator.remove();
                             }
                         }
@@ -914,7 +899,7 @@ public final class NotBounties extends JavaPlugin {
             if (guiOptions.isAddPage())
                 title += " " + (page + 1);
         }
-        sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + title + " " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
+        sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + title + " " + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "               ");
 
         List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties(Objects.requireNonNull(GUI.getGUI("bounty-gui")).getSortType());
         for (int i = page * length; i < (page * length) + length; i++) {

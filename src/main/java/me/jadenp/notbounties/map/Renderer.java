@@ -65,9 +65,10 @@ public class Renderer extends MapRenderer {
         graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
         FontMetrics metrics = graphics.getFontMetrics();
         String displayName = ConfigOptions.nameLine.replaceAll("\\{name}", Matcher.quoteReplacement(name));
-        displayName = ChatColor.translateAlternateColorCodes('&', displayName);
+
         if (ConfigOptions.papiEnabled)
             displayName = new PlaceholderAPIClass().parse(player, displayName);
+        displayName = ChatColor.translateAlternateColorCodes('&', displayName);
         while (metrics.stringWidth(ChatColor.stripColor(displayName)) > 120 && fontSize > 1) {
             fontSize--;
             graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
@@ -129,9 +130,9 @@ public class Renderer extends MapRenderer {
                     String rewardText = ConfigOptions.rewardText;
                     String bountyText = ConfigOptions.currencyWrap ? NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(currentCost) + NumberFormatting.currencySuffix : NumberFormatting.formatNumber(currentCost);
                     rewardText = rewardText.replaceAll("\\{reward}", Matcher.quoteReplacement(bountyText));
-                    rewardText = ChatColor.translateAlternateColorCodes('&', rewardText);
                     if (ConfigOptions.papiEnabled)
                         rewardText = new PlaceholderAPIClass().parse(player, rewardText);
+                    rewardText = ChatColor.translateAlternateColorCodes('&', rewardText);
                     FontMetrics metrics = graphics.getFontMetrics();
                     float fontSize = rewardFont;
                     while (metrics.stringWidth(ChatColor.stripColor(rewardText)) > 120 && fontSize > 1) {
