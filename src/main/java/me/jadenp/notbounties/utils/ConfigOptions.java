@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.utils;
 
 
+import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.gui.CustomItem;
@@ -102,6 +103,12 @@ public class ConfigOptions {
     public static String nameLine;
     public static boolean alwaysUpdate;
     public static List<String> bountyClaimCommands = new ArrayList<>();
+    public static boolean wanted;
+    public static double wantedOffset;
+    public static String wantedText;
+    public static double minWanted;
+    public static boolean hideWantedWhenSneaking;
+    public static LinkedHashMap<Integer, String> wantedLevels = new LinkedHashMap<>();
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -332,6 +339,21 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-claim-commands", Collections.singletonList(bounties.getConfig().getString("bounty-claim-commands")));
         if (!bounties.getConfig().isSet("bounty-claim-commands"))
             bounties.getConfig().set("bounty-claim-commands", new ArrayList<>());
+        if (!bounties.getConfig().isSet("wanted-tag.enabled"))
+            bounties.getConfig().set("wanted-tag.enabled", false);
+        if (!bounties.getConfig().isSet("wanted-tag.offset"))
+            bounties.getConfig().set("wanted-tag.offset", 0.4);
+        if (!bounties.getConfig().isSet("wanted-tag.text"))
+            bounties.getConfig().set("wanted-tag.text", "&6&lWANTED&f: {amount}");
+        if (!bounties.getConfig().isSet("wanted-tag.min-bounty"))
+            bounties.getConfig().set("wanted-tag.min-bounty", 100);
+        if (!bounties.getConfig().isSet("wanted-tag.hide-when-sneaking"))
+            bounties.getConfig().set("wanted-tag.hide-when-sneaking", true);
+        if (!bounties.getConfig().isConfigurationSection("wanted-tag.level")) {
+            bounties.getConfig().set("wanted-tag.level.1000", "&f☠");
+            bounties.getConfig().set("wanted-tag.level.2500", "&c☠☠");
+            bounties.getConfig().set("wanted-tag.level.5000", "&4☠☠☠");
+        }
 
 
 
@@ -401,7 +423,24 @@ public class ConfigOptions {
         nameLine = bounties.getConfig().getString("bounty-posters.name-line");
         alwaysUpdate = bounties.getConfig().getBoolean("bounty-posters.always-update");
         bountyClaimCommands = bounties.getConfig().getStringList("bounty-claim-commands");
+        wanted = bounties.getConfig().getBoolean("wanted-tag.enabled");
+        wantedOffset = bounties.getConfig().getDouble("wanted-tag.offset");
+        wantedText = bounties.getConfig().getString("wanted-tag.text");
+        minWanted = bounties.getConfig().getDouble("wanted-tag.min-bounty");
+        hideWantedWhenSneaking = bounties.getConfig().getBoolean("wanted-tag.hide-when-sneaking");
 
+        wantedLevels.clear();
+        for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
+            try {
+                int amount = Integer.parseInt(key);
+                String text = bounties.getConfig().getString("wanted-tag.level." + key);
+                wantedLevels.put(amount, text);
+            } catch (NumberFormatException e) {
+                Bukkit.getLogger().info("[NotBounties] Wanted tag level: \"" + key + "\" is not a whole number!");
+            }
+        }
+
+        wantedLevels = sortByValue(wantedLevels);
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
 
@@ -966,9 +1005,9 @@ public class ConfigOptions {
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            return color(new PlaceholderAPIClass().parse(receiver, str));
         }
-        return str;
+        return color(str);
     }
 
     public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
@@ -1052,5 +1091,35 @@ public class ConfigOptions {
         return str;
     }
 
+    public static LinkedHashMap<Integer, String> sortByValue(Map<Integer, String> hm) {
+        // Create a list from elements of HashMap
+        List<Map.Entry<Integer, String>> list =
+                new LinkedList<>(hm.entrySet());
 
+        // Sort the list
+        list.sort(Map.Entry.comparingByKey());
+
+        // put data from sorted list to hashmap
+        LinkedHashMap<Integer, String> temp = new LinkedHashMap<>();
+        for (Map.Entry<Integer, String> aa : list) {
+            temp.put(aa.getKey(), aa.getValue());
+        }
+        return temp;
+    }
+
+    public static String getWantedDisplayText(OfflinePlayer player){
+        if (!NotBounties.getInstance().hasBounty(player))
+            return "";
+        Bounty bounty = NotBounties.getInstance().getBounty(player);
+        assert bounty != null;
+        String levelReplace = "";
+        for (Map.Entry<Integer, String> entry : wantedLevels.entrySet()) {
+            if (entry.getKey() <= bounty.getTotalBounty()) {
+                levelReplace = entry.getValue();
+            } else {
+                break;
+            }
+        }
+        return parse(wantedText.replaceAll("\\{level}", Matcher.quoteReplacement(levelReplace)), bounty.getTotalBounty(), player);
+    }
 }

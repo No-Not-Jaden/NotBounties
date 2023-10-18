@@ -1,11 +1,16 @@
 package me.jadenp.notbounties.utils;
 
 import me.clip.placeholderapi.PlaceholderAPI;
-import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 
 public class PlaceholderAPIClass {
     public String parse(OfflinePlayer player, String text){
+        if (player.isOnline()) {
+            Player p = player.getPlayer();
+            if (p != null)
+                return PlaceholderAPI.setPlaceholders(p,text);
+        }
         return PlaceholderAPI.setPlaceholders(player, text);
     }
 }

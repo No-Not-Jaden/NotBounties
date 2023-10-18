@@ -14,7 +14,7 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -38,7 +38,7 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- *
+ * wanted placeholder
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -72,6 +72,7 @@ public final class NotBounties extends JavaPlugin {
     public Map<Integer, String> trackedBounties = new HashMap<>();
     public Map<UUID, Double> refundedBounties = new HashMap<>();
     public List<Player> displayParticle = new ArrayList<>();
+    public static Map<UUID, AboveNameText> wantedText = new HashMap<>();
     private static NotBounties instance;
     public MySQL SQL;
     public SQLGetter data;
@@ -700,7 +701,22 @@ public final class NotBounties extends JavaPlugin {
                 }
             }
         }.runTaskTimer(NotBounties.getInstance(), 100, 12000);
+
+        // wanted text
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
+                    //if (Bukkit.getPlayer(entry.getKey()) == null || !hasBounty(Bukkit.getPlayer(entry.getKey())))
+                        //continue;
+                    entry.getValue().updateArmorStand();
+                }
+            }
+        }.runTaskTimer(this, 20, 1);
     }
+
+
+
 
     public static NotBounties getInstance() {
         return instance;
@@ -860,6 +876,10 @@ public final class NotBounties extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
+                entry.getValue().removeStand();
+        }
+        wantedText.clear();
         // save bounties & logged players
         save();
         try {
@@ -993,7 +1013,12 @@ public final class NotBounties extends JavaPlugin {
             } else {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
             }
-
+            // add wanted tag
+            if (wanted && bounty.getTotalBounty() >= minWanted) {
+                if (!NotBounties.wantedText.containsKey(onlineReceiver.getUniqueId())) {
+                    NotBounties.wantedText.put(onlineReceiver.getUniqueId(), new AboveNameText(onlineReceiver));
+                }
+            }
         }
         // send messages
         setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, bounty.getTotalBounty(), receiver));
@@ -1082,6 +1107,12 @@ public final class NotBounties extends JavaPlugin {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
             } else {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
+            }
+            // add wanted tag
+            if (wanted && bounty.getTotalBounty() >= minWanted) {
+                if (!NotBounties.wantedText.containsKey(onlineReceiver.getUniqueId())) {
+                    NotBounties.wantedText.put(onlineReceiver.getUniqueId(), new AboveNameText(onlineReceiver));
+                }
             }
         }
         // send messages

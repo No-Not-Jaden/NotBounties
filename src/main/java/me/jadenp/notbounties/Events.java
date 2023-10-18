@@ -5,7 +5,7 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -52,6 +52,10 @@ public class Events implements Listener {
             }
         }
         nb.displayParticle.remove(event.getPlayer());
+        if (NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
+            NotBounties.wantedText.get(event.getPlayer().getUniqueId()).removeStand();
+            NotBounties.wantedText.remove(event.getPlayer().getUniqueId());
+        }
 
     }
 
@@ -118,6 +122,14 @@ public class Events implements Listener {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if ((!nb.disableBroadcast.contains(p.getUniqueId().toString()) && bounty.getTotalBounty(killer) >= minBroadcast) || p.getUniqueId().equals(event.getEntity().getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId())) {
                 p.sendMessage(message);
+            }
+        }
+
+        // remove wanted tag above head
+        if (bounty.getTotalBounty(killer) == bounty.getTotalBounty()) {
+            if (NotBounties.wantedText.containsKey(player.getUniqueId())) {
+                NotBounties.wantedText.get(player.getUniqueId()).removeStand();
+                NotBounties.wantedText.remove(player.getUniqueId());
             }
         }
 
@@ -198,7 +210,7 @@ public class Events implements Listener {
             for (String str : voucherLore) {
                 lore.add(parse(str, event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(killer), (Player) event.getEntity()));
             }
-            lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + "" + ChatColor.UNDERLINE + "" + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));
+            lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             item.setItemMeta(meta);
@@ -597,6 +609,11 @@ public class Events implements Listener {
             if (bounty.getTotalBounty() > bBountyThreshold) {
                 nb.displayParticle.add(event.getPlayer());
             }
+            if (wanted && bounty.getTotalBounty() >= minWanted) {
+                if (!NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
+                    NotBounties.wantedText.put(event.getPlayer().getUniqueId(), new AboveNameText(event.getPlayer()));
+                }
+            }
         }
 
         if (nb.headRewards.containsKey(event.getPlayer().getUniqueId().toString())) {
@@ -630,7 +647,7 @@ public class Events implements Listener {
                 }
                 //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
                 // remove bounty if all the setters have been removed
-                if (bounty.getSetters().size() == 0) {
+                if (bounty.getSetters().isEmpty()) {
                     bountyIterator.remove();
                     change = true;
                 }

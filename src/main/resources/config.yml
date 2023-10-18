@@ -42,6 +42,23 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 10 minutes
 remove-banned-players: true
+# add a tag above a player's head if they have a bounty
+wanted-tag:
+  enabled: true
+  # how high above the player's eyes the tag is
+  offset: 0.4
+  # text above the player
+  text: '&f{level} &6&lWANTED&f: {amount}'
+  # minimum bounty to display tag
+  min-bounty: 100
+  # hide the tag when sneaking
+  hide-when-sneaking: true
+  # text for certain levels of bounty
+  level:
+    # minimum bounty amount: text
+    1000: '&f☠'
+    2500: '&c☠☠'
+    5000: '&4☠☠☠'
 # commands to be executed when a bounty is claimed
   # {player} is replaced with the person whose bounty was claimed
   # {killer} is replaced with the person who claimed the bounty

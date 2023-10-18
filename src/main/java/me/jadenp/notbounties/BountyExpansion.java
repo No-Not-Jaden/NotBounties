@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -46,6 +47,7 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_bounty%</p>
      * <p>%notbounties_(all/kills/claimed/deaths/set/immunity)%</p>
      * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity)%</p>
+     * <p>%notbounties_wanted%</p>
      * @Depricated <p>%notbounties_bounties_claimed%</p>
      * <p>%notbounties_bounties_set%</p>
      * <p>%notbounties_bounties_received%</p>
@@ -57,6 +59,12 @@ public class BountyExpansion extends PlaceholderExpansion {
     @Override
     public String onRequest(OfflinePlayer player, String params){
         String uuid = player.getUniqueId().toString();
+        if (params.equalsIgnoreCase("wanted")) {
+            Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId()) : notBounties.getBounty(player);
+            if (bounty == null)
+                return "";
+            return getWantedDisplayText(player);
+        }
         if (params.startsWith("bounty")){
             Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId()) : notBounties.getBounty(player);
             if (bounty != null){
@@ -125,7 +133,7 @@ public class BountyExpansion extends PlaceholderExpansion {
                 return null;
             }
             LinkedHashMap<String, Double> stat = leaderboard.getTop(rank - 1, 1);
-            if (stat.size() == 0)
+            if (stat.isEmpty())
                 return "";
             boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL;
             Map.Entry<String, Double> entry = stat.entrySet().iterator().next();
