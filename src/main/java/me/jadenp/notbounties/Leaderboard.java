@@ -20,7 +20,8 @@ public enum Leaderboard {
     CLAIMED(true),
     DEATHS(false),
     SET(false),
-    IMMUNITY(true);
+    IMMUNITY(true),
+    CURRENT(true);
 
     private final boolean money;
     Leaderboard(boolean decimals){
@@ -75,6 +76,13 @@ public enum Leaderboard {
                 if (!nb.immunitySpent.containsKey(uuid.toString()))
                     return 0;
                 return nb.immunitySpent.get(uuid.toString());
+            case CURRENT:
+                if (nb.SQL.isConnected())
+                    return nb.data.getBounty(uuid).getTotalBounty();
+                Bounty bounty = nb.getBounty(Bukkit.getOfflinePlayer(uuid));
+                if (bounty == null)
+                    return 0;
+                return bounty.getTotalBounty();
             default:
                 return 0;
         }
@@ -91,6 +99,7 @@ public enum Leaderboard {
             case ALL:
             case CLAIMED:
             case IMMUNITY:
+            case CURRENT:
                 msg = parseStats(speakings.get(0) + getStatMsg(shorten), getStat(player.getUniqueId()), true, player);
 
                 break;
@@ -122,6 +131,8 @@ public enum Leaderboard {
                 return shorten ? speakings.get(54) : speakings.get(48);
             case IMMUNITY:
                 return shorten ? speakings.get(55) : speakings.get(49);
+            case CURRENT:
+                return shorten ? speakings.get(11) : speakings.get(9);
         }
         return "";
     }

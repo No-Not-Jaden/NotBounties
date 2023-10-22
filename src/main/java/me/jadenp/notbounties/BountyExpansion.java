@@ -121,11 +121,12 @@ public class BountyExpansion extends PlaceholderExpansion {
             params = params.substring(4);
             int rank = 0;
             try {
-                rank = Integer.parseInt(params.substring(params.indexOf("_") + 1));
+                rank = Integer.parseInt(params.substring(0,params.indexOf("_")));
             } catch (NumberFormatException ignored) {
             }
             if (rank < 1)
                 rank = 1;
+            params = params.substring(params.indexOf("_") + 1);
             Leaderboard leaderboard;
             try {
                 leaderboard = Leaderboard.valueOf(params.substring(0, params.indexOf("_")).toUpperCase());

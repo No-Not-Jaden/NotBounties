@@ -980,6 +980,8 @@ public class ConfigOptions {
         str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
         str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
+        if (receiver != null && receiver.getName() != null)
+            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
@@ -988,6 +990,8 @@ public class ConfigOptions {
 
     public static String parse(String str, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
+        if (receiver != null && receiver.getName() != null)
+            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
@@ -995,6 +999,8 @@ public class ConfigOptions {
     }
     public static String parse(String str, long time, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", dateFormat.format(time));
+        if (receiver != null && receiver.getName() != null)
+            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
@@ -1004,6 +1010,8 @@ public class ConfigOptions {
     public static String parse(String str, double amount, OfflinePlayer receiver) {
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
+        if (receiver != null && receiver.getName() != null)
+            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
         if (papiEnabled && receiver != null) {
             return color(new PlaceholderAPIClass().parse(receiver, str));
         }
