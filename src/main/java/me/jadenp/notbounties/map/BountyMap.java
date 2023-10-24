@@ -35,11 +35,12 @@ public class BountyMap implements Listener {
     public static BufferedImage deadBounty;
     private static Font playerFont;
     public static File posterDirectory;
-    public static BiMap<Integer, UUID> mapIDs = HashBiMap.create();
+    public static final BiMap<Integer, UUID> mapIDs = HashBiMap.create();
     private static File mapData;
 
     public static void initialize(){
         posterDirectory = new File(NotBounties.getInstance().getDataFolder() + File.separator + "posters");
+        //noinspection ResultOfMethodCallIgnored
         posterDirectory.mkdir();
         if (!new File(posterDirectory + File.separator + "bounty poster.png").exists())
             NotBounties.getInstance().saveResource("posters/bounty poster.png", false);
@@ -130,23 +131,13 @@ public class BountyMap implements Listener {
     public BountyMap(){}
 
     public static void giveMap(Player player, Bounty bounty) throws IOException {
-        MapView mapView;
-        if (mapIDs.containsValue(bounty.getUUID())){
-            int id = mapIDs.inverse().get(bounty.getUUID());
-            mapView = Bukkit.getMap(id);
-            if (mapView == null) {
-                mapIDs.remove(id);
-                mapView = Bukkit.createMap(Bukkit.getWorlds().get(0));
-            }
-        } else {
-            mapView = Bukkit.createMap(Bukkit.getWorlds().get(0));
-            mapIDs.put(mapView.getId(), bounty.getUUID());
-        }
-        mapView.setUnlimitedTracking(false);
-        mapView.getRenderers().forEach(mapView::removeRenderer);
-        mapView.setLocked(ConfigOptions.lockMap);
-        mapView.setTrackingPosition(false);
-        mapView.addRenderer(new Renderer(bounty.getUUID()));
+
+        ItemStack mapItem = getMap(bounty);
+        NumberFormatting.givePlayer(player, mapItem, 1);
+    }
+
+    public static ItemStack getMap(Bounty bounty) throws IOException {
+        MapView mapView = getMapView(bounty.getUUID());
 
         ItemStack mapItem = new ItemStack(Material.FILLED_MAP);
         MapMeta meta = (MapMeta) mapItem.getItemMeta();
@@ -161,8 +152,29 @@ public class BountyMap implements Listener {
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
         mapItem.setItemMeta(meta);
+        return mapItem;
+    }
 
-        NumberFormatting.givePlayer(player, mapItem, 1);
+    @SuppressWarnings("deprecation")
+    public static MapView getMapView(UUID uuid) throws IOException {
+        MapView mapView;
+        if (mapIDs.containsValue(uuid)){
+            int id = mapIDs.inverse().get(uuid);
+            mapView = Bukkit.getMap(id);
+            if (mapView == null) {
+                mapIDs.remove(id);
+                mapView = Bukkit.createMap(Bukkit.getWorlds().get(0));
+            }
+        } else {
+            mapView = Bukkit.createMap(Bukkit.getWorlds().get(0));
+            mapIDs.put(mapView.getId(), uuid);
+        }
+        mapView.setUnlimitedTracking(false);
+        mapView.getRenderers().forEach(mapView::removeRenderer);
+        mapView.setLocked(ConfigOptions.lockMap);
+        mapView.setTrackingPosition(false);
+        mapView.addRenderer(new Renderer(uuid));
+        return mapView;
     }
     public static BufferedImage deepCopy(BufferedImage bi) {
         ColorModel cm = bi.getColorModel();

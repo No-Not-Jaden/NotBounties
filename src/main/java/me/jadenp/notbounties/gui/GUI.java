@@ -52,7 +52,7 @@ public class GUI implements Listener {
         NotBounties nb = NotBounties.getInstance();
         switch (name){
             case "bounty-gui":
-                List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.sortBounties(gui.getSortType());
+                List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties(gui.getSortType()) : nb.sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList) {
                     double bountyAmount = showWhitelistedBounties || player.hasPermission("notbounties.admin") ? bounty.getTotalBounty() : bounty.getTotalBounty(player);
                     if (bountyAmount > 0)
@@ -261,7 +261,7 @@ public class GUI implements Listener {
                             }
                             if (replacement == null)
                                 replacement = "";
-                            if (replacement.equals("")) {
+                            if (replacement.isEmpty()) {
                                 ItemMeta meta = item.getItemMeta();
                                 assert meta != null;
                                 replacement = meta.getDisplayName();

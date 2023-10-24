@@ -7,6 +7,7 @@ import org.bukkit.util.Vector;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
+@SuppressWarnings("UnstableApiUsage")
 public class AboveNameText {
     private final Player player;
     private ArmorStand armorStand = null;

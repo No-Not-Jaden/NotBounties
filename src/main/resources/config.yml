@@ -25,7 +25,7 @@ bounty-tax: 0.0
 # ex: death-tax = 0.1, a bounty set for 100 would cost the player 10 when they die
 # players cannot go into debt
 death-tax: 0.0
-# how many days until bounties expire
+# how many real days until bounties expire
 bounty-expire: -1
 # These player's bounty stats will be hidden from bounties top
 hide-stats:
@@ -42,6 +42,19 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 10 minutes
 remove-banned-players: true
+# auto-updating bounty poster board
+bounty-board:
+  # 0 oldest bounties
+  # 1 newest bounties
+  # 2 top bounties
+  # 3 lowest bounties
+  type: 2
+  # how many seconds between the board updates - minimum of 2 seconds
+  update-interval: 5
+  # glow item frame
+  glow: true
+  # invisible item frame
+  invisible: true
 # add a tag above a player's head if they have a bounty
 wanted-tag:
   enabled: true

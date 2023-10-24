@@ -12,6 +12,7 @@ import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.*;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
@@ -28,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -38,7 +38,12 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * wanted placeholder
+ * current leaderboard
+ * placeholders fixed
+ * optimized code
+ * sql bounties can now be sorted in different order
+ * bounty board
+ * fixed a bug where an error would occur when migrating data
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -46,33 +51,33 @@ public final class NotBounties extends JavaPlugin {
     /**
      * Name (lower case), UUID
      */
-    public Map<String, String> loggedPlayers = new HashMap<>();
-    public List<Bounty> bountyList = new ArrayList<>();
-    public List<Bounty> expiredBounties = new ArrayList<>();
+    public final Map<String, String> loggedPlayers = new HashMap<>();
+    public final List<Bounty> bountyList = new ArrayList<>();
+    public final List<Bounty> expiredBounties = new ArrayList<>();
     public List<String> immunePerms = new ArrayList<>();
-    public List<String> disableBroadcast = new ArrayList<>();
+    public final List<String> disableBroadcast = new ArrayList<>();
     /**
      * Player UUID, Whitelist UUIDs
      */
-    public Map<UUID, Whitelist> playerWhitelist = new HashMap<>();
+    public final Map<UUID, Whitelist> playerWhitelist = new HashMap<>();
 
-    public File bounties = new File(this.getDataFolder() + File.separator + "bounties.yml");
+    public final File bounties = new File(this.getDataFolder() + File.separator + "bounties.yml");
 
-    public Map<String, Double> killBounties = new HashMap<>();
-    public Map<String, Double> setBounties = new HashMap<>();
-    public Map<String, Double> deathBounties = new HashMap<>();
-    public Map<String, Double> allTimeBounties = new HashMap<>();
-    public Map<String, Double> allClaimedBounties = new HashMap<>();
-    public Map<String, List<String>> headRewards = new HashMap<>();
-    public Map<String, Long> repeatBuyCommand = new HashMap<>();
-    public Map<String, Long> repeatBuyCommand2 = new HashMap<>();
-    public Map<String, Double> immunitySpent = new HashMap<>();
-    public Map<UUID, Long> immunityTimeTracker = new HashMap<>();
-    public Map<String, Long> gracePeriod = new HashMap<>();
-    public Map<Integer, String> trackedBounties = new HashMap<>();
-    public Map<UUID, Double> refundedBounties = new HashMap<>();
-    public List<Player> displayParticle = new ArrayList<>();
-    public static Map<UUID, AboveNameText> wantedText = new HashMap<>();
+    public final Map<String, Double> killBounties = new HashMap<>();
+    public final Map<String, Double> setBounties = new HashMap<>();
+    public final Map<String, Double> deathBounties = new HashMap<>();
+    public final Map<String, Double> allTimeBounties = new HashMap<>();
+    public final Map<String, Double> allClaimedBounties = new HashMap<>();
+    public final Map<String, List<String>> headRewards = new HashMap<>();
+    public final Map<String, Long> repeatBuyCommand = new HashMap<>();
+    public final Map<String, Long> repeatBuyCommand2 = new HashMap<>();
+    public final Map<String, Double> immunitySpent = new HashMap<>();
+    public final Map<UUID, Long> immunityTimeTracker = new HashMap<>();
+    public final Map<String, Long> gracePeriod = new HashMap<>();
+    public final Map<Integer, String> trackedBounties = new HashMap<>();
+    public final Map<UUID, Double> refundedBounties = new HashMap<>();
+    public final List<Player> displayParticle = new ArrayList<>();
+    public static final Map<UUID, AboveNameText> wantedText = new HashMap<>();
     private static NotBounties instance;
     public MySQL SQL;
     public SQLGetter data;
@@ -80,6 +85,9 @@ public final class NotBounties extends JavaPlugin {
     private BukkitTask autoConnectTask = null;
     private boolean firstConnect = true;
     public static boolean latestVersion = true;
+    private final List<BountyBoard> bountyBoards = new ArrayList<>();
+    public static final Map<UUID, Integer> boardSetup = new HashMap<>();
+    public static long lastBountyBoardUpdate = System.currentTimeMillis();
 
 
     /**
@@ -92,7 +100,7 @@ public final class NotBounties extends JavaPlugin {
         if (!SQL.isConnected()) {
             try {
                 SQL.connect();
-            } catch (ClassNotFoundException | SQLException | ConnectException e) {
+            } catch (SQLException e) {
                 //e.printStackTrace();
                 return false;
             }
@@ -116,13 +124,43 @@ public final class NotBounties extends JavaPlugin {
                     try {
                         configuration.save(bounties);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Bukkit.getLogger().warning(e.toString());
                     }
                 }
-                if (!killBounties.isEmpty() && migrateLocalData) {
+                Map<String, Double[]> stats = new HashMap<>();
+                for (Map.Entry<String, Double> entry : killBounties.entrySet()) {
+                    stats.put(entry.getKey(), new Double[]{entry.getValue(),0.0,0.0,0.0,0.0,0.0});
+                }
+                for (Map.Entry<String, Double> entry : setBounties.entrySet()) {
+                    Double[] values = stats.containsKey(entry.getKey()) ? stats.get(entry.getKey()) : new Double[6];
+                    values[1] = entry.getValue();
+                    stats.put(entry.getKey(), values);
+                }
+                for (Map.Entry<String, Double> entry : deathBounties.entrySet()) {
+                    Double[] values = stats.containsKey(entry.getKey()) ? stats.get(entry.getKey()) : new Double[6];
+                    values[2] = entry.getValue();
+                    stats.put(entry.getKey(), values);
+                }
+                for (Map.Entry<String, Double> entry : allClaimedBounties.entrySet()) {
+                    Double[] values = stats.containsKey(entry.getKey()) ? stats.get(entry.getKey()) : new Double[6];
+                    values[3] = entry.getValue();
+                    stats.put(entry.getKey(), values);
+                }
+                for (Map.Entry<String, Double> entry : allTimeBounties.entrySet()) {
+                    Double[] values = stats.containsKey(entry.getKey()) ? stats.get(entry.getKey()) : new Double[6];
+                    values[4] = entry.getValue();
+                    stats.put(entry.getKey(), values);
+                }
+                for (Map.Entry<String, Double> entry : immunitySpent.entrySet()) {
+                    Double[] values = stats.containsKey(entry.getKey()) ? stats.get(entry.getKey()) : new Double[6];
+                    values[5] = entry.getValue();
+                    stats.put(entry.getKey(), values);
+                }
+                if (!stats.isEmpty() && migrateLocalData) {
                     // add entries to database
-                    for (Map.Entry<String, Double> entry : killBounties.entrySet()) {
-                        data.addData(entry.getKey(), entry.getValue().longValue(), setBounties.get(entry.getKey()).longValue(), deathBounties.get(entry.getKey()).longValue(), allTimeBounties.get(entry.getKey()), immunitySpent.get(entry.getKey()), allClaimedBounties.get(entry.getKey()));
+                    for (Map.Entry<String, Double[]> entry : stats.entrySet()) {
+                        Double[] values = entry.getValue();
+                        data.addData(entry.getKey(), values[0].longValue(), values[1].longValue(), values[2].longValue(), values[3], values[4], values[5]);
                     }
                     killBounties.clear();
                     setBounties.clear();
@@ -134,7 +172,7 @@ public final class NotBounties extends JavaPlugin {
                     try {
                         configuration.save(bounties);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Bukkit.getLogger().warning(e.toString());
                     }
                 }
                 Bukkit.getLogger().info("Cleared up " + data.removeExtraData() + " unused rows in the database!");
@@ -164,9 +202,9 @@ public final class NotBounties extends JavaPlugin {
 
         try {
             loadConfig();
-        } catch (IOException | SQLException | ClassNotFoundException e) {
+        } catch (IOException e) {
             Bukkit.getLogger().warning("NotBounties is having trouble loading saved bounties.");
-            e.printStackTrace();
+            Bukkit.getLogger().warning(e.toString());
         }
 
         // create bounties file if one doesn't exist
@@ -301,6 +339,10 @@ public final class NotBounties extends JavaPlugin {
                 } else if (nextRandomBounty == 0) {
                     setNextRandomBounty();
                 }
+                if (configuration.isConfigurationSection("bounty-boards"))
+                    for (String str : Objects.requireNonNull(configuration.getConfigurationSection("bounty-boards")).getKeys(false)) {
+                        bountyBoards.add(new BountyBoard(Objects.requireNonNull(configuration.getLocation("bounty-boards." + str + ".location")), BlockFace.valueOf(configuration.getString("bounty-boards." + str + ".direction")), configuration.getInt("bounty-boards." + str + ".rank")));
+                    }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -575,6 +617,22 @@ public final class NotBounties extends JavaPlugin {
                             Bukkit.getLogger().info("[NotBounties] Invalid UUID of picked player for random bounty: " + uuid);
                         }
                     }
+                if (lastBountyBoardUpdate + boardUpdate * 1000 < System.currentTimeMillis()) {
+                    // update bounty board
+                    List<Bounty> bountyCopy = SQL.isConnected() ? data.getTopBounties(boardType) : sortBounties(boardType);
+                    for (BountyBoard board : bountyBoards) {
+                        try {
+                            if (bountyCopy.size() >= board.getRank()) {
+                                board.update(bountyCopy.get(board.getRank() - 1));
+                            } else {
+                                board.update(null);
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    lastBountyBoardUpdate = System.currentTimeMillis();
+                }
 
             }
         }.runTaskTimer(this, 100, 40);
@@ -673,7 +731,7 @@ public final class NotBounties extends JavaPlugin {
             @Override
             public void run() {
                 if (removeBannedPlayers) {
-                    List<Bounty> bountyListCopy = SQL.isConnected() ? data.getTopBounties() : new ArrayList<>(bountyList);
+                    List<Bounty> bountyListCopy = SQL.isConnected() ? data.getTopBounties(2) : new ArrayList<>(bountyList);
                     for (Bounty bounty : bountyListCopy) {
                         OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
                         if (player.isBanned()) {
@@ -707,8 +765,6 @@ public final class NotBounties extends JavaPlugin {
             @Override
             public void run() {
                 for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
-                    //if (Bukkit.getPlayer(entry.getKey()) == null || !hasBounty(Bukkit.getPlayer(entry.getKey())))
-                        //continue;
                     entry.getValue().updateArmorStand();
                 }
             }
@@ -811,14 +867,21 @@ public final class NotBounties extends JavaPlugin {
         }
         if (randomBountyMinTime != 0)
             configuration.set("next-random-bounty", nextRandomBounty);
+        i = 0;
+        for (BountyBoard board : bountyBoards) {
+            configuration.set("bounty-boards." + i + ".location", board.getLocation());
+            configuration.set("bounty-boards." + i + ".rank", board.getRank());
+            configuration.set("bounty-boards." + i + ".direction", board.getDirection().toString());
+            i++;
+        }
         try {
             configuration.save(bounties);
         } catch (IOException e) {
-            e.printStackTrace();
+            Bukkit.getLogger().warning(e.toString());
         }
     }
 
-    public void loadConfig() throws IOException, SQLException, ClassNotFoundException {
+    public void loadConfig() throws IOException {
         // close gui
 
 
@@ -832,7 +895,7 @@ public final class NotBounties extends JavaPlugin {
         displayParticle.clear();
         List<Bounty> topBounties;
         if (SQL.isConnected()) {
-            topBounties = data.getTopBounties();
+            topBounties = data.getTopBounties(2);
         } else {
             Collections.sort(bountyList);
             topBounties = new ArrayList<>(bountyList);
@@ -887,6 +950,10 @@ public final class NotBounties extends JavaPlugin {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        for (BountyBoard board : bountyBoards) {
+            board.remove();
+        }
+        bountyBoards.clear();
     }
 
 
@@ -909,7 +976,7 @@ public final class NotBounties extends JavaPlugin {
         return sortedList;
     }
 
-    int length = 10;
+    final int length = 10;
 
     public void listBounties(CommandSender sender, int page) {
         GUIOptions guiOptions = GUI.getGUI("bounty-gui");
@@ -920,8 +987,8 @@ public final class NotBounties extends JavaPlugin {
                 title += " " + (page + 1);
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + title + " " + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "               ");
-
-        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties() : sortBounties(Objects.requireNonNull(GUI.getGUI("bounty-gui")).getSortType());
+        int sortType = Objects.requireNonNull(GUI.getGUI("bounty-gui")).getSortType();
+        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties(sortType) : sortBounties(sortType);
         for (int i = page * length; i < (page * length) + length; i++) {
             if (sortedList.size() > i) {
                 sender.sendMessage(parse(speakings.get(11), sortedList.get(i).getName(), sortedList.get(i).getTotalBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));
@@ -1297,4 +1364,36 @@ public final class NotBounties extends JavaPlugin {
         sender.spigot().sendMessage(github);
         sender.sendMessage("");
     }
+
+    public void removeBountyBoard() {
+        for (BountyBoard board : bountyBoards) {
+            board.remove();
+        }
+        bountyBoards.clear();
+    }
+
+    public List<BountyBoard> getBountyBoards(){
+        return bountyBoards;
+    }
+
+    public void addBountyBoard(BountyBoard board) {
+        bountyBoards.add(board);
+    }
+
+
+    public int removeSpecificBountyBoard(ItemFrame frame) {
+        ListIterator<BountyBoard> bountyBoardListIterator = bountyBoards.listIterator();
+        int removes = 0;
+        while (bountyBoardListIterator.hasNext()) {
+            BountyBoard board = bountyBoardListIterator.next();
+            if (frame.equals(board.getFrame())) {
+                board.remove();
+                bountyBoardListIterator.remove();
+                removes++;
+            }
+        }
+        return removes;
+    }
+
+
 }

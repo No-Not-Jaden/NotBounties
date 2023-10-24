@@ -44,7 +44,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             if (args.length > 0) {
                 final String whitelistText = "whitelist";
                 if (args[0].equalsIgnoreCase("help") && sender.hasPermission("notbounties.basic")) {
-                    sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.BLUE + "" + ChatColor.BOLD + " Not" + ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Bounties " + ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               ");
+                    sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.BLUE + ChatColor.BOLD + " Not" + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + "Bounties " + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "               ");
                     sender.sendMessage(ChatColor.DARK_BLUE + "Bounty tax is currently: " + ChatColor.DARK_PURPLE + (bountyTax * 100) + "%");
                     sender.sendMessage(ChatColor.DARK_BLUE + whitelistText + " cost is currently: " + ChatColor.DARK_PURPLE + currencyPrefix + bountyWhitelistCost + currencySuffix + " per player.");
                     sender.sendMessage(ChatColor.BLUE + "/bounty help" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Shows this message.");
@@ -75,7 +75,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                     if (sender.hasPermission("notbounties.buyimmunity") && immunityType > 0) {
                         if (immunityType == 1) {
-                            sender.sendMessage(ChatColor.BLUE + "/bounty immunity" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you for " + currencyPrefix + NumberFormatting.formatNumber((double) permanentCost) + currencySuffix + " currency.");
+                            sender.sendMessage(ChatColor.BLUE + "/bounty immunity" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you for " + currencyPrefix + NumberFormatting.formatNumber(permanentCost) + currencySuffix + " currency.");
                         } else if (immunityType == 2){
                             sender.sendMessage(ChatColor.BLUE + "/bounty immunity (price)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you under " + NumberFormatting.formatNumber(scalingRatio) + "x the price you spend.");
                         } else if (immunityType == 3){
@@ -102,6 +102,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(ChatColor.BLUE + "/bounty remove (player) from (setter)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes a specific bounty put on a player.");
                         sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a player's total bounty.");
                         sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) from (setter) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a specific bounty put on a player.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty board <rank>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Creates a board for current bounties.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty board clear" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes every bounty board.");
+                        sender.sendMessage(ChatColor.BLUE + "/bounty board remove" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes a specific bounty board.");
                         sender.sendMessage(ChatColor.BLUE + "/bounty reload" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Reloads the plugin.");
                         sender.sendMessage(ChatColor.BLUE + "/bounty debug" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Shows debugging info.");
                     }
@@ -121,6 +124,41 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
+                    return true;
+                } else if (args[0].equalsIgnoreCase("board") && sender.hasPermission("notbounties.admin")) {
+                    if (!(sender instanceof Player)) {
+                        sender.sendMessage("Only players can use this command!");
+                        return true;
+                    }
+                    int rank = 0;
+                    if (args.length > 1) {
+                        if (args[1].equalsIgnoreCase("clear")) {
+                            sender.sendMessage(parse(speakings.get(0) + ChatColor.DARK_RED + "Removed " + NotBounties.getInstance().getBountyBoards().size() + " bounty boards.", parser));
+                            NotBounties.getInstance().removeBountyBoard();
+
+                            return true;
+                        }
+                        if (args[1].equalsIgnoreCase("remove")) {
+                            sender.sendMessage(parse(speakings.get(0) + ChatColor.RED + "Right click the bounty board to remove.", parser));
+                            NotBounties.boardSetup.put(parser.getUniqueId(), -1);
+                            return true;
+                        }
+                        try {
+                            rank = Integer.parseInt(args[1]);
+                        } catch (NumberFormatException e) {
+                            sender.sendMessage(parse(speakings.get(0) + speakings.get(1), parser));
+                        }
+                    } else {
+                        for (BountyBoard board : NotBounties.getInstance().getBountyBoards()) {
+                            if (board.getRank() > rank)
+                                rank = board.getRank();
+                        }
+                        rank+=1;
+                    }
+                    if (rank < 1)
+                        rank = 1;
+                    sender.sendMessage(parse(speakings.get(0) + ChatColor.DARK_AQUA + ChatColor.BOLD + "<Rank " + rank + "> " + ChatColor.AQUA + "Punch a block to place the bounty board on.", parser));
+                    NotBounties.boardSetup.put(parser.getUniqueId(), rank);
                     return true;
                 } else if (args[0].equalsIgnoreCase("tutorial") && sender.hasPermission("notbounties.basic")) {
                     Tutorial.onCommand(sender, args);
@@ -311,9 +349,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         try {
                             nb.loadConfig();
                         } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (SQLException | ClassNotFoundException e) {
-                            throw new RuntimeException(e);
+                            Bukkit.getLogger().warning(e.toString());
                         }
                         reopenBountiesGUI();
                             sender.sendMessage(parse(speakings.get(0), parser) + ChatColor.GREEN + "Reloaded NotBounties version " + this.nb.getDescription().getVersion());
@@ -604,7 +640,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (sender.hasPermission("notbounties.admin")) {
                         if (args.length > 1) {
                             Bounty toRemove = null;
-                            List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                            List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties(2) : nb.bountyList;
                             for (Bounty bounty : bountyList) {
                                 if (bounty.getName().equalsIgnoreCase(args[1])) {
                                     toRemove = bounty;
@@ -637,7 +673,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         if (actualRemove != null) {
                                             toRemove.removeBounty(actualRemove.getUuid());
-                                            if (toRemove.getSetters().size() == 0) {
+                                            if (toRemove.getSetters().isEmpty()) {
                                                 if (nb.SQL.isConnected()) {
                                                     nb.data.removeBounty(toRemove.getUUID());
                                                 } else {
@@ -701,7 +737,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (sender.hasPermission("notbounties.admin")) {
                         if (args.length > 2) {
                             Bounty toEdit = null;
-                            List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                            List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties(2) : nb.bountyList;
                             for (Bounty bounty : bountyList) {
                                 if (bounty.getName().equalsIgnoreCase(args[1])) {
                                     toEdit = bounty;
@@ -842,7 +878,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         BountyMap.giveMap(receiver, bounty);
                     } catch (IOException e) {
                         Bukkit.getLogger().warning("Error trying to generate a map.");
-                        e.printStackTrace();
+                        Bukkit.getLogger().warning(e.toString());
                         return true;
                     }
                     receiver.sendMessage(parse(speakings.get(0) + speakings.get(68), bounty.getName(), player));
@@ -852,7 +888,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker"))) {
                             if (args.length > 1) {
                                 Bounty tracking = null;
-                                List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                                List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties(2) : nb.bountyList;
                                 for (Bounty bounty : bountyList) {
                                     if (bounty.getName().equalsIgnoreCase(args[1])) {
                                         tracking = bounty;
@@ -887,7 +923,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         nb.trackedBounties.put(i, tracking.getUUID().toString());
                                     }
 
-                                    lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + "" + ChatColor.UNDERLINE + "" + ChatColor.ITALIC + "@" + i);
+                                    lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + i);
                                     meta.setLore(lore);
                                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                                     compass.setItemMeta(meta);
@@ -1135,6 +1171,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("reload");
                     tab.add("currency");
                     tab.add("debug");
+                    tab.add("board");
                 }
                 if (sender.hasPermission("notbounties.admin") || giveOwnMap)
                     tab.add("poster");
@@ -1154,12 +1191,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             } else if (args.length == 2) {
                 if (args[0].equalsIgnoreCase("check") && sender.hasPermission("notbounties.view")) {
-                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties(2) : nb.bountyList;
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
                 } else if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit") && sender.hasPermission("notbounties.admin"))) {
-                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties(2) : nb.bountyList;
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
@@ -1175,8 +1212,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("deaths");
                     tab.add("set");
                     tab.add("immunity");
+                    tab.add("current");
                 } else if (args[0].equalsIgnoreCase("tracker") && tracker && (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker")))) {
-                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties(2) : nb.bountyList;
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
@@ -1192,10 +1230,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (enableBlacklist)
                         tab.add("toggle");
                 } else if (args[0].equalsIgnoreCase("poster") && (sender.hasPermission("notbounties.admin") || giveOwnMap)) {
-                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties(2) : nb.bountyList;
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
+                } else if (args[0].equalsIgnoreCase("board") && sender.hasPermission("notbounties.admin")) {
+                    tab.add("clear");
+                    tab.add("remove");
                 }
             } else if (args.length == 3) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission("notbounties.admin")) {
@@ -1217,7 +1258,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             } else if (args.length == 4) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission("notbounties.admin")) {
-                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties() : nb.bountyList;
+                    List<Bounty> bountyList = nb.SQL.isConnected() ? nb.data.getTopBounties(2) : nb.bountyList;
                     for (Bounty bounty1 : bountyList) {
                         if (bounty1.getName().equalsIgnoreCase(args[1])) {
                             for (Setter setter : bounty1.getSetters()) {

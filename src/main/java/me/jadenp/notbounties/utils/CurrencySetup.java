@@ -94,9 +94,9 @@ public class CurrencySetup implements Listener {
                     TextComponent end2 = new TextComponent(ChatColor.GRAY + "to clear add and remove commands.");
                     BaseComponent[] addCommand = new BaseComponent[]{start2, here2, end2};
                     admin.spigot().sendMessage(addCommand);
-                    TextComponent no = new TextComponent(ChatColor.RED + "" + ChatColor.BOLD + "" + ChatColor.UNDERLINE + "No");
+                    TextComponent no = new TextComponent(ChatColor.RED + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "No");
                     no.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 4"));
-                    TextComponent yes = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "" + ChatColor.UNDERLINE + "Yes");
+                    TextComponent yes = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "Yes");
                     yes.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 2"));
                     BaseComponent[] message = new BaseComponent[]{space, no, space, yes};
                     admin.spigot().sendMessage(message);
@@ -120,9 +120,9 @@ public class CurrencySetup implements Listener {
                     break;
                 case 4:
                     admin.sendMessage(parse(speakings.get(0) + ChatColor.YELLOW + "Do you want to change the prefix and suffix?" + ChatColor.GRAY + " (Click)", admin));
-                    TextComponent noPS = new TextComponent(ChatColor.RED + "" + ChatColor.BOLD + "" + ChatColor.UNDERLINE + "No");
+                    TextComponent noPS = new TextComponent(ChatColor.RED + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "No");
                     noPS.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency -1"));
-                    TextComponent yesPS = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "" + ChatColor.UNDERLINE + "Yes");
+                    TextComponent yesPS = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "Yes");
                     yesPS.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 5"));
                     BaseComponent[] messagePS = new BaseComponent[]{space, noPS, space, yesPS};
                     admin.spigot().sendMessage(messagePS);

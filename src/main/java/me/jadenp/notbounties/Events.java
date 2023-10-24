@@ -12,10 +12,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
@@ -454,8 +451,31 @@ public class Events implements Listener {
                 }
             }
         }
+        if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+            if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId())) {
+                event.setCancelled(true);
+                if (NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1) {
+                    NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
+                    event.getPlayer().sendMessage(parse(speakings.get(0) + ChatColor.RED + "Canceled board removal.", event.getPlayer()));
+                    return;
+                }
+                Location location = Objects.requireNonNull(event.getClickedBlock()).getRelative(event.getBlockFace()).getLocation();
+                NotBounties.getInstance().addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
+                event.getPlayer().sendMessage(parse(speakings.get(0) + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
+                NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
+            }
+        }
     }
 
+    @EventHandler
+    public void onEntityInteract(PlayerInteractEntityEvent event) {
+        if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId()) && NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1 && (event.getRightClicked().getType() == EntityType.ITEM_FRAME || event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)) {
+            event.setCancelled(true);
+            int removes = NotBounties.getInstance().removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
+            NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
+            event.getPlayer().sendMessage(parse(speakings.get(0) + ChatColor.GREEN + "Removed " + removes + " bounty boards.", event.getPlayer()));
+        }
+    }
     @EventHandler
     public void onHold(PlayerItemHeldEvent event) {
         if (trackerRemove > 0) {

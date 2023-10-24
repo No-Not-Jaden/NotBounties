@@ -1,7 +1,6 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -10,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
@@ -116,36 +116,59 @@ public class BountyExpansion extends PlaceholderExpansion {
             }
             return String.valueOf(notBounties.allClaimedBounties.get(player.getUniqueId().toString()));
         }
-
+        int ending = 0;
+        if (params.endsWith("_full")) {
+            ending = 1;
+            params = params.substring(0,params.lastIndexOf("_"));
+        }
+        if (params.endsWith("_formatted")) {
+            ending = 2;
+            params = params.substring(0,params.lastIndexOf("_"));
+        }
+        if (params.endsWith("_value")) {
+            ending = 3;
+            params = params.substring(0,params.lastIndexOf("_"));
+        }
         if (params.startsWith("top_")) {
+
+
             params = params.substring(4);
             int rank = 0;
             try {
-                rank = Integer.parseInt(params.substring(0,params.indexOf("_")));
+                if (params.contains("_"))
+                    rank = Integer.parseInt(params.substring(0,params.indexOf("_")));
+                else
+                    rank = Integer.parseInt(params);
             } catch (NumberFormatException ignored) {
             }
             if (rank < 1)
                 rank = 1;
-            params = params.substring(params.indexOf("_") + 1);
             Leaderboard leaderboard;
-            try {
-                leaderboard = Leaderboard.valueOf(params.substring(0, params.indexOf("_")).toUpperCase());
-            } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
-                return null;
+            if (!params.contains("_")) {
+                leaderboard = Leaderboard.CURRENT;
+            } else {
+                params = params.substring(params.indexOf("_") + 1);
+                try {
+                    leaderboard = Leaderboard.valueOf(params.toUpperCase());
+                } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+                    return null;
+                }
             }
             LinkedHashMap<String, Double> stat = leaderboard.getTop(rank - 1, 1);
             if (stat.isEmpty())
-                return "";
-            boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL;
+                return "0";
+            boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL || leaderboard == Leaderboard.CURRENT;
             Map.Entry<String, Double> entry = stat.entrySet().iterator().next();
             double amount = entry.getValue();
             UUID uuid1 = UUID.fromString(entry.getKey());
             String name = NotBounties.getInstance().getPlayerName(uuid1);
             OfflinePlayer p = Bukkit.getOfflinePlayer(uuid1);
-            if (params.endsWith("_full"))
-                return leaderboard.getStatMsg(true);
-            if (params.endsWith("_formatted"))
-                return color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId())) + NumberFormatting.currencySuffix);
+            if (ending == 1)
+                return parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(uuid1))), p);
+            if (ending == 2)
+                return parse(leaderboard.getFormattedStat(uuid1),p);
+            if (ending == 3)
+                return NumberFormatting.getValue(leaderboard.getStat(uuid1));
             return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
         }
 
@@ -153,10 +176,12 @@ public class BountyExpansion extends PlaceholderExpansion {
 
         try {
             Leaderboard leaderboard = Leaderboard.valueOf(value.toUpperCase());
-            if (params.endsWith("_full"))
-                return leaderboard.getStatMsg(true);
-            if (params.endsWith("_formatted"))
-                return color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId())) + NumberFormatting.currencySuffix);
+            if (ending == 1)
+                return parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(player.getUniqueId()))), player);
+            if (ending == 2)
+                return parse(leaderboard.getFormattedStat(player.getUniqueId()),player);
+            if (ending == 3)
+                return NumberFormatting.getValue(leaderboard.getStat(player.getUniqueId()));
             return NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId()));
         } catch (IllegalArgumentException ignored){}
 

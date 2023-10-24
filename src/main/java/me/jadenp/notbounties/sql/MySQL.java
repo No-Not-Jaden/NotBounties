@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.sql;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import java.net.ConnectException;
@@ -46,7 +47,7 @@ public class MySQL {
         return connection != null;
     }
 
-    public void connect() throws ClassNotFoundException, SQLException, ConnectException {
+    public void connect() throws SQLException {
         if (!isConnected())
             connection = DriverManager.getConnection("jdbc:mysql://" +
                             host + ":" + port + "/" + database + "?useSSL=" + useSSL,
@@ -68,7 +69,7 @@ public class MySQL {
             try {
                 connection.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
             }
         connection = null;
     }

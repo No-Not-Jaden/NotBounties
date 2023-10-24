@@ -60,10 +60,10 @@ public class ConfigOptions {
     public static File language;
     public static List<String> trackerLore;
     public static List<String> voucherLore;
-    public static List<String> speakings = new ArrayList<>();
+    public static final List<String> speakings = new ArrayList<>();
     public static List<String> hiddenNames = new ArrayList<>();
     public static boolean updateNotification;
-    public static Map<String, CustomItem> customItems = new HashMap<>();
+    public static final Map<String, CustomItem> customItems = new HashMap<>();
     public static boolean npcClaim;
     public static double deathTax;
     public static boolean worldFilter;
@@ -109,6 +109,10 @@ public class ConfigOptions {
     public static double minWanted;
     public static boolean hideWantedWhenSneaking;
     public static LinkedHashMap<Integer, String> wantedLevels = new LinkedHashMap<>();
+    public static int boardType;
+    public static long boardUpdate;
+    public static boolean boardGlow;
+    public static boolean boardInvisible;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -354,6 +358,12 @@ public class ConfigOptions {
             bounties.getConfig().set("wanted-tag.level.2500", "&c☠☠");
             bounties.getConfig().set("wanted-tag.level.5000", "&4☠☠☠");
         }
+        if (!bounties.getConfig().isConfigurationSection("bounty-board")) {
+            bounties.getConfig().set("bounty-board.type", 1);
+            bounties.getConfig().set("bounty-board.update-interval", 5);
+            bounties.getConfig().set("bounty-board.glow", true);
+            bounties.getConfig().set("bounty-board.invisible", 1);
+        }
 
 
 
@@ -428,6 +438,10 @@ public class ConfigOptions {
         wantedText = bounties.getConfig().getString("wanted-tag.text");
         minWanted = bounties.getConfig().getDouble("wanted-tag.min-bounty");
         hideWantedWhenSneaking = bounties.getConfig().getBoolean("wanted-tag.hide-when-sneaking");
+        boardType = bounties.getConfig().getInt("bounty-board.type");
+        boardUpdate = bounties.getConfig().getInt("bounty-board.update-interval");
+        boardGlow = bounties.getConfig().getBoolean("bounty-board.glow");
+        boardInvisible = bounties.getConfig().getBoolean("bounty-board.invisible");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
@@ -726,7 +740,7 @@ public class ConfigOptions {
         if (!configuration.isSet("bounty-stat.immunity.long"))
             configuration.set("bounty-stat.immunity.long", "&eYou have spent &2{amount}&e on immunity.");
         if (!configuration.isSet("bounty-stat.all.short"))
-            configuration.set("bounty-stat.all.short", "'&6All-time bounty: &e{amount}");
+            configuration.set("bounty-stat.all.short", "&6All-time bounty: &e{amount}");
         if (!configuration.isSet("bounty-stat.kills.short"))
             configuration.set("bounty-stat.kills.short", "&6Bounty kills: &e{amount}");
         if (!configuration.isSet("bounty-stat.claimed.short"))
@@ -980,8 +994,10 @@ public class ConfigOptions {
         str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
         str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null)
+        if (receiver != null && receiver.getName() != null) {
             str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
+            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
+        }
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
@@ -990,8 +1006,10 @@ public class ConfigOptions {
 
     public static String parse(String str, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null)
+        if (receiver != null && receiver.getName() != null) {
             str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
+            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
+        }
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
@@ -999,8 +1017,10 @@ public class ConfigOptions {
     }
     public static String parse(String str, long time, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", dateFormat.format(time));
-        if (receiver != null && receiver.getName() != null)
+        if (receiver != null && receiver.getName() != null) {
             str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
+            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
+        }
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
@@ -1010,8 +1030,10 @@ public class ConfigOptions {
     public static String parse(String str, double amount, OfflinePlayer receiver) {
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null)
+        if (receiver != null && receiver.getName() != null) {
             str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
+            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
+        }
         if (papiEnabled && receiver != null) {
             return color(new PlaceholderAPIClass().parse(receiver, str));
         }

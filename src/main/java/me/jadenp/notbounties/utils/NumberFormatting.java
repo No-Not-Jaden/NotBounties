@@ -219,12 +219,23 @@ public class NumberFormatting {
      * @param number Number to be formatted
      * @return formatted number
      */
-    public static String formatNumber(Double number) {
+    public static String formatNumber(double number) {
         if (useDivisions) {
             // set divisions
             return setDivision(number);
         }
         return RUZ(decimalFormat.format(number));
+    }
+
+    /**
+     * Get the full number value without any formatting
+     *
+     * @param number to get
+     * @return String value of number
+     */
+    public static String getValue(double number) {
+        //return decimalFormat.format(number);
+        return RUZ(String.format("%f",number));
     }
 
     /**

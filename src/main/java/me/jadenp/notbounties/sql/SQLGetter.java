@@ -54,7 +54,7 @@ public class SQLGetter {
             }
 
         } catch (SQLException e){
-            e.printStackTrace();
+            Bukkit.getLogger().warning(e.toString());
         }
     }
     public void createDataTable(){
@@ -82,7 +82,7 @@ public class SQLGetter {
                 }
             }
         } catch (SQLException e){
-            e.printStackTrace();
+            Bukkit.getLogger().warning(e.toString());
         }
     }
     public void addData(String uuid, long claimed, long set, long received, double allTime, double immunity, double allClaimed){
@@ -105,7 +105,7 @@ public class SQLGetter {
         } catch (SQLException e){
             reconnect();
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
     }
 
@@ -122,7 +122,7 @@ public class SQLGetter {
                 return getClaimed(uuid);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return 0;
     }
@@ -153,6 +153,7 @@ public class SQLGetter {
      * @return A descending ordered list of entries of a leaderboard stat
      */
     public LinkedHashMap<String, Double> getTopStats(Leaderboard leaderboard, List<String> hiddenNames, int skip, int results){
+        LinkedHashMap<String, Double> data = new LinkedHashMap<>();
         String listName = "";
         switch (leaderboard){
             case ALL:
@@ -173,8 +174,13 @@ public class SQLGetter {
             case IMMUNITY:
                 listName = "immunity";
                 break;
+            case CURRENT:
+                for (Bounty bounty : getTopBounties(2)) {
+                    data.put(bounty.getUUID().toString(), bounty.getTotalBounty());
+                }
+                return data;
         }
-        LinkedHashMap<String, Double> data = new LinkedHashMap<>();
+
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < hiddenNames.size(); i++) {
             OfflinePlayer player = NotBounties.getInstance().getPlayer(hiddenNames.get(i));
@@ -213,7 +219,7 @@ public class SQLGetter {
                 return getTopStats(leaderboard, hiddenNames, skip, results);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return data;
     }
@@ -234,7 +240,7 @@ public class SQLGetter {
                 uuids.add(UUID.fromString(uuidString));
             } catch (IllegalArgumentException e) {
                 if (debug)
-                    e.printStackTrace();
+                    Bukkit.getLogger().warning(e.toString());
             }
         }
         return new Whitelist(uuids, blacklist);
@@ -272,7 +278,7 @@ public class SQLGetter {
                 return getSet(uuid);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return 0;
     }
@@ -290,7 +296,7 @@ public class SQLGetter {
                 return getReceived(uuid);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return 0;
     }
@@ -308,7 +314,7 @@ public class SQLGetter {
                 return getAllTime(uuid);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return 0;
     }
@@ -326,7 +332,7 @@ public class SQLGetter {
                 getImmunity(uuid);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return 0;
     }
@@ -343,7 +349,7 @@ public class SQLGetter {
                 setImmunity(uuid, amount);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
     }
 
@@ -366,7 +372,7 @@ public class SQLGetter {
                 addBounty(bounty, setter);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
     }
     public void addBounty(Bounty bounty){
@@ -382,7 +388,7 @@ public class SQLGetter {
             List<Setter> setters = new ArrayList<>();
             String name = "";
             while (rs.next()){
-                if (name.equals("")){
+                if (name.isEmpty()){
                     name = rs.getString("name");
                 }
                 UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(rs.getString("suuid"));
@@ -394,7 +400,7 @@ public class SQLGetter {
                 return getBounty(uuid);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return null;
     }
@@ -414,7 +420,7 @@ public class SQLGetter {
                 editBounty(uuid, setterUUID, amount);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
     }
     public void removeBounty(UUID uuid) {
@@ -427,7 +433,7 @@ public class SQLGetter {
                 removeBounty(uuid);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
     }
     public void removeSetter(UUID uuid, UUID setterUUID) {
@@ -441,7 +447,7 @@ public class SQLGetter {
                 removeSetter(uuid, setterUUID);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
     }
     public List<Setter> removeOldBounties() {
@@ -464,7 +470,7 @@ public class SQLGetter {
                return removeOldBounties();
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return new ArrayList<>();
     }
@@ -486,9 +492,9 @@ public class SQLGetter {
         }
     }*/
 
-    public List<Bounty> getTopBounties() {
+    public List<Bounty> getTopBounties(int sortType) {
         try {
-            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT uuid, name, amount, whitelist FROM notbounties;");
+            PreparedStatement ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("SELECT * FROM notbounties;");
             ResultSet resultSet = ps.executeQuery();
 
             Map<String, Bounty> bountyAmounts = new HashMap<>();
@@ -496,21 +502,33 @@ public class SQLGetter {
                 String uuid = resultSet.getString("uuid");
                 if (uuid != null) {
                     if (bountyAmounts.containsKey(uuid)){
-                       bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"), new Whitelist(new ArrayList<>(), false));
+                       bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"), decodeWhitelist(resultSet.getString("whitelist")));
                     } else {
-                        bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(new Setter("", UUID.randomUUID(), resultSet.getDouble("amount"), 0, true, decodeWhitelist(resultSet.getString("whitelist"))))), resultSet.getString("name")));
+                        bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(new Setter(resultSet.getString("setter"), UUID.fromString(resultSet.getString("suuid")), resultSet.getDouble("amount"), resultSet.getLong("time"), resultSet.getBoolean("notified"), decodeWhitelist(resultSet.getString("whitelist"))))), resultSet.getString("name")));
                     }
                 }
             }
-            List<Bounty> bounties = new ArrayList<>(bountyAmounts.values());
-            Collections.sort(bounties);
-            return bounties;
+            List<Bounty> sortedList = new ArrayList<>(bountyAmounts.values());
+            Bounty temp;
+            for (int i = 0; i < sortedList.size(); i++) {
+                for (int j = i + 1; j < sortedList.size(); j++) {
+                    if ((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
+                            (sortedList.get(i).getSetters().get(0).getTimeCreated() < sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 1) || // newest bounties at top
+                            (sortedList.get(i).getTotalBounty() < sortedList.get(j).getTotalBounty() && sortType == 2) || // more expensive bounties at top
+                            (sortedList.get(i).getTotalBounty() > sortedList.get(j).getTotalBounty() && sortType == 3)) { // less expensive bounties at top
+                        temp = sortedList.get(i);
+                        sortedList.set(i, sortedList.get(j));
+                        sortedList.set(j, temp);
+                    }
+                }
+            }
+            return sortedList;
         } catch (SQLException e){
             if (reconnect()){
-                return getTopBounties();
+                return getTopBounties(sortType);
             }
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return new ArrayList<>();
 
@@ -527,7 +545,7 @@ public class SQLGetter {
             }
 
             if (debug)
-                e.printStackTrace();
+                Bukkit.getLogger().warning(e.toString());
         }
         return 0;
     }

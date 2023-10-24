@@ -91,24 +91,11 @@ public enum Leaderboard {
     /**
      * Correctly displays the player's stat
      *
+     * @param shorten if the message is in a shortened form
      * @param player Player to display to
      */
     public void displayStats(OfflinePlayer player, boolean shorten){
-        String msg = "";
-        switch (this){
-            case ALL:
-            case CLAIMED:
-            case IMMUNITY:
-            case CURRENT:
-                msg = parseStats(speakings.get(0) + getStatMsg(shorten), getStat(player.getUniqueId()), true, player);
-
-                break;
-            case KILLS:
-            case DEATHS:
-            case SET:
-                msg = parseStats(speakings.get(0) + getStatMsg(shorten), getStat(player.getUniqueId()), false, player);
-                break;
-        }
+        String msg = parseStats(speakings.get(0) + getStatMsg(shorten), player);
         if (player.isOnline()) {
             Player p = player.getPlayer();
             assert p != null;
@@ -117,24 +104,40 @@ public enum Leaderboard {
 
     }
 
+    public String getFormattedStat(UUID uuid){
+        if (money) {
+            return NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(getStat(uuid)) + NumberFormatting.currencySuffix;
+        }
+        return NumberFormatting.formatNumber(getStat(uuid));
+    }
+
     public String getStatMsg(boolean shorten){
+        String msg = "";
         switch (this){
             case ALL:
-                return shorten ? speakings.get(50) : speakings.get(44);
+                msg = shorten ? speakings.get(50) : speakings.get(44);
+                break;
             case KILLS:
-                return shorten ? speakings.get(51) : speakings.get(45);
+                msg = shorten ? speakings.get(51) : speakings.get(45);
+                break;
             case CLAIMED:
-                return shorten ? speakings.get(52) : speakings.get(46);
+                msg = shorten ? speakings.get(52) : speakings.get(46);
+                break;
             case DEATHS:
-                return shorten ? speakings.get(53) : speakings.get(47);
+                msg = shorten ? speakings.get(53) : speakings.get(47);
+                break;
             case SET:
-                return shorten ? speakings.get(54) : speakings.get(48);
+                msg = shorten ? speakings.get(54) : speakings.get(48);
+                break;
             case IMMUNITY:
-                return shorten ? speakings.get(55) : speakings.get(49);
+                msg = shorten ? speakings.get(55) : speakings.get(49);
+                break;
             case CURRENT:
-                return shorten ? speakings.get(11) : speakings.get(9);
+                msg = shorten ? speakings.get(11) : speakings.get(9);
+                break;
         }
-        return "";
+        //msg = msg.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + "{amount}" + NumberFormatting.currencySuffix));
+        return msg;
     }
 
     /**
@@ -165,6 +168,12 @@ public enum Leaderboard {
                 break;
             case IMMUNITY:
                 map = sortByValue(nb.immunitySpent);
+                break;
+            case CURRENT:
+                map = new LinkedHashMap<>();
+                for (Bounty bounty : nb.bountyList)
+                    map.put(bounty.getUUID().toString(), bounty.getTotalBounty());
+                map = sortByValue(map);
                 break;
             default:
                 map = new LinkedHashMap<>();
@@ -217,8 +226,8 @@ public enum Leaderboard {
     }
 
 
-    private static String parseStats(String text, double amount, boolean useCurrency, OfflinePlayer player){
-        text = useCurrency ? text.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix)) : text.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.formatNumber(amount)));
+    private String parseStats(String text, OfflinePlayer player){
+        text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(getFormattedStat(player.getUniqueId())));
 
         return parse(text, player);
     }
@@ -265,7 +274,7 @@ public enum Leaderboard {
         return parse(text, player);
     }
 
-    public LinkedHashMap<String, String> getFormattedList(int skip, int amount, int sortType){
+    public LinkedHashMap<String, Double> getSortedList(int skip, int amount, int sortType) {
         LinkedHashMap<String, Double> top = getTop(skip, amount);
         if (sortType == 2)
             top = reverseMap(top);
@@ -273,12 +282,17 @@ public enum Leaderboard {
             top = sortByName(top);
         if (sortType == 4)
             top = reverseMap(sortByName(top));
+        return top;
+    }
+    public LinkedHashMap<String, String> getFormattedList(int skip, int amount, int sortType){
+        LinkedHashMap<String, Double> top = getSortedList(skip, amount, sortType);
         LinkedHashMap<String, String> formattedList = new LinkedHashMap<>();
         for (Map.Entry<String, Double> entry : top.entrySet()){
             switch (this){
                 case ALL:
                 case CLAIMED:
                 case IMMUNITY:
+                case CURRENT:
                     formattedList.put(entry.getKey(), NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(entry.getValue()) + NumberFormatting.currencySuffix);
                     break;
                 case KILLS:
