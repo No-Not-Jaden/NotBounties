@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
+import me.jadenp.notbounties.map.BountyBoard;
 import me.jadenp.notbounties.map.BountyMap;
 import me.jadenp.notbounties.utils.*;
 import org.bukkit.Bukkit;
@@ -1072,13 +1073,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 openGUI(parser, "confirm-bounty", (long) amount, player.getUniqueId(), (long) amount);
                                 return true;
                             }
-                            if (player.isBanned()) {
+                            if (player.isBanned() && removeBannedPlayers) {
                                 // has permanent immunity
                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(18), player.getName(), immunitySpent, player));
                             }
 
                             if (checkBalance(parser, total)) {
-                                if (liteBansEnabled) {
+                                if (liteBansEnabled && removeBannedPlayers) {
                                     // async bounty check
                                     new BukkitRunnable() {
                                         @Override

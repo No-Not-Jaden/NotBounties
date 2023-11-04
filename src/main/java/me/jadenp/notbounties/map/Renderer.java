@@ -53,12 +53,18 @@ public class Renderer extends MapRenderer {
         }
         image = BountyMap.deepCopy(BountyMap.bountyPoster);
         Graphics2D graphics = image.createGraphics();
-        try {
-            BufferedImage head = ImageIO.read(new URL("https://cravatar.eu/helmavatar/" + uuid + "/64.png"));
-            graphics.drawImage(head, 32,32, null);
-        } catch (IOException ignored) {
-
+        BufferedImage head = null;
+        if (ConfigOptions.skinsRestorerEnabled) {
+            head = ConfigOptions.skinsRestorerClass.getPlayerHead(uuid, name);
         }
+        if (head == null) {
+            try {
+                head = ImageIO.read(new URL("https://cravatar.eu/helmavatar/" + uuid + "/64.png"));
+            } catch (IOException e) {
+                Bukkit.getLogger().warning(e.toString());
+            }
+        }
+        graphics.drawImage(head, 32, 32, null);
 
         // center of text is y112
         float fontSize = maxFont;

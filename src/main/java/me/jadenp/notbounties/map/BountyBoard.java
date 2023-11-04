@@ -1,6 +1,6 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.map;
 
-import me.jadenp.notbounties.map.BountyMap;
+import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
@@ -39,13 +39,15 @@ public class BountyBoard {
         }
         if (bounty.getUUID() != lastUUID) {
             lastUUID = bounty.getUUID();
-            frame.setFacingDirection(direction);
+            frame.setFacingDirection(direction, true);
             //frame.setRotation(Rotation.NONE);
             frame.setItem(BountyMap.getMap(bounty));
             frame.setFixed(true);
             frame.setInvulnerable(true);
             frame.setVisible(!ConfigOptions.boardInvisible);
+            //Bukkit.getLogger().info(frame.getLocation().getDirection().toString());
         }
+
     }
 
 

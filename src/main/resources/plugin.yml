@@ -9,6 +9,7 @@ softdepend:
   - HeadDataBase
   - Vault
   - LiteBans
+  - SkinsRestorer
 commands:
   notbounties:
     aliases:

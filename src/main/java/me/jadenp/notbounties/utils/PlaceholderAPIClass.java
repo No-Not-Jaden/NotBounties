@@ -6,11 +6,15 @@ import org.bukkit.entity.Player;
 
 public class PlaceholderAPIClass {
     public String parse(OfflinePlayer player, String text){
-        if (player.isOnline()) {
-            Player p = player.getPlayer();
-            if (p != null)
-                return PlaceholderAPI.setPlaceholders(p,text);
+        try {
+            if (player.isOnline()) {
+                Player p = player.getPlayer();
+                if (p != null)
+                    return PlaceholderAPI.setPlaceholders(p, text);
+            }
+            return PlaceholderAPI.setPlaceholders(player, text);
+        } catch (NullPointerException e) {
+            return text;
         }
-        return PlaceholderAPI.setPlaceholders(player, text);
     }
 }

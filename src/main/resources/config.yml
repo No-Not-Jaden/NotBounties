@@ -40,7 +40,7 @@ max-setters: -1
 confirmation: true
 # The name of bounties set by console. The murder bounties will also use this name
 console-bounty-name: Sheriff
-# this will remove bounties of banned players - checks are run every 10 minutes
+# this will remove bounties of banned players - checks are run every 12 hours
 remove-banned-players: true
 # auto-updating bounty poster board
 bounty-board:

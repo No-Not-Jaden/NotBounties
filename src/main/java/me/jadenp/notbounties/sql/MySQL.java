@@ -3,7 +3,6 @@ package me.jadenp.notbounties.sql;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
-import java.net.ConnectException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -30,7 +29,7 @@ public class MySQL {
         useSSL = (plugin.getConfig().isSet("database.use-ssl") && plugin.getConfig().getBoolean("database.use-ssl"));
     }
 
-    public void reconnect() throws SQLException, ClassNotFoundException, ConnectException {
+    public void reconnect() throws SQLException {
         if (isConnected())
             connection.close();
         connection = null;

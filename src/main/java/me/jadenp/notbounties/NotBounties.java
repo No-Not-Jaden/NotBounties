@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
+import me.jadenp.notbounties.map.BountyBoard;
 import me.jadenp.notbounties.map.BountyMap;
 import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
@@ -15,7 +16,8 @@ import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.*;
+import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -27,7 +29,6 @@ import org.bukkit.scheduler.BukkitTask;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -38,12 +39,9 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * current leaderboard
- * placeholders fixed
- * optimized code
- * sql bounties can now be sorted in different order
- * bounty board
- * fixed a bug where an error would occur when migrating data
+ * utilize skinRestorer
+ * make litebans calls more optimized
+ * added some stats to the debug command
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -727,38 +725,50 @@ public final class NotBounties extends JavaPlugin {
                 }
             }
         }.runTaskTimer(this, 6000, 6000);
+        // Check for banned players
+        //         * Runs every hour and will check a few players at a time
+        //         * Every player will be guaranteed to be checked after 12 hours
         new BukkitRunnable() {
+            List<Bounty> bountyListCopy = new ArrayList<>();
+            int playersPerRun = 1;
             @Override
             public void run() {
-                if (removeBannedPlayers) {
-                    List<Bounty> bountyListCopy = SQL.isConnected() ? data.getTopBounties(2) : new ArrayList<>(bountyList);
-                    for (Bounty bounty : bountyListCopy) {
-                        OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
-                        if (player.isBanned()) {
-                            if (SQL.isConnected()) {
-                                data.removeBounty(bounty.getUUID());
-                            } else {
-                                bountyList.remove(bounty);
-                            }
-                        }
-                        if (liteBansEnabled) {
-                            new BukkitRunnable() {
-                                @Override
-                                public void run() {
-                                    if (!new LiteBansClass().isPlayerNotBanned(bounty.getUUID())) {
-                                        if (SQL.isConnected()) {
-                                            data.removeBounty(bounty.getUUID());
-                                        } else {
-                                            bountyList.remove(bounty);
-                                        }
-                                    }
-                                }
-                            }.runTaskAsynchronously(NotBounties.getInstance());
+                if (!removeBannedPlayers)
+                    return;
+                if (bountyListCopy.isEmpty()) {
+                    bountyListCopy = SQL.isConnected() ? data.getTopBounties(2) : new ArrayList<>(bountyList);
+                    playersPerRun = bountyListCopy.size() / 12 + 1;
+                }
+                for (int i = 0; i < playersPerRun; i++) {
+                    Bounty bounty = bountyListCopy.get(i);
+                    OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
+                    if (player.isBanned()) {
+                        if (SQL.isConnected()) {
+                            data.removeBounty(bounty.getUUID());
+                        } else {
+                            bountyList.remove(bounty);
                         }
                     }
+                    if (liteBansEnabled) {
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                if (!new LiteBansClass().isPlayerNotBanned(bounty.getUUID())) {
+                                    if (SQL.isConnected()) {
+                                        data.removeBounty(bounty.getUUID());
+                                    } else {
+                                        bountyList.remove(bounty);
+                                    }
+                                }
+                            }
+                        }.runTaskAsynchronously(NotBounties.getInstance());
+                    }
+                }
+                if (playersPerRun > 0) {
+                    bountyListCopy.subList(0, playersPerRun).clear();
                 }
             }
-        }.runTaskTimer(NotBounties.getInstance(), 100, 12000);
+        }.runTaskTimer(NotBounties.getInstance(), 101, 72006);
 
         // wanted text
         new BukkitRunnable() {
@@ -918,7 +928,7 @@ public final class NotBounties extends JavaPlugin {
             if ((SQL.isConnected() || autoConnect) && !firstConnect) {
                 SQL.reconnect();
             }
-        } catch (SQLException | ClassNotFoundException | ConnectException ignored) {
+        } catch (SQLException ignored) {
 
         }
             if (firstConnect) {
@@ -1267,16 +1277,7 @@ public final class NotBounties extends JavaPlugin {
 
 
     public boolean hasBounty(OfflinePlayer receiver) {
-        if (SQL.isConnected()) {
-            return data.getBounty(receiver.getUniqueId()) != null;
-        } else {
-            for (Bounty bounty : bountyList) {
-                if (bounty.getUUID().equals(receiver.getUniqueId())) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return getBounty(receiver) != null;
     }
 
     public static String formatTime(long ms) {
@@ -1347,11 +1348,14 @@ public final class NotBounties extends JavaPlugin {
         String connected = SQL.isConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
         sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + SQL.getDatabaseType() + ChatColor.YELLOW + " Local Bounties: " + ChatColor.WHITE + bountyList.size());
         sender.sendMessage(ChatColor.GOLD + "General > "  + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Version: " + ChatColor.WHITE + getDescription().getVersion());
+        int bounties = SQL.isConnected() ? data.getTopBounties(2).size() : bountyList.size();
+        sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + trackedBounties.size() + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + bountyBoards.size());
         String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
         String papi = papiEnabled ? ChatColor.GREEN + "PlaceholderAPI" : ChatColor.RED + "PlaceholderAPI";
         String hdb = HDBEnabled ? ChatColor.GREEN + "HeadDataBase" : ChatColor.RED + "HeadDataBase";
         String liteBans = liteBansEnabled ? ChatColor.GREEN + "LiteBans" : ChatColor.RED + "LiteBans";
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "]");
+        String skinsRestorer = skinsRestorerEnabled ? ChatColor.GREEN + "SkinsRestorer" : ChatColor.RED + "SkinsRestorer";
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY +"]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));

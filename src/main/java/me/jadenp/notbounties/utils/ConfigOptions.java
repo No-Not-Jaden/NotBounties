@@ -113,6 +113,8 @@ public class ConfigOptions {
     public static long boardUpdate;
     public static boolean boardGlow;
     public static boolean boardInvisible;
+    public static boolean skinsRestorerEnabled;
+    public static SkinsRestorerClass skinsRestorerClass;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -120,7 +122,11 @@ public class ConfigOptions {
 
         papiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         liteBansEnabled = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
+        skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
         language = new File(bounties.getDataFolder() + File.separator + "language.yml");
+
+        if (skinsRestorerEnabled)
+            skinsRestorerClass = new SkinsRestorerClass();
 
         bounties.reloadConfig();
 

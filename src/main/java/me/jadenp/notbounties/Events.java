@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.map.BountyBoard;
 import me.jadenp.notbounties.utils.*;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;

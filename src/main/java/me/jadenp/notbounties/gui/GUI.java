@@ -165,7 +165,7 @@ public class GUI implements Listener {
         if (event.getCurrentItem() == null)
             return;
         // check if it is a player slot
-        if (gui.getPlayerSlots().contains(event.getSlot())){
+        if (gui.getPlayerSlots().contains(event.getSlot()) && event.getCurrentItem().getType() == Material.PLAYER_HEAD){
             SkullMeta meta = (SkullMeta) event.getCurrentItem().getItemMeta();
             assert meta != null;
             assert meta.getOwningPlayer() != null;
