@@ -16,13 +16,25 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class SkinsRestorerClass {
-    private final SkinsRestorer skinsRestorer;
+    private SkinsRestorer skinsRestorer;
 
     public SkinsRestorerClass() {
-        skinsRestorer = SkinsRestorerProvider.get();
+        connect();
+    }
+
+    private boolean connect(){
+        try {
+            skinsRestorer = SkinsRestorerProvider.get();
+            return true;
+        } catch (IllegalStateException e) {
+            Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
+            return false;
+        }
     }
 
     public BufferedImage getPlayerHead(UUID uuid, String name) {
+        if (!connect())
+            return null;
         PlayerStorage playerStorage = skinsRestorer.getPlayerStorage();
         try {
             Optional<SkinProperty> property = playerStorage.getSkinForPlayer(uuid, name);
