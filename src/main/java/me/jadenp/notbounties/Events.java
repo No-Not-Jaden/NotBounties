@@ -1,12 +1,18 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.map.BountyBoard;
-import me.jadenp.notbounties.utils.*;
+import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.UpdateChecker;
+import me.jadenp.notbounties.utils.Whitelist;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.*;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -14,11 +20,14 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
+import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -26,6 +35,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.*;
 import java.util.regex.Matcher;
 
+import static me.jadenp.notbounties.NotBounties.namespacedKey;
+import static me.jadenp.notbounties.NotBounties.sessionKey;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class Events implements Listener {
@@ -697,7 +708,25 @@ public class Events implements Listener {
             NumberFormatting.doAddCommands(event.getPlayer(), nb.refundedBounties.get(event.getPlayer().getUniqueId()));
             nb.refundedBounties.remove(event.getPlayer().getUniqueId());
         }
-
-
     }
+    @EventHandler
+    public void onEntitiesLoad(EntitiesLoadEvent event) {
+        if (wanted || !NotBounties.getInstance().getBountyBoards().isEmpty())
+            for (Entity entity : event.getEntities()) {
+                if (entity == null)
+                    return;
+                if (entity.getType() != EntityType.ARMOR_STAND && entity.getType() != EntityType.GLOW_ITEM_FRAME && entity.getType() != EntityType.ITEM_FRAME)
+                    continue;
+                PersistentDataContainer container = entity.getPersistentDataContainer();
+                if (container.has(namespacedKey, PersistentDataType.STRING)) {
+                    String value = container.get(namespacedKey, PersistentDataType.STRING);
+                    if (value == null)
+                        continue;
+                    if (!value.equals(sessionKey)) {
+                        entity.remove();
+                    }
+                }
+            }
+    }
+
 }

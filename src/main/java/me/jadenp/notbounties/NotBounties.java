@@ -30,6 +30,7 @@ import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -86,6 +87,8 @@ public final class NotBounties extends JavaPlugin {
     private final List<BountyBoard> bountyBoards = new ArrayList<>();
     public static final Map<UUID, Integer> boardSetup = new HashMap<>();
     public static long lastBountyBoardUpdate = System.currentTimeMillis();
+    public static String sessionKey = UUID.randomUUID().toString();
+    public static NamespacedKey namespacedKey;
 
 
     /**
@@ -197,6 +200,9 @@ public final class NotBounties extends JavaPlugin {
         this.data = new SQLGetter();
 
         BountyMap.initialize();
+        namespacedKey = new NamespacedKey(this, "bounty-entity");
+
+
 
         try {
             loadConfig();
@@ -622,6 +628,7 @@ public final class NotBounties extends JavaPlugin {
                         try {
                             if (bountyCopy.size() >= board.getRank()) {
                                 board.update(bountyCopy.get(board.getRank() - 1));
+                                //Bukkit.getLogger().info(board.getRank() + ": " + bountyCopy.get(board.getRank()-1).getName());
                             } else {
                                 board.update(null);
                             }
@@ -767,7 +774,10 @@ public final class NotBounties extends JavaPlugin {
                     }
                 }
                 if (playersPerRun > 0) {
-                    bountyListCopy.subList(0, playersPerRun).clear();
+                    if (bountyListCopy.size() > playersPerRun)
+                        bountyListCopy.subList(0, playersPerRun).clear();
+                    else
+                        bountyListCopy.clear();
                 }
             }
         }.runTaskTimer(NotBounties.getInstance(), 101, 72006);
@@ -781,6 +791,7 @@ public final class NotBounties extends JavaPlugin {
                 }
             }
         }.runTaskTimer(this, 20, 1);
+
     }
 
 

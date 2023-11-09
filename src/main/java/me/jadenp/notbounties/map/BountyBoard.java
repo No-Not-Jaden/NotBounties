@@ -1,11 +1,13 @@
 package me.jadenp.notbounties.map;
 
 import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -23,6 +25,7 @@ public class BountyBoard {
         this.location = location;
         this.direction = direction;
         this.rank = rank;
+
     }
 
     public void update(Bounty bounty) throws IOException {
@@ -33,20 +36,23 @@ public class BountyBoard {
             remove();
             return;
         }
+        if (bounty.getUUID() != lastUUID) {
+            lastUUID = bounty.getUUID();
+            remove();
+            //Bukkit.getLogger().info(frame.getLocation().getDirection().toString());
+        }
         if (frame == null) {
             EntityType type = ConfigOptions.boardGlow ? EntityType.GLOW_ITEM_FRAME : EntityType.ITEM_FRAME;
             frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, type);
-        }
-        if (bounty.getUUID() != lastUUID) {
-            lastUUID = bounty.getUUID();
+            frame.getPersistentDataContainer().set(NotBounties.namespacedKey, PersistentDataType.STRING, NotBounties.sessionKey);
             frame.setFacingDirection(direction, true);
             //frame.setRotation(Rotation.NONE);
             frame.setItem(BountyMap.getMap(bounty));
-            frame.setFixed(true);
             frame.setInvulnerable(true);
             frame.setVisible(!ConfigOptions.boardInvisible);
-            //Bukkit.getLogger().info(frame.getLocation().getDirection().toString());
+            frame.setFixed(true);
         }
+
 
     }
 
@@ -66,6 +72,7 @@ public class BountyBoard {
 
     public void remove() {
         if (frame != null) {
+            frame.setItem(null);
             frame.remove();
             frame = null;
         }
