@@ -740,6 +740,8 @@ public final class NotBounties extends JavaPlugin {
                     playersPerRun = bountyListCopy.size() / 12 + 1;
                 }
                 for (int i = 0; i < playersPerRun; i++) {
+                    if (i >= bountyListCopy.size())
+                        break;
                     Bounty bounty = bountyListCopy.get(i);
                     OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
                     if (player.isBanned()) {

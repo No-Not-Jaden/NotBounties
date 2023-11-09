@@ -1007,7 +1007,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
 
     public static String parse(String str, OfflinePlayer receiver) {
@@ -1019,7 +1019,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
     public static String parse(String str, long time, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", dateFormat.format(time));
@@ -1030,7 +1030,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
 
     public static String parse(String str, double amount, OfflinePlayer receiver) {
@@ -1054,7 +1054,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
     public static String parse(String str, String player, double amount, long time, OfflinePlayer receiver) {
         str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
@@ -1064,7 +1064,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
 
     public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
@@ -1076,7 +1076,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
 
     public static String parse(String str, String player, double amount, double bounty, long time, OfflinePlayer receiver) {
@@ -1088,7 +1088,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
 
 
@@ -1100,7 +1100,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
 
     public static String parse(String str, String sender, String player, OfflinePlayer receiver) {
@@ -1111,7 +1111,7 @@ public class ConfigOptions {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
 
-        return str;
+        return color(str);
     }
 
 
@@ -1124,7 +1124,7 @@ public class ConfigOptions {
         if (papiEnabled && receiver != null) {
             return new PlaceholderAPIClass().parse(receiver, str);
         }
-        return str;
+        return color(str);
     }
 
     public static LinkedHashMap<Integer, String> sortByValue(Map<Integer, String> hm) {
