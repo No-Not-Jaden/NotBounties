@@ -1005,7 +1005,7 @@ public class ConfigOptions {
             str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
         }
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
@@ -1017,7 +1017,7 @@ public class ConfigOptions {
             str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
         }
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
@@ -1028,7 +1028,7 @@ public class ConfigOptions {
             str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
         }
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
@@ -1041,7 +1041,7 @@ public class ConfigOptions {
             str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
         }
         if (papiEnabled && receiver != null) {
-            return color(new PlaceholderAPIClass().parse(receiver, str));
+            str = color(new PlaceholderAPIClass().parse(receiver, str));
         }
         return color(str);
     }
@@ -1052,7 +1052,7 @@ public class ConfigOptions {
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
@@ -1062,7 +1062,7 @@ public class ConfigOptions {
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(time)));
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
@@ -1074,7 +1074,7 @@ public class ConfigOptions {
         str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
@@ -1086,7 +1086,7 @@ public class ConfigOptions {
         str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(time)));
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
@@ -1098,7 +1098,7 @@ public class ConfigOptions {
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
@@ -1108,7 +1108,7 @@ public class ConfigOptions {
         str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
 
         return color(str);
@@ -1122,7 +1122,7 @@ public class ConfigOptions {
         str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
         if (papiEnabled && receiver != null) {
-            return new PlaceholderAPIClass().parse(receiver, str);
+            str = new PlaceholderAPIClass().parse(receiver, str);
         }
         return color(str);
     }
