@@ -40,8 +40,12 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * change default staggered board
- * add a check when it is 0
+ * added staggered update option
+ * bounty maps are now created async
+ * page items will now be replaced with air if there isn't anything else to replace them with
+ * added [offline]
+ * offline now toggles
+ * going to the next page now accurately works on all GUIs
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -625,8 +629,9 @@ public final class NotBounties extends JavaPlugin {
                     if (queuedBoards.isEmpty()) {
                         queuedBoards = new ArrayList<>(bountyBoards);
                     }
+                    int minUpdate = boardStaggeredUpdate == 0 ? queuedBoards.size() : boardStaggeredUpdate;
                     List<Bounty> bountyCopy = SQL.isConnected() ? data.getTopBounties(boardType) : sortBounties(boardType);
-                    for (int i = 0; i < Math.min(queuedBoards.size(), boardStaggeredUpdate); i++) {
+                    for (int i = 0; i < Math.min(queuedBoards.size(), minUpdate); i++) {
                         BountyBoard board = queuedBoards.get(i);
                         try {
                             if (bountyCopy.size() >= board.getRank()) {
@@ -639,8 +644,8 @@ public final class NotBounties extends JavaPlugin {
                             Bukkit.getLogger().warning(e.toString());
                         }
                     }
-                    if (Math.min(queuedBoards.size(), boardStaggeredUpdate) > 0) {
-                        queuedBoards.subList(0, Math.min(queuedBoards.size(), boardStaggeredUpdate)).clear();
+                    if (Math.min(queuedBoards.size(), minUpdate) > 0) {
+                        queuedBoards.subList(0, Math.min(queuedBoards.size(), minUpdate)).clear();
                     }
                     lastBountyBoardUpdate = System.currentTimeMillis();
                 }

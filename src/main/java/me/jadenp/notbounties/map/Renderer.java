@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -26,7 +27,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 
 public class Renderer extends MapRenderer {
-    private final BufferedImage image;
+    private BufferedImage image = null;
     private final BufferedImage reward = new BufferedImage(128, 14, BufferedImage.TYPE_INT_ARGB);
     private static final float maxFont = 20f;
     private double currentCost = -1;
@@ -34,7 +35,7 @@ public class Renderer extends MapRenderer {
     private static final float rewardFont = 13f;
     private long lastRender = System.currentTimeMillis();
 
-    public Renderer(UUID uuid) throws IOException {
+    public Renderer(UUID uuid) {
         this.player = Bukkit.getOfflinePlayer(uuid);
         String name;
         if (NotBounties.getInstance().hasBounty(player)) {
@@ -44,48 +45,62 @@ public class Renderer extends MapRenderer {
         } else {
             name = NotBounties.getInstance().getPlayerName(uuid);
         }
-        File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
-        if (ConfigOptions.saveTemplates) {
-            if (imageFile.exists()) {
-                image = ImageIO.read(imageFile);
-                return;
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
+                if (ConfigOptions.saveTemplates) {
+                    if (imageFile.exists()) {
+                        try {
+                            image = ImageIO.read(imageFile);
+                        } catch (IOException e) {
+                            Bukkit.getLogger().warning(e.toString());
+                        }
+                        return;
+                    }
+                }
+                image = BountyMap.deepCopy(BountyMap.bountyPoster);
+                Graphics2D graphics = image.createGraphics();
+                BufferedImage head = null;
+                if (ConfigOptions.skinsRestorerEnabled) {
+                    head = ConfigOptions.skinsRestorerClass.getPlayerHead(uuid, name);
+                }
+                if (head == null) {
+                    try {
+                        head = ImageIO.read(new URL("https://cravatar.eu/helmavatar/" + uuid + "/64.png"));
+                    } catch (IOException e) {
+                        Bukkit.getLogger().warning(e.toString());
+                    }
+                }
+                graphics.drawImage(head, 32, 32, null);
+
+                // center of text is y112
+                float fontSize = maxFont;
+                graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
+                FontMetrics metrics = graphics.getFontMetrics();
+                String displayName = ConfigOptions.nameLine.replaceAll("\\{name}", Matcher.quoteReplacement(name));
+
+                if (ConfigOptions.papiEnabled)
+                    displayName = new PlaceholderAPIClass().parse(player, displayName);
+                displayName = ChatColor.translateAlternateColorCodes('&', displayName);
+                while (metrics.stringWidth(ChatColor.stripColor(displayName)) > 120 && fontSize > 1) {
+                    fontSize--;
+                    graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
+                    metrics = graphics.getFontMetrics();
+                }
+                int x = 64 - metrics.stringWidth(ChatColor.stripColor(displayName)) / 2; // center - width/2
+                int y = ConfigOptions.displayReward ? 112 : 112 + metrics.getHeight() / 2;
+                drawColors(displayName, graphics, x, y);
+
+                if (ConfigOptions.saveTemplates) {
+                    try {
+                        ImageIO.write(image, "PNG", imageFile);
+                    } catch (IOException e) {
+                        Bukkit.getLogger().warning(e.toString());
+                    }
+                }
             }
-        }
-        image = BountyMap.deepCopy(BountyMap.bountyPoster);
-        Graphics2D graphics = image.createGraphics();
-        BufferedImage head = null;
-        if (ConfigOptions.skinsRestorerEnabled) {
-            head = ConfigOptions.skinsRestorerClass.getPlayerHead(uuid, name);
-        }
-        if (head == null) {
-            try {
-                head = ImageIO.read(new URL("https://cravatar.eu/helmavatar/" + uuid + "/64.png"));
-            } catch (IOException e) {
-                Bukkit.getLogger().warning(e.toString());
-            }
-        }
-        graphics.drawImage(head, 32, 32, null);
-
-        // center of text is y112
-        float fontSize = maxFont;
-        graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
-        FontMetrics metrics = graphics.getFontMetrics();
-        String displayName = ConfigOptions.nameLine.replaceAll("\\{name}", Matcher.quoteReplacement(name));
-
-        if (ConfigOptions.papiEnabled)
-            displayName = new PlaceholderAPIClass().parse(player, displayName);
-        displayName = ChatColor.translateAlternateColorCodes('&', displayName);
-        while (metrics.stringWidth(ChatColor.stripColor(displayName)) > 120 && fontSize > 1) {
-            fontSize--;
-            graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
-            metrics = graphics.getFontMetrics();
-        }
-        int x = 64 - metrics.stringWidth(ChatColor.stripColor(displayName)) / 2; // center - width/2
-        int y = ConfigOptions.displayReward ? 112 : 112 + metrics.getHeight() / 2;
-        drawColors(displayName, graphics, x, y);
-
-        if (ConfigOptions.saveTemplates)
-            ImageIO.write(image, "PNG", imageFile);
+        }.runTaskAsynchronously(NotBounties.getInstance());
     }
 
     public double getBountyAmount() {
@@ -119,6 +134,8 @@ public class Renderer extends MapRenderer {
 
     @Override
     public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player renderer) {
+        if (image == null)
+            return;
         if (!map.isLocked() || currentCost == -1) {
             if (System.currentTimeMillis() - lastRender < ConfigOptions.updateInterval)
                 return;

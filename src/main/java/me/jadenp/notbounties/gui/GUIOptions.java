@@ -227,7 +227,8 @@ public class GUIOptions {
                 }
             meta.setLore(lore);
             skull.setItemMeta(meta);
-            contents[(int) (playerSlots.get(i) - playerSlots.size() * (page-1))] = skull;
+            int slot = type.equals("select-price") || type.equals("confirm-bounty") ? playerSlots.get(i) : (playerSlots.get((int) (i - playerSlots.size() * (page-1))));
+            contents[slot] = skull;
         }
         inventory.setContents(contents);
         return inventory;

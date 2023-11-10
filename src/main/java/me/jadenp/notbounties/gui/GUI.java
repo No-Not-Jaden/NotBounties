@@ -356,7 +356,10 @@ public class GUI implements Listener {
                     }
 
                 } else if (command.equalsIgnoreCase("[offline]")) {
-                    openGUI((Player) event.getWhoClicked(), info.getGuiType(), info.getPage(), "offline");
+                    if (info.getData().length > 0 && info.getData()[0] instanceof String && ((String) info.getData()[0]).equalsIgnoreCase("offline"))
+                        openGUI((Player) event.getWhoClicked(), info.getGuiType(), info.getPage());
+                    else
+                        openGUI((Player) event.getWhoClicked(), info.getGuiType(), info.getPage(), "offline");
                 } else {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                 }
