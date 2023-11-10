@@ -147,19 +147,21 @@ public class GUIOptions {
             if (removePageItems) {
                 // next
                 if (getPageType(customItems[i].getCommands()) == 1 && page * playerSlots.size() >= amount.length) {
-                    contents[i] = pageReplacements.get(i).getFormattedItem(player, replacements);
+                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, replacements) : null;
+                    contents[i] = replacement;
                     continue;
                 }
                 // back
                 if (getPageType(customItems[i].getCommands()) == 2 && page == 1) {
-                    contents[i] = pageReplacements.get(i).getFormattedItem(player, replacements);
+                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, replacements) : null;
+                    contents[i] = replacement;
                     continue;
                 }
             }
             contents[i] = customItems[i].getFormattedItem(player, replacements);
         }
         // set up player slots
-        for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * playerSlots.size()); i < Math.min(playerSlots.size(), playerItems.length); i++) {
+        for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * playerSlots.size()); i < Math.min(playerSlots.size() * page, playerItems.length); i++) {
             ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) skull.getItemMeta();
             assert meta != null;
@@ -225,7 +227,7 @@ public class GUIOptions {
                 }
             meta.setLore(lore);
             skull.setItemMeta(meta);
-            contents[playerSlots.get(i)] = skull;
+            contents[(int) (playerSlots.get(i) - playerSlots.size() * (page-1))] = skull;
         }
         inventory.setContents(contents);
         return inventory;

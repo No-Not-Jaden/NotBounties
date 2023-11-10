@@ -93,14 +93,14 @@ public class GUI implements Listener {
                 values.put(uuid, page + "");
                 break;
             case "confirm":
-                uuid = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
+                String uuid1 = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
                 double price = data.length > 1 && data[1] instanceof Double ? (double) data[1] : 0;
-                values.put(uuid, String.format("%.8f", price));
+                values.put(uuid1, String.format("%.8f", price));
                 break;
             case "confirm-bounty":
-                uuid = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
+                String uuid2 = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
                 long price2 = data.length > 1 && data[1] instanceof Long ? (long) data[1] : 0;
-                values.put(uuid, price2 + "");
+                values.put(uuid2, price2 + "");
                 break;
         }
         return values;
@@ -236,6 +236,7 @@ public class GUI implements Listener {
                     break;
             }
         } else {
+            // custom item
             PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
             CustomItem customItem = gui.getCustomItem(event.getSlot(), info.getPage(), getGUIValues((Player) event.getWhoClicked(), guiType, info.getPage(), info.getData()).size());
             if (customItem == null)
@@ -299,7 +300,7 @@ public class GUI implements Listener {
                         Leaderboard leaderboard = (Leaderboard) info.getData()[0];
                         openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, leaderboard);
                     } else {
-                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount);
+                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, info.getData());
                     }
 
                 } else if (command.startsWith("[back]")) {
@@ -314,7 +315,7 @@ public class GUI implements Listener {
                         Leaderboard leaderboard = (Leaderboard) info.getData()[0];
                         openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount, leaderboard);
                     }  else {
-                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount);
+                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount, info.getData());
                     }
                 } else if (command.startsWith("[gui]")){
                     int amount = 1;
@@ -343,6 +344,9 @@ public class GUI implements Listener {
                         if (command.length() > length && command.substring(length + 1).contains(" ")){
                             String afterName = command.substring(length + 1);
                             String lastArg = afterName.substring(afterName.indexOf(" ") + 1);
+                            if (lastArg.equalsIgnoreCase("offline") && info.getData().length > 0 && info.getData()[0] instanceof String && ((String) info.getData()[0]).equalsIgnoreCase("offline")) {
+                                lastArg = "";
+                            }
                             openGUI((Player) event.getWhoClicked(), guiName, amount, lastArg);
                         } else {
                             openGUI((Player) event.getWhoClicked(), guiName, amount);
@@ -351,6 +355,8 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), guiName, amount);
                     }
 
+                } else if (command.equalsIgnoreCase("[offline]")) {
+                    openGUI((Player) event.getWhoClicked(), info.getGuiType(), info.getPage(), "offline");
                 } else {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                 }

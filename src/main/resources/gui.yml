@@ -20,6 +20,7 @@ custom-items:
     # [next] <x> goes to the next x amount of pages or next page if x is empty
     # [back] <x> goes to the last x amount of pages or last page if x is empty
     # [gui] (gui name) (page) (leaderboard/offline) opens a new gui - only gui name is required, ex: [gui] bounty-gui | [gui] leaderboard 1 kills | [gui] set-bounty 1 offline
+    # [offline] toggles offline players to the set-bounty GUI and the set-whitelist GUI
     # adding @{permission} at the beginning will check for a permission before executing the command. !@ will check if they don't have permission
     #   ex: '@notbounties.admin [next]' will only go to the next page if the player clicking the item has notbounties.admin
     #   '!@essentials.fly [p] top' will run the command /top as the player if the player doesn't have essentials.fly
@@ -122,13 +123,7 @@ custom-items:
     amount: 1
     name: '&7See all players'
     commands:
-      - '[gui] set-bounty 1 offline'
-  add-offline-whitelist:
-    material: LEVER
-    amount: 1
-    name: '&7See all players'
-    commands:
-      - '[gui] set-whitelist 1 offline'
+      - '[offline]'
   reset-whitelist:
     material: MILK_BUCKET
     amount: 1
@@ -302,7 +297,7 @@ set-whitelist:
       item: back
       slot: 45
     5:
-      item: add-offline-whitelist
+      item: add-offline
       slot: 51
     6:
       item: reset-whitelist

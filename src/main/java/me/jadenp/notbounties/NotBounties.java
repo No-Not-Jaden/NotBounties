@@ -40,9 +40,8 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * utilize skinRestorer
- * make litebans calls more optimized
- * added some stats to the debug command
+ * change default staggered board
+ * add a check when it is 0
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -425,7 +424,7 @@ public final class NotBounties extends JavaPlugin {
         // make bounty tracker work & big bounty particle & time immunity
         new BukkitRunnable() {
             int sqlTimer = 0;
-
+            List<BountyBoard> queuedBoards = new ArrayList<>();
             @Override
             public void run() {
                 if (tracker)
@@ -623,8 +622,12 @@ public final class NotBounties extends JavaPlugin {
                     }
                 if (lastBountyBoardUpdate + boardUpdate * 1000 < System.currentTimeMillis()) {
                     // update bounty board
+                    if (queuedBoards.isEmpty()) {
+                        queuedBoards = new ArrayList<>(bountyBoards);
+                    }
                     List<Bounty> bountyCopy = SQL.isConnected() ? data.getTopBounties(boardType) : sortBounties(boardType);
-                    for (BountyBoard board : bountyBoards) {
+                    for (int i = 0; i < Math.min(queuedBoards.size(), boardStaggeredUpdate); i++) {
+                        BountyBoard board = queuedBoards.get(i);
                         try {
                             if (bountyCopy.size() >= board.getRank()) {
                                 board.update(bountyCopy.get(board.getRank() - 1));
@@ -633,8 +636,11 @@ public final class NotBounties extends JavaPlugin {
                                 board.update(null);
                             }
                         } catch (IOException e) {
-                            throw new RuntimeException(e);
+                            Bukkit.getLogger().warning(e.toString());
                         }
+                    }
+                    if (Math.min(queuedBoards.size(), boardStaggeredUpdate) > 0) {
+                        queuedBoards.subList(0, Math.min(queuedBoards.size(), boardStaggeredUpdate)).clear();
                     }
                     lastBountyBoardUpdate = System.currentTimeMillis();
                 }

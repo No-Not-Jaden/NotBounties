@@ -49,8 +49,10 @@ bounty-board:
   # 2 top bounties
   # 3 lowest bounties
   type: 2
-  # how many seconds between the board updates - minimum of 2 seconds
+  # how many seconds between the board updates - minimum of 2 seconds (this can be server intensive)
   update-interval: 5
+  # amount of bounty boards to update at a time - 0 to disable
+  staggered-update: 3
   # glow item frame
   glow: true
   # invisible item frame

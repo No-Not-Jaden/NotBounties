@@ -115,6 +115,7 @@ public class ConfigOptions {
     public static boolean boardInvisible;
     public static boolean skinsRestorerEnabled;
     public static SkinsRestorerClass skinsRestorerClass;
+    public static int boardStaggeredUpdate;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -370,6 +371,9 @@ public class ConfigOptions {
             bounties.getConfig().set("bounty-board.glow", true);
             bounties.getConfig().set("bounty-board.invisible", 1);
         }
+        if (!bounties.getConfig().isSet("bounty-board.staggered-update"))
+            bounties.getConfig().set("bounty-board.staggered-update", 3);
+
 
 
 
@@ -448,6 +452,7 @@ public class ConfigOptions {
         boardUpdate = bounties.getConfig().getInt("bounty-board.update-interval");
         boardGlow = bounties.getConfig().getBoolean("bounty-board.glow");
         boardInvisible = bounties.getConfig().getBoolean("bounty-board.invisible");
+        boardStaggeredUpdate = bounties.getConfig().getInt("bounty-board.staggered-update");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
