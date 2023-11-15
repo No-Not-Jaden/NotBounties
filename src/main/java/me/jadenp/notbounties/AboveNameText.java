@@ -35,10 +35,20 @@ public class AboveNameText {
             }
             if (player.canSee(armorStand))
                 player.hideEntity(NotBounties.getInstance(), armorStand);
-            armorStand.teleport(player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
+            if (!armorStand.getLocation().getChunk().isLoaded()) {
+                armorStand.getLocation().getChunk().load();
+                teleport();
+                armorStand.getLocation().getChunk().unload();
+            } else {
+                teleport();
+            }
         } else {
          removeStand();
         }
+    }
+
+    private void teleport(){
+        armorStand.teleport(player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
     }
 
     public void removeStand(){

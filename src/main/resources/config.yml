@@ -185,7 +185,7 @@ buy-own-bounties:
   # bounty set for $100 would have to be bought for $125
   cost-multiply: 1.25
 immunity:
-  # players can buy immunity from having bounties set on them as opposed to having immunity from the permission node
+  # players can buy immunity from having bounties set on them as opposed to having immunity from the permission node notbounties.immune
   # Immunity types:
   # 0 - disabled
   # 1 - permanent immunity
