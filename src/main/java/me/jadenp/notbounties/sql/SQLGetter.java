@@ -176,6 +176,8 @@ public class SQLGetter {
                 break;
             case CURRENT:
                 for (Bounty bounty : getTopBounties(2)) {
+                    if (hiddenNames.contains(bounty.getName()))
+                        continue;
                     data.put(bounty.getUUID().toString(), bounty.getTotalBounty());
                 }
                 return data;

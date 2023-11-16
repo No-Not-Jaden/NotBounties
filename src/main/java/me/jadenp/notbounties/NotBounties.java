@@ -40,12 +40,10 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * added staggered update option
- * bounty maps are now created async
- * page items will now be replaced with air if there isn't anything else to replace them with
- * added [offline]
- * offline now toggles
- * going to the next page now accurately works on all GUIs
+ * leaderboards add correctly
+ * leaderboards display the right number
+ * bounty board uses hidden names
+ * fixed wanted tags showing up below minimum
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -630,7 +628,7 @@ public final class NotBounties extends JavaPlugin {
                         queuedBoards = new ArrayList<>(bountyBoards);
                     }
                     int minUpdate = boardStaggeredUpdate == 0 ? queuedBoards.size() : boardStaggeredUpdate;
-                    List<Bounty> bountyCopy = SQL.isConnected() ? data.getTopBounties(boardType) : sortBounties(boardType);
+                    List<Bounty> bountyCopy = getPublicBounties(boardType);
                     for (int i = 0; i < Math.min(queuedBoards.size(), minUpdate); i++) {
                         BountyBoard board = queuedBoards.get(i);
                         try {
@@ -1421,6 +1419,18 @@ public final class NotBounties extends JavaPlugin {
             }
         }
         return removes;
+    }
+
+    public static void removeWantedTag(UUID uuid) {
+        if (!wantedText.containsKey(uuid))
+            return;
+        wantedText.get(uuid).removeStand();
+        wantedText.remove(uuid);
+    }
+
+    public List<Bounty> getPublicBounties(int sortType) {
+        List<Bounty> bounties = SQL.isConnected() ? data.getTopBounties(sortType) : sortBounties(sortType);
+        return bounties.stream().filter(bounty -> !hiddenNames.contains(bounty.getName())).collect(Collectors.toList());
     }
 
 

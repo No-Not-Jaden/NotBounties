@@ -226,8 +226,6 @@ public class Events implements Listener {
             item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
             NumberFormatting.givePlayer(event.getEntity().getKiller(), item, 1);
         }
-        bounty.claimBounty(killer);
-        nb.updateBounty(bounty);
         if (nb.SQL.isConnected()) {
             nb.data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(killer), 0, 0);
             nb.data.addData(killer.getUniqueId().toString(), 1, 0, 0, 0, 0, bounty.getTotalBounty(killer));
@@ -235,7 +233,14 @@ public class Events implements Listener {
             nb.allTimeBounties.put(player.getUniqueId().toString(), Leaderboard.ALL.getStat(player.getUniqueId()) + bounty.getTotalBounty(killer));
             nb.killBounties.put(killer.getUniqueId().toString(), Leaderboard.KILLS.getStat(killer.getUniqueId()) + 1);
             nb.deathBounties.put(player.getUniqueId().toString(), Leaderboard.DEATHS.getStat(player.getUniqueId()) + 1);
-            nb.allClaimedBounties.put(player.getUniqueId().toString(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty(killer));
+            nb.allClaimedBounties.put(killer.getUniqueId().toString(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty(killer));
+        }
+        bounty.claimBounty(killer);
+        nb.updateBounty(bounty);
+
+        if (bounty.getTotalBounty() < minWanted) {
+            // remove bounty tag
+            NotBounties.removeWantedTag(bounty.getUUID());
         }
 
         for (Setter setter : claimedBounties) {

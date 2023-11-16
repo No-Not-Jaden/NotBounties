@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.gui;
 
 import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.utils.ConfigOptions;
@@ -172,7 +173,13 @@ public class GUIOptions {
                 amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
                 time = Objects.requireNonNull(NotBounties.getInstance().getBounty(p)).getLatestSetter();
             } else {
-                amount[i] = formatNumber(amount[i]);
+                Leaderboard leaderboard = null;
+                try {
+                    leaderboard = Leaderboard.valueOf(replacements[0]);
+                } catch (IllegalArgumentException ignored) {
+                }
+                if (leaderboard == null)
+                    amount[i] = formatNumber(amount[i]);
             }
 
             final String finalAmount = amount[i];
