@@ -25,7 +25,6 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -134,20 +133,8 @@ public class Events implements Listener {
             }
         }
 
-        // remove wanted tag above head
-        if (bounty.getTotalBounty(killer) == bounty.getTotalBounty()) {
-            if (NotBounties.wantedText.containsKey(player.getUniqueId())) {
-                NotBounties.wantedText.get(player.getUniqueId()).removeStand();
-                NotBounties.wantedText.remove(player.getUniqueId());
-            }
-        }
-
         // reward head
-        ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
-        assert skullMeta != null;
-        skullMeta.setOwningPlayer(player);
-        skull.setItemMeta(skullMeta);
+        RewardHead rewardHead = new RewardHead(player.getName(), player.getUniqueId(), bounty.getTotalBounty(killer));
 
         if (rewardHeadSetter) {
             for (Setter setter : claimedBounties) {
@@ -155,22 +142,23 @@ public class Events implements Listener {
                     Player p = Bukkit.getPlayer(setter.getUuid());
                     if (p != null) {
                         if (!rewardHeadClaimed || !Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId().equals(setter.getUuid())) {
-                            NumberFormatting.givePlayer(p, skull, 1);
+                            NumberFormatting.givePlayer(p, rewardHead.getItem(), 1);
                         }
                     } else {
-                        if (nb.headRewards.containsKey(setter.getUuid().toString())) {
-                            List<String> heads = new ArrayList<>(nb.headRewards.get(setter.getUuid().toString()));
-                            heads.add(player.getUniqueId().toString());
-                            nb.headRewards.replace(setter.getUuid().toString(), heads);
+                        if (nb.headRewards.containsKey(setter.getUuid())) {
+                            // I think this could be replaced with nb.headRewards.get(setter.getUuid()).add(rewardHead)
+                            List<RewardHead> heads = new ArrayList<>(nb.headRewards.get(setter.getUuid()));
+                            heads.add(rewardHead);
+                            nb.headRewards.replace(setter.getUuid(), heads);
                         } else {
-                            nb.headRewards.put(setter.getUuid().toString(), Collections.singletonList(player.getUniqueId().toString()));
+                            nb.headRewards.put(setter.getUuid(), Collections.singletonList(rewardHead));
                         }
                     }
                 }
             }
         }
         if (rewardHeadClaimed) {
-            NumberFormatting.givePlayer(killer, skull, 1);
+            NumberFormatting.givePlayer(killer, rewardHead.getItem(), 1);
         }
         // do commands
         if (deathTax > 0) {
@@ -653,16 +641,11 @@ public class Events implements Listener {
             }
         }
 
-        if (nb.headRewards.containsKey(event.getPlayer().getUniqueId().toString())) {
-            for (String uuid : nb.headRewards.get(event.getPlayer().getUniqueId().toString())) {
-                ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
-                SkullMeta meta = (SkullMeta) skull.getItemMeta();
-                assert meta != null;
-                meta.setOwningPlayer(Bukkit.getOfflinePlayer(UUID.fromString(uuid)));
-                skull.setItemMeta(meta);
-                NumberFormatting.givePlayer(event.getPlayer(), skull, 1);
+        if (nb.headRewards.containsKey(event.getPlayer().getUniqueId())) {
+            for (RewardHead rewardHead : nb.headRewards.get(event.getPlayer().getUniqueId())) {
+                NumberFormatting.givePlayer(event.getPlayer(), rewardHead.getItem(), 1);
             }
-            nb.headRewards.remove(event.getPlayer().getUniqueId().toString());
+            nb.headRewards.remove(event.getPlayer().getUniqueId());
         }
         // if they have expire-time enabled
         if (bountyExpire > 0) {
