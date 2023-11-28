@@ -1,6 +1,5 @@
 # NotBounties
-For support, join the [Discord](https://discord.gg/zEsUzwYEx7) server
-I'd love to take suggestions, but I don't check Spigot that often
+For support and suggestions, join the [Discord](https://discord.gg/zEsUzwYEx7) server
 
 ## Overview
 Add bounties to players with *placeholders* or *in-game items* as currency. You can even set bounties on offline players (who have joined the server).
@@ -82,4 +81,4 @@ notbounties.basic - use help, tutorial, and broadcast commands
 
 %notbounties_bounty%
 %notbounties_(all/kills/claimed/deaths/set/immunity)%
-%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity)%
+%notbounties_top\_[x]\_(all/kills/claimed/deaths/set/immunity)%
