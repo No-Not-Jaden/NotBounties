@@ -121,6 +121,7 @@ public class ConfigOptions {
     public static boolean btAllies;
     public static boolean betterTeamsEnabled;
     public static String teamsPlaceholder;
+    public static List<String> rewardHeadLore;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -392,6 +393,7 @@ public class ConfigOptions {
         }
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
+
 
         bountyExpire = bounties.getConfig().getInt("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
@@ -830,6 +832,10 @@ public class ConfigOptions {
             configuration.set("whitelist-toggle", "&fYour whitelist has been set to normal.");
         if (!configuration.isSet("blacklist-toggle"))
             configuration.set("blacklist-toggle", "&fYour whitelist is now on blacklist mode.");
+        if (!configuration.isSet("reward-head-name"))
+            configuration.set("reward-head-name", "&c&l{player}'s Head");
+        if (!configuration.isSet("reward-head-lore"))
+            configuration.set("reward-head-lore", Arrays.asList("", "&4This head had a", "&4{amount}&4", "&4bounty on it.", ""));
 
         bounties.saveConfig();
         configuration.save(language);
@@ -975,6 +981,8 @@ public class ConfigOptions {
         speakings.add(color(Objects.requireNonNull(configuration.getString("map-receive"))));
         // 69 blacklist-toggle
         speakings.add(color(Objects.requireNonNull(configuration.getString("blacklist-toggle"))));
+        // 70 reward-head-name
+        speakings.add(color(Objects.requireNonNull(configuration.getString("reward-head-name"))));
 
         voucherLore = new ArrayList<>();
         configuration.getStringList("bounty-voucher-lore").forEach(str -> voucherLore.add(color(str)));
@@ -994,6 +1002,8 @@ public class ConfigOptions {
         configuration.getStringList("whitelist-lore").forEach(lore -> whitelistLore.add(color(lore)));
         blacklistLore = new ArrayList<>();
         configuration.getStringList("blacklist-lore").forEach(lore -> blacklistLore.add(color(lore)));
+        rewardHeadLore = new ArrayList<>();
+        configuration.getStringList("reward-head-lore").forEach(lore -> rewardHeadLore.add(color(lore)));
     }
 
 
