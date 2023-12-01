@@ -37,7 +37,7 @@ public class SQLGetter {
                     "    whitelist VARCHAR(369)" +
                     ");");
             ps.executeUpdate();
-            ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = 'jadenplugins' and table_name = 'notbounties' and column_name = 'amount';");
+            ps = NotBounties.getInstance().SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = '" + NotBounties.getInstance().SQL.getDatabase() + "' and table_name = 'notbounties' and column_name = 'amount';");
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
                 if (rs.getString("data_type").equalsIgnoreCase("bigint")){

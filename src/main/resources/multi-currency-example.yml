@@ -12,12 +12,21 @@ currency:
     # With the weights like this, setting a bounty for 30 will use 10 vault currency and 20 nottokens if the player has the balance.
     # if the player doesn't have vault or token currencies, the plugin will look for diamonds and gold ingots in the player's inventory
     - '%nottokens_amount% 10 2'
+    #                       vvv This number is the optional custom model data for the item
+    - 'PRIZE_POTTERY_SHERD<12345> 1 1'
   # before the currency in all occurrences in language.yml
   prefix: '&f'
   suffix: '&b◆'
   # only needed if you are using a placeholder, but will be called either way.
   # {player} & {amount} or use a placeholder
-  remove-commands: [] # ['eco take {player} {amount}']
-  add-commands: [] # ['eco give {player} {amount}']
-  # if you are using multiple currencies, true will add only the first currency - false will split the different currencies and will account for weight if any is set
-  add-single-currency: true
+  remove-commands:
+    - 'eco take {player} {amount}' # This is EssentialsX's currency remove command paired with Vault
+    - 'tokens remove {player} {amount}' # This is NotTokens' remove command
+  add-commands:
+    - 'eco give {player} {amount}'
+    - 'tokens give {player} {amount}'
+  # if you are using multiple currencies
+  # descending - currency will be given in descending order of weights
+  # first - only the first currency in the object list will be given
+  # ratio - a ratio of the currencies with their weights will be given
+  add-single-currency: descending

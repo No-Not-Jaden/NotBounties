@@ -10,6 +10,7 @@ softdepend:
   - Vault
   - LiteBans
   - SkinsRestorer
+  - BetterTeams
 commands:
   notbounties:
     aliases:

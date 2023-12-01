@@ -21,6 +21,8 @@ custom-items:
     # [back] <x> goes to the last x amount of pages or last page if x is empty
     # [gui] (gui name) (page) (leaderboard/offline) opens a new gui - only gui name is required, ex: [gui] bounty-gui | [gui] leaderboard 1 kills | [gui] set-bounty 1 offline
     # [offline] toggles offline players to the set-bounty GUI and the set-whitelist GUI
+    # using [sound] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the player
+    # The volume and pitch are optional. Sound IDs can be found here: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
     # adding @{permission} at the beginning will check for a permission before executing the command. !@ will check if they don't have permission
     #   ex: '@notbounties.admin [next]' will only go to the next page if the player clicking the item has notbounties.admin
     #   '!@essentials.fly [p] top' will run the command /top as the player if the player doesn't have essentials.fly
@@ -188,6 +190,7 @@ bounty-gui:
       # use custom items here or preset items such as 'exit' 'next' 'back'
       item: fill
       # what slot or slots in the inventory will be filled - this image has the layout: https://wiki.vg/images/b/bb/DoubleChest-slots.png
+      # this can be a list too like player-slots
       slot: 45-53
     # clicking this item will exit the GUI
     2:

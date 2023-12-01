@@ -29,6 +29,10 @@ public class MySQL {
         useSSL = (plugin.getConfig().isSet("database.use-ssl") && plugin.getConfig().getBoolean("database.use-ssl"));
     }
 
+    public String getDatabase() {
+        return database;
+    }
+
     public void reconnect() throws SQLException {
         if (isConnected())
             connection.close();

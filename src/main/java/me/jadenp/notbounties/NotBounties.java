@@ -40,10 +40,14 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * leaderboards add correctly
- * leaderboards display the right number
- * bounty board uses hidden names
- * fixed wanted tags showing up below minimum
+ * big bounty is now parsed with placeholderAPI
+ * fixed a bug where the msql data table wouldn't update from an old version
+ * You can now use lists in the gui layout slots
+ * Fixed a bug where logged players would get deleted on database migration
+ * team checking - betterteams, scoreboard, placeholder
+ * multiple currency add commands fixed
+ * multiple currency descending add
+ * multiple currency custom model data
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -121,13 +125,6 @@ public final class NotBounties extends JavaPlugin {
                             }
                         }
                     }
-                    bountyList.clear();
-                    YamlConfiguration configuration = new YamlConfiguration();
-                    try {
-                        configuration.save(bounties);
-                    } catch (IOException e) {
-                        Bukkit.getLogger().warning(e.toString());
-                    }
                 }
                 Map<String, Double[]> stats = new HashMap<>();
                 for (Map.Entry<String, Double> entry : killBounties.entrySet()) {
@@ -170,12 +167,6 @@ public final class NotBounties extends JavaPlugin {
                     allClaimedBounties.clear();
                     allTimeBounties.clear();
                     immunitySpent.clear();
-                    YamlConfiguration configuration = new YamlConfiguration();
-                    try {
-                        configuration.save(bounties);
-                    } catch (IOException e) {
-                        Bukkit.getLogger().warning(e.toString());
-                    }
                 }
                 Bukkit.getLogger().info("Cleared up " + data.removeExtraData() + " unused rows in the database!");
             } else {
@@ -1100,6 +1091,8 @@ public final class NotBounties extends JavaPlugin {
                 displayParticle.add(onlineReceiver);
                 if (bBountyCommands != null && !bBountyCommands.isEmpty()) {
                     for (String command : bBountyCommands) {
+                        if (papiEnabled)
+                            command = new PlaceholderAPIClass().parse(receiver, command);
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replaceAll("\\{player}", Matcher.quoteReplacement(onlineReceiver.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(bounty.getTotalBounty() + "")));
                     }
                 }
@@ -1195,6 +1188,8 @@ public final class NotBounties extends JavaPlugin {
                 displayParticle.add(onlineReceiver);
                 if (bBountyCommands != null && !bBountyCommands.isEmpty()) {
                     for (String command : bBountyCommands) {
+                        if (papiEnabled)
+                            command = new PlaceholderAPIClass().parse(receiver, command);
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replaceAll("\\{player}", Matcher.quoteReplacement(onlineReceiver.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(bounty.getTotalBounty() + "")));
                     }
                 }
@@ -1377,7 +1372,8 @@ public final class NotBounties extends JavaPlugin {
         String hdb = HDBEnabled ? ChatColor.GREEN + "HeadDataBase" : ChatColor.RED + "HeadDataBase";
         String liteBans = liteBansEnabled ? ChatColor.GREEN + "LiteBans" : ChatColor.RED + "LiteBans";
         String skinsRestorer = skinsRestorerEnabled ? ChatColor.GREEN + "SkinsRestorer" : ChatColor.RED + "SkinsRestorer";
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY +"]");
+        String betterTeams = betterTeamsEnabled ? ChatColor.GREEN + "BetterTeams" : ChatColor.RED + "BetterTeams";
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY +"]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));

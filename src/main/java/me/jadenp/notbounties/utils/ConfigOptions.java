@@ -116,6 +116,11 @@ public class ConfigOptions {
     public static boolean skinsRestorerEnabled;
     public static SkinsRestorerClass skinsRestorerClass;
     public static int boardStaggeredUpdate;
+    public static boolean scoreboardTeamClaim;
+    public static boolean btClaim;
+    public static boolean btAllies;
+    public static boolean betterTeamsEnabled;
+    public static String teamsPlaceholder;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -124,6 +129,7 @@ public class ConfigOptions {
         papiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         liteBansEnabled = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
+        betterTeamsEnabled = Bukkit.getPluginManager().isPluginEnabled("BetterTeams");
         language = new File(bounties.getDataFolder() + File.separator + "language.yml");
 
         if (skinsRestorerEnabled)
@@ -143,7 +149,12 @@ public class ConfigOptions {
         if (!bounties.getConfig().isSet("currency.suffix"))
             bounties.getConfig().set("currency.suffix", "&b◆");
         if (!bounties.getConfig().isSet("currency.add-single-currency"))
-            bounties.getConfig().set("currency.add-single-currency", true);
+            bounties.getConfig().set("currency.add-single-currency", "descending");
+        else if (bounties.getConfig().isBoolean("currency.add-single-currency"))
+            if (bounties.getConfig().getBoolean("currency.add-single-currency"))
+                bounties.getConfig().set("currency.add-single-currency", "first");
+            else
+                bounties.getConfig().set("currency.add-single-currency", "ratio");
         if (!bounties.getConfig().isSet("minimum-bounty"))
             bounties.getConfig().set("minimum-bounty", 1);
         if (!bounties.getConfig().isSet("bounty-tax"))
@@ -373,13 +384,14 @@ public class ConfigOptions {
         }
         if (!bounties.getConfig().isSet("bounty-board.staggered-update"))
             bounties.getConfig().set("bounty-board.staggered-update", 3);
-
-
-
-
+        if (!bounties.getConfig().isConfigurationSection("teams")) {
+            bounties.getConfig().set("teams.scoreboard-claim", false);
+            bounties.getConfig().set("teams.placeholder", "");
+            bounties.getConfig().set("teams.bt-claim", false);
+            bounties.getConfig().set("teams.bt-allies", false);
+        }
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
-
 
         bountyExpire = bounties.getConfig().getInt("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
@@ -453,6 +465,10 @@ public class ConfigOptions {
         boardGlow = bounties.getConfig().getBoolean("bounty-board.glow");
         boardInvisible = bounties.getConfig().getBoolean("bounty-board.invisible");
         boardStaggeredUpdate = bounties.getConfig().getInt("bounty-board.staggered-update");
+        scoreboardTeamClaim = bounties.getConfig().getBoolean("teams.scoreboard-claim");
+        btClaim = bounties.getConfig().getBoolean("teams.bt-claim");
+        btAllies = bounties.getConfig().getBoolean("teams.bt-allies");
+        teamsPlaceholder = bounties.getConfig().getString("teams.placeholder");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {

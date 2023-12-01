@@ -1,10 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.map.BountyBoard;
-import me.jadenp.notbounties.utils.NumberFormatting;
-import me.jadenp.notbounties.utils.PlaceholderAPIClass;
-import me.jadenp.notbounties.utils.UpdateChecker;
-import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.*;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -31,6 +28,8 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -83,15 +82,38 @@ public class Events implements Listener {
     public void onEntityDeath(EntityDeathEvent event) {
         if (!(event.getEntity() instanceof Player))
             return;
+        if (event.getEntity().getKiller() == null)
+            return;
         // check world filter
         if (worldFilter && !worldFilterNames.contains(event.getEntity().getWorld().getName()))
             return;
         if (!worldFilter && worldFilterNames.contains(event.getEntity().getWorld().getName()))
             return;
         Player player = (Player) event.getEntity();
+        Player killer = event.getEntity().getKiller();
+        assert killer != null;
+        // check for teams
+        if (betterTeamsEnabled) {
+            BetterTeamsClass betterTeamsClass = new BetterTeamsClass();
+            if ((!btClaim && betterTeamsClass.onSameTeam(player, killer)) || (!btAllies && betterTeamsClass.areAllies(player, killer)))
+                return;
+        }
+        if (scoreboardTeamClaim) {
+            if (Bukkit.getScoreboardManager() != null) {
+                Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
+                for (Team team : sb.getTeams()) {
+                    if (team.hasEntry(player.getDisplayName()) && team.hasEntry(killer.getDisplayName()))
+                        return;
+                }
+            }
+        }
+        if (papiEnabled && !teamsPlaceholder.isEmpty()) {
+            PlaceholderAPIClass placeholderAPIClass = new PlaceholderAPIClass();
+            if (placeholderAPIClass.parse(player, teamsPlaceholder).equals(placeholderAPIClass.parse(killer, teamsPlaceholder)))
+                return;
+        }
         // check if we should increase the killer's bounty
-        if (murderBountyIncrease > 0 && event.getEntity().getKiller() != null) {
-            Player killer = event.getEntity().getKiller();
+        if (murderBountyIncrease > 0) {
             if (!killer.hasMetadata("NPC")) { // don't raise bounty on a npc
                 if (!playerKills.containsKey(killer.getUniqueId()) ||
                         !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
@@ -107,10 +129,9 @@ public class Events implements Listener {
                 }
             }
         }
-        if (!nb.hasBounty(player) || event.getEntity().getKiller() == null || player == event.getEntity().getKiller())
+        if (!nb.hasBounty(player) || player == event.getEntity().getKiller())
             return;
 
-        Player killer = event.getEntity().getKiller();
 
         // check if it is a npc
         if (!npcClaim && killer.hasMetadata("NPC"))
@@ -341,6 +362,99 @@ public class Events implements Listener {
                         Bukkit.dispatchCommand(player, command.substring(8));
                     } else if (command.startsWith("[killer]")) {
                         Bukkit.dispatchCommand(killer, command.substring(8));
+                    } else if (command.startsWith("[sound_player] ")) {
+                        command = command.substring(8);
+                        double volume = 1;
+                        double pitch = 1;
+                        String sound;
+                        if (command.contains(" ")) {
+                            sound = command.substring(0, command.indexOf(" "));
+                            command = command.substring(sound.length() + 1);
+                            try {
+                                if (command.contains(" ")) {
+                                    volume = NumberFormatting.tryParse(command.substring(0, command.indexOf(" ")));
+                                    command = command.substring(command.indexOf(" ") + 1);
+                                    pitch = NumberFormatting.tryParse(command);
+                                } else {
+                                    volume = NumberFormatting.tryParse(command);
+                                }
+                            } catch (NumberFormatException e) {
+                                Bukkit.getLogger().warning("[NotBounties] Unknown number for [sound_player] command in bounty-claim-commands : " + command);
+                                continue;
+                            }
+                        } else {
+                            sound = command;
+                        }
+                        Sound realSound;
+                        try {
+                            realSound = Sound.valueOf(sound.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            Bukkit.getLogger().warning("[NotBounties] Unknown sound for [sound_player] command in bounty-claim-commands : " + sound);
+                            continue;
+                        }
+                        player.playSound(player.getEyeLocation(), realSound, (float) volume, (float) pitch);
+                    } else if (command.startsWith("[sound_killer] ")) {
+                        command = command.substring(8);
+                        double volume = 1;
+                        double pitch = 1;
+                        String sound;
+                        if (command.contains(" ")) {
+                            sound = command.substring(0, command.indexOf(" "));
+                            command = command.substring(sound.length() + 1);
+                            try {
+                                if (command.contains(" ")) {
+                                    volume = NumberFormatting.tryParse(command.substring(0, command.indexOf(" ")));
+                                    command = command.substring(command.indexOf(" ") + 1);
+                                    pitch = NumberFormatting.tryParse(command);
+                                } else {
+                                    volume = NumberFormatting.tryParse(command);
+                                }
+                            } catch (NumberFormatException e) {
+                                Bukkit.getLogger().warning("[NotBounties] Unknown number for [sound_killer] command in bounty-claim-commands : " + command);
+                                continue;
+                            }
+                        } else {
+                            sound = command;
+                        }
+                        Sound realSound;
+                        try {
+                            realSound = Sound.valueOf(sound.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            Bukkit.getLogger().warning("[NotBounties] Unknown sound for [sound_killer] command in bounty-claim-commands : " + sound);
+                            continue;
+                        }
+                        killer.playSound(killer.getEyeLocation(), realSound, (float) volume, (float) pitch);
+                    } else if (command.startsWith("[sound] ")) {
+                        command = command.substring(8);
+                        double volume = 1;
+                        double pitch = 1;
+                        String sound;
+                        if (command.contains(" ")) {
+                            sound = command.substring(0, command.indexOf(" "));
+                            command = command.substring(sound.length() + 1);
+                            try {
+                                if (command.contains(" ")) {
+                                    volume = NumberFormatting.tryParse(command.substring(0, command.indexOf(" ")));
+                                    command = command.substring(command.indexOf(" ") + 1);
+                                    pitch = NumberFormatting.tryParse(command);
+                                } else {
+                                    volume = NumberFormatting.tryParse(command);
+                                }
+                            } catch (NumberFormatException e) {
+                                Bukkit.getLogger().warning("[NotBounties] Unknown number for [sound] command in bounty-claim-commands : " + command);
+                                continue;
+                            }
+                        } else {
+                            sound = command;
+                        }
+                        Sound realSound;
+                        try {
+                            realSound = Sound.valueOf(sound.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            Bukkit.getLogger().warning("[NotBounties] Unknown sound for [sound] command in bounty-claim-commands : " + sound);
+                            continue;
+                        }
+                        killer.getWorld().playSound(killer.getLocation(), realSound, (float) volume, (float) pitch);
                     } else {
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                     }
@@ -493,6 +607,7 @@ public class Events implements Listener {
             event.getPlayer().sendMessage(parse(speakings.get(0) + ChatColor.GREEN + "Removed " + removes + " bounty boards.", event.getPlayer()));
         }
     }
+
     @EventHandler
     public void onHold(PlayerItemHeldEvent event) {
         if (trackerRemove > 0) {
@@ -636,10 +751,9 @@ public class Events implements Listener {
                 event.getPlayer().sendMessage(parse(speakings.get(0) + speakings.get(43), event.getPlayer()));
                 if (bBountyCommands != null && !bBountyCommands.isEmpty()) {
                     for (String command : bBountyCommands) {
-                        while (command.contains("{player}")) {
-                            command = command.replace("{player}", event.getPlayer().getName());
-                        }
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                        if (papiEnabled)
+                            command = new PlaceholderAPIClass().parse(event.getPlayer(), command);
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replaceAll("\\{player}", Matcher.quoteReplacement(event.getPlayer().getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(bounty.getTotalBounty() + "")));
                     }
                 }
             }
@@ -714,6 +828,7 @@ public class Events implements Listener {
             nb.refundedBounties.remove(event.getPlayer().getUniqueId());
         }
     }
+
     @EventHandler
     public void onEntitiesLoad(EntitiesLoadEvent event) {
         if (wanted || !NotBounties.getInstance().getBountyBoards().isEmpty())

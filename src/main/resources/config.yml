@@ -1,5 +1,5 @@
 currency:
-  # Use the specified currency below over vault if vault is enabled
+  # Use the specified currency below over Vault if Vault is enabled
   override-vault: false
   # accepts a material or a placeholder
   # if the currency is a material, the plugin will automatically take away the necessary amounts
@@ -11,8 +11,28 @@ currency:
   # {player} & {amount} or use a placeholder
   remove-commands: [] # ['eco take {player} {amount}']
   add-commands: [] # ['eco give {player} {amount}']
-  # if you are using multiple currencies, true will add only the first currency - false will split the different currencies and will account for weight if any is set
-  add-single-currency: true
+  # if you are using multiple currencies
+  # descending - currency will be given in descending order of weights
+  # first - only the first currency in the object list will be given
+  # ratio - a ratio of the currencies with their weights will be given
+  add-single-currency: descending
+# formatting of large numbers
+number-formatting:
+  # Same as EssentialsX config
+  # For 1.234,50 use de-DE
+  # For 1,234.50 use en-US
+  # For 1'234,50 use fr-ch
+  format-locale: en-US
+  # pattern for currency to be displayed - symbols are only placeholders, if you want to change the symbols, change format-locale
+  pattern: '#,###.##'
+  use-divisions: true
+  # makes the number smaller and adds a suffix ex: 1000 = 1K | 1234 = 1.23K | 5467900 = 5.47M
+  divisions:
+    # the division and suffix
+    1000: K
+    1000000: M
+    1000000000: B
+    1000000000000: T
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
 # minimum amount of currency that will broadcast bounties
@@ -42,6 +62,17 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 12 hours
 remove-banned-players: true
+# allow players on the same team claim each-other's bounties
+teams:
+  # claim if on the same scoreboard team
+  scoreboard-claim: false
+  # players with the same placeholder result will not be able to claim each other's bounties (Must have PlaceholderAPI installed)
+  # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
+  placeholder: ''
+  # claim if on the same BetterTeams team (Must have BetterTeams installed)
+  bt-claim: false
+  # claim if allied with each other's BetterTeams team
+  bt-allies: false
 # auto-updating bounty poster board
 bounty-board:
   # 0 oldest bounties
@@ -80,6 +111,10 @@ wanted-tag:
   # starting with [player] will run the command for the person whose bounty was claimed
   # starting with [killer] will run the command for the person who claimed the bounty
   # starting with nothing will run the command as console
+  # using [sound_player] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the player
+  # using [sound_killer] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the killer
+  # using [sound] (SOUND_ID) <VOLUME> <PITCH> will play a sound for everyone near the death
+  # The volume and pitch are optional. Sound IDs can be found here: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
   # adding @(player/killer)permission or !@(player/killer)permission before everything with check for a permission of the player or killer to run the command
   # This will check if the killer has the permission and will message the person they killed
   # ex: @(killer)notbounties.view [killer] msg {player} It wasn''t personal.
@@ -155,23 +190,6 @@ bounty-whitelist:
   variable-whitelist: false
   # Allows players to change their whitelist into a blacklist
   enable-blacklist: true
-# formatting of large numbers
-number-formatting:
-  # Same as essentialsX config
-  # For 1.234,50 use de-DE
-  # For 1,234.50 use en-US
-  # For 1'234,50 use fr-ch
-  format-locale: en-US
-  # pattern for currency to be displayed - symbols are only placeholders, if you want to change the symbols, change format-locale
-  pattern: '#,###.##'
-  use-divisions: true
-  # makes the number smaller and adds a suffix ex: 1000 = 1K | 1234 = 1.23K | 5467900 = 5.47M
-  divisions:
-    # the division and suffix
-    1000: K
-    1000000: M
-    1000000000: B
-    1000000000000: T
 reward-heads:
   # give player heads to the setter of the bounty once claimed
   setters: true

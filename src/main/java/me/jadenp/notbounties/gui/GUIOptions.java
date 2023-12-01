@@ -50,7 +50,20 @@ public class GUIOptions {
         if (settings.isConfigurationSection("layout"))
             for (String key : Objects.requireNonNull(settings.getConfigurationSection("layout")).getKeys(false)) {
                 String item = settings.getString("layout." + key + ".item");
-                int[] slots = getRange(settings.getString("layout." + key + ".slot"));
+                int[] slots = new int[0];
+                if (settings.isList("layout." + key + ".slot")) {
+                    List<String> slotsList = settings.getStringList("layout." + key + ".slot");
+                    for (String slot : slotsList) {
+                        int[] newSlots = getRange(slot);
+                        int[] tempSlots = new int[slots.length + newSlots.length];
+                        System.arraycopy(slots, 0, tempSlots, 0, slots.length);
+                        System.arraycopy(newSlots, 0, tempSlots, slots.length, newSlots.length);
+                        slots = tempSlots;
+                    }
+                } else if (settings.isString("layout." + key + ".slot")) {
+                    slots = getRange(settings.getString("layout." + key + ".slot"));
+                }
+
                 //Bukkit.getLogger().info(item);
                 if (ConfigOptions.customItems.containsKey(item)) {
                     CustomItem customItem = ConfigOptions.customItems.get(item);

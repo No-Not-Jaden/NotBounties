@@ -6,10 +6,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -360,6 +357,37 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), info.getGuiType(), info.getPage());
                     else
                         openGUI((Player) event.getWhoClicked(), info.getGuiType(), info.getPage(), "offline");
+                } else if (command.startsWith("[sound] ")) {
+                    command = command.substring(8);
+                    double volume = 1;
+                    double pitch = 1;
+                    String sound;
+                    if (command.contains(" ")) {
+                        sound = command.substring(0, command.indexOf(" "));
+                        command = command.substring(sound.length() + 1);
+                        try {
+                            if (command.contains(" ")) {
+                                volume = NumberFormatting.tryParse(command.substring(0,command.indexOf(" ")));
+                                command = command.substring(command.indexOf(" ") + 1);
+                                pitch = NumberFormatting.tryParse(command);
+                            } else {
+                                volume = NumberFormatting.tryParse(command);
+                            }
+                        } catch (NumberFormatException e) {
+                            Bukkit.getLogger().warning("[NotBounties] Unknown number for [sound] command in gui " + gui.getType() + " : " + command);
+                            continue;
+                        }
+                    } else {
+                        sound = command;
+                    }
+                    Sound realSound;
+                    try {
+                        realSound = Sound.valueOf(sound.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        Bukkit.getLogger().warning("[NotBounties] Unknown sound for [sound] command in gui " + gui.getType() + " : " + sound);
+                        continue;
+                    }
+                    ((Player) event.getWhoClicked()).playSound(event.getWhoClicked().getEyeLocation(), realSound, (float) volume, (float) pitch);
                 } else {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                 }

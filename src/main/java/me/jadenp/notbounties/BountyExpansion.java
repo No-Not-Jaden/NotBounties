@@ -48,6 +48,8 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_(all/kills/claimed/deaths/set/immunity)%</p>
      * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity)%</p>
      * <p>%notbounties_wanted%</p>
+     * <p>%notbounties_notification%</p>
+     * <p>%notbounties_mode</p>
      * @Depricated <p>%notbounties_bounties_claimed%</p>
      * <p>%notbounties_bounties_set%</p>
      * <p>%notbounties_bounties_received%</p>
@@ -116,6 +118,22 @@ public class BountyExpansion extends PlaceholderExpansion {
             }
             return String.valueOf(notBounties.allClaimedBounties.get(player.getUniqueId().toString()));
         }
+
+        if (params.equalsIgnoreCase("notification")) {
+            if (NotBounties.getInstance().disableBroadcast.contains(player.getUniqueId().toString())) {
+                return "false";
+            }
+            return "true";
+        }
+
+        if (params.equalsIgnoreCase("mode")) {
+            if (!NotBounties.getInstance().playerWhitelist.containsKey(player.getUniqueId()))
+                return "Any";
+            if (NotBounties.getInstance().playerWhitelist.get(player.getUniqueId()).isBlacklist())
+                return "Blacklist";
+            return "Whitelist";
+        }
+
         int ending = 0;
         if (params.endsWith("_full")) {
             ending = 1;
