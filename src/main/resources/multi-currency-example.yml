@@ -1,4 +1,6 @@
 currency:
+  # Use the specified currency below over vault if vault is enabled
+  override-vault: true
   # accepts a material or a placeholder
   # if the currency is a material, the plugin will automatically take away the necessary amounts
   object:

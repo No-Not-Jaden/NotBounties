@@ -161,7 +161,7 @@ public class NumberFormatting {
         if (removeCommands.size() < placeholderCurrencies)
             Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + removeCommands.size() + " remove commands!");
 
-        addSingleCurrency = currencyOptions.getString("currency.add-single-currency");
+        addSingleCurrency = currencyOptions.getString("add-single-currency");
 
 
 
@@ -304,7 +304,7 @@ public class NumberFormatting {
             if (modifiedRemoveCommands.size() < balancedRemove.length) {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough remove commands for your currency! Currency will not be removed properly!");
             }
-            for (int i = 0; i < Math.min(balancedRemove.length, modifiedRemoveCommands.size()); i++) {
+            for (int i = 0; i < Math.min(balancedRemove.length-1, modifiedRemoveCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
                     String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", balancedRemove[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
@@ -313,8 +313,12 @@ public class NumberFormatting {
                     removedItems.put(Material.valueOf(currency.get(i)), (long) (balancedRemove[i]));
                 }
             }
+            // refund amount
+            if (balancedRemove[balancedRemove.length-1] > 0) {
+                doAddCommands(p, balancedRemove[balancedRemove.length-1]);
+            }
             // do the rest of the remove commands
-            for (int i = balancedRemove.length; i < modifiedRemoveCommands.size(); i++) {
+            for (int i = balancedRemove.length-1; i < modifiedRemoveCommands.size(); i++) {
                 String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
             }
@@ -339,7 +343,7 @@ public class NumberFormatting {
             totalWeight = currencyWeights.length;
         }
 
-        double[] balancedRemove = new double[currency.size()];
+        double[] balancedRemove = new double[currency.size() + 1];
         double totalAmount = amount;
         boolean balancedAttempt = false;
         while (amount > 0) {
@@ -421,6 +425,22 @@ public class NumberFormatting {
                 excessRounding -= (long) currentBalance[i];
                 excessRounding += currentBalance[i] % currencyValues[i];
                 currentBalance[i] = 0;
+            }
+        }
+        // remove an extra if there is still excess
+        if (excessRounding > 0.01) {
+            for (int i = 0; i < currency.size(); i++) {
+                if (currentBalance[i] == 0)
+                    continue;
+                balancedRemove[i]++;
+                double overDraw = currencyValues[i] - excessRounding;
+                excessRounding-= currencyValues[i];
+                if (overDraw == 0)
+                    break;
+                if (overDraw > 0) {
+                    balancedRemove[balancedRemove.length-1] += overDraw;
+                    break;
+                }
             }
         }
 

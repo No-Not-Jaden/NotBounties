@@ -40,14 +40,16 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * big bounty is now parsed with placeholderAPI
+ * big bounty is now parsed with placeholderAPI x
  * fixed a bug where the msql data table wouldn't update from an old version
- * You can now use lists in the gui layout slots
- * Fixed a bug where logged players would get deleted on database migration
- * team checking - betterteams, scoreboard, placeholder
+ * You can now use lists in the gui layout slots x
+ * new papi placeholders - whitelist x
+ * Fixed a bug where logged players would get deleted on database migration x
+ * team checking - betterteams, scoreboard, placeholder x
  * multiple currency add commands fixed
  * multiple currency descending add
  * multiple currency custom model data
+ * refund extra currency
  */
 
 public final class NotBounties extends JavaPlugin {

@@ -65,7 +65,8 @@ remove-banned-players: true
 # allow players on the same team claim each-other's bounties
 teams:
   # claim if on the same scoreboard team
-  scoreboard-claim: false
+  # some plugins use scoreboard teams, so disabling this may break claiming bounties
+  scoreboard-claim: true
   # players with the same placeholder result will not be able to claim each other's bounties (Must have PlaceholderAPI installed)
   # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
   placeholder: ''

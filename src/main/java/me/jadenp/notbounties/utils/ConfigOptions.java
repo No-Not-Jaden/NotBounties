@@ -385,8 +385,8 @@ public class ConfigOptions {
         }
         if (!bounties.getConfig().isSet("bounty-board.staggered-update"))
             bounties.getConfig().set("bounty-board.staggered-update", 3);
-        if (!bounties.getConfig().isConfigurationSection("teams")) {
-            bounties.getConfig().set("teams.scoreboard-claim", false);
+        if (!bounties.getConfig().isSet("teams")) {
+            bounties.getConfig().set("teams.scoreboard-claim", true);
             bounties.getConfig().set("teams.placeholder", "");
             bounties.getConfig().set("teams.bt-claim", false);
             bounties.getConfig().set("teams.bt-allies", false);

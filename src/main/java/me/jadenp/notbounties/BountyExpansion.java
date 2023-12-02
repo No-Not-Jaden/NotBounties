@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
@@ -49,7 +50,7 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity)%</p>
      * <p>%notbounties_wanted%</p>
      * <p>%notbounties_notification%</p>
-     * <p>%notbounties_mode</p>
+     * <p>%notbounties_mode%</p>
      * @Depricated <p>%notbounties_bounties_claimed%</p>
      * <p>%notbounties_bounties_set%</p>
      * <p>%notbounties_bounties_received%</p>
@@ -128,8 +129,9 @@ public class BountyExpansion extends PlaceholderExpansion {
 
         if (params.equalsIgnoreCase("mode")) {
             if (!NotBounties.getInstance().playerWhitelist.containsKey(player.getUniqueId()))
-                return "Any";
-            if (NotBounties.getInstance().playerWhitelist.get(player.getUniqueId()).isBlacklist())
+                return "Whitelist"; // Any
+            Whitelist whitelist = NotBounties.getInstance().playerWhitelist.get(player.getUniqueId());
+            if (whitelist.isBlacklist())
                 return "Blacklist";
             return "Whitelist";
         }

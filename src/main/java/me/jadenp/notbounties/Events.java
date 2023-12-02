@@ -97,7 +97,7 @@ public class Events implements Listener {
             if ((!btClaim && betterTeamsClass.onSameTeam(player, killer)) || (!btAllies && betterTeamsClass.areAllies(player, killer)))
                 return;
         }
-        if (scoreboardTeamClaim) {
+        if (!scoreboardTeamClaim) {
             if (Bukkit.getScoreboardManager() != null) {
                 Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
                 for (Team team : sb.getTeams()) {
@@ -130,7 +130,6 @@ public class Events implements Listener {
         }
         if (!nb.hasBounty(player) || player == event.getEntity().getKiller())
             return;
-
 
         // check if it is a npc
         if (!npcClaim && killer.hasMetadata("NPC"))
