@@ -98,7 +98,7 @@ public class BountyMap implements Listener {
     }
 
     @EventHandler
-    public void onMapInitialize(MapInitializeEvent event) throws IOException {
+    public void onMapInitialize(MapInitializeEvent event) {
         MapView mapView = event.getMap();
         if (mapIDs.containsKey(mapView.getId())) {
             if (!event.getMap().isVirtual()) {
@@ -136,7 +136,7 @@ public class BountyMap implements Listener {
         NumberFormatting.givePlayer(player, mapItem, 1);
     }
 
-    public static ItemStack getMap(Bounty bounty) throws IOException {
+    public static ItemStack getMap(Bounty bounty) {
         MapView mapView = getMapView(bounty.getUUID());
 
         ItemStack mapItem = new ItemStack(Material.FILLED_MAP);
@@ -156,7 +156,7 @@ public class BountyMap implements Listener {
     }
 
     @SuppressWarnings("deprecation")
-    public static MapView getMapView(UUID uuid) throws IOException {
+    public static MapView getMapView(UUID uuid) {
         MapView mapView;
         if (mapIDs.containsValue(uuid)){
             int id = mapIDs.inverse().get(uuid);
