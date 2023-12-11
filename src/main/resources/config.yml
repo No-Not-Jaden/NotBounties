@@ -89,6 +89,13 @@ bounty-board:
   glow: true
   # invisible item frame
   invisible: true
+  # name of the map, {player} and {amount} can be used - will be updated when the map does
+  item-name: '&6&lWANTED: &f{player}'
+  # when the name will be updated
+  # 0 = when the bounty rank changes
+  # 1 = when the bounty reward changes
+  # 2 = every update - I DO NOT recommend this unless in some rare conditions
+  update-name: 0
 # add a tag above a player's head if they have a bounty
 wanted-tag:
   enabled: true

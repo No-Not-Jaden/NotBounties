@@ -143,7 +143,7 @@ public class BountyMap implements Listener {
         MapMeta meta = (MapMeta) mapItem.getItemMeta();
         assert meta != null;
         meta.setMapView(mapView);
-        meta.setDisplayName(ConfigOptions.parse(ConfigOptions.speakings.get(66), bounty.getName(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+        meta.setDisplayName(ConfigOptions.parse(ConfigOptions.speakings.get(66), bounty.getName(), bounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
         ArrayList<String> lore = new ArrayList<>();
         for (String str : ConfigOptions.mapLore) {
             lore.add(ConfigOptions.parse(str, bounty.getName(), bounty.getTotalBounty(), bounty.getLatestSetter(), Bukkit.getOfflinePlayer(bounty.getUUID())));

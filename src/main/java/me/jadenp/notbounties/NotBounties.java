@@ -40,16 +40,9 @@ import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * big bounty is now parsed with placeholderAPI x
- * fixed a bug where the msql data table wouldn't update from an old version
- * You can now use lists in the gui layout slots x
- * new papi placeholders - whitelist x
- * Fixed a bug where logged players would get deleted on database migration x
- * team checking - betterteams, scoreboard, placeholder x
- * multiple currency add commands fixed
- * multiple currency descending add
- * multiple currency custom model data
- * refund extra currency
+ * Bounty board name & update
+ * map name will now be able to use {amount}
+ * fixed issues with 1.16 and up, wanted tags, bounty maps, custom heads
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -96,6 +89,7 @@ public final class NotBounties extends JavaPlugin {
     public static long lastBountyBoardUpdate = System.currentTimeMillis();
     public static String sessionKey = UUID.randomUUID().toString();
     public static NamespacedKey namespacedKey;
+    public static int serverVersion = 20;
 
 
     /**
@@ -196,7 +190,19 @@ public final class NotBounties extends JavaPlugin {
         BountyMap.initialize();
         namespacedKey = new NamespacedKey(this, "bounty-entity");
 
+        try {
+            // get the text version - ex: 1.20.3
+            String fullServerVersion = Bukkit.getBukkitVersion().substring(0, Bukkit.getBukkitVersion().indexOf("-"));
+            fullServerVersion = fullServerVersion.substring(2); // remove the '1.' in the version
+            if (fullServerVersion.contains("."))
+                fullServerVersion = fullServerVersion.substring(0,fullServerVersion.indexOf(".")); // remove the last digits if any - ex .3
+            serverVersion = Integer.parseInt(fullServerVersion);
+        } catch (NumberFormatException | IndexOutOfBoundsException e) {
+            Bukkit.getLogger().warning("[NotBounties] Could not get the server version. Some features may not function properly.");
+        }
 
+        if (serverVersion >= 17)
+            Bukkit.getServer().getPluginManager().registerEvents(new RemovePersistentEntitiesEvent(), this);
 
         try {
             loadConfig();
@@ -1113,8 +1119,8 @@ public final class NotBounties extends JavaPlugin {
             }
             // send messages
             onlineReceiver.sendMessage(parse(speakings.get(0) + speakings.get(42), setter.getName(), amount, bounty.getTotalBounty(), receiver));
-            String version = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
-            if (version.contains("16")) {
+
+            if (serverVersion <= 16) {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
             } else {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
@@ -1128,8 +1134,8 @@ public final class NotBounties extends JavaPlugin {
         }
         // send messages
         setter.sendMessage(parse(speakings.get(0) + speakings.get(2), receiver.getName(), amount, bounty.getTotalBounty(), receiver));
-        String version = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
-        if (version.contains("16")) {
+
+        if (serverVersion <= 16) {
             setter.playSound(setter.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
         } else {
             setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1, 1);
@@ -1210,8 +1216,8 @@ public final class NotBounties extends JavaPlugin {
             }
             // send messages
             onlineReceiver.sendMessage(parse(speakings.get(0) + speakings.get(42), consoleName, amount, bounty.getTotalBounty(), receiver));
-            String version = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
-            if (version.contains("16")) {
+
+            if (serverVersion <= 16) {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
             } else {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);

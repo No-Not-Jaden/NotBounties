@@ -33,8 +33,21 @@ public class AboveNameText {
             if (!text.equalsIgnoreCase(armorStand.getCustomName())) {
                 armorStand.setCustomName(text);
             }
-            if (player.canSee(armorStand))
+            if (NotBounties.serverVersion >= 17 && player.canSee(armorStand))
                 player.hideEntity(NotBounties.getInstance(), armorStand);
+            // a fix for 1.16, the random is to help with performance
+            if (NotBounties.serverVersion <= 16 && Math.random() <= 0.2) {
+                armorStand.setVisible(true);
+                armorStand.setVisible(false);
+                armorStand.setMarker(false);
+                armorStand.setMarker(true);
+                armorStand.setCustomName("This is a bug!");
+                armorStand.setCustomName(getWantedDisplayText(player));
+                armorStand.setCustomNameVisible(false);
+                armorStand.setCustomNameVisible(true);
+                armorStand.setCollidable(true);
+                armorStand.setCollidable(false);
+            }
             if (!armorStand.getLocation().getChunk().isLoaded()) {
                 armorStand.getLocation().getChunk().load();
                 teleport();
@@ -59,7 +72,7 @@ public class AboveNameText {
     }
     private void spawnWantedTag(){
         armorStand = (ArmorStand) player.getWorld().spawnEntity(player.getEyeLocation().add(0,wantedOffset,0), EntityType.ARMOR_STAND);
-        armorStand.setInvisible(true);
+        armorStand.setVisible(false);
         armorStand.setMarker(true);
         armorStand.setCustomName(getWantedDisplayText(player));
         armorStand.setCustomNameVisible(true);
@@ -69,7 +82,8 @@ public class AboveNameText {
         armorStand.setRemoveWhenFarAway(false);
         armorStand.setInvulnerable(true);
         armorStand.getPersistentDataContainer().set(NotBounties.namespacedKey, PersistentDataType.STRING, NotBounties.sessionKey);
-        player.hideEntity(NotBounties.getInstance(), armorStand);
+        if (NotBounties.serverVersion >= 17)
+            player.hideEntity(NotBounties.getInstance(), armorStand);
 
     }
 

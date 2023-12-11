@@ -1,8 +1,10 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.NotBounties;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
@@ -20,10 +22,14 @@ public class Head {
         ItemStack item = null;
         if (usingBase64(data)){
             item = new ItemStack(Material.PLAYER_HEAD);
-            SkullMeta meta = (SkullMeta) item.getItemMeta();
-            assert meta != null;
-            meta.setOwnerProfile(createProfile(data));
-            item.setItemMeta(meta);
+            if (NotBounties.serverVersion >= 18) {
+                SkullMeta meta = (SkullMeta) item.getItemMeta();
+                assert meta != null;
+                meta.setOwnerProfile(createProfile(data));
+                item.setItemMeta(meta);
+            } else {
+                return Bukkit.getUnsafe().modifyItemStack(item, "{display:{Name:\"{\\\"text\\\":\\\"Head\\\"}\"},SkullOwner:{Id:[" + "I;1201296705,1414024019,-1385893868,1321399054" + "],Properties:{textures:[{Value:\"" + data + "\"}]}}}");
+            }
         } else if (HDBEnabled){
             return (new HeadDataBaseClass().getHead(data));
         } else {
@@ -31,6 +37,8 @@ public class Head {
         }
         return item;
     }
+
+
 
     public static PlayerProfile createProfile(String base64){
         try {

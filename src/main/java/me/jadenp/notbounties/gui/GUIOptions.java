@@ -60,7 +60,7 @@ public class GUIOptions {
                         System.arraycopy(newSlots, 0, tempSlots, slots.length, newSlots.length);
                         slots = tempSlots;
                     }
-                } else if (settings.isString("layout." + key + ".slot")) {
+                } else {
                     slots = getRange(settings.getString("layout." + key + ".slot"));
                 }
 

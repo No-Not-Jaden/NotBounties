@@ -46,8 +46,8 @@ public class BountyExpansion extends PlaceholderExpansion {
      * Add "_formatted" to the end to add the currency prefix and suffix
      * Add "_full" to the end of leaderboard to add what the stat is about
      * <p>%notbounties_bounty%</p>
-     * <p>%notbounties_(all/kills/claimed/deaths/set/immunity)%</p>
-     * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity)%</p>
+     * <p>%notbounties_(all/kills/claimed/deaths/set/immunity/current)%</p>
+     * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity/current)%</p>
      * <p>%notbounties_wanted%</p>
      * <p>%notbounties_notification%</p>
      * <p>%notbounties_mode%</p>

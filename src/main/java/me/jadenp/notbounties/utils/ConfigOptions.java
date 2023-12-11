@@ -122,6 +122,8 @@ public class ConfigOptions {
     public static boolean betterTeamsEnabled;
     public static String teamsPlaceholder;
     public static List<String> rewardHeadLore;
+    public static String boardName;
+    public static int updateName;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -391,6 +393,10 @@ public class ConfigOptions {
             bounties.getConfig().set("teams.bt-claim", false);
             bounties.getConfig().set("teams.bt-allies", false);
         }
+        if (!bounties.getConfig().isSet("bounty-board.item-name"))
+            bounties.getConfig().set("bounty-board.item-name", "&6&lWANTED: &f{player}");
+        if (!bounties.getConfig().isSet("bounty-board.update-name"))
+            bounties.getConfig().set("bounty-board.update-name", 0);
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
 
@@ -471,6 +477,8 @@ public class ConfigOptions {
         btClaim = bounties.getConfig().getBoolean("teams.bt-claim");
         btAllies = bounties.getConfig().getBoolean("teams.bt-allies");
         teamsPlaceholder = bounties.getConfig().getString("teams.placeholder");
+        boardName = bounties.getConfig().getString("bounty-board.item-name");
+        updateName = bounties.getConfig().getInt("bounty-board.update-name");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {

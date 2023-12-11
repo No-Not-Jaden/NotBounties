@@ -10,6 +10,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
+import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -125,7 +126,11 @@ public class Renderer extends MapRenderer {
             for (int iy = 0; iy < image.getHeight(); iy++) {
                 Color color = getColor(image.getRGB(ix, iy));
                 if (color.getAlpha() > 10) {
-                    canvas.setPixelColor(x + ix, y + iy, color);
+                    if (NotBounties.serverVersion >= 19)
+                        canvas.setPixelColor(x + ix, y + iy, color);
+                    else
+                        canvas.setPixel(x + ix, y + iy, MapPalette.matchColor(color));
+
                 }
             }
         }

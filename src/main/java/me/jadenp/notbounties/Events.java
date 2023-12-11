@@ -17,6 +17,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -33,8 +34,7 @@ import org.bukkit.scoreboard.Team;
 import java.util.*;
 import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.NotBounties.namespacedKey;
-import static me.jadenp.notbounties.NotBounties.sessionKey;
+import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class Events implements Listener {
@@ -587,7 +587,7 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityInteract(PlayerInteractEntityEvent event) {
-        if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId()) && NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1 && (event.getRightClicked().getType() == EntityType.ITEM_FRAME || event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)) {
+        if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId()) && NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1 && (event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME))) {
             event.setCancelled(true);
             int removes = NotBounties.getInstance().removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
             NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
@@ -811,24 +811,27 @@ public class Events implements Listener {
         }
     }
 
+
+
     @EventHandler
-    public void onEntitiesLoad(EntitiesLoadEvent event) {
-        if (wanted || !NotBounties.getInstance().getBountyBoards().isEmpty())
-            for (Entity entity : event.getEntities()) {
-                if (entity == null)
-                    return;
-                if (entity.getType() != EntityType.ARMOR_STAND && entity.getType() != EntityType.GLOW_ITEM_FRAME && entity.getType() != EntityType.ITEM_FRAME)
-                    continue;
-                PersistentDataContainer container = entity.getPersistentDataContainer();
-                if (container.has(namespacedKey, PersistentDataType.STRING)) {
-                    String value = container.get(namespacedKey, PersistentDataType.STRING);
-                    if (value == null)
+    public void onChunkLoad(ChunkLoadEvent event) {
+        if (serverVersion <= 16)
+            if (wanted || !NotBounties.getInstance().getBountyBoards().isEmpty())
+                for (Entity entity : event.getChunk().getEntities()) {
+                    if (entity == null)
+                        return;
+                    if (entity.getType() != EntityType.ARMOR_STAND && entity.getType() != EntityType.ITEM_FRAME)
                         continue;
-                    if (!value.equals(sessionKey)) {
-                        entity.remove();
+                    PersistentDataContainer container = entity.getPersistentDataContainer();
+                    if (container.has(namespacedKey, PersistentDataType.STRING)) {
+                        String value = container.get(namespacedKey, PersistentDataType.STRING);
+                        if (value == null)
+                            continue;
+                        if (!value.equals(sessionKey)) {
+                            entity.remove();
+                        }
                     }
                 }
-            }
     }
 
 }
