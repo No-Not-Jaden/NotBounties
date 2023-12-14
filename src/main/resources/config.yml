@@ -134,7 +134,8 @@ murder-bounty:
   # How many seconds before you can kill the same person and increase your bounty
   player-cooldown: 360
   # how much the bounty increases per player kill. Consider raising minimum-broadcast if you change this if you don't want a message in chat
-  bounty-increase: 10
+  # set to 0 to disable
+  bounty-increase: 0
   # you will be excluded from the bounty increase if you are claiming another bounty
   exclude-claiming: true
 # set a random bounty every once in a while
