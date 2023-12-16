@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
@@ -600,7 +601,14 @@ public class NumberFormatting {
                     String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", balancedAdd[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
                 } else {
-                    givePlayer(p, new ItemStack(Material.valueOf(currency.get(i))), (long) balancedAdd[i]);
+                    ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
+                    if (customModelDatas.get(i) != -1) {
+                        ItemMeta meta = item.getItemMeta();
+                        assert meta != null;
+                        meta.setCustomModelData(customModelDatas.get(i));
+                        item.setItemMeta(meta);
+                    }
+                    givePlayer(p, item, (long) balancedAdd[i]);
                 }
             }
             // do the rest of the add commands
@@ -616,8 +624,16 @@ public class NumberFormatting {
                 String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", amount / Floats.toArray(currencyValues.values())[0])));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
             }
-            if (!currency.get(0).contains("%"))
-                givePlayer(p, new ItemStack(Material.valueOf(currency.get(0))), (long) (amount / Floats.toArray(currencyValues.values())[0]));
+            if (!currency.get(0).contains("%")) {
+                ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
+                if (customModelDatas.get(0) != -1) {
+                    ItemMeta meta = item.getItemMeta();
+                    assert meta != null;
+                    meta.setCustomModelData(customModelDatas.get(0));
+                    item.setItemMeta(meta);
+                }
+                givePlayer(p, item, (long) (amount / Floats.toArray(currencyValues.values())[0]));
+            }
         } else {
             // descending
             float[] currencyWeightsCopy = Floats.toArray(currencyWeights);
@@ -631,7 +647,14 @@ public class NumberFormatting {
                     String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", descendingAdd[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
                 } else {
-                    givePlayer(p, new ItemStack(Material.valueOf(currency.get(i))), (long) descendingAdd[i]);
+                    ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
+                    if (customModelDatas.get(i) != -1) {
+                        ItemMeta meta = item.getItemMeta();
+                        assert meta != null;
+                        meta.setCustomModelData(customModelDatas.get(i));
+                        item.setItemMeta(meta);
+                    }
+                    givePlayer(p, item, (long) descendingAdd[i]);
                 }
             }
             // do the rest of the add commands
@@ -733,7 +756,7 @@ public class NumberFormatting {
         return sortedBalance;
     }
 
-    public static double getBalance(Player player, String currencyName, int customModelData){
+    private static double getBalance(Player player, String currencyName, int customModelData){
         if (currencyName.contains("%")) {
             if (papiEnabled) {
                 // using placeholderAPI
@@ -772,7 +795,7 @@ public class NumberFormatting {
      * @param material Material to check for
      * @return amount of items in the players inventory that are a certain material
      */
-    public static int checkAmount(Player player, Material material, int customModelData) {
+    private static int checkAmount(Player player, Material material, int customModelData) {
         int amount = 0;
         ItemStack[] contents = player.getInventory().getContents();
         for (ItemStack content : contents) {
