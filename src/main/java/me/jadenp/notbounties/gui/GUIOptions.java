@@ -38,10 +38,10 @@ public class GUIOptions {
 
     public GUIOptions(ConfigurationSection settings) {
         type = settings.getName();
-        name = color(settings.getString("gui-name"));
+        name = settings.isSet("gui-name") ? color(settings.getString("gui-name")) : "Custom GUI";
         playerSlots = new ArrayList<>();
-        size = settings.getInt("size");
-        addPage = settings.getBoolean("add-page");
+        size = settings.isSet("size") ? settings.getInt("size") : 54;
+        addPage = settings.isSet("add-page") && settings.getBoolean("add-page");
         sortType = settings.isSet("sort-type") ? settings.getInt("sort-type") : 1;
         removePageItems = settings.getBoolean("remove-page-items");
         headName = settings.getString("head-name");
