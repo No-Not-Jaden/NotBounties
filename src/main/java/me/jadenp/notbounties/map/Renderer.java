@@ -66,7 +66,7 @@ public class Renderer extends MapRenderer {
                 Graphics2D graphics = image.createGraphics();
                 BufferedImage head = null;
                 if (ConfigOptions.skinsRestorerEnabled) {
-                    head = ConfigOptions.skinsRestorerClass.getPlayerHead(uuid, name);
+                    head = ConfigOptions.skinsRestorerClass.getPlayerFace(uuid, name);
                 }
                 if (head == null) {
                     try {

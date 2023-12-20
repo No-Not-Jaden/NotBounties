@@ -5,7 +5,9 @@ import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.Head;
 import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.SkinsRestorerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -180,7 +182,37 @@ public class GUIOptions {
             SkullMeta meta = (SkullMeta) skull.getItemMeta();
             assert meta != null;
             final OfflinePlayer p = playerItems[i];
-            meta.setOwningPlayer(p);
+            if ((NotBounties.serverVersion >= 18 && p.getPlayerProfile().getName() == null) || !Bukkit.getOnlineMode()) {
+                if (skinsRestorerEnabled) {
+                    if (p.isOnline()) {
+                        meta.setOwningPlayer(p);
+                        skull.setItemMeta(meta);
+                    } else {
+                        skull = new SkinsRestorerClass().getPlayerHead(p.getUniqueId(), NotBounties.getInstance().getPlayerName(p.getUniqueId()));
+                        if (skull == null) {
+                            if (NotBounties.serverVersion >= 18 && p.getPlayerProfile().getName() == null) {
+                                // question mark head
+                                skull = Head.createPlayerSkull("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDZiYTYzMzQ0ZjQ5ZGQxYzRmNTQ4OGU5MjZiZjNkOWUyYjI5OTE2YTZjNTBkNjEwYmI0MGE1MjczZGM4YzgyIn19fQ==");
+                            } else {
+                                meta.setOwningPlayer(p);
+                                skull = new ItemStack(Material.PLAYER_HEAD);
+                                skull.setItemMeta(meta);
+                            }
+                        }
+                    }
+                } else {
+                    if (NotBounties.serverVersion >= 18 && p.getPlayerProfile().getName() == null) {
+                        // question mark head
+                        skull = Head.createPlayerSkull("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDZiYTYzMzQ0ZjQ5ZGQxYzRmNTQ4OGU5MjZiZjNkOWUyYjI5OTE2YTZjNTBkNjEwYmI0MGE1MjczZGM4YzgyIn19fQ==");
+                    } else {
+                        meta.setOwningPlayer(p);
+                        skull.setItemMeta(meta);
+                    }
+                }
+                meta = (SkullMeta) skull.getItemMeta();
+            } else {
+                meta.setOwningPlayer(p);
+            }
             long time = System.currentTimeMillis();
             if (type.equals("bounty-gui")) {
                 amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
@@ -202,6 +234,7 @@ public class GUIOptions {
             List<String> lore = new ArrayList<>(headLore);
             double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
             try {
+                assert meta != null;
                 meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), time, p));
                 long finalTime = time;
                 lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), finalTime, p));
