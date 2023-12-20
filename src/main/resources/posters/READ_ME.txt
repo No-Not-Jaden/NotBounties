@@ -18,3 +18,9 @@ The text is black
 You can configure the posters more in the config.yml file.
 The posters file will be cleaned regularly if save-templates is disabled in the config
 
+*=* Backup Fonts *=*
+Some Servers deny access to the font configuration and so traditional font files cannot be used.
+In the "posters/backup fonts" folder lies trimmed down versions of the Times New Roman font.
+These files allow simple usage of text.
+If you are looking for more characters, different fonts, or a different size, contact the developer.
+

@@ -26,14 +26,14 @@ import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 
 public class BountyMap implements Listener {
 
     public static BufferedImage bountyPoster;
     public static BufferedImage deadBounty;
-    private static Font playerFont;
+    private static Font playerFont = null;
     public static File posterDirectory;
     public static final BiMap<Integer, UUID> mapIDs = HashBiMap.create();
     private static File mapData;
@@ -74,7 +74,7 @@ public class BountyMap implements Listener {
         }
     }
 
-    private static final List<String> posterFiles = Arrays.asList("bounty poster.png", "dead bounty.png", "mapdata.yml", "poster template.png", "READ_ME.txt", "playerfont.ttf");
+    private static final List<String> posterFiles = Arrays.asList("bounty poster.png", "dead bounty.png", "mapdata.yml", "poster template.png", "READ_ME.txt", "playerfont.ttf", "Name Line.json", "Reward Line.json");
     public static void cleanPosters() {
         int deletedFiles = 0;
         File[] files = posterDirectory.listFiles();
@@ -114,15 +114,16 @@ public class BountyMap implements Listener {
         if (new File(posterDirectory + File.separator + "playerfont.ttf").exists()) {
             try {
                 playerFont = Font.createFont(Font.TRUETYPE_FONT, new File(BountyMap.posterDirectory + File.separator + "playerfont.ttf"));
-            } catch (IOException | FontFormatException | NullPointerException e) {
-                Bukkit.getLogger().info("Using default font.");
-                //e.printStackTrace();
+            } catch (Throwable throwable) {
+                Bukkit.getLogger().warning("[NotBounties] Detected a custom font, but the java font configuration file is missing! If you have access to the machine hosting the server, try reinstalling java.\nReverting to default font.");
                 playerFont = new Font("Serif", Font.PLAIN, 20);
             }
         } else {
             playerFont = new Font("Serif", Font.PLAIN, 20);
         }
+
     }
+
     public static Font getPlayerFont(float fontSize, boolean bold) {
         if (bold)
             return playerFont.deriveFont(fontSize).deriveFont(Collections.singletonMap(TextAttribute.WEIGHT, TextAttribute.WEIGHT_ULTRABOLD));

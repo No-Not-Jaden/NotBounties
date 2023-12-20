@@ -21,6 +21,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,7 +61,8 @@ public class Renderer extends MapRenderer {
                         return;
                     }
                 }
-                image = BountyMap.deepCopy(BountyMap.bountyPoster);
+                if (image == null)
+                    image = BountyMap.deepCopy(BountyMap.bountyPoster);
                 Graphics2D graphics = image.createGraphics();
                 BufferedImage head = null;
                 if (ConfigOptions.skinsRestorerEnabled) {
@@ -76,22 +78,31 @@ public class Renderer extends MapRenderer {
                 graphics.drawImage(head, 32, 32, null);
 
                 // center of text is y112
+                // head display ends at y95
                 float fontSize = maxFont;
                 graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
-                FontMetrics metrics = graphics.getFontMetrics();
                 String displayName = ConfigOptions.nameLine.replaceAll("\\{name}", Matcher.quoteReplacement(name));
 
                 if (ConfigOptions.papiEnabled)
                     displayName = new PlaceholderAPIClass().parse(player, displayName);
                 displayName = ChatColor.translateAlternateColorCodes('&', displayName);
-                while (metrics.stringWidth(ChatColor.stripColor(displayName)) > 120 && fontSize > 1) {
-                    fontSize--;
-                    graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
-                    metrics = graphics.getFontMetrics();
+                int y = ConfigOptions.displayReward ? 112 : 120;
+                if (BackupFontManager.isUsingTraditionalFont()) {
+                    try {
+                        int x = 64 - setBiggestFontSize(graphics, displayName, true, fontSize) / 2;
+                        drawColors(displayName, graphics, x, y);
+                    } catch (Throwable throwable) {
+                        Bukkit.getLogger().warning("[NotBounties] Unable to access font configuration on this system. Reverting to backup font!");
+                        BackupFontManager.loadBackupFonts();
+                        int x = 64 - BackupFontManager.getNameLine().getWidth(displayName) / 2;
+                        BackupFontManager.getNameLine().drawText(image, x, y, displayName);
+                    }
+                } else {
+                    int x = 64 - BackupFontManager.getNameLine().getWidth(displayName) / 2;
+                    BackupFontManager.getNameLine().drawText(image, x, y, displayName);
                 }
-                int x = 64 - metrics.stringWidth(ChatColor.stripColor(displayName)) / 2; // center - width/2
-                int y = ConfigOptions.displayReward ? 112 : 112 + metrics.getHeight() / 2;
-                drawColors(displayName, graphics, x, y);
+
+                graphics.dispose();
 
                 if (ConfigOptions.saveTemplates) {
                     try {
@@ -161,18 +172,23 @@ public class Renderer extends MapRenderer {
                     if (ConfigOptions.papiEnabled)
                         rewardText = new PlaceholderAPIClass().parse(player, rewardText);
                     rewardText = ChatColor.translateAlternateColorCodes('&', rewardText);
-                    FontMetrics metrics = graphics.getFontMetrics();
-                    float fontSize = rewardFont;
-                    while (metrics.stringWidth(ChatColor.stripColor(rewardText)) > 120 && fontSize > 1) {
-                        fontSize--;
-                        graphics.setFont(BountyMap.getPlayerFont(fontSize, false));
-                        metrics = graphics.getFontMetrics();
-                    }
-                    int x = 64 - metrics.stringWidth(ChatColor.stripColor(rewardText)) / 2;
-                    int y = 12;
-                    drawColors(rewardText, graphics, x, y);
-                    drawTransparentImage(0, 114, reward, canvas);
 
+
+                    int y = 12;
+                    if (BackupFontManager.isUsingTraditionalFont()) {
+                        try {
+                            int x = 64 - setBiggestFontSize(graphics, rewardText, false, rewardFont) / 2;
+                            drawColors(rewardText, graphics, x, y);
+                        } catch (Throwable throwable) {
+                            Bukkit.getLogger().warning("[NotBounties] Unable to access font configuration on this system. Reverting to backup font!");
+                            BackupFontManager.loadBackupFonts();
+                        }
+                    } else {
+                        int x = 64 - BackupFontManager.getRewardLine().getWidth(rewardText) / 2;
+                        BackupFontManager.getRewardLine().drawText(reward, x, y, rewardText);
+                    }
+                    drawTransparentImage(0, 114, reward, canvas);
+                    graphics.dispose();
                 }
                 if (currentCost == 0) {
                     drawTransparentImage(28,28, BountyMap.deadBounty, canvas);
@@ -183,7 +199,24 @@ public class Renderer extends MapRenderer {
 
 
     }
-    private static final Map<Character, Color> colorTranslations = new HashMap<>();
+
+    /**
+     * Sets the size of the font in the graphics to be biggest it can between 1 and rewardFont
+     * @param graphics The graphics to display the font with
+     * @param text Text to be displayed
+     * @return The width of the text
+     */
+    private int setBiggestFontSize(Graphics2D graphics, String text, boolean bold, float fontSize) throws InvocationTargetException{
+        FontMetrics metrics = graphics.getFontMetrics();
+        while (metrics.stringWidth(ChatColor.stripColor(text)) > 120 && fontSize > 1) {
+            fontSize--;
+            Font font = BountyMap.getPlayerFont(fontSize, bold);
+            graphics.setFont(font);
+            metrics = graphics.getFontMetrics();
+        }
+        return metrics.stringWidth(ChatColor.stripColor(text));
+    }
+    public static final Map<Character, Color> colorTranslations = new HashMap<>();
     static {
         colorTranslations.put('0', Color.BLACK);
         colorTranslations.put('1', new Color(0,0,170));
@@ -203,7 +236,7 @@ public class Renderer extends MapRenderer {
         colorTranslations.put('f', Color.WHITE);
         colorTranslations.put('r', Color.BLACK);
     }
-    public static void drawColors(String text, Graphics2D graphics, int x, int y) {
+    public static void drawColors(String text, Graphics2D graphics, int x, int y) throws InvocationTargetException{
         Color currentColor = Color.BLACK;
         String currentText = "";
         FontMetrics metrics = graphics.getFontMetrics();
