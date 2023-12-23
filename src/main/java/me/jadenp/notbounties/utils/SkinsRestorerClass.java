@@ -40,7 +40,8 @@ public class SkinsRestorerClass {
         }
     }
 
-    public ItemStack getPlayerHead(UUID uuid, String name){
+    public ItemStack getPlayerHead(UUID uuid){
+        String name = NotBounties.getInstance().getPlayerName(uuid);
         String textureURL = getSkinTextureURL(uuid, name);
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         if (textureURL == null)

@@ -4,7 +4,6 @@ import me.jadenp.notbounties.NotBounties;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
@@ -15,6 +14,7 @@ import java.util.Base64;
 import java.util.UUID;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.HDBEnabled;
+import static me.jadenp.notbounties.utils.ConfigOptions.skinsRestorerEnabled;
 
 public class Head {
     public static ItemStack createPlayerSkull(String data){
@@ -38,6 +38,26 @@ public class Head {
         return item;
     }
 
+    public static ItemStack createPlayerSkull(UUID uuid) {
+        if (skinsRestorerEnabled) {
+            ItemStack head = new SkinsRestorerClass().getPlayerHead(uuid);
+            if (head != null)
+                return head;
+        }
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) head.getItemMeta();
+        assert meta != null;
+        try {
+            meta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
+        } catch (NullPointerException e) {
+            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getInstance().getPlayerName(uuid));
+            profile.setTextures(Bukkit.getOfflinePlayer(uuid).getPlayerProfile().getTextures());
+            meta.setOwnerProfile(profile);
+        }
+        head.setItemMeta(meta);
+        return head;
+    }
+
 
 
     public static PlayerProfile createProfile(String base64){
@@ -57,6 +77,7 @@ public class Head {
             return null;
         }
     }
+
     private static boolean usingBase64(String str){
         try {
             Integer.parseInt(str);
