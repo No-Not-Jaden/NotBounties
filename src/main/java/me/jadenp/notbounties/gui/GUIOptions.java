@@ -146,7 +146,7 @@ public class GUIOptions {
         String name = addPage ? this.name + " " + page : this.name;
         if (amount.length > 0) {
             double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
-            String playerName = playerItems[0].getName() != null ? playerItems[0].getName() : "<?>";
+            String playerName = NotBounties.getInstance().getPlayerName(playerItems[0].getUniqueId());
             name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", playerName);
             name = parse(name, player);
         }
@@ -198,7 +198,7 @@ public class GUIOptions {
             final String finalAmount = amount[i];
             final long rank = i + 1;
             String[] finalReplacements = replacements;
-            String playerName = p.getName() != null ? p.getName() : "<?>";
+            String playerName = NotBounties.getInstance().getPlayerName(p.getUniqueId());
             List<String> lore = new ArrayList<>(headLore);
             double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
             try {
