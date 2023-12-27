@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
@@ -16,10 +17,9 @@ import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class BountyExpansion extends PlaceholderExpansion {
 
-    private final NotBounties notBounties;
 
-    public BountyExpansion(NotBounties notBounties){
-        this.notBounties = notBounties;
+    public BountyExpansion(){
+
     }
 
     @Override
@@ -34,7 +34,7 @@ public class BountyExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return notBounties.getDescription().getVersion();
+        return NotBounties.getInstance().getDescription().getVersion();
     }
 
     @Override
@@ -63,13 +63,13 @@ public class BountyExpansion extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, String params){
         String uuid = player.getUniqueId().toString();
         if (params.equalsIgnoreCase("wanted")) {
-            Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId()) : notBounties.getBounty(player);
+            Bounty bounty = BountyManager.getBounty(player);
             if (bounty == null)
                 return "";
             return getWantedDisplayText(player);
         }
         if (params.startsWith("bounty")){
-            Bounty bounty = notBounties.SQL.isConnected() ? notBounties.data.getBounty(player.getUniqueId()) : notBounties.getBounty(player);
+            Bounty bounty = BountyManager.getBounty(player);
             if (bounty != null){
                 if (params.endsWith("_formatted"))
                     return color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty()) + NumberFormatting.currencySuffix);
@@ -79,58 +79,58 @@ public class BountyExpansion extends PlaceholderExpansion {
         }
 
         if (params.equalsIgnoreCase("bounties_claimed")){
-            if (notBounties.SQL.isConnected()){
-                return String.valueOf(notBounties.data.getClaimed(player.getUniqueId().toString()));
+            if (BountyManager.SQL.isConnected()){
+                return String.valueOf(BountyManager.data.getClaimed(player.getUniqueId().toString()));
             }
-            return String.valueOf(notBounties.killBounties.get(uuid));
+            return String.valueOf(BountyManager.killBounties.get(uuid));
         }
 
         if (params.equalsIgnoreCase("bounties_set")){
-            if (notBounties.SQL.isConnected()){
-                return String.valueOf(notBounties.data.getSet(player.getUniqueId().toString()));
+            if (BountyManager.SQL.isConnected()){
+                return String.valueOf(BountyManager.data.getSet(player.getUniqueId().toString()));
             }
-            return String.valueOf(notBounties.setBounties.get(uuid));
+            return String.valueOf(BountyManager.setBounties.get(uuid));
         }
 
         if (params.equalsIgnoreCase("bounties_received")){
-            if (notBounties.SQL.isConnected()){
-                return String.valueOf(notBounties.data.getReceived(player.getUniqueId().toString()));
+            if (BountyManager.SQL.isConnected()){
+                return String.valueOf(BountyManager.data.getReceived(player.getUniqueId().toString()));
             }
-            return String.valueOf(notBounties.deathBounties.get(uuid));
+            return String.valueOf(BountyManager.deathBounties.get(uuid));
         }
 
         if (params.equalsIgnoreCase("immunity_spent")){
-            if (notBounties.SQL.isConnected()){
-                return String.valueOf(notBounties.data.getImmunity(player.getUniqueId().toString()));
+            if (BountyManager.SQL.isConnected()){
+                return String.valueOf(BountyManager.data.getImmunity(player.getUniqueId().toString()));
             }
-            return String.valueOf(notBounties.immunitySpent.get(player.getUniqueId().toString()));
+            return String.valueOf(BountyManager.immunitySpent.get(player.getUniqueId().toString()));
         }
 
         if (params.equalsIgnoreCase("all_time_bounty")){
-            if (notBounties.SQL.isConnected()){
-                return String.valueOf(notBounties.data.getAllTime(player.getUniqueId().toString()));
+            if (BountyManager.SQL.isConnected()){
+                return String.valueOf(BountyManager.data.getAllTime(player.getUniqueId().toString()));
             }
-            return String.valueOf(notBounties.allTimeBounties.get(player.getUniqueId().toString()));
+            return String.valueOf(BountyManager.allTimeBounties.get(player.getUniqueId().toString()));
         }
 
         if (params.equalsIgnoreCase("currency_gained")){
-            if (notBounties.SQL.isConnected()){
-                return String.valueOf(notBounties.data.getTotalClaimed(player.getUniqueId().toString()));
+            if (BountyManager.SQL.isConnected()){
+                return String.valueOf(BountyManager.data.getTotalClaimed(player.getUniqueId().toString()));
             }
-            return String.valueOf(notBounties.allClaimedBounties.get(player.getUniqueId().toString()));
+            return String.valueOf(BountyManager.allClaimedBounties.get(player.getUniqueId().toString()));
         }
 
         if (params.equalsIgnoreCase("notification")) {
-            if (NotBounties.getInstance().disableBroadcast.contains(player.getUniqueId().toString())) {
+            if (NotBounties.disableBroadcast.contains(player.getUniqueId().toString())) {
                 return "false";
             }
             return "true";
         }
 
         if (params.equalsIgnoreCase("mode")) {
-            if (!NotBounties.getInstance().playerWhitelist.containsKey(player.getUniqueId()))
+            if (!NotBounties.playerWhitelist.containsKey(player.getUniqueId()))
                 return "Whitelist"; // Any
-            Whitelist whitelist = NotBounties.getInstance().playerWhitelist.get(player.getUniqueId());
+            Whitelist whitelist = NotBounties.playerWhitelist.get(player.getUniqueId());
             if (whitelist.isBlacklist())
                 return "Blacklist";
             return "Whitelist";
@@ -181,7 +181,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             Map.Entry<String, Double> entry = stat.entrySet().iterator().next();
             double amount = entry.getValue();
             UUID uuid1 = UUID.fromString(entry.getKey());
-            String name = NotBounties.getInstance().getPlayerName(uuid1);
+            String name = NotBounties.getPlayerName(uuid1);
             OfflinePlayer p = Bukkit.getOfflinePlayer(uuid1);
             if (ending == 1)
                 return parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(uuid1))), p);

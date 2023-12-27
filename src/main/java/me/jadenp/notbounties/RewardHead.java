@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.ConfigOptions.parse;
 
 public class RewardHead {
     private final String playerName;

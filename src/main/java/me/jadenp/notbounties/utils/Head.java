@@ -50,7 +50,7 @@ public class Head {
         try {
             meta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
         } catch (NullPointerException e) {
-            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getInstance().getPlayerName(uuid));
+            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getPlayerName(uuid));
             profile.setTextures(Bukkit.getOfflinePlayer(uuid).getPlayerProfile().getTextures());
             meta.setOwnerProfile(profile);
         }

@@ -3,6 +3,7 @@ package me.jadenp.notbounties.gui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -21,6 +22,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.BountyManager.*;
 
 public class GUI implements Listener {
 
@@ -46,10 +48,9 @@ public class GUI implements Listener {
 
 
         LinkedHashMap<String, String> values = new LinkedHashMap<>();
-        NotBounties nb = NotBounties.getInstance();
         switch (name){
             case "bounty-gui":
-                List<Bounty> sortedList = nb.SQL.isConnected() ? nb.data.getTopBounties(gui.getSortType()) : nb.sortBounties(gui.getSortType());
+                List<Bounty> sortedList = SQL.isConnected() ? BountyManager.data.getTopBounties(gui.getSortType()) : sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList) {
                     double bountyAmount = showWhitelistedBounties || player.hasPermission("notbounties.admin") ? bounty.getTotalBounty() : bounty.getTotalBounty(player);
                     if (bountyAmount > 0)
@@ -62,7 +63,7 @@ public class GUI implements Listener {
                 break;
             case "set-bounty":
                 values = Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
-                for (Map.Entry<String, String> entry : NotBounties.getInstance().loggedPlayers.entrySet())
+                for (Map.Entry<String, String> entry : NotBounties.loggedPlayers.entrySet())
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
                 if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
@@ -71,13 +72,13 @@ public class GUI implements Listener {
                 }
                 break;
             case "set-whitelist":
-                List<UUID> whitelist = NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList();
+                List<UUID> whitelist = NotBounties.getPlayerWhitelist(player.getUniqueId()).getList();
                 for (UUID uuid : whitelist)
                     values.put(uuid.toString(), NumberFormatting.currencyPrefix + Leaderboard.IMMUNITY.getStat(uuid) + NumberFormatting.currencySuffix);
                 for (Map.Entry<String, String> entry : Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet())
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getKey(), entry.getValue());
-                for (Map.Entry<String, String> entry : NotBounties.getInstance().loggedPlayers.entrySet())
+                for (Map.Entry<String, String> entry : NotBounties.loggedPlayers.entrySet())
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
                 if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
@@ -167,11 +168,11 @@ public class GUI implements Listener {
             assert meta != null;
             assert meta.getOwningPlayer() != null;
             OfflinePlayer player = meta.getOwningPlayer();
-            String playerName = NotBounties.getInstance().getPlayerName(player.getUniqueId());
+            String playerName = NotBounties.getPlayerName(player.getUniqueId());
             switch (guiType) {
                 case "bounty-gui":
                     // remove, edit, and buy back
-                    Bounty bounty = NotBounties.getInstance().getBounty(meta.getOwningPlayer());
+                    Bounty bounty = getBounty(meta.getOwningPlayer());
                     if (bounty != null) {
                         if (event.isRightClick()) {
                             if (event.getWhoClicked().hasPermission("notbounties.admin")) {
@@ -214,7 +215,7 @@ public class GUI implements Listener {
                     openGUI((Player) event.getWhoClicked(), "select-price", minBounty, player.getUniqueId().toString());
                     break;
                 case "set-whitelist":
-                    List<UUID> whitelist = NotBounties.getInstance().getPlayerWhitelist(event.getWhoClicked().getUniqueId()).getList();
+                    List<UUID> whitelist = NotBounties.getPlayerWhitelist(event.getWhoClicked().getUniqueId()).getList();
                     if (!whitelist.remove(player.getUniqueId())) {
                         if (whitelist.size() < 10)
                             whitelist.add(player.getUniqueId());

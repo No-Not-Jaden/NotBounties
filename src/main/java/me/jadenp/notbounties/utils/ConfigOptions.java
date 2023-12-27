@@ -497,18 +497,18 @@ public class ConfigOptions {
 
         // add immunity that isn't in time tracker - this should only do anything when immunity is switched to time immunity
         if (immunityType == 3) {
-            Map<String, Double> immunity = NotBounties.getInstance().SQL.isConnected() ? NotBounties.getInstance().data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : NotBounties.getInstance().immunitySpent;
+            Map<String, Double> immunity = BountyManager.SQL.isConnected() ? BountyManager.data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : BountyManager.immunitySpent;
             for (Map.Entry<String, Double> entry : immunity.entrySet()) {
-                if (!NotBounties.getInstance().immunityTimeTracker.containsKey(UUID.fromString(entry.getKey())))
-                    NotBounties.getInstance().immunityTimeTracker.put(UUID.fromString(entry.getKey()), (long) ((entry.getValue() * timeImmunity * 1000) + System.currentTimeMillis()));
+                if (!NotBounties.immunityTimeTracker.containsKey(UUID.fromString(entry.getKey())))
+                    NotBounties.immunityTimeTracker.put(UUID.fromString(entry.getKey()), (long) ((entry.getValue() * timeImmunity * 1000) + System.currentTimeMillis()));
             }
         }
 
         // stop next random bounty if it is changed
-        if (randomBountyMinTime == 0 && NotBounties.getInstance().nextRandomBounty != 0)
-            NotBounties.getInstance().nextRandomBounty = 0;
-        if (randomBountyMinTime != 0 && NotBounties.getInstance().nextRandomBounty == 0)
-            NotBounties.getInstance().setNextRandomBounty();
+        if (randomBountyMinTime == 0 && NotBounties.nextRandomBounty != 0)
+            NotBounties.nextRandomBounty = 0;
+        if (randomBountyMinTime != 0 && NotBounties.nextRandomBounty == 0)
+            NotBounties.setNextRandomBounty();
 
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
         if (!guiFile.exists()) {
@@ -1183,9 +1183,9 @@ public class ConfigOptions {
     }
 
     public static String getWantedDisplayText(OfflinePlayer player){
-        if (!NotBounties.getInstance().hasBounty(player))
+        if (!BountyManager.hasBounty(player))
             return "";
-        Bounty bounty = NotBounties.getInstance().getBounty(player);
+        Bounty bounty = BountyManager.getBounty(player);
         assert bounty != null;
         String levelReplace = "";
         for (Map.Entry<Integer, String> entry : wantedLevels.entrySet()) {

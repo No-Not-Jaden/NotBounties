@@ -131,7 +131,7 @@ public class BountyMap implements Listener {
     }
     public BountyMap(){}
 
-    public static void giveMap(Player player, Bounty bounty) throws IOException {
+    public static void giveMap(Player player, Bounty bounty) {
 
         ItemStack mapItem = getMap(bounty);
         NumberFormatting.givePlayer(player, mapItem, 1);

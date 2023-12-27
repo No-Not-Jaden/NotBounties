@@ -169,13 +169,13 @@ public class Bounty implements Comparable<Bounty>{
 
     public List<UUID> getAllWhitelists() {
         if (ConfigOptions.variableWhitelist) {
-            return setters.stream().map(setter -> NotBounties.getInstance().getPlayerWhitelist(setter.getUuid())).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
+            return setters.stream().map(setter -> NotBounties.getPlayerWhitelist(setter.getUuid())).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
         }
         return setters.stream().map(Setter::getWhitelist).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
     }
     public List<UUID> getAllBlacklists() {
         if (ConfigOptions.variableWhitelist) {
-            return setters.stream().map(setter -> NotBounties.getInstance().getPlayerWhitelist(setter.getUuid())).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
+            return setters.stream().map(setter -> NotBounties.getPlayerWhitelist(setter.getUuid())).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
         }
         return setters.stream().map(Setter::getWhitelist).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
     }

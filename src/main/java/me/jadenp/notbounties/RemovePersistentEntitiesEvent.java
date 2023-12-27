@@ -8,14 +8,13 @@ import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import static me.jadenp.notbounties.NotBounties.namespacedKey;
-import static me.jadenp.notbounties.NotBounties.sessionKey;
+import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.wanted;
 
 public class RemovePersistentEntitiesEvent implements Listener {
     @EventHandler
     public void onEntitiesLoad(EntitiesLoadEvent event) {
-        if (wanted || !NotBounties.getInstance().getBountyBoards().isEmpty())
+        if (wanted || !bountyBoards.isEmpty())
             for (Entity entity : event.getEntities()) {
                 if (entity == null)
                     return;

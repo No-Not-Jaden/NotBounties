@@ -12,7 +12,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -32,7 +31,7 @@ public class BountyBoard {
 
     }
 
-    public void update(Bounty bounty) throws IOException {
+    public void update(Bounty bounty) {
         if (!location.getChunk().isLoaded())
             return;
         if (bounty == null) {

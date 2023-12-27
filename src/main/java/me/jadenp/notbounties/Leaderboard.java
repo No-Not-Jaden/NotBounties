@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.BountyManager.*;
 
 public enum Leaderboard {
     //(all/kills/claimed/deaths/set/immunity)
@@ -38,48 +39,47 @@ public enum Leaderboard {
      * @return stat
      */
     public double getStat(UUID uuid){
-        NotBounties nb = NotBounties.getInstance();
         switch (this) {
             case ALL:
-                if (nb.SQL.isConnected())
-                    return nb.data.getAllTime(uuid.toString());
-                if (!nb.allTimeBounties.containsKey(uuid.toString()))
+                if (SQL.isConnected())
+                    return data.getAllTime(uuid.toString());
+                if (!allTimeBounties.containsKey(uuid.toString()))
                     return 0;
-                return nb.allTimeBounties.get(uuid.toString());
+                return allTimeBounties.get(uuid.toString());
             case KILLS:
-                if (nb.SQL.isConnected())
-                    return nb.data.getClaimed(uuid.toString());
-                if (!nb.killBounties.containsKey(uuid.toString()))
+                if (SQL.isConnected())
+                    return data.getClaimed(uuid.toString());
+                if (!killBounties.containsKey(uuid.toString()))
                     return 0;
-                return nb.killBounties.get(uuid.toString());
+                return killBounties.get(uuid.toString());
             case CLAIMED:
-                if (nb.SQL.isConnected())
-                    return nb.data.getTotalClaimed(uuid.toString());
-                if (!nb.allClaimedBounties.containsKey(uuid.toString()))
+                if (SQL.isConnected())
+                    return data.getTotalClaimed(uuid.toString());
+                if (!allClaimedBounties.containsKey(uuid.toString()))
                     return 0;
-                return nb.allClaimedBounties.get(uuid.toString());
+                return allClaimedBounties.get(uuid.toString());
             case DEATHS:
-                if (nb.SQL.isConnected())
-                    return nb.data.getReceived(uuid.toString());
-                if (!nb.deathBounties.containsKey(uuid.toString()))
+                if (SQL.isConnected())
+                    return data.getReceived(uuid.toString());
+                if (!deathBounties.containsKey(uuid.toString()))
                     return 0;
-                return nb.deathBounties.get(uuid.toString());
+                return deathBounties.get(uuid.toString());
             case SET:
-                if (nb.SQL.isConnected())
-                    return nb.data.getSet(uuid.toString());
-                if (!nb.setBounties.containsKey(uuid.toString()))
+                if (SQL.isConnected())
+                    return data.getSet(uuid.toString());
+                if (!setBounties.containsKey(uuid.toString()))
                     return 0;
-                return nb.setBounties.get(uuid.toString());
+                return setBounties.get(uuid.toString());
             case IMMUNITY:
-                if (nb.SQL.isConnected())
-                    return nb.data.getImmunity(uuid.toString());
-                if (!nb.immunitySpent.containsKey(uuid.toString()))
+                if (SQL.isConnected())
+                    return data.getImmunity(uuid.toString());
+                if (!immunitySpent.containsKey(uuid.toString()))
                     return 0;
-                return nb.immunitySpent.get(uuid.toString());
+                return immunitySpent.get(uuid.toString());
             case CURRENT:
-                if (nb.SQL.isConnected())
-                    return nb.data.getBounty(uuid).getTotalBounty();
-                Bounty bounty = nb.getBounty(Bukkit.getOfflinePlayer(uuid));
+                if (SQL.isConnected())
+                    return data.getBounty(uuid).getTotalBounty();
+                Bounty bounty = getBounty(Bukkit.getOfflinePlayer(uuid));
                 if (bounty == null)
                     return 0;
                 return bounty.getTotalBounty();
@@ -146,32 +146,31 @@ public enum Leaderboard {
      * @return Map of UUID and stat value in descending order
      */
     public LinkedHashMap<String, Double> getTop(int skip, int amount){
-        NotBounties nb = NotBounties.getInstance();
-        if (nb.SQL.isConnected())
-            return nb.data.getTopStats(this, hiddenNames, skip, amount);
+        if (SQL.isConnected())
+            return data.getTopStats(this, hiddenNames, skip, amount);
         LinkedHashMap<String, Double> map;
         switch (this){
             case ALL:
-                map = sortByValue(nb.allTimeBounties);
+                map = sortByValue(allTimeBounties);
                 break;
             case KILLS:
-                map = sortByValue(nb.killBounties);
+                map = sortByValue(killBounties);
                 break;
             case CLAIMED:
-                map = sortByValue(nb.allClaimedBounties);
+                map = sortByValue(allClaimedBounties);
                 break;
             case DEATHS:
-                map = sortByValue(nb.deathBounties);
+                map = sortByValue(deathBounties);
                 break;
             case SET:
-                map = sortByValue(nb.setBounties);
+                map = sortByValue(setBounties);
                 break;
             case IMMUNITY:
-                map = sortByValue(nb.immunitySpent);
+                map = sortByValue(immunitySpent);
                 break;
             case CURRENT:
                 map = new LinkedHashMap<>();
-                for (Bounty bounty : nb.bountyList)
+                for (Bounty bounty : bountyList)
                     map.put(bounty.getUUID().toString(), bounty.getTotalBounty());
                 map = sortByValue(map);
                 break;
@@ -195,7 +194,6 @@ public enum Leaderboard {
     }
 
     public void displayTopStat(CommandSender sender, int amount){
-        NotBounties nb = NotBounties.getInstance();
         if (sender instanceof Player)
             sender.sendMessage(parse(speakings.get(37), (Player) sender));
         else
@@ -207,8 +205,8 @@ public enum Leaderboard {
             OfflinePlayer p = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
             String name = p.getName();
             if (name == null){
-                if (nb.loggedPlayers.containsValue(entry.getKey())) {
-                    for (Map.Entry<String, String> logged : nb.loggedPlayers.entrySet()) {
+                if (NotBounties.loggedPlayers.containsValue(entry.getKey())) {
+                    for (Map.Entry<String, String> logged : NotBounties.loggedPlayers.entrySet()) {
                         if (logged.getValue().equals(entry.getKey())) {
                             name = logged.getKey();
                             break;

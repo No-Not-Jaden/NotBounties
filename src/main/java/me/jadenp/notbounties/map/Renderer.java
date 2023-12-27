@@ -2,6 +2,7 @@ package me.jadenp.notbounties.map;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import me.jadenp.notbounties.utils.PlaceholderAPIClass;
@@ -21,7 +22,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,12 +40,12 @@ public class Renderer extends MapRenderer {
     public Renderer(UUID uuid) {
         this.player = Bukkit.getOfflinePlayer(uuid);
         String name;
-        if (NotBounties.getInstance().hasBounty(player)) {
-            Bounty bounty = NotBounties.getInstance().getBounty(player);
+        if (BountyManager.hasBounty(player)) {
+            Bounty bounty = BountyManager.getBounty(player);
             assert bounty != null;
             name = bounty.getName();
         } else {
-            name = NotBounties.getInstance().getPlayerName(uuid);
+            name = NotBounties.getPlayerName(uuid);
         }
         new BukkitRunnable() {
             @Override
@@ -116,8 +116,8 @@ public class Renderer extends MapRenderer {
     }
 
     public double getBountyAmount() {
-        if (NotBounties.getInstance().hasBounty(player)) {
-            Bounty bounty = NotBounties.getInstance().getBounty(player);
+        if (BountyManager.hasBounty(player)) {
+            Bounty bounty = BountyManager.getBounty(player);
             assert bounty != null;
             return bounty.getTotalBounty();
         }
@@ -206,7 +206,7 @@ public class Renderer extends MapRenderer {
      * @param text Text to be displayed
      * @return The width of the text
      */
-    private int setBiggestFontSize(Graphics2D graphics, String text, boolean bold, float fontSize) throws InvocationTargetException{
+    private int setBiggestFontSize(Graphics2D graphics, String text, boolean bold, float fontSize) {
         FontMetrics metrics = graphics.getFontMetrics();
         while (metrics.stringWidth(ChatColor.stripColor(text)) > 120 && fontSize > 1) {
             fontSize--;
@@ -236,7 +236,7 @@ public class Renderer extends MapRenderer {
         colorTranslations.put('f', Color.WHITE);
         colorTranslations.put('r', Color.BLACK);
     }
-    public static void drawColors(String text, Graphics2D graphics, int x, int y) throws InvocationTargetException{
+    public static void drawColors(String text, Graphics2D graphics, int x, int y) {
         Color currentColor = Color.BLACK;
         String currentText = "";
         FontMetrics metrics = graphics.getFontMetrics();

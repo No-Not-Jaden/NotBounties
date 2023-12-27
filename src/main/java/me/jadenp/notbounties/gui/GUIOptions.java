@@ -19,6 +19,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import java.util.*;
 import java.util.regex.Matcher;
 
+import static me.jadenp.notbounties.utils.BountyManager.getBounty;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.NumberFormatting.*;
 
@@ -145,8 +146,8 @@ public class GUIOptions {
         }
         String name = addPage ? this.name + " " + page : this.name;
         if (amount.length > 0) {
-            double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
-            String playerName = NotBounties.getInstance().getPlayerName(playerItems[0].getUniqueId());
+            double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
+            String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
             name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", playerName);
             name = parse(name, player);
         }
@@ -184,7 +185,7 @@ public class GUIOptions {
             long time = System.currentTimeMillis();
             if (type.equals("bounty-gui")) {
                 amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
-                time = Objects.requireNonNull(NotBounties.getInstance().getBounty(p)).getLatestSetter();
+                time = Objects.requireNonNull(getBounty(p)).getLatestSetter();
             } else {
                 Leaderboard leaderboard = null;
                 try {
@@ -198,9 +199,9 @@ public class GUIOptions {
             final String finalAmount = amount[i];
             final long rank = i + 1;
             String[] finalReplacements = replacements;
-            String playerName = NotBounties.getInstance().getPlayerName(p.getUniqueId());
+            String playerName = NotBounties.getPlayerName(p.getUniqueId());
             List<String> lore = new ArrayList<>(headLore);
-            double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
+            double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
             try {
                 meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), time, p));
                 long finalTime = time;
@@ -220,7 +221,7 @@ public class GUIOptions {
                     }
                 }
                 // whitelist
-                Bounty bounty = NotBounties.getInstance().getBounty(p);
+                Bounty bounty = getBounty(p);
                 assert bounty != null;
                 if (bounty.getAllWhitelists().contains(player.getUniqueId())) {
                     whitelistNotify.stream().map(str -> parse(str, player)).forEach(lore::add);
@@ -237,10 +238,10 @@ public class GUIOptions {
                 }
             }
             if (type.equalsIgnoreCase("set-whitelist"))
-                if (NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).getList().contains(p.getUniqueId())) {
+                if (NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().contains(p.getUniqueId())) {
                     skull.addUnsafeEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                    if (NotBounties.getInstance().getPlayerWhitelist(player.getUniqueId()).isBlacklist())
+                    if (NotBounties.getPlayerWhitelist(player.getUniqueId()).isBlacklist())
                         blacklistLore.stream().map(str -> parse(str, player)).forEach(lore::add);
                     else
                         whitelistLore.stream().map(str -> parse(str, player)).forEach(lore::add);

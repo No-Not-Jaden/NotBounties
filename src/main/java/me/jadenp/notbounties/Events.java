@@ -18,7 +18,6 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
 import org.bukkit.event.world.ChunkLoadEvent;
-import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
@@ -35,30 +34,29 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.NotBounties.*;
+import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class Events implements Listener {
-    private final NotBounties nb;
 
     private static Map<UUID, Map<UUID, Long>> playerKills = new HashMap<>();
 
-    public Events(NotBounties nb) {
-        this.nb = nb;
+    public Events() {
     }
 
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        if (nb.immunePerms.contains(event.getPlayer().getUniqueId().toString())) {
+        if (immunePerms.contains(event.getPlayer().getUniqueId().toString())) {
             if (!event.getPlayer().hasPermission("notbounties.immune")) {
-                nb.immunePerms.remove(event.getPlayer().getUniqueId().toString());
+                immunePerms.remove(event.getPlayer().getUniqueId().toString());
             }
         } else {
             if (event.getPlayer().hasPermission("notbounties.immune")) {
-                nb.immunePerms.add(event.getPlayer().getUniqueId().toString());
+                immunePerms.add(event.getPlayer().getUniqueId().toString());
             }
         }
-        nb.displayParticle.remove(event.getPlayer());
+        displayParticle.remove(event.getPlayer());
         if (NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
             NotBounties.wantedText.get(event.getPlayer().getUniqueId()).removeStand();
             NotBounties.wantedText.remove(event.getPlayer().getUniqueId());
@@ -117,10 +115,10 @@ public class Events implements Listener {
                 if (!playerKills.containsKey(killer.getUniqueId()) ||
                         !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
                         playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) {
-                    if (!murderExcludeClaiming || !nb.hasBounty(player) || Objects.requireNonNull(nb.getBounty(player)).getTotalBounty(killer) < 0.01) {
+                    if (!murderExcludeClaiming || !hasBounty(player) || Objects.requireNonNull(getBounty(player)).getTotalBounty(killer) < 0.01) {
                         // increase
-                        NotBounties.getInstance().addBounty(killer, murderBountyIncrease, new Whitelist(new ArrayList<>(), false));
-                        killer.sendMessage(parse(speakings.get(0) + speakings.get(59), player.getName(), Objects.requireNonNull(nb.getBounty(killer)).getTotalBounty(), killer));
+                        addBounty(killer, murderBountyIncrease, new Whitelist(new ArrayList<>(), false));
+                        killer.sendMessage(parse(speakings.get(0) + speakings.get(59), player.getName(), Objects.requireNonNull(getBounty(killer)).getTotalBounty(), killer));
                         Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
                         kills.put(player.getUniqueId(), System.currentTimeMillis());
                         playerKills.put(killer.getUniqueId(), kills);
@@ -128,13 +126,13 @@ public class Events implements Listener {
                 }
             }
         }
-        if (!nb.hasBounty(player) || player == event.getEntity().getKiller())
+        if (!hasBounty(player) || player == event.getEntity().getKiller())
             return;
 
         // check if it is a npc
         if (!npcClaim && killer.hasMetadata("NPC"))
             return;
-        Bounty bounty = nb.getBounty(player);
+        Bounty bounty = getBounty(player);
         assert bounty != null;
         // check if killer can claim it
         if (bounty.getTotalBounty(killer) < 0.01)
@@ -142,13 +140,13 @@ public class Events implements Listener {
         List<Setter> claimedBounties = new ArrayList<>(bounty.getSetters());
         claimedBounties.removeIf(setter -> !setter.canClaim(killer));
 
-        nb.displayParticle.remove(player);
+        displayParticle.remove(player);
 
         // broadcast message
         String message = parse(speakings.get(0) + speakings.get(7), player.getName(), killer.getName(), bounty.getTotalBounty(killer), player);
         Bukkit.getConsoleSender().sendMessage(message);
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if ((!nb.disableBroadcast.contains(p.getUniqueId().toString()) && bounty.getTotalBounty(killer) >= minBroadcast) || p.getUniqueId().equals(event.getEntity().getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId())) {
+            if ((!disableBroadcast.contains(p.getUniqueId().toString()) && bounty.getTotalBounty(killer) >= minBroadcast) || p.getUniqueId().equals(event.getEntity().getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(event.getEntity().getKiller()).getUniqueId())) {
                 p.sendMessage(message);
             }
         }
@@ -165,13 +163,13 @@ public class Events implements Listener {
                             NumberFormatting.givePlayer(p, rewardHead.getItem(), 1);
                         }
                     } else {
-                        if (nb.headRewards.containsKey(setter.getUuid())) {
-                            // I think this could be replaced with nb.headRewards.get(setter.getUuid()).add(rewardHead)
-                            List<RewardHead> heads = new ArrayList<>(nb.headRewards.get(setter.getUuid()));
+                        if (headRewards.containsKey(setter.getUuid())) {
+                            // I think this could be replaced with headRewards.get(setter.getUuid()).add(rewardHead)
+                            List<RewardHead> heads = new ArrayList<>(headRewards.get(setter.getUuid()));
                             heads.add(rewardHead);
-                            nb.headRewards.replace(setter.getUuid(), heads);
+                            headRewards.replace(setter.getUuid(), heads);
                         } else {
-                            nb.headRewards.put(setter.getUuid(), Collections.singletonList(rewardHead));
+                            headRewards.put(setter.getUuid(), Collections.singletonList(rewardHead));
                         }
                     }
                 }
@@ -234,17 +232,17 @@ public class Events implements Listener {
             item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
             NumberFormatting.givePlayer(event.getEntity().getKiller(), item, 1);
         }
-        if (nb.SQL.isConnected()) {
-            nb.data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(killer), 0, 0);
-            nb.data.addData(killer.getUniqueId().toString(), 1, 0, 0, 0, 0, bounty.getTotalBounty(killer));
+        if (SQL.isConnected()) {
+            data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(killer), 0, 0);
+            data.addData(killer.getUniqueId().toString(), 1, 0, 0, 0, 0, bounty.getTotalBounty(killer));
         } else {
-            nb.allTimeBounties.put(player.getUniqueId().toString(), Leaderboard.ALL.getStat(player.getUniqueId()) + bounty.getTotalBounty(killer));
-            nb.killBounties.put(killer.getUniqueId().toString(), Leaderboard.KILLS.getStat(killer.getUniqueId()) + 1);
-            nb.deathBounties.put(player.getUniqueId().toString(), Leaderboard.DEATHS.getStat(player.getUniqueId()) + 1);
-            nb.allClaimedBounties.put(killer.getUniqueId().toString(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty(killer));
+            allTimeBounties.put(player.getUniqueId().toString(), Leaderboard.ALL.getStat(player.getUniqueId()) + bounty.getTotalBounty(killer));
+            killBounties.put(killer.getUniqueId().toString(), Leaderboard.KILLS.getStat(killer.getUniqueId()) + 1);
+            deathBounties.put(player.getUniqueId().toString(), Leaderboard.DEATHS.getStat(player.getUniqueId()) + 1);
+            allClaimedBounties.put(killer.getUniqueId().toString(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty(killer));
         }
         bounty.claimBounty(killer);
-        nb.updateBounty(bounty);
+        updateBounty(bounty);
 
         if (bounty.getTotalBounty() < minWanted) {
             // remove bounty tag
@@ -253,10 +251,10 @@ public class Events implements Listener {
 
         for (Setter setter : claimedBounties) {
             if (!setter.getUuid().equals(new UUID(0, 0))) {
-                if (nb.SQL.isConnected()) {
-                    nb.data.addData(setter.getUuid().toString(), 0, 1, 0, 0, 0, 0);
+                if (SQL.isConnected()) {
+                    data.addData(setter.getUuid().toString(), 0, 1, 0, 0, 0, 0);
                 } else {
-                    nb.setBounties.put(setter.getUuid().toString(), Leaderboard.SET.getStat(setter.getUuid()) + 1);
+                    setBounties.put(setter.getUuid().toString(), Leaderboard.SET.getStat(setter.getUuid()) + 1);
                 }
                 Player p = Bukkit.getPlayer(setter.getUuid());
                 if (p != null) {
@@ -264,7 +262,7 @@ public class Events implements Listener {
                 }
             }
         }
-        nb.gracePeriod.put(event.getEntity().getUniqueId().toString(), System.currentTimeMillis());
+        gracePeriod.put(event.getEntity().getUniqueId().toString(), System.currentTimeMillis());
 
         if (trackerRemove > 0)
             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -283,8 +281,8 @@ public class Events implements Listener {
                                         } catch (NumberFormatException ignored) {
                                             return;
                                         }
-                                        if (nb.trackedBounties.containsKey(number)) {
-                                            if (!nb.hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(nb.trackedBounties.get(number))))) {
+                                        if (trackedBounties.containsKey(number)) {
+                                            if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
                                                 contents[x] = null;
                                                 change = true;
                                             }
@@ -471,12 +469,12 @@ public class Events implements Listener {
                                             } catch (NumberFormatException ignored) {
                                                 return;
                                             }
-                                            if (nb.trackedBounties.containsKey(number)) {
-                                                if (nb.hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(nb.trackedBounties.get(number))))) {
+                                            if (trackedBounties.containsKey(number)) {
+                                                if (hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
                                                     CompassMeta compassMeta = (CompassMeta) item.getItemMeta();
 
                                                     String actionBar;
-                                                    Bounty bounty = nb.getBounty(Bukkit.getOfflinePlayer(UUID.fromString(nb.trackedBounties.get(number))));
+                                                    Bounty bounty = getBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))));
                                                     assert bounty != null;
                                                     Player p = Bukkit.getPlayer(bounty.getUUID());
                                                     if (p != null) {
@@ -578,7 +576,7 @@ public class Events implements Listener {
                     return;
                 }
                 Location location = Objects.requireNonNull(event.getClickedBlock()).getRelative(event.getBlockFace()).getLocation();
-                NotBounties.getInstance().addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
+                addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
                 event.getPlayer().sendMessage(parse(speakings.get(0) + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
                 NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
             }
@@ -589,7 +587,7 @@ public class Events implements Listener {
     public void onEntityInteract(PlayerInteractEntityEvent event) {
         if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId()) && NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1 && (event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME))) {
             event.setCancelled(true);
-            int removes = NotBounties.getInstance().removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
+            int removes = removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
             NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
             event.getPlayer().sendMessage(parse(speakings.get(0) + ChatColor.GREEN + "Removed " + removes + " bounty boards.", event.getPlayer()));
         }
@@ -612,8 +610,8 @@ public class Events implements Listener {
                                     } catch (NumberFormatException ignored) {
                                         return;
                                     }
-                                    if (nb.trackedBounties.containsKey(number)) {
-                                        if (!nb.hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(nb.trackedBounties.get(number))))) {
+                                    if (trackedBounties.containsKey(number)) {
+                                        if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
                                             event.getPlayer().getInventory().setItem(event.getNewSlot(), null);
                                         }
                                     }
@@ -647,8 +645,8 @@ public class Events implements Listener {
                                                 } catch (NumberFormatException ignored) {
                                                     return;
                                                 }
-                                                if (nb.trackedBounties.containsKey(number)) {
-                                                    if (!nb.hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(nb.trackedBounties.get(number))))) {
+                                                if (trackedBounties.containsKey(number)) {
+                                                    if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
                                                         contents[x] = null;
                                                         change = true;
                                                     }
@@ -679,8 +677,8 @@ public class Events implements Listener {
                                                 } catch (NumberFormatException ignored) {
                                                     return;
                                                 }
-                                                if (nb.trackedBounties.containsKey(number)) {
-                                                    if (!nb.hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(nb.trackedBounties.get(number))))) {
+                                                if (trackedBounties.containsKey(number)) {
+                                                    if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
                                                         contents[x] = null;
                                                         change = true;
                                                     }
@@ -701,27 +699,27 @@ public class Events implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         // check if they are logged yet
-        if (!nb.loggedPlayers.containsValue(event.getPlayer().getUniqueId().toString())) {
+        if (!loggedPlayers.containsValue(event.getPlayer().getUniqueId().toString())) {
             // if not, add them
-            nb.loggedPlayers.put(event.getPlayer().getName().toLowerCase(Locale.ROOT), event.getPlayer().getUniqueId().toString());
+            loggedPlayers.put(event.getPlayer().getName().toLowerCase(Locale.ROOT), event.getPlayer().getUniqueId().toString());
         } else {
             // if they are, check if their username has changed, and update it
-            if (!nb.loggedPlayers.containsKey(event.getPlayer().getName().toLowerCase(Locale.ROOT))) {
+            if (!loggedPlayers.containsKey(event.getPlayer().getName().toLowerCase(Locale.ROOT))) {
                 String nameToRemove = "";
-                for (Map.Entry<String, String> entry : nb.loggedPlayers.entrySet()) {
+                for (Map.Entry<String, String> entry : loggedPlayers.entrySet()) {
                     if (entry.getValue().equals(event.getPlayer().getUniqueId().toString())) {
                         nameToRemove = entry.getKey();
                     }
                 }
                 if (!Objects.equals(nameToRemove, "")) {
-                    nb.loggedPlayers.remove(nameToRemove);
+                    loggedPlayers.remove(nameToRemove);
                 }
-                nb.loggedPlayers.put(event.getPlayer().getName().toLowerCase(Locale.ROOT), event.getPlayer().getUniqueId().toString());
+                loggedPlayers.put(event.getPlayer().getName().toLowerCase(Locale.ROOT), event.getPlayer().getUniqueId().toString());
             }
         }
 
-        if (nb.hasBounty(event.getPlayer())) {
-            Bounty bounty = nb.getBounty(event.getPlayer());
+        if (hasBounty(event.getPlayer())) {
+            Bounty bounty = getBounty(event.getPlayer());
             assert bounty != null;
             bounty.setDisplayName(event.getPlayer().getName());
             double addedAmount = 0;
@@ -733,7 +731,7 @@ public class Events implements Listener {
                 }
             }
             bounty.combineSetters();
-            nb.updateBounty(bounty);
+            updateBounty(bounty);
             if (bounty.getTotalBounty() - addedAmount < bBountyThreshold && bounty.getTotalBounty() > bBountyThreshold) {
                 event.getPlayer().sendMessage(parse(speakings.get(0) + speakings.get(43), event.getPlayer()));
                 if (bBountyCommands != null && !bBountyCommands.isEmpty()) {
@@ -745,7 +743,7 @@ public class Events implements Listener {
                 }
             }
             if (bounty.getTotalBounty() > bBountyThreshold) {
-                nb.displayParticle.add(event.getPlayer());
+                displayParticle.add(event.getPlayer());
             }
             if (wanted && bounty.getTotalBounty() >= minWanted) {
                 if (!NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
@@ -754,17 +752,17 @@ public class Events implements Listener {
             }
         }
 
-        if (nb.headRewards.containsKey(event.getPlayer().getUniqueId())) {
-            for (RewardHead rewardHead : nb.headRewards.get(event.getPlayer().getUniqueId())) {
+        if (headRewards.containsKey(event.getPlayer().getUniqueId())) {
+            for (RewardHead rewardHead : headRewards.get(event.getPlayer().getUniqueId())) {
                 NumberFormatting.givePlayer(event.getPlayer(), rewardHead.getItem(), 1);
             }
-            nb.headRewards.remove(event.getPlayer().getUniqueId());
+            headRewards.remove(event.getPlayer().getUniqueId());
         }
         // if they have expire-time enabled
         if (bountyExpire > 0) {
             boolean change = false;
             // go through all the bounties and remove setters if it has been more than expire time
-            ListIterator<Bounty> bountyIterator = nb.expiredBounties.listIterator();
+            ListIterator<Bounty> bountyIterator = expiredBounties.listIterator();
             while (bountyIterator.hasNext()) {
                 Bounty bounty = bountyIterator.next();
                 ListIterator<Setter> setterIterator = bounty.getSetters().listIterator();
@@ -793,21 +791,21 @@ public class Events implements Listener {
         // check for updates
         if (updateNotification && !NotBounties.latestVersion) {
             if (event.getPlayer().hasPermission("notbounties.admin")) {
-                new UpdateChecker(nb, 104484).getVersion(version -> {
-                    if (nb.getDescription().getVersion().contains("dev"))
+                new UpdateChecker(NotBounties.getInstance(), 104484).getVersion(version -> {
+                    if (NotBounties.getInstance().getDescription().getVersion().contains("dev"))
                         return;
-                    if (nb.getDescription().getVersion().equals(version))
+                    if (NotBounties.getInstance().getDescription().getVersion().equals(version))
                         return;
-                    event.getPlayer().sendMessage(parse(speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + nb.getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
+                    event.getPlayer().sendMessage(parse(speakings.get(0), event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + NotBounties.getInstance().getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
                     event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
                 });
             }
         }
 
         // check if they had a bounty refunded
-        if (nb.refundedBounties.containsKey(event.getPlayer().getUniqueId())) {
-            NumberFormatting.doAddCommands(event.getPlayer(), nb.refundedBounties.get(event.getPlayer().getUniqueId()));
-            nb.refundedBounties.remove(event.getPlayer().getUniqueId());
+        if (refundedBounties.containsKey(event.getPlayer().getUniqueId())) {
+            NumberFormatting.doAddCommands(event.getPlayer(), refundedBounties.get(event.getPlayer().getUniqueId()));
+            refundedBounties.remove(event.getPlayer().getUniqueId());
         }
     }
 
@@ -816,7 +814,7 @@ public class Events implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         if (serverVersion <= 16)
-            if (wanted || !NotBounties.getInstance().getBountyBoards().isEmpty())
+            if (wanted || !bountyBoards.isEmpty())
                 for (Entity entity : event.getChunk().getEntities()) {
                     if (entity == null)
                         return;
