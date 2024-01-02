@@ -1,7 +1,7 @@
-package me.jadenp.notbounties.API;
+package me.jadenp.notbounties.api;
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.API.BountyEvents.BountySetEvent;
+import me.jadenp.notbounties.api.bountyEvents.BountySetEvent;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
 import me.jadenp.notbounties.map.BountyBoard;

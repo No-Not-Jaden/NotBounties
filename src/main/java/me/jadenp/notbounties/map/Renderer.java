@@ -2,7 +2,7 @@ package me.jadenp.notbounties.map;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.API.BountyManager;
+import me.jadenp.notbounties.api.BountyManager;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import me.jadenp.notbounties.utils.PlaceholderAPIClass;

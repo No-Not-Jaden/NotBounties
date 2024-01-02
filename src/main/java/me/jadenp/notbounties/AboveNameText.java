@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.api.BountyManager;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -14,13 +15,13 @@ public class AboveNameText {
     private ArmorStand armorStand = null;
     public AboveNameText(Player player) {
         this.player = player;
-        if (!NotBounties.getInstance().hasBounty(player))
+        if (!BountyManager.hasBounty(player))
             return;
         spawnWantedTag();
     }
 
     public void updateArmorStand(){
-        if (player != null && player.isOnline() && NotBounties.getInstance().hasBounty(player)) {
+        if (player != null && player.isOnline() && BountyManager.hasBounty(player)) {
             if (hideWantedWhenSneaking && player.isSneaking()) {
                 if (armorStand != null)
                     removeStand();

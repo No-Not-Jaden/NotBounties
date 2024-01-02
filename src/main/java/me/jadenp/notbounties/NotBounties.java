@@ -1,6 +1,6 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.API.BountyManager;
+import me.jadenp.notbounties.api.BountyManager;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.map.BountyBoard;
 import me.jadenp.notbounties.map.BountyMap;
@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static me.jadenp.notbounties.API.BountyManager.*;
+import static me.jadenp.notbounties.api.BountyManager.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 

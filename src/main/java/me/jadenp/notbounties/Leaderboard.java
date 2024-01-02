@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.API.BountyManager.*;
+import static me.jadenp.notbounties.api.BountyManager.*;
 
 public enum Leaderboard {
     //(all/kills/claimed/deaths/set/immunity)

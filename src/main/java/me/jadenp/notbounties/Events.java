@@ -1,6 +1,6 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.API.BountyEvents.BountyClaimEvent;
+import me.jadenp.notbounties.api.bountyEvents.BountyClaimEvent;
 import me.jadenp.notbounties.map.BountyBoard;
 import me.jadenp.notbounties.utils.*;
 import net.md_5.bungee.api.ChatMessageType;
@@ -35,7 +35,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.NotBounties.*;
-import static me.jadenp.notbounties.API.BountyManager.*;
+import static me.jadenp.notbounties.api.BountyManager.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class Events implements Listener {
