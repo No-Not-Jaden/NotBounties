@@ -19,7 +19,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import java.util.*;
 import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.utils.BountyManager.getBounty;
+import static me.jadenp.notbounties.API.BountyManager.getBounty;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.NumberFormatting.*;
 

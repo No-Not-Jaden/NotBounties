@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.API.BountyEvents.BountyClaimEvent;
 import me.jadenp.notbounties.map.BountyBoard;
 import me.jadenp.notbounties.utils.*;
 import net.md_5.bungee.api.ChatMessageType;
@@ -34,7 +35,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.NotBounties.*;
-import static me.jadenp.notbounties.utils.BountyManager.*;
+import static me.jadenp.notbounties.API.BountyManager.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class Events implements Listener {
@@ -137,6 +138,11 @@ public class Events implements Listener {
         // check if killer can claim it
         if (bounty.getTotalBounty(killer) < 0.01)
             return;
+        BountyClaimEvent event1 = new BountyClaimEvent(event.getEntity().getKiller(), bounty);
+        Bukkit.getPluginManager().callEvent(event1);
+        if (event1.isCancelled())
+            return;
+
         List<Setter> claimedBounties = new ArrayList<>(bounty.getSetters());
         claimedBounties.removeIf(setter -> !setter.canClaim(killer));
 

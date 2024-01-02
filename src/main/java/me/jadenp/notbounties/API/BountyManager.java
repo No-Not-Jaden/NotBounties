@@ -1,11 +1,15 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.API;
 
 import me.jadenp.notbounties.*;
+import me.jadenp.notbounties.API.BountyEvents.BountySetEvent;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
 import me.jadenp.notbounties.map.BountyBoard;
 import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
+import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.Whitelist;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -23,8 +27,8 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
@@ -365,6 +369,12 @@ public class BountyManager {
 
     public static void addBounty(Player setter, OfflinePlayer receiver, double amount, Whitelist whitelist) {
         // add to all time bounties
+        BountySetEvent event = new BountySetEvent(new Bounty(setter, receiver, amount, whitelist));
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {
+            refundBounty(new Bounty(setter, receiver, amount + amount * bountyTax, whitelist));
+            return;
+        }
 
         Bounty bounty = null;
         if (SQL.isConnected()) {
@@ -459,10 +469,17 @@ public class BountyManager {
             }
         }
 
+
     }
 
     public static void addBounty(OfflinePlayer receiver, double amount, Whitelist whitelist) {
         // add to all time bounties
+        BountySetEvent event = new BountySetEvent(new Bounty(receiver, amount, whitelist));
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {
+            refundBounty(new Bounty(receiver, amount + amount * bountyTax, whitelist));
+            return;
+        }
 
         Bounty bounty = null;
         if (SQL.isConnected()) {

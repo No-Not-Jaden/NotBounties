@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.API.BountyManager;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
 import me.jadenp.notbounties.map.BountyBoard;
@@ -30,7 +31,7 @@ import java.util.regex.Matcher;
 import static me.jadenp.notbounties.gui.GUI.openGUI;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.NumberFormatting.*;
-import static me.jadenp.notbounties.utils.BountyManager.*;
+import static me.jadenp.notbounties.API.BountyManager.*;
 import static me.jadenp.notbounties.NotBounties.*;
 
 public class Commands implements CommandExecutor, TabCompleter {

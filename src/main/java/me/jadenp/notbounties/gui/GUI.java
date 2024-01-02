@@ -3,7 +3,7 @@ package me.jadenp.notbounties.gui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.API.BountyManager;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.BountyManager.*;
+import static me.jadenp.notbounties.API.BountyManager.*;
 
 public class GUI implements Listener {
 

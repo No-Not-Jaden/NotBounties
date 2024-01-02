@@ -1,7 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.API.BountyManager;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
