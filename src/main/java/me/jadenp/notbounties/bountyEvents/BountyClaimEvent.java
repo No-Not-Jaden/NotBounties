@@ -12,6 +12,7 @@ public class BountyClaimEvent extends Event implements Cancellable {
     private final Player killer;
     private final Bounty bounty;
     private boolean canceled = false;
+    private static final HandlerList HANDLERS_LIST = new HandlerList();
 
     public BountyClaimEvent(Player killer, Bounty bounty) {
 
@@ -25,6 +26,9 @@ public class BountyClaimEvent extends Event implements Cancellable {
 
     public Player getKiller() {
         return killer;
+    }
+    public static HandlerList getHandlerList() {
+        return HANDLERS_LIST;
     }
 
     @Override
@@ -40,6 +44,6 @@ public class BountyClaimEvent extends Event implements Cancellable {
     @NotNull
     @Override
     public HandlerList getHandlers() {
-        return new HandlerList();
+        return HANDLERS_LIST;
     }
 }
