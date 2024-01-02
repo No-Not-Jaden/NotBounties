@@ -1,15 +1,12 @@
-package me.jadenp.notbounties.api;
+package me.jadenp.notbounties.utils;
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.api.bountyEvents.BountySetEvent;
+import me.jadenp.notbounties.bountyEvents.BountySetEvent;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
 import me.jadenp.notbounties.map.BountyBoard;
 import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
-import me.jadenp.notbounties.utils.NumberFormatting;
-import me.jadenp.notbounties.utils.PlaceholderAPIClass;
-import me.jadenp.notbounties.utils.Whitelist;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;

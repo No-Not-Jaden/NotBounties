@@ -1,6 +1,6 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.api.BountyManager;
+import me.jadenp.notbounties.utils.BountyManager;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;

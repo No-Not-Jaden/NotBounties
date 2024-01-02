@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.sql;
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.api.BountyManager;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
@@ -12,8 +12,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import static me.jadenp.notbounties.api.BountyManager.SQL;
-import static me.jadenp.notbounties.api.BountyManager.tryToConnect;
+import static me.jadenp.notbounties.utils.BountyManager.SQL;
+import static me.jadenp.notbounties.utils.BountyManager.tryToConnect;
 
 public class SQLGetter {
 

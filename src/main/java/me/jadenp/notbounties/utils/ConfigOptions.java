@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.utils;
 
 
-import me.jadenp.notbounties.api.BountyManager;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;

@@ -1,21 +1,18 @@
-package me.jadenp.notbounties.api.bountyEvents;
+package me.jadenp.notbounties.bountyEvents;
 
 
 import me.jadenp.notbounties.Bounty;
-import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
-public class BountyClaimEvent extends Event implements Cancellable {
-    private final Player killer;
+public class BountySetEvent extends Event implements Cancellable {
+
     private final Bounty bounty;
     private boolean canceled = false;
 
-    public BountyClaimEvent(Player killer, Bounty bounty) {
-
-        this.killer = killer;
+    public BountySetEvent(Bounty bounty) {
         this.bounty = bounty;
     }
 
@@ -23,8 +20,10 @@ public class BountyClaimEvent extends Event implements Cancellable {
         return bounty;
     }
 
-    public Player getKiller() {
-        return killer;
+    @NotNull
+    @Override
+    public HandlerList getHandlers() {
+        return new HandlerList();
     }
 
     @Override
@@ -35,11 +34,5 @@ public class BountyClaimEvent extends Event implements Cancellable {
     @Override
     public void setCancelled(boolean b) {
         canceled = b;
-    }
-
-    @NotNull
-    @Override
-    public HandlerList getHandlers() {
-        return new HandlerList();
     }
 }
