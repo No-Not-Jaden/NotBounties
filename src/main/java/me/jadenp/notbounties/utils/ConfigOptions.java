@@ -17,6 +17,7 @@ import org.bukkit.event.inventory.InventoryType;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -147,49 +148,24 @@ public class ConfigOptions {
             bounties.getConfig().set("currency.prefix", "");
             bounties.getConfig().set("currency.suffix", "");
         }
-        if (!bounties.getConfig().isSet("currency.prefix"))
-            bounties.getConfig().set("currency.prefix", "&f");
-        if (!bounties.getConfig().isSet("currency.suffix"))
-            bounties.getConfig().set("currency.suffix", "&b◆");
-        if (!bounties.getConfig().isSet("currency.add-single-currency"))
-            bounties.getConfig().set("currency.add-single-currency", "descending");
-        else if (bounties.getConfig().isBoolean("currency.add-single-currency"))
+
+        if (bounties.getConfig().isBoolean("currency.add-single-currency"))
             if (bounties.getConfig().getBoolean("currency.add-single-currency"))
                 bounties.getConfig().set("currency.add-single-currency", "first");
             else
                 bounties.getConfig().set("currency.add-single-currency", "ratio");
-        if (!bounties.getConfig().isSet("minimum-bounty"))
-            bounties.getConfig().set("minimum-bounty", 1);
-        if (!bounties.getConfig().isSet("bounty-tax"))
-            bounties.getConfig().set("bounty-tax", 0.0);
+
         if (bounties.getConfig().isSet("add-currency-commands")) {
             bounties.getConfig().set("currency.add-commands", bounties.getConfig().getStringList("add-currency-commands"));
             bounties.getConfig().set("currency.remove-commands", bounties.getConfig().getStringList("remove-currency-commands"));
             bounties.getConfig().set("add-currency-commands", null);
             bounties.getConfig().set("remove-currency-commands", null);
         }
-        if (!bounties.getConfig().isSet("currency.add-commands"))
-            bounties.getConfig().set("currency.add-commands", new ArrayList<>());
-        if (!bounties.getConfig().isSet("currency.remove-commands"))
-            bounties.getConfig().set("currency.remove-commands", new ArrayList<>());
-        if (!bounties.getConfig().isSet("currency.override-vault"))
-            bounties.getConfig().set("currency.override-vault", true);
-        if (!bounties.getConfig().isSet("bounty-expire")) bounties.getConfig().set("bounty-expire", -1);
         if (bounties.getConfig().isBoolean("reward-heads")) {
             boolean prevOption = bounties.getConfig().getBoolean("reward-heads");
             bounties.getConfig().set("reward-heads", null);
             bounties.getConfig().set("reward-heads.setters", prevOption);
         }
-        if (!bounties.getConfig().isSet("reward-heads.setters"))
-            bounties.getConfig().set("reward-heads.setters", false);
-        if (!bounties.getConfig().isSet("reward-heads.claimed"))
-            bounties.getConfig().set("reward-heads.claimed", false);
-        if (!bounties.getConfig().isSet("buy-own-bounties.enabled"))
-            bounties.getConfig().set("buy-own-bounties.enabled", false);
-        if (!bounties.getConfig().isSet("buy-own-bounties.cost-multiply"))
-            bounties.getConfig().set("buy-own-bounties.cost-multiply", 1.25);
-        if (!bounties.getConfig().isSet("buy-own-bounties.lore-addition"))
-            bounties.getConfig().set("buy-own-bounties.lore-addition", Collections.singletonList("&9Left Click &7to buy back for &a{amount}"));
         if (bounties.getConfig().isSet("immunity.buy-immunity")) {
             if (bounties.getConfig().getBoolean("immunity.buy-immunity")) bounties.getConfig().set("immunity.type", 0);
             else if (bounties.getConfig().getBoolean("immunity.permanent-immunity.enabled")) bounties.getConfig().set("immunity.type", 1);
@@ -197,88 +173,11 @@ public class ConfigOptions {
             bounties.getConfig().set("immunity.buy-immunity", null);
             bounties.getConfig().set("immunity.permanent-immunity.enabled", null);
         }
-        if (!bounties.getConfig().isSet("immunity.type"))
-            bounties.getConfig().set("immunity.type", 2);
-        if (!bounties.getConfig().isSet("immunity.permanent-immunity.cost"))
-            bounties.getConfig().set("immunity.permanent-immunity.cost", 128);
-        if (!bounties.getConfig().isSet("immunity.scaling-immunity.ratio"))
-            bounties.getConfig().set("immunity.scaling-immunity.ratio", 1.0);
-        if (!bounties.getConfig().isSet("immunity.time-immunity.seconds"))
-            bounties.getConfig().set("immunity.time-immunity.seconds", 3600);
-        if (!bounties.getConfig().isSet("immunity.grace-period"))
-            bounties.getConfig().set("immunity.grace-period", 10);
-        if (!bounties.getConfig().isSet("bounty-tracker.enabled"))
-            bounties.getConfig().set("bounty-tracker.enabled", true);
-        if (!bounties.getConfig().isSet("bounty-tracker.give-own"))
-            bounties.getConfig().set("bounty-tracker.give-own", false);
-        if (!bounties.getConfig().isSet("bounty-tracker.remove"))
-            bounties.getConfig().set("bounty-tracker.remove", 2);
-        if (!bounties.getConfig().isSet("bounty-tracker.glow"))
-            bounties.getConfig().set("bounty-tracker.glow", 10);
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.enabled"))
-            bounties.getConfig().set("bounty-tracker.action-bar.enabled", true);
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.show-always"))
-            bounties.getConfig().set("bounty-tracker.action-bar.show-always", true);
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.player-name"))
-            bounties.getConfig().set("bounty-tracker.action-bar.player-name", true);
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.distance"))
-            bounties.getConfig().set("bounty-tracker.action-bar.distance", true);
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.position"))
-            bounties.getConfig().set("bounty-tracker.action-bar.position", false);
-        if (!bounties.getConfig().isSet("bounty-tracker.action-bar.world"))
-            bounties.getConfig().set("bounty-tracker.action-bar.world", false);
-        if (!bounties.getConfig().isSet("redeem-reward-later"))
-            bounties.getConfig().set("redeem-reward-later", false);
-        if (!bounties.getConfig().isSet("minimum-broadcast"))
-            bounties.getConfig().set("minimum-broadcast", 100);
-        if (!bounties.getConfig().isSet("big-bounties.bounty-threshold"))
-            bounties.getConfig().set("big-bounties.bounty-threshold", -1);
-        if (!bounties.getConfig().isSet("big-bounties.particle"))
-            bounties.getConfig().set("big-bounties.particle", true);
-        if (!bounties.getConfig().isSet("big-bounties.commands"))
-            bounties.getConfig().set("big-bounties.commands", new ArrayList<>(Collections.singletonList("execute run effect give {player} minecraft:glowing 10 0")));
-        if (!bounties.getConfig().isSet("database.host"))
-            bounties.getConfig().set("database.host", "localhost");
-        if (!bounties.getConfig().isSet("database.port"))
-            bounties.getConfig().set("database.port", "3306");
-        if (!bounties.getConfig().isSet("database.database"))
-            bounties.getConfig().set("database.database", "db");
-        if (!bounties.getConfig().isSet("database.user"))
-            bounties.getConfig().set("database.user", "username");
-        if (!bounties.getConfig().isSet("database.password"))
-            bounties.getConfig().set("database.password", "");
-        if (!bounties.getConfig().isSet("database.use-ssl"))
-            bounties.getConfig().set("database.use-ssl", false);
-        if (!bounties.getConfig().isSet("database.migrate-local-data"))
-            bounties.getConfig().set("database.migrate-local-data", true);
-        if (!bounties.getConfig().isSet("database.auto-connect"))
-            bounties.getConfig().set("database.auto-connect", false);
-        if (!bounties.getConfig().isSet("hide-stats"))
-            bounties.getConfig().set("hide-stats", new ArrayList<>());
-        if (!bounties.getConfig().isSet("update-notification"))
-            bounties.getConfig().set("update-notification", true);
-        if (!bounties.getConfig().isSet("npc-claim"))
-            bounties.getConfig().set("npc-claim", false);
-        if (!bounties.getConfig().isSet("death-tax"))
-            bounties.getConfig().set("death-tax", 0);
-        if (!bounties.getConfig().isSet("world-filter")){
-            bounties.getConfig().set("world-filter.whitelist", false);
-            bounties.getConfig().set("world-filter.worlds", new ArrayList<>());
-        }
         if (bounties.getConfig().isSet("bounty-whitelist-cost")) {
             bounties.getConfig().set("bounty-whitelist.cost", bounties.getConfig().getInt("bounty-whitelist-cost"));
             bounties.getConfig().set("bounty-whitelist-cost", null);
         }
-        if (!bounties.getConfig().isSet("bounty-whitelist.cost"))
-            bounties.getConfig().set("bounty-whitelist.cost", 10);
-        if (!bounties.getConfig().isSet("bounty-whitelist.enabled"))
-            bounties.getConfig().set("bounty-whitelist.enabled", true);
-        if (!bounties.getConfig().isSet("bounty-whitelist.show-all-bounty"))
-            bounties.getConfig().set("bounty-whitelist.show-all-bounty", false);
-        if (!bounties.getConfig().isSet("bounty-whitelist.variable-whitelist"))
-            bounties.getConfig().set("bounty-whitelist.variable-whitelist", false);
-        if (!bounties.getConfig().isSet("bounty-whitelist.enable-blacklist"))
-            bounties.getConfig().set("bounty-whitelist.enable-blacklist", true);
+
         if (bounties.getConfig().isInt("number-formatting.type")) {
             switch (bounties.getConfig().getInt("number-formatting.type")) {
                 case 0:
@@ -298,105 +197,19 @@ public class ConfigOptions {
             bounties.getConfig().set("number-formatting.decimal-symbol", null);
             bounties.getConfig().set("currency.decimals", null);
         }
-        if (!bounties.getConfig().isSet("number-formatting.use-divisions"))
-            bounties.getConfig().set("number-formatting.use-divisions", true);
-        if (!bounties.getConfig().isSet("number-formatting.pattern"))
-            bounties.getConfig().set("number-formatting.pattern", "#,###.##");
-        if (!bounties.getConfig().isSet("number-formatting.format-locale"))
-            bounties.getConfig().set("number-formatting.format-locale", "en-US");
-        if (!bounties.getConfig().isConfigurationSection("number-formatting.divisions"))
-            bounties.getConfig().set("number-formatting.divisions.1000", "K");
-        if (!bounties.getConfig().isSet("max-setters"))
-            bounties.getConfig().set("max-setters", -1);
-        if (!bounties.getConfig().isSet("bounty-posters.give-own"))
-            bounties.getConfig().set("bounty-posters.give-own", false);
-        if (!bounties.getConfig().isSet("bounty-posters.display-reward"))
-            bounties.getConfig().set("bounty-posters.display-reward", true);
-        if (!bounties.getConfig().isSet("bounty-posters.reward-text"))
-            bounties.getConfig().set("bounty-posters.reward-text", "REWARD: {reward}");
-        if (!bounties.getConfig().isSet("bounty-posters.lock-maps"))
-            bounties.getConfig().set("bounty-posters.lock-maps", false);
-        if (!bounties.getConfig().isSet("bounty-posters.currency-wrap"))
-            bounties.getConfig().set("bounty-posters.currency-wrap", false);
-        if (!bounties.getConfig().isSet("bounty-posters.update-interval"))
-            bounties.getConfig().set("bounty-posters.update-interval", 1000);
-        if (!bounties.getConfig().isSet("confirmation"))
-            bounties.getConfig().set("confirmation", true);
-        if (!bounties.getConfig().isSet("murder-bounty.player-cooldown"))
-            bounties.getConfig().set("murder-bounty.player-cooldown", 360);
-        if (!bounties.getConfig().isSet("murder-bounty.bounty-increase"))
-            bounties.getConfig().set("murder-bounty.bounty-increase", 0);
-        if (!bounties.getConfig().isSet("murder-bounty.exclude-claiming"))
-            bounties.getConfig().set("murder-bounty.exclude-claiming", true);
-        if (!bounties.getConfig().isSet("console-bounty-name"))
-            bounties.getConfig().set("console-bounty-name", "Sheriff");
-        if (!bounties.getConfig().isSet("random-bounties.min-time"))
-            bounties.getConfig().set("random-bounties.min-time", 0);
-        if (!bounties.getConfig().isSet("random-bounties.max-time"))
-            bounties.getConfig().set("random-bounties.max-time", 0);
-        if (!bounties.getConfig().isSet("random-bounties.min-price"))
-            bounties.getConfig().set("random-bounties.min-price", 10);
-        if (!bounties.getConfig().isSet("random-bounties.max-price"))
-            bounties.getConfig().set("random-bounties.max-price", 100);
-        if (!bounties.getConfig().isSet("remove-banned-players"))
-            bounties.getConfig().set("remove-banned-players", true);
-        if (!bounties.getConfig().isSet("bounty-posters.save-templates")) {
-            bounties.getConfig().set("bounty-posters.save-templates", true);
-            BountyMap.cleanPosters();
-            String rewardText = bounties.getConfig().getString("bounty-posters.reward-text");
-            assert rewardText != null;
-            if (!rewardText.contains("{reward}")) {
-                rewardText = rewardText + "{reward}";
-                bounties.getConfig().set("bounty-posters.reward-text", rewardText);
-            }
-        }
-        if (!bounties.getConfig().isSet("bounty-posters.clean-posters"))
-            bounties.getConfig().set("bounty-posters.clean-posters", false);
         if (bounties.getConfig().getBoolean("bounty-posters.clean-posters")) {
             BountyMap.cleanPosters();
             bounties.getConfig().set("bounty-posters.clean-posters", false);
         }
-        if (!bounties.getConfig().isSet("bounty-posters.name-line"))
-            bounties.getConfig().set("bounty-posters.name-line", "{name}");
-        if (!bounties.getConfig().isSet("bounty-posters.always-update"))
-            bounties.getConfig().set("bounty-posters.always-update", false);
-        if (bounties.getConfig().isString("bounty-claim-commands"))
-            bounties.getConfig().set("bounty-claim-commands", Collections.singletonList(bounties.getConfig().getString("bounty-claim-commands")));
-        if (!bounties.getConfig().isSet("bounty-claim-commands"))
-            bounties.getConfig().set("bounty-claim-commands", new ArrayList<>());
-        if (!bounties.getConfig().isSet("wanted-tag.enabled"))
-            bounties.getConfig().set("wanted-tag.enabled", false);
-        if (!bounties.getConfig().isSet("wanted-tag.offset"))
-            bounties.getConfig().set("wanted-tag.offset", 0.4);
-        if (!bounties.getConfig().isSet("wanted-tag.text"))
-            bounties.getConfig().set("wanted-tag.text", "&6&lWANTED&f: {amount}");
-        if (!bounties.getConfig().isSet("wanted-tag.min-bounty"))
-            bounties.getConfig().set("wanted-tag.min-bounty", 100);
-        if (!bounties.getConfig().isSet("wanted-tag.hide-when-sneaking"))
-            bounties.getConfig().set("wanted-tag.hide-when-sneaking", true);
-        if (!bounties.getConfig().isConfigurationSection("wanted-tag.level")) {
-            bounties.getConfig().set("wanted-tag.level.1000", "&f☠");
-            bounties.getConfig().set("wanted-tag.level.2500", "&c☠☠");
-            bounties.getConfig().set("wanted-tag.level.5000", "&4☠☠☠");
+
+        // fill in any missing default settings
+        for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
+            // Bukkit.getLogger().info("[key] " + key);
+            if (!bounties.getConfig().isSet(key)) {
+                //Bukkit.getLogger().info("Not set -> " + config.getDefaults().get(key));
+                bounties.getConfig().set(key, bounties.getConfig().getDefaults().get(key));
+            }
         }
-        if (!bounties.getConfig().isConfigurationSection("bounty-board")) {
-            bounties.getConfig().set("bounty-board.type", 1);
-            bounties.getConfig().set("bounty-board.update-interval", 5);
-            bounties.getConfig().set("bounty-board.glow", true);
-            bounties.getConfig().set("bounty-board.invisible", 1);
-        }
-        if (!bounties.getConfig().isSet("bounty-board.staggered-update"))
-            bounties.getConfig().set("bounty-board.staggered-update", 3);
-        if (!bounties.getConfig().isSet("teams")) {
-            bounties.getConfig().set("teams.scoreboard-claim", true);
-            bounties.getConfig().set("teams.placeholder", "");
-            bounties.getConfig().set("teams.bt-claim", false);
-            bounties.getConfig().set("teams.bt-allies", false);
-        }
-        if (!bounties.getConfig().isSet("bounty-board.item-name"))
-            bounties.getConfig().set("bounty-board.item-name", "&6&lWANTED: &f{player}");
-        if (!bounties.getConfig().isSet("bounty-board.update-name"))
-            bounties.getConfig().set("bounty-board.update-name", 0);
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
 
@@ -660,102 +473,8 @@ public class ConfigOptions {
                 }
             }
 
-        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(language);
 
-        if (!configuration.isSet("prefix"))
-            configuration.set("prefix", "&7[&9Not&dBounties&7] &8» &r");
-        if (!configuration.isSet("unknown-number"))
-            configuration.set("unknown-number", "&cUnknown number!");
-        if (!configuration.isSet("bounty-success"))
-            configuration.set("bounty-success", "&aBounty placed on &e{player}&a for &e{amount}&a!");
-        if (!configuration.isSet("unknown-player"))
-            configuration.set("unknown-player", "&cCould not find the player &4{player}&c!");
-        if (!configuration.isSet("bounty-broadcast"))
-            configuration.set("bounty-broadcast", "&e{player}&6 has placed a bounty of &f{amount}&6 on &e{receiver}&6! Total Bounty: &f{bounty}");
-        if (!configuration.isSet("no-permission"))
-            configuration.set("no-permission", "&cYou do not have permission to execute this command!");
-        if (!configuration.isSet("broke"))
-            configuration.set("broke", "&cYou do not have enough currency for this! &8Required: &7{amount}");
-        if (!configuration.isSet("claim-bounty-broadcast"))
-            configuration.set("claim-bounty-broadcast", "&e{player}&6 has claimed the bounty of &f{amount}&6 on &e{receiver}&6!");
-        if (!configuration.isSet("no-bounty"))
-            configuration.set("no-bounty", "&4{receiver} &cdoesn't have a bounty!");
-        if (!configuration.isSet("check-bounty"))
-            configuration.set("check-bounty", "&e{receiver}&a has a bounty of &e{amount}&a.");
-        if (!configuration.isSet("list-setter"))
-            configuration.set("list-setter", "&e{player} &7> &a{amount}");
-        if (!configuration.isSet("list-total"))
-            configuration.set("list-total", "&e{player} &7> &a{amount}");
-        if (!configuration.isSet("offline-bounty"))
-            configuration.set("offline-bounty", "&e{player}&6 has set a bounty on you while you were offline!");
-        if (!configuration.isSet("success-remove-bounty"))
-            configuration.set("success-remove-bounty", "&cSuccessfully removed &4{receiver}'s &cbounty.");
-        if (!configuration.isSet("success-edit-bounty"))
-            configuration.set("success-edit-bounty", "&cSuccessfully edited &4{receiver}'s &cbounty.");
-        if (!configuration.isSet("no-setter"))
-            configuration.set("no-setter", "&4{player} &chas not set a bounty on {receiver}");
-        if (!configuration.isSet("repeat-command-bounty"))
-            configuration.set("repeat-command-bounty", "&6Please type this command in again in the next 30 seconds to confirm buying your bounty for &e{amount}&6.");
-        if (!configuration.isSet("repeat-command-immunity"))
-            configuration.set("repeat-command-immunity", "&6Please type this command in again in the next 30 seconds to confirm buying immunity for &e{amount}&6.");
-        if (!configuration.isSet("permanent-immunity"))
-            configuration.set("permanent-immunity", "&6{player} &eis immune to bounties!");
-        if (!configuration.isSet("scaling-immunity"))
-            configuration.set("scaling-immunity", "&6{player} &eis immune to bounties less than &e{amount}&6.");
-        if (!configuration.isSet("time-immunity"))
-            configuration.set("time-immunity", "&6{player} &eis immune to bounties for &e{time}&6.");
-        if (!configuration.isSet("buy-permanent-immunity"))
-            configuration.set("buy-permanent-immunity", "&aYou have bought immunity from bounties.");
-        if (!configuration.isSet("buy-scaling-immunity"))
-            configuration.set("buy-scaling-immunity", "&aYou have bought immunity from bounties under the amount of &2{amount}&a.");
-        if (!configuration.isSet("buy-time-immunity"))
-            configuration.set("buy-time-immunity", "&aYou have bought immunity from bounties for &2{time}&a.");
-        if (!configuration.isSet("grace-period"))
-            configuration.set("grace-period", "&cA bounty had just been claimed on &4{player}&c. Please wait &4{time}&c until you try again.");
-        if (!configuration.isSet("min-bounty"))
-            configuration.set("min-bounty", "&cThe bounty must be at least &4{amount}&c.");
-        if (!configuration.isSet("unknown-command"))
-            configuration.set("unknown-command", "&dUse &9/bounty help &dfor a list of commands.");
-        if (!configuration.isSet("already-bought-perm"))
-            configuration.set("already-bought-perm", "&cYou already have permanent immunity!");
-        if (!configuration.isSet("removed-immunity"))
-            configuration.set("removed-immunity", "&aSuccessfully removed your immunity to bounties.");
-        if (!configuration.isSet("removed-other-immunity"))
-            configuration.set("removed-other-immunity", "&aSuccessfully removed &2{receiver}'s &aimmunity to bounties.");
-        if (!configuration.isSet("no-immunity"))
-            configuration.set("no-immunity", "&cYou do not have purchased immunity!");
-        if (!configuration.isSet("no-immunity-other"))
-            configuration.set("no-immunity-other", "&4{receiver} &cdoes not have purchased immunity!");
-        if (!configuration.isSet("expired-bounty"))
-            configuration.set("expired-bounty", "&eYour bounty on &6{player}&e has expired. You have been refunded &2{amount}&e.");
-        if (!configuration.isSet("bounty-tracker-name"))
-            configuration.set("bounty-tracker-name", "&eBounty Tracker: &6&l{player}");
-        if (!configuration.isSet("bounty-tracker-lore"))
-            configuration.set("bounty-tracker-lore", Arrays.asList("", "&7Follow this compass", "&7to find {player}", ""));
-        if (!configuration.isSet("tracker-give"))
-            configuration.set("tracker-give", "&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.");
-        if (!configuration.isSet("tracker-receive"))
-            configuration.set("tracker-receive", "&eYou have been given a bounty tracker for &6{player}&e.");
-        if (!configuration.isSet("tracked-notify"))
-            configuration.set("tracked-notify", "&c&lYou are being tracked!");
-        if (!configuration.isSet("bounty-top"))
-            configuration.set("bounty-top", "&9&l{rank}. &d{player} &7> &a{amount}");
-        if (!configuration.isSet("bounty-top-title"))
-            configuration.set("bounty-top-title", "&7&m               &r &d&lBounties &9&lTop &7&m               ");
-        if (!configuration.isSet("enable-broadcast"))
-            configuration.set("enable-broadcast", "&eYou have &aenabled &ebounty broadcast!");
-        if (!configuration.isSet("disable-broadcast"))
-            configuration.set("disable-broadcast", "&eYou have &cdisabled &ebounty broadcast!");
-        if (!configuration.isSet("bounty-voucher-name"))
-            configuration.set("bounty-voucher-name", "&6{player}'s&e claimed bounty of &a{amount}&e.");
-        if (!configuration.isSet("bounty-voucher-lore"))
-            configuration.set("bounty-voucher-lore", Arrays.asList("", "&2Awarded to {receiver}", "&7Right click to redeem", "&7this player's bounty", ""));
-        if (!configuration.isSet("redeem-voucher"))
-            configuration.set("redeem-voucher", "&aSuccessfully redeemed voucher for {amount}!");
-        if (!configuration.isSet("bounty-receiver"))
-            configuration.set("bounty-receiver", "&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}");
-        if (!configuration.isSet("big-bounty"))
-            configuration.set("big-bounty", "&eYour bounty is very impressive!");
+        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(language);
         if (configuration.isSet("bounty-stat-all")) {
             configuration.set("bounty-stat.all.long", configuration.getString("bounty-stat-all"));
             configuration.set("bounty-stat.kills.long", configuration.getString("bounty-stat-kills"));
@@ -764,58 +483,6 @@ public class ConfigOptions {
             configuration.set("bounty-stat.set.long", configuration.getString("bounty-stat-set"));
             configuration.set("bounty-stat.immunity.long", configuration.getString("bounty-stat-immunity"));
         }
-        if (!configuration.isSet("bounty-stat.all.long"))
-            configuration.set("bounty-stat.all.long", "&eYour all-time bounty is &2{amount}&e.");
-        if (!configuration.isSet("bounty-stat.kills.long"))
-            configuration.set("bounty-stat.kills.long", "&eYou have killed &6{amount}&e players with bounties.");
-        if (!configuration.isSet("bounty-stat.claimed.long"))
-            configuration.set("bounty-stat.claimed.long", "&eYou have claimed &2{amount}&e from bounties.");
-        if (!configuration.isSet("bounty-stat.deaths.long"))
-            configuration.set("bounty-stat.deaths.long", "&eYou have died &6{amount}&e times with a bounty.");
-        if (!configuration.isSet("bounty-stat.set.long"))
-            configuration.set("bounty-stat.set.long", "&eYou have set &6{amount}&e successful bounties.");
-        if (!configuration.isSet("bounty-stat.immunity.long"))
-            configuration.set("bounty-stat.immunity.long", "&eYou have spent &2{amount}&e on immunity.");
-        if (!configuration.isSet("bounty-stat.all.short"))
-            configuration.set("bounty-stat.all.short", "&6All-time bounty: &e{amount}");
-        if (!configuration.isSet("bounty-stat.kills.short"))
-            configuration.set("bounty-stat.kills.short", "&6Bounty kills: &e{amount}");
-        if (!configuration.isSet("bounty-stat.claimed.short"))
-            configuration.set("bounty-stat.claimed.short", "&6Bounty rewards: &e{amount}");
-        if (!configuration.isSet("bounty-stat.deaths.short"))
-            configuration.set("bounty-stat.deaths.short", "&6Bounty deaths: &e{amount}");
-        if (!configuration.isSet("bounty-stat.set.short"))
-            configuration.set("bounty-stat.set.short", "&6Bounties set: &e{amount}");
-        if (!configuration.isSet("bounty-stat.immunity.short"))
-            configuration.set("bounty-stat.immunity.short", "&6Bounty immunity: &e{amount}");
-        if (!configuration.isSet("whitelisted-players"))
-            configuration.set("whitelisted-players", "&fYour whitelisted players:&7");
-        if (!configuration.isSet("whitelist-max"))
-            configuration.set("whitelist-max", "&cYou've reached the maximum amount of whitelisted players.");
-        if (!configuration.isSet("whitelist-reset"))
-            configuration.set("whitelist-reset", "&fYour whitelisted players have been reset.");
-        if (!configuration.isSet("whitelist-change"))
-            configuration.set("whitelist-change", "&eYour whitelisted players have been changed.");
-        if (!configuration.isSet("whitelist-lore"))
-            configuration.set("whitelist-lore", Arrays.asList("&f&lThis player is whitelisted.", ""));
-        if (!configuration.isSet("whitelist-notify"))
-            configuration.set("whitelist-notify", Arrays.asList("&fYou are whitelisted to this bounty!", ""));
-        if (!configuration.isSet("immunity-expire"))
-            configuration.set("immunity-expire", "&cYour bounty immunity has expired!");
-        if (!configuration.isSet("death-tax"))
-            configuration.set("death-tax", "&cYou were killed because of a bounty. You lost &4{items}&c.");
-        if (!configuration.isSet("max-setters"))
-            configuration.set("max-setters", "&cThe maximum amount of setters for this player has been reached.");
-        if (!configuration.isSet("not-whitelisted"))
-            configuration.set("not-whitelisted", Collections.singletonList("&cPart of this bounty is whitelisted."));
-        if (!configuration.isSet("map-name"))
-            configuration.set("map-name", "&6&lWANTED: &f{player}");
-        if (!configuration.isSet("map-lore"))
-            configuration.set("map-lore", Arrays.asList("", "&6&oREWARD:", "&2{amount}", "&6&oAS OF {time}", ""));
-        if (!configuration.isSet("map-give"))
-            configuration.set("map-give", "&eYou have given &6{receiver}&e a bounty poster of {player}.");
-        if (!configuration.isSet("map-receive"))
-            configuration.set("map-receive", "&eYou have been given a bounty poster of &6{player}&e.");
         if (bounties.getConfig().isSet("buy-own-bounties.lore-addition") && !configuration.isSet("buy-back-lore")) {
             List<String> bbLore;
             if (bounties.getConfig().isList("buy-own-bounties.lore-addition")) {
@@ -826,24 +493,13 @@ public class ConfigOptions {
             configuration.set("buy-back-lore", bbLore);
             bounties.getConfig().set("buy-own-bounties.lore-addition", null);
         }
-        if (!configuration.isSet("admin-edit-lore"))
-            configuration.set("admin-edit-lore", Arrays.asList("&cLeft Click &7to Remove", "&eRight Click &7to Edit", ""));
-        if (configuration.isString("whitelist-lore"))
-            configuration.set("whitelist-lore", Arrays.asList(configuration.getString("whitelist-lore"), ""));
-        if (!configuration.isSet("blacklist-lore"))
-            configuration.set("blacklist-lore", Arrays.asList("&f&lThis player is blacklisted.", ""));
-        if (configuration.isString("whitelist-notify"))
-            configuration.set("whitelist-notify", Arrays.asList(configuration.getString("whitelist-notify"), ""));
-        if (!configuration.isSet("murder"))
-            configuration.set("murder", "&cYour bounty has been increased for murdering &4{player}&c!");
-        if (!configuration.isSet("whitelist-toggle"))
-            configuration.set("whitelist-toggle", "&fYour whitelist has been set to normal.");
-        if (!configuration.isSet("blacklist-toggle"))
-            configuration.set("blacklist-toggle", "&fYour whitelist is now on blacklist mode.");
-        if (!configuration.isSet("reward-head-name"))
-            configuration.set("reward-head-name", "&c&l{player}'s Head");
-        if (!configuration.isSet("reward-head-lore"))
-            configuration.set("reward-head-lore", Arrays.asList("", "&4This head had a", "&4{amount}&4", "&4bounty on it.", ""));
+
+        // fill in any default options that aren't present
+        configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("language.yml")))));
+        for (String key : Objects.requireNonNull(configuration.getDefaults()).getKeys(true)) {
+            if (!configuration.isSet(key))
+                configuration.set(key, configuration.getDefaults().get(key));
+        }
 
         bounties.saveConfig();
         configuration.save(language);
