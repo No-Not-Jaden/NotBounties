@@ -1,5 +1,7 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.bountyEvents.BountyEditEvent;
+import me.jadenp.notbounties.bountyEvents.BountyRemoveEvent;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.gui.GUI;
 import me.jadenp.notbounties.gui.GUIOptions;
@@ -556,6 +558,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         // try to find bounty and buy it
                                         repeatBuyCommand.remove((parser).getUniqueId().toString());
                                         if (checkBalance(parser, (bounty.getTotalBounty() * buyBackInterest))) {
+                                            Bounty bought = new Bounty(bounty);
+                                            BountyRemoveEvent event = new BountyRemoveEvent(sender, true, bought);
+                                            Bukkit.getPluginManager().callEvent(event);
+                                            if (event.isCancelled())
+                                                return true;
                                             NumberFormatting.doRemoveCommands(parser, (bounty.getTotalBounty() * buyBackInterest), new ArrayList<>());
                                             if (SQL.isConnected()) {
                                                 data.removeBounty(bounty.getUUID());
@@ -651,6 +658,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                             if (toRemove != null) {
                                 if (args.length == 2) {
+                                    Bounty bounty = new Bounty(toRemove);
+                                    BountyRemoveEvent event = new BountyRemoveEvent(sender, false, bounty);
+                                    Bukkit.getPluginManager().callEvent(event);
+                                    if (event.isCancelled())
+                                        return true;
                                     if (SQL.isConnected()) {
                                         data.removeBounty(toRemove.getUUID());
                                     } else {
@@ -674,6 +686,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 break;
                                             }
                                         }
+                                        Bounty bounty = new Bounty(toRemove.getUUID(), Collections.singletonList(actualRemove), toRemove.getName());
+                                        BountyRemoveEvent event = new BountyRemoveEvent(sender, false, bounty);
+                                        Bukkit.getPluginManager().callEvent(event);
+                                        if (event.isCancelled())
+                                            return true;
                                         if (actualRemove != null) {
                                             toRemove.removeBounty(actualRemove.getUuid());
                                             if (toRemove.getSetters().isEmpty()) {
@@ -760,18 +777,21 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                                         return true;
                                     }
+                                    Bounty before = new Bounty(toEdit);
+                                    Bounty after = new Bounty(toEdit);
+                                    after.addBounty(amount - toEdit.getTotalBounty(), new Whitelist(new ArrayList<>(), false));
+                                    BountyEditEvent event = new BountyEditEvent(sender, before, after);
+                                    Bukkit.getPluginManager().callEvent(event);
+                                    if (event.isCancelled())
+                                        return true;
                                     if (SQL.isConnected()) {
                                         data.editBounty(toEdit.getUUID(), new UUID(0, 0), amount - toEdit.getTotalBounty());
                                     } else {
                                         toEdit.addBounty(amount - toEdit.getTotalBounty(), new Whitelist(new ArrayList<>(), false));
                                     }
                                     // successfully edited bounty
-                                    Player player = Bukkit.getPlayer(toEdit.getUUID());
-                                    if (player != null) {
-                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(15), toEdit.getName(), player));
-                                    } else {
-                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(15), toEdit.getName(), Bukkit.getOfflinePlayer(toEdit.getUUID())));
-                                    }
+                                    sender.sendMessage(parse(speakings.get(0) + speakings.get(15), toEdit.getName(), Bukkit.getOfflinePlayer(toEdit.getUUID())));
+
 
                                 } else if (args.length == 5) {
                                     if (args[2].equalsIgnoreCase("from")) {
@@ -792,6 +812,13 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                                                 return true;
                                             }
+                                            Bounty before = new Bounty(toEdit);
+                                            Bounty after = new Bounty(toEdit);
+                                            after.editBounty(actualEdit.getUuid(), amount);
+                                            BountyEditEvent event = new BountyEditEvent(sender, before, after);
+                                            Bukkit.getPluginManager().callEvent(event);
+                                            if (event.isCancelled())
+                                                return true;
                                             if (SQL.isConnected()) {
                                                 data.editBounty(toEdit.getUUID(), actualEdit.getUuid(), amount - toEdit.getTotalBounty());
                                             } else {

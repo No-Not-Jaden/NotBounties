@@ -138,7 +138,7 @@ public class Events implements Listener {
         // check if killer can claim it
         if (bounty.getTotalBounty(killer) < 0.01)
             return;
-        BountyClaimEvent event1 = new BountyClaimEvent(event.getEntity().getKiller(), bounty);
+        BountyClaimEvent event1 = new BountyClaimEvent(event.getEntity().getKiller(), new Bounty(bounty));
         Bukkit.getPluginManager().callEvent(event1);
         if (event1.isCancelled())
             return;

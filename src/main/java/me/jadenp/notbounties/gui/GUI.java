@@ -13,9 +13,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -28,6 +30,7 @@ public class GUI implements Listener {
 
     public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
+    private static final Map<UUID, CommandPrompt> commandPrompts = new HashMap<>();
     public static void addGUI(GUIOptions gui, String name){
         customGuis.put(name, gui);
     }
@@ -389,6 +392,18 @@ public class GUI implements Listener {
                         continue;
                     }
                     ((Player) event.getWhoClicked()).playSound(event.getWhoClicked().getEyeLocation(), realSound, (float) volume, (float) pitch);
+                } else if (command.startsWith("[cprompt] ") || command.startsWith("[pprompt] ")) {
+                    boolean playerPrompt = command.startsWith("[pprompt] ");
+                    command = command.substring(10);
+                    String prompt = "&eEnter anything in chat.";
+                    if (command.contains("<") && command.substring(command.indexOf("<")).contains(">")) {
+                        prompt = command.substring(command.indexOf("<") + 1, command.indexOf(">"));
+                    }
+                    event.getWhoClicked().closeInventory();
+                    event.getWhoClicked().sendMessage(parse(prompt, (OfflinePlayer) event.getWhoClicked()));
+                    if (command.contains(prompt))
+                        command = command.replace(prompt, "~placeholder~");
+                    commandPrompts.put(event.getWhoClicked().getUniqueId(), new CommandPrompt(command, playerPrompt));
                 } else {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                 }
@@ -396,6 +411,27 @@ public class GUI implements Listener {
             }
         }
 
+    }
+
+    @EventHandler
+    public void asyncChatEvent(AsyncPlayerChatEvent event) {
+        if (commandPrompts.containsKey(event.getPlayer().getUniqueId())) {
+            CommandPrompt commandPrompt = commandPrompts.get(event.getPlayer().getUniqueId());
+            commandPrompts.remove(event.getPlayer().getUniqueId());
+            String command = commandPrompt.getCommand().replace("<~placeholder~>", event.getMessage());
+            event.setCancelled(true);
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (commandPrompt.isPlayerPrompt()) {
+                        Bukkit.dispatchCommand(event.getPlayer(), command);
+                    } else {
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                    }
+                }
+            }.runTaskLater(NotBounties.getInstance(), 1);
+
+        }
     }
 
 }

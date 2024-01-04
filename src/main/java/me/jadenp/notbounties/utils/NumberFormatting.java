@@ -47,7 +47,7 @@ public class NumberFormatting {
         overrideVault = currencyOptions.getBoolean("override-vault");
         if (vaultEnabled && !overrideVault) {
             vaultClass = new VaultClass();
-            Bukkit.getLogger().info("Using Vault as currency!");
+            //Bukkit.getLogger().info("Using Vault as currency!");
         }
         currency = new ArrayList<>();
         currencyWeights = new ArrayList<>();

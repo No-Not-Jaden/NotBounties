@@ -32,6 +32,14 @@ public class Bounty implements Comparable<Bounty>{
         setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist));
     }
 
+    public Bounty(Bounty bounty) {
+        uuid = bounty.getUUID();
+        name = bounty.getName();
+        for (Setter setter : bounty.getSetters()) {
+            setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist()));
+        }
+    }
+
     public Bounty(UUID uuid, List<Setter> setters, String name){
         this.uuid = uuid;
         this.setters = setters;
@@ -122,6 +130,7 @@ public class Bounty implements Comparable<Bounty>{
         return total;
     }
 
+
     public void claimBounty(Player claimer){
         setters.removeIf(setter -> setter.canClaim(claimer));
     }
@@ -178,6 +187,15 @@ public class Bounty implements Comparable<Bounty>{
             return setters.stream().map(setter -> NotBounties.getPlayerWhitelist(setter.getUuid())).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
         }
         return setters.stream().map(Setter::getWhitelist).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
+    }
+
+    @Override
+    public String toString() {
+        return "Bounty{" +
+                "uuid=" + uuid +
+                ", name='" + name + '\'' +
+                ", setters=" + setters +
+                '}';
     }
 
     @Override

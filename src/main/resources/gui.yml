@@ -21,6 +21,9 @@ custom-items:
     # [back] <x> goes to the last x amount of pages or last page if x is empty
     # [gui] (gui name) (page) (leaderboard/offline) opens a new gui - only gui name is required, ex: [gui] bounty-gui | [gui] leaderboard 1 kills | [gui] set-bounty 1 offline
     # [offline] toggles offline players to the set-bounty GUI and the set-whitelist GUI
+    # [pprompt] (command) <what value> - closes the GUI and prompts the player for a value - player executes the finished command
+    # [cprompt] (command) <what value> - console executes the finished command
+    #   ex: '[pprompt] bounty {slot13} <&eWhat amount?>'
     # using [sound] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the player
     # The volume and pitch are optional. Sound IDs can be found here: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
     # adding @{permission} at the beginning will check for a permission before executing the command. !@ will check if they don't have permission
@@ -33,6 +36,17 @@ custom-items:
     material: player_head eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWRjZjJjMTk4ZjYxZGY1YTZkMGJhOTdkYmY5MGMzMzc5OTU0MDVjMTczOTZjMDE2Yzg1ZjZmM2ZlYTUyYzkwNiJ9fX0=
     amount: 1
     name: '&cSkull'
+  enter-value:
+    material: WRITABLE_BOOK
+    amount: 1
+    name: '&eEnter Bounty Amount &7->'
+    lore:
+      - ''
+      - '&6Click to manually'
+      - '&6enter bounty amount'
+      - ''
+    commands:
+      - '[pprompt] bounty {slot13} <&eEnter in chat the bounty amount.>'
   exit:
     material: BARRIER
     amount: 1
@@ -348,6 +362,9 @@ select-price:
     8:
       item: add100
       slot: 41-43
+    9:
+      item: enter-value
+      slot: 31
 confirm:
   sort-type: 1
   size: 54
