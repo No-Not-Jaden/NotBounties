@@ -1,6 +1,8 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.NumberFormatting;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -46,6 +48,11 @@ public class Bounty implements Comparable<Bounty>{
         this.name = name;
     }
 
+    /**
+     * Change the display name of the target
+     * The name is reset every time the target logs in
+     * @param name the new name of the target
+     */
     public void setDisplayName(String name) {
         this.name = name;
     }
@@ -108,6 +115,10 @@ public class Bounty implements Comparable<Bounty>{
         }
     }
 
+    /**
+     * Get the latest time that a bounty was set
+     * @return The time in milliseconds
+     */
     public long getLatestSetter() {
         return setters.stream().mapToLong(Setter::getTimeCreated).filter(setter -> setter >= 0).max().orElse(0);
     }
@@ -119,6 +130,12 @@ public class Bounty implements Comparable<Bounty>{
         }
         return total;
     }
+
+    /**
+     * Get the total bounty that is accessible by the player
+     * @param claimer Player to get the total claimable bounty value
+     * @return The total claimable bounty value for the player
+     */
     public double getTotalBounty(Player claimer){
         if (claimer.getUniqueId().equals(uuid))
             return getTotalBounty();
@@ -130,7 +147,14 @@ public class Bounty implements Comparable<Bounty>{
         return total;
     }
 
+    public String getFormattedTotalBounty() {
+        return NumberFormatting.formatNumber(getTotalBounty());
+    }
 
+    /**
+     * Removes all the setters that have the player whitelisted
+     * @param claimer The player to claim the bounty
+     */
     public void claimBounty(Player claimer){
         setters.removeIf(setter -> setter.canClaim(claimer));
     }
