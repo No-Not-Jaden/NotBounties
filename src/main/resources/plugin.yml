@@ -11,6 +11,7 @@ softdepend:
   - LiteBans
   - SkinsRestorer
   - BetterTeams
+  - Towny
 commands:
   notbounties:
     aliases:

@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -96,6 +97,11 @@ public class Events implements Listener {
             if ((!btClaim && betterTeamsClass.onSameTeam(player, killer)) || (!btAllies && betterTeamsClass.areAllies(player, killer)))
                 return;
         }
+        if (townyAdvancedEnabled) {
+            TownyAdvancedClass townyAdvancedClass = new TownyAdvancedClass();
+            if ((!townyNation && townyAdvancedClass.inSameNation(player, killer)) || (!townyTown && townyAdvancedClass.inSameTown(player, killer)) || (!townyAllies && townyAdvancedClass.areNationsAllied(player, killer)))
+                return;
+        }
         if (!scoreboardTeamClaim) {
             if (Bukkit.getScoreboardManager() != null) {
                 Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
@@ -142,6 +148,7 @@ public class Events implements Listener {
         Bukkit.getPluginManager().callEvent(event1);
         if (event1.isCancelled())
             return;
+        double totalBounty = bounty.getTotalBounty(killer);
 
         List<Setter> claimedBounties = new ArrayList<>(bounty.getSetters());
         claimedBounties.removeIf(setter -> !setter.canClaim(killer));
@@ -307,46 +314,69 @@ public class Events implements Listener {
         new BukkitRunnable() {
             @Override
             public void run() {
-                // {player} is replaced with the person whose bounty was claimed
-                // {killer} is replaced with the person who claimed the bounty
-                // starting with [player] will run the command for the person whose bounty was claimed
-                // starting with [killer] will run the command for the person who claimed the bounty\
-                // starting with nothing will run the command as console
-                // adding @(player/killer)permission or !@(player/killer)permission before everything with check for a permission of the player or killer to run the command
-                // This will check if the killer has the permission and will message the person they killed
-                // ex: @(killer)notbounties.view [killer] msg {player} It wasn't personal.
-                // a command that is just <respawn> will force the player to respawn. This is useful if you want to tp them somewhere after they die
-                // You can use placeholders, but they will always be parsed for the player who died
+                // config.yml
                 for (String command : bountyClaimCommands) {
-                    if (command.equalsIgnoreCase("<respawn>")) {
-                        if (player.isDead())
-                            player.spigot().respawn();
-                        continue;
-                    }
                     command = command.replaceAll("\\{player}", Matcher.quoteReplacement(player.getName()));
                     command = command.replaceAll("\\{killer}", Matcher.quoteReplacement(killer.getName()));
                     if (papiEnabled)
                         command = new PlaceholderAPIClass().parse(player, command);
-                    if (command.startsWith("@(player)")) {
-                        String permission = command.substring(9, command.indexOf(" "));
-                        if (!player.hasPermission(permission))
-                            continue;
-                        command = command.substring(command.indexOf(" ") + 1);
-                    } else if (command.startsWith("!@(player)")) {
-                        String permission = command.substring(10, command.indexOf(" "));
-                        if (player.hasPermission(permission))
-                            continue;
-                        command = command.substring(command.indexOf(" ") + 1);
-                    } else if (command.startsWith("@(killer)")) {
-                        String permission = command.substring(9, command.indexOf(" "));
-                        if (!killer.hasPermission(permission))
-                            continue;
-                        command = command.substring(command.indexOf(" ") + 1);
-                    } else if (command.startsWith("!@(killer)")) {
-                        String permission = command.substring(10, command.indexOf(" "));
-                        if (killer.hasPermission(permission))
-                            continue;
-                        command = command.substring(command.indexOf(" ") + 1);
+
+                    boolean canceled = false;
+                    while (command.startsWith("<(") || command.startsWith(">(") || command.startsWith("@(") || command.startsWith("!@(")) {
+                        if (command.startsWith("<(") && command.contains(") ")) {
+                            double amount;
+                            try {
+                                amount = NumberFormatting.tryParse(command.substring(2, command.indexOf(") ")));
+                            } catch (NumberFormatException e) {
+                                amount = 0;
+                            }
+                            command = command.substring(command.indexOf(") ") + 2);
+                            if (totalBounty >= amount)
+                                canceled = true;
+                        } else if (command.startsWith(">(") && command.contains(") ")) {
+                            double amount;
+                            try {
+                                amount = NumberFormatting.tryParse(command.substring(2, command.indexOf(") ")));
+                            } catch (NumberFormatException e) {
+                                amount = 0;
+                            }
+                            command = command.substring(command.indexOf(") ") + 2);
+                            if (totalBounty <= amount)
+                                canceled = true;
+                        }
+
+                        if (command.startsWith("@(player)")) {
+                            String permission = command.substring(9, command.indexOf(" "));
+                            if (!player.hasPermission(permission))
+                                canceled = true;
+                            command = command.substring(command.indexOf(" ") + 1);
+                        } else if (command.startsWith("!@(player)")) {
+                            String permission = command.substring(10, command.indexOf(" "));
+                            if (player.hasPermission(permission))
+                                canceled = true;
+                            command = command.substring(command.indexOf(" ") + 1);
+                        } else if (command.startsWith("@(killer)")) {
+                            String permission = command.substring(9, command.indexOf(" "));
+                            if (!killer.hasPermission(permission))
+                                canceled = true;
+                            command = command.substring(command.indexOf(" ") + 1);
+                        } else if (command.startsWith("!@(killer)")) {
+                            String permission = command.substring(10, command.indexOf(" "));
+                            if (killer.hasPermission(permission))
+                                canceled = true;
+                            command = command.substring(command.indexOf(" ") + 1);
+                        }
+
+                        if (canceled)
+                            break;
+                    }
+                    if (canceled)
+                        continue;
+
+                    if (command.equalsIgnoreCase("<respawn>")) {
+                        if (player.isDead())
+                            player.spigot().respawn();
+                        continue;
                     }
 
                     if (command.startsWith("[player]")) {

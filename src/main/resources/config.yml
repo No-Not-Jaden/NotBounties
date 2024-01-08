@@ -45,7 +45,7 @@ bounty-tax: 0.0
 # ex: death-tax = 0.1, a bounty set for 100 would cost the player 10 when they die
 # players cannot go into debt
 death-tax: 0.0
-# how many real days until bounties expire
+# how many real days until bounties expire | -1 to disable
 bounty-expire: -1
 # These player's bounty stats will be hidden from bounties top
 hide-stats:
@@ -62,6 +62,18 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 12 hours
 remove-banned-players: true
+# restrict PVP
+pvp-restrictions:
+  # worlds to restrict PVP
+  worlds:
+    - pvp_restriction_world
+  # pvp rules
+  # 1 - players can only damage other players with bounties
+  # 2 - players can damage other players with bounties and those players can fight back
+  # 3 - players can damage other players with bounties and players with bounties can damage anyone
+  rule: 2
+  # if rule is set to 2 - the time in seconds that players with bounties can fight back after taking damage from another player
+  pvp-time: 60
 # allow players on the same team claim each-other's bounties
 teams:
   # claim if on the same scoreboard team
@@ -70,10 +82,18 @@ teams:
   # players with the same placeholder result will not be able to claim each other's bounties (Must have PlaceholderAPI installed)
   # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
   placeholder: ''
+  # <===> BetterTeams <===>
   # claim if on the same BetterTeams team (Must have BetterTeams installed)
   bt-claim: false
   # claim if allied with each other's BetterTeams team
   bt-allies: false
+  # <===> TownyAdvanced <===>
+  # claim if in the same nation
+  towny-nation: false
+  # claim if in the same town
+  towny-town: false
+  # claim if nations are allied
+  towny-allies: false
 # auto-updating bounty poster board
 bounty-board:
   # 0 oldest bounties
@@ -123,9 +143,15 @@ wanted-tag:
   # using [sound_killer] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the killer
   # using [sound] (SOUND_ID) <VOLUME> <PITCH> will play a sound for everyone near the death
   # The volume and pitch are optional. Sound IDs can be found here: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
+  # adding >(amount) or <(amount) at the beginning will only run the following command if the claimed bounty was greater or equal to the amount
+  #  This tempbans the player if they had a bounty claimed greater than or equal to 2500 currency
+  #  ex: >(2499.99) tempban {player} 1h
   # adding @(player/killer)permission or !@(player/killer)permission before everything with check for a permission of the player or killer to run the command
-  # This will check if the killer has the permission and will message the person they killed
-  # ex: @(killer)notbounties.view [killer] msg {player} It wasn''t personal.
+  #   This will check if the killer has the permission and will message the person they killed
+  #   ex: @(killer)notbounties.view [killer] msg {player} It wasn't personal.
+  # you can combine these too
+  #   This will auto-respawn the player if the bounty is between 10 and 100, and they have the permission plugin.quick-respawn
+  #   ex: <(10) <(100) @(player)plugin.quick-respawn <respawn>
   # a command that is just <respawn> will force the player to respawn. This is useful if you want to tp them somewhere after they die
   # You can use placeholders, but they will always be parsed for the player who died
 bounty-claim-commands: []

@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>1.15.6</version>
+    <version>1.16.0</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -78,6 +78,10 @@
             <id>codemc</id>
             <url>https://repo.codemc.org/repository/maven-public/</url>
         </repository>
+        <repository>
+            <id>glaremasters repo</id>
+            <url>https://repo.glaremasters.me/repository/towny/</url>
+        </repository>
     </repositories>
     <dependencies>
         <dependency>
@@ -138,6 +142,12 @@
             <groupId>net.skinsrestorer</groupId>
             <artifactId>skinsrestorer-api</artifactId>
             <version>15.0.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.palmergames.bukkit.towny</groupId>
+            <artifactId>towny</artifactId>
+            <version>0.100.0.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

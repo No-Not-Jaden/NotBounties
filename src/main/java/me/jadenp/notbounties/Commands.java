@@ -1098,18 +1098,23 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 openGUI(parser, "confirm-bounty", (long) amount, player.getUniqueId(), (long) amount);
                                 return true;
                             }
-                            if (player.isBanned() && removeBannedPlayers) {
-                                // has permanent immunity
-                                sender.sendMessage(parse(speakings.get(0) + speakings.get(18), player.getName(), immunitySpent, player));
-                            }
 
                             if (checkBalance(parser, total)) {
-                                if (liteBansEnabled && removeBannedPlayers) {
-                                    // async bounty check
-                                    new BukkitRunnable() {
-                                        @Override
-                                        public void run() {
-                                            if (new LiteBansClass().isPlayerNotBanned(player.getUniqueId())) {
+                                new BukkitRunnable() {
+                                    @Override
+                                    public void run() {
+
+                                        if (removeBannedPlayers) {
+                                            // async ban check
+                                            if (player.isBanned() || (liteBansEnabled && !(new LiteBansClass().isPlayerNotBanned(player.getUniqueId())))) {
+                                                new BukkitRunnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        // has permanent immunity
+                                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(18), player.getName(), immunitySpent, player));
+                                                    }
+                                                }.runTask(NotBounties.getInstance());
+                                            } else {
                                                 new BukkitRunnable() {
                                                     @Override
                                                     public void run() {
@@ -1118,22 +1123,20 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                         reopenBountiesGUI();
                                                     }
                                                 }.runTask(NotBounties.getInstance());
-                                            } else {
-                                                new BukkitRunnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        // has permanent immunity
-                                                        sender.sendMessage(parse(speakings.get(0) + speakings.get(18), player.getName(), immunitySpent, player));
-                                                    }
-                                                }.runTask(NotBounties.getInstance());
                                             }
+                                        } else {
+                                            new BukkitRunnable() {
+                                                @Override
+                                                public void run() {
+                                                    NumberFormatting.doRemoveCommands(parser, total, new ArrayList<>());
+                                                    addBounty(parser, player, amount, whitelist);
+                                                    reopenBountiesGUI();
+                                                }
+                                            }.runTask(NotBounties.getInstance());
+
                                         }
-                                    }.runTaskAsynchronously(NotBounties.getInstance());
-                                } else {
-                                    NumberFormatting.doRemoveCommands(parser, total, new ArrayList<>());
-                                    addBounty(parser, player, amount, whitelist);
-                                    reopenBountiesGUI();
-                                }
+                                    }
+                                }.runTaskAsynchronously(NotBounties.getInstance());
                             } else {
                                 sender.sendMessage(parse(speakings.get(0) + speakings.get(6), total, parser));
                             }

@@ -125,6 +125,10 @@ public class ConfigOptions {
     public static List<String> rewardHeadLore;
     public static String boardName;
     public static int updateName;
+    public static boolean townyAdvancedEnabled;
+    public static boolean townyNation;
+    public static boolean townyTown;
+    public static boolean townyAllies;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -134,6 +138,7 @@ public class ConfigOptions {
         liteBansEnabled = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
         betterTeamsEnabled = Bukkit.getPluginManager().isPluginEnabled("BetterTeams");
+        townyAdvancedEnabled = Bukkit.getPluginManager().isPluginEnabled("Towny");
         language = new File(bounties.getDataFolder() + File.separator + "language.yml");
 
         if (skinsRestorerEnabled)
@@ -212,7 +217,7 @@ public class ConfigOptions {
         }
 
         NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
-
+        PVPRestrictions.setPVPRestrictions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("pvp-restrictions")));
 
         bountyExpire = bounties.getConfig().getInt("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
@@ -292,6 +297,9 @@ public class ConfigOptions {
         teamsPlaceholder = bounties.getConfig().getString("teams.placeholder");
         boardName = bounties.getConfig().getString("bounty-board.item-name");
         updateName = bounties.getConfig().getInt("bounty-board.update-name");
+        townyNation = bounties.getConfig().getBoolean("teams.towny-nation");
+        townyTown = bounties.getConfig().getBoolean("teams.towny-town");
+        townyAllies = bounties.getConfig().getBoolean("teams.towny-allies");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
@@ -482,6 +490,7 @@ public class ConfigOptions {
             configuration.set("bounty-stat.deaths.long", configuration.getString("bounty-stat-deaths"));
             configuration.set("bounty-stat.set.long", configuration.getString("bounty-stat-set"));
             configuration.set("bounty-stat.immunity.long", configuration.getString("bounty-stat-immunity"));
+            configuration.set("bounty-stat-all", null);
         }
         if (bounties.getConfig().isSet("buy-own-bounties.lore-addition") && !configuration.isSet("buy-back-lore")) {
             List<String> bbLore;
