@@ -14,7 +14,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -230,20 +229,55 @@ public class Events implements Listener {
             NumberFormatting.doAddCommands(event.getEntity().getKiller(), bounty.getTotalBounty(killer));
         } else {
             // give voucher
-            ItemStack item = new ItemStack(Material.PAPER);
-            ItemMeta meta = item.getItemMeta();
-            assert meta != null;
-            meta.setDisplayName(parse(speakings.get(40), event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(killer), (Player) event.getEntity()));
-            ArrayList<String> lore = new ArrayList<>();
-            for (String str : voucherLore) {
-                lore.add(parse(str, event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(killer), (Player) event.getEntity()));
+
+            if (RRLVoucherPerSetter) {
+                // multiple vouchers
+                for (Setter setter : bounty.getSetters()) {
+                    if (!setter.canClaim(killer))
+                        continue;
+                    ItemStack item = new ItemStack(Material.PAPER);
+                    ItemMeta meta = item.getItemMeta();
+                    assert meta != null;
+                    ArrayList<String> lore = new ArrayList<>();
+                    for (String str : voucherLore) {
+                        lore.add(parse(str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(),setter.getAmount(), (Player) event.getEntity()));
+                    }
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                    meta.setDisplayName(parse(speakings.get(40).replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), setter.getAmount(), (Player) event.getEntity()));
+                    ArrayList<String> setterLore = new ArrayList<>(lore);
+                    if (!RRLSetterLoreAddition.isEmpty()) {
+                        setterLore.add(parse(RRLSetterLoreAddition, setter.getName(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
+                    }
+                    setterLore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + setter.getAmount());
+                    meta.setLore(setterLore);
+                    item.setItemMeta(meta);
+                    item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
+                    NumberFormatting.givePlayer(event.getEntity().getKiller(), item, 1);
+                }
+            } else {
+                // one voucher
+                ItemStack item = new ItemStack(Material.PAPER);
+                ItemMeta meta = item.getItemMeta();
+                assert meta != null;
+                ArrayList<String> lore = new ArrayList<>();
+                for (String str : voucherLore) {
+                    lore.add(parse(str, event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(killer), (Player) event.getEntity()));
+                }
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                meta.setDisplayName(parse(speakings.get(40), event.getEntity().getName(), Objects.requireNonNull(event.getEntity().getKiller()).getName(), bounty.getTotalBounty(killer), (Player) event.getEntity()));
+                if (!RRLSetterLoreAddition.isEmpty()) {
+                    for (Setter setter : bounty.getSetters()) {
+                        if (!setter.canClaim(killer))
+                            continue;
+                        lore.add(parse(RRLSetterLoreAddition, setter.getName(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
+                    }
+                }
+                lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));
+                meta.setLore(lore);
+                item.setItemMeta(meta);
+                item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
+                NumberFormatting.givePlayer(event.getEntity().getKiller(), item, 1);
             }
-            lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            item.setItemMeta(meta);
-            item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
-            NumberFormatting.givePlayer(event.getEntity().getKiller(), item, 1);
         }
         if (SQL.isConnected()) {
             data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(killer), 0, 0);
@@ -575,7 +609,8 @@ public class Events implements Listener {
                 }
             }
 
-        if (event.getAction() == Action.RIGHT_CLICK_AIR) {
+        // redeem reward later
+        if (event.getAction() == Action.RIGHT_CLICK_AIR && !NumberFormatting.manualEconomy) {
             if (event.getItem() != null) {
                 ItemStack item = event.getItem();
                 Player player = event.getPlayer();
@@ -588,7 +623,7 @@ public class Events implements Listener {
                                     String reward = ChatColor.stripColor(lastLine).substring(1);
                                     double amount;
                                     try {
-                                        amount = Double.parseDouble(reward);
+                                        amount = NumberFormatting.tryParse(reward);
                                     } catch (NumberFormatException ignored) {
                                         player.sendMessage(ChatColor.RED + "Error redeeming reward");
                                         return;

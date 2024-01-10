@@ -40,11 +40,12 @@ public class NumberFormatting {
     private static VaultClass vaultClass = null;
     public static boolean vaultEnabled;
     public static boolean overrideVault;
-
+    public static boolean manualEconomy;
 
     public static void setCurrencyOptions(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
         vaultEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
         overrideVault = currencyOptions.getBoolean("override-vault");
+        manualEconomy = currencyOptions.getBoolean("manual-economy");
         if (vaultEnabled && !overrideVault) {
             vaultClass = new VaultClass();
             //Bukkit.getLogger().info("Using Vault as currency!");
@@ -279,6 +280,8 @@ public class NumberFormatting {
 
 
     public static Map<Material, Long> doRemoveCommands(Player p, double amount, List<ItemStack> additionalItems) {
+        if (manualEconomy)
+            return new HashMap<>();
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.withdraw(p, amount)) {
                 return new HashMap<>();
@@ -572,6 +575,8 @@ public class NumberFormatting {
     }
 
     public static void doAddCommands(Player p, double amount) {
+        if (manualEconomy)
+            return;
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.deposit(p, amount)) {
                 return;

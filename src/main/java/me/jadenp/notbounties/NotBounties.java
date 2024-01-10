@@ -33,7 +33,7 @@ import static me.jadenp.notbounties.utils.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
- * only allow pvp with bounties
+ * Placeholder conditionals with bounty claim commands
  */
 
 public final class NotBounties extends JavaPlugin {

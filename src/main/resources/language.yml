@@ -48,7 +48,7 @@ bounty-top: '&9&l{rank}. &d{player} &7> &a{amount}'
 bounty-top-title: '&7&m               &r &d&lBounties &9&lTop &7&m               '
 enable-broadcast: '&eYou have &aenabled &ebounty broadcast!'
 disable-broadcast: '&eYou have &cdisabled &ebounty broadcast!'
-bounty-voucher-name: '&6{player}''s&e claimed bounty of &a{amount}&e.'
+bounty-voucher-name: '&6{player}''s&e claimed bounty of &a{bounty}&e.'
 bounty-voucher-lore:
   - ''
   - '&2Awarded to {receiver}'

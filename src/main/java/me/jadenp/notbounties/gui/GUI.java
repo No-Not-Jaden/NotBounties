@@ -10,6 +10,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -413,12 +414,12 @@ public class GUI implements Listener {
 
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void asyncChatEvent(AsyncPlayerChatEvent event) {
         if (commandPrompts.containsKey(event.getPlayer().getUniqueId())) {
             CommandPrompt commandPrompt = commandPrompts.get(event.getPlayer().getUniqueId());
             commandPrompts.remove(event.getPlayer().getUniqueId());
-            String command = commandPrompt.getCommand().replace("<~placeholder~>", event.getMessage());
+            String command = commandPrompt.getCommand().replace("<~placeholder~>", ChatColor.stripColor(event.getMessage()));
             event.setCancelled(true);
             new BukkitRunnable() {
                 @Override

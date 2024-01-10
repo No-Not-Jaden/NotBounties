@@ -129,6 +129,8 @@ public class ConfigOptions {
     public static boolean townyNation;
     public static boolean townyTown;
     public static boolean townyAllies;
+    public static boolean RRLVoucherPerSetter;
+    public static String RRLSetterLoreAddition;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -206,6 +208,9 @@ public class ConfigOptions {
             BountyMap.cleanPosters();
             bounties.getConfig().set("bounty-posters.clean-posters", false);
         }
+        if (bounties.getConfig().isBoolean("redeem-reward-later"))
+            bounties.getConfig().set("redeem-reward-later.enabled", bounties.getConfig().getBoolean("redeem-reward-later"));
+
 
         // fill in any missing default settings
         for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
@@ -241,7 +246,9 @@ public class ConfigOptions {
         TABDistance = bounties.getConfig().getBoolean("bounty-tracker.action-bar.distance");
         TABPosition = bounties.getConfig().getBoolean("bounty-tracker.action-bar.position");
         TABWorld = bounties.getConfig().getBoolean("bounty-tracker.action-bar.world");
-        redeemRewardLater = bounties.getConfig().getBoolean("redeem-reward-later");
+        redeemRewardLater = bounties.getConfig().getBoolean("redeem-reward-later.enabled");
+        RRLVoucherPerSetter = bounties.getConfig().getBoolean("redeem-reward-later.voucher-per-setter");
+        RRLSetterLoreAddition = bounties.getConfig().getString("redeem-reward-later.setter-lore-addition");
         minBroadcast = bounties.getConfig().getInt("minimum-broadcast");
         bBountyThreshold = bounties.getConfig().getInt("big-bounties.bounty-threshold");
         bBountyParticle = bounties.getConfig().getBoolean("big-bounties.particle");
