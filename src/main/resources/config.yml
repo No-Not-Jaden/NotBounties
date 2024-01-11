@@ -16,6 +16,9 @@ currency:
   # first - only the first currency in the object list will be given
   # ratio - a ratio of the currencies with their weights will be given
   add-single-currency: descending
+  # this option will disable adding and removing currency requiring the players to do it themselves and on the honor system
+  # I suggest pairing this up with the redeem-reward-later option for a voucher of proof
+  manual-economy: false
 # formatting of large numbers
 number-formatting:
   # Same as EssentialsX config
@@ -62,6 +65,15 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 12 hours
 remove-banned-players: true
+# this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
+redeem-reward-later:
+  enabled: false
+  # this will give a voucher for every different person who set a bounty
+  voucher-per-setter: false
+  # additional line or lines at the end of bounty-voucher-lore in language.yml
+  # leave blank for no line addition
+  # if you decide to not use this and are using voucher-per-setter, you can get the specific setter amount in bounty-voucher-name and bounty-voucher-lore with {amount}
+  setter-lore-addition: '&8{player} set a bounty of {amount}'
 # restrict PVP
 pvp-restrictions:
   # worlds to restrict PVP
@@ -151,7 +163,7 @@ wanted-tag:
   #   ex: @(killer)notbounties.view [killer] msg {player} It wasn't personal.
   # you can combine these too
   #   This will auto-respawn the player if the bounty is between 10 and 100, and they have the permission plugin.quick-respawn
-  #   ex: <(10) <(100) @(player)plugin.quick-respawn <respawn>
+  #   ex: >(10) <(100) @(player)plugin.quick-respawn <respawn>
   # a command that is just <respawn> will force the player to respawn. This is useful if you want to tp them somewhere after they die
   # You can use placeholders, but they will always be parsed for the player who died
 bounty-claim-commands: []
@@ -230,13 +242,12 @@ reward-heads:
   setters: true
   # give player head of victim to the killer once claimed
   claimed: false
-# this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
-redeem-reward-later: false
 # players can buy their own bounties for an increased amount - uses remove-currency-commands
 buy-own-bounties:
   enabled: true
   # bounty set for $100 would have to be bought for $125
   cost-multiply: 1.25
+# preventing bounties from being set
 immunity:
   # players can buy immunity from having bounties set on them as opposed to having immunity from the permission node notbounties.immune
   # Immunity types:
@@ -271,7 +282,7 @@ big-bounties:
   particle: true
   # commands to be executed when the player reaches a bounty over the threshold
   commands:
-    - 'execute run effect give {player} minecraft:glowing 10 0'
+    - 'minecraft:effect give {player} minecraft:glowing 10 0'
 # special compass allows you to track people with bounties
 bounty-tracker:
   # whether the compasses will actually track a player

@@ -1,5 +1,9 @@
 package me.jadenp.notbounties.utils;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import me.jadenp.notbounties.NotBounties;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -8,6 +12,8 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Base64;
@@ -50,12 +56,33 @@ public class Head {
         try {
             meta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
         } catch (NullPointerException e) {
-            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getPlayerName(uuid));
-            profile.setTextures(Bukkit.getOfflinePlayer(uuid).getPlayerProfile().getTextures());
-            meta.setOwnerProfile(profile);
+            if (NotBounties.serverVersion >= 18) {
+                PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getPlayerName(uuid));
+                profile.setTextures(Bukkit.getOfflinePlayer(uuid).getPlayerProfile().getTextures());
+                meta.setOwnerProfile(profile);
+            } else {
+               Bukkit.getLogger().warning("[NotBounties] No supported way to get player texture!");
+            }
         }
         head.setItemMeta(meta);
         return head;
+    }
+
+    public static URL getTextureURL(UUID uuid) {
+        try {
+            URL url = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid);
+            InputStreamReader reader = new InputStreamReader(url.openStream());
+            JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseReader(reader).getAsJsonObject() : new JsonParser().parse(reader).getAsJsonObject();
+            JsonObject textureProperty = input.get("properties").getAsJsonArray().get(0).getAsJsonObject();
+            String texture = textureProperty.get("value").getAsString();
+            reader.close();
+            String urlJson = new String(Base64.getDecoder().decode(texture));
+            JsonObject urlInput = NotBounties.serverVersion >= 18 ? JsonParser.parseString(urlJson).getAsJsonObject() : new JsonParser().parse(urlJson).getAsJsonObject();
+            JsonElement skinURL = urlInput.get("textures").getAsJsonObject().get("SKIN").getAsJsonObject().get("url");
+            return new URL(skinURL.getAsString());
+        } catch (IOException e) {
+            return null;
+        }
     }
 
 

@@ -398,7 +398,7 @@ public class GUI implements Listener {
                     command = command.substring(10);
                     String prompt = "&eEnter anything in chat.";
                     if (command.contains("<") && command.substring(command.indexOf("<")).contains(">")) {
-                        prompt = command.substring(command.indexOf("<") + 1, command.indexOf(">"));
+                        prompt = command.substring(command.indexOf("<") + 1, command.substring(0,command.indexOf("<")).length() + command.substring(command.indexOf("<")).indexOf(">"));
                     }
                     event.getWhoClicked().closeInventory();
                     event.getWhoClicked().sendMessage(parse(prompt, (OfflinePlayer) event.getWhoClicked()));

@@ -2,6 +2,7 @@ package me.jadenp.notbounties.map;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.gui.HeadFetcher;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
@@ -64,17 +65,14 @@ public class Renderer extends MapRenderer {
                 if (image == null)
                     image = BountyMap.deepCopy(BountyMap.bountyPoster);
                 Graphics2D graphics = image.createGraphics();
-                BufferedImage head = null;
-                if (ConfigOptions.skinsRestorerEnabled) {
-                    head = ConfigOptions.skinsRestorerClass.getPlayerFace(uuid, name);
-                }
-                if (head == null) {
+                BufferedImage head = new HeadFetcher().getPlayerFace(uuid);
+                /*if (head == null) {
                     try {
                         head = ImageIO.read(new URL("https://cravatar.eu/helmavatar/" + uuid + "/64.png"));
                     } catch (IOException e) {
                         Bukkit.getLogger().warning(e.toString());
                     }
-                }
+                }*/
                 graphics.drawImage(head, 32, 32, null);
 
                 // center of text is y112

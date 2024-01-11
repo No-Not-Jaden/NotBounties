@@ -23,7 +23,7 @@ public class AboveNameText {
 
     public void updateArmorStand(){
         if (player != null && player.isOnline() && BountyManager.hasBounty(player)) {
-            if ((hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR)) {
+            if ((hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible()) {
                 if (armorStand != null)
                     removeStand();
                 return;

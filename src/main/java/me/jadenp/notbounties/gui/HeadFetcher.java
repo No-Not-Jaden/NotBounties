@@ -1,7 +1,9 @@
 package me.jadenp.notbounties.gui;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.Head;
+import me.jadenp.notbounties.utils.SkinsRestorerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -14,6 +16,10 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -64,6 +70,54 @@ public class HeadFetcher {
 
             }
         }.runTaskLaterAsynchronously(NotBounties.getInstance(), 1);
+    }
+
+    public BufferedImage getPlayerFace(UUID uuid) {
+
+        String name = NotBounties.getPlayerName(uuid);
+        try {
+            URL textureUrl = null;
+            if (ConfigOptions.skinsRestorerEnabled)
+                textureUrl = new URL(ConfigOptions.skinsRestorerClass.getSkinTextureURL(uuid, name));
+            if (textureUrl == null)
+                textureUrl = Head.getTextureURL(uuid);
+            //Bukkit.getLogger().info("URL: " + textureUrl);
+            if (textureUrl == null)
+                return null;
+            BufferedImage skin = ImageIO.read(textureUrl);
+            BufferedImage head = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+            try {
+                // base head
+                copySquare(skin, head, 8,8);
+                // mask
+                copySquare(skin, head, 40, 8);
+            } catch (IndexOutOfBoundsException e) {
+                Bukkit.getLogger().warning(e.toString());
+                return null;
+            }
+            return head;
+
+        } catch (IOException e) {
+            Bukkit.getLogger().warning(e.toString());
+        }
+        return null;
+    }
+
+    private void copySquare(BufferedImage from, BufferedImage to, int x, int y) {
+        for (int x1 = 0; x1 < 8; x1++) {
+            for (int y1 = 0; y1 < 8; y1++) {
+                int color = from.getRGB(x + x1, y + y1);
+                int a = (color>>24)&0xFF;
+                if (a == 0)
+                    continue;
+                for (int x2 = 0; x2 < 8; x2++) {
+                    for (int y2 = 0; y2 < 8; y2++) {
+                        to.setRGB(x1 * 8 + x2, y1 * 8 + y2, color);
+                    }
+                }
+
+            }
+        }
     }
 
     private ItemStack copyItemText(ItemStack from, ItemStack to) {
