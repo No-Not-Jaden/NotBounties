@@ -47,7 +47,15 @@ public class MySQL {
     }
 
     public boolean isConnected() {
-        return connection != null;
+        if (connection == null)
+            return false;
+        try {
+            if (connection.isClosed())
+                return false;
+        } catch (SQLException e) {
+            return false;
+        }
+        return true;
     }
 
     public void connect() throws SQLException {

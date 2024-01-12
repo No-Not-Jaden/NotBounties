@@ -58,7 +58,7 @@ public class BountyManager {
         // create bounties file if one doesn't exist
         try {
             if (bounties.createNewFile()) {
-                Bukkit.getLogger().info("Created new storage file.");
+                Bukkit.getLogger().info("[NotBounties] Created new storage file.");
             } else {
                 // get existing bounties file
                 YamlConfiguration configuration = YamlConfiguration.loadConfiguration(bounties);
@@ -222,11 +222,11 @@ public class BountyManager {
             }
 
             if (SQL.isConnected()) {
-                Bukkit.getLogger().info("Database is connected!");
+                Bukkit.getLogger().info("[NotBounties] Database is connected!");
                 data.createTable();
                 data.createDataTable();
                 if (!bountyList.isEmpty() && migrateLocalData) {
-                    Bukkit.getLogger().info("Migrating local storage to database");
+                    Bukkit.getLogger().info("[NotBounties] Migrating local storage to database");
                     // add entries to database
                     for (Bounty bounty : bountyList) {
                         if (bounty.getTotalBounty() != 0) {
@@ -278,7 +278,7 @@ public class BountyManager {
                     allTimeBounties.clear();
                     immunitySpent.clear();
                 }
-                Bukkit.getLogger().info("Cleared up " + data.removeExtraData() + " unused rows in the database!");
+                Bukkit.getLogger().info("[NotBounties] Cleared up " + data.removeExtraData() + " unused rows in the database!");
             } else {
                 return false;
             }
@@ -305,8 +305,6 @@ public class BountyManager {
     }
 
     public static boolean hasBounty(OfflinePlayer receiver) {
-        if (SQL.isConnected())
-            return data.getBounty(receiver.getUniqueId()) != null;
         return getBounty(receiver) != null;
     }
 

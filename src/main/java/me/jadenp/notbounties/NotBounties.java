@@ -34,6 +34,9 @@ import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
  * Placeholder conditionals with bounty claim commands
+ * Timed Bounties for surviving
+ * Proxy Messaging
+ * SQL online players
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -125,7 +128,7 @@ public final class NotBounties extends JavaPlugin {
 
 
         if (!tryToConnect()) {
-            Bukkit.getLogger().info("Database not connected, using internal storage");
+            Bukkit.getLogger().info("[NotBounties] Database not connected, using internal storage");
         }
 
         // update checker
@@ -352,7 +355,7 @@ public final class NotBounties extends JavaPlugin {
                 // random bounties
                 if (randomBountyMinTime != 0 && nextRandomBounty != 0 && System.currentTimeMillis() > nextRandomBounty) {
 
-                    String uuid = (String) loggedPlayers.values().toArray()[(int) (Math.random() * loggedPlayers.values().size())];
+                    String uuid = randomBountyOfflineSet ? (String) loggedPlayers.values().toArray()[(int) (Math.random() * loggedPlayers.values().size())] : ((Player) Bukkit.getOnlinePlayers().toArray()[(int) (Math.random() * Bukkit.getOnlinePlayers().size())]).getUniqueId().toString();
                     try {
                         OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
                         new BukkitRunnable() {

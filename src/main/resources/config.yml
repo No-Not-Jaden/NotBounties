@@ -178,6 +178,8 @@ murder-bounty:
   exclude-claiming: true
 # set a random bounty every once in a while
 random-bounties:
+  # include offline players in the random bounties
+  offline-set: true
   # minimum seconds between next random bounty - 0 to disable
   min-time: 0 # 86400 seconds in a day
   # maximum seconds between next random bounty

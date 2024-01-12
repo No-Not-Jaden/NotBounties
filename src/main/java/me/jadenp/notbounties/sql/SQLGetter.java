@@ -40,7 +40,8 @@ public class SQLGetter {
                     "    whitelist VARCHAR(369)" +
                     ");");
             ps.executeUpdate();
-            ps = SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = '" + SQL.getDatabase() + "' and table_name = 'notbounties' and column_name = 'amount';");
+            ps = SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = ? and table_name = 'notbounties' and column_name = 'amount';");
+            ps.setString(1, SQL.getDatabase());
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
                 if (rs.getString("data_type").equalsIgnoreCase("bigint")){
@@ -75,7 +76,8 @@ public class SQLGetter {
                     "    PRIMARY KEY (uuid)" +
                     ");");
             ps.executeUpdate();
-            ps = SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = 'jadenplugins' and table_name = 'bounty_data' and column_name = 'claimed';");
+            ps = SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = ? and table_name = 'bounty_data' and column_name = 'claimed';");
+            ps.setString(1, SQL.getDatabase());
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
                 if (rs.getString("data_type").equalsIgnoreCase("int")){
@@ -387,13 +389,11 @@ public class SQLGetter {
 
     public Bounty getBounty(UUID uuid) {
         try {
-            PreparedStatement ps = SQL.getConnection().prepareStatement("SELECT * FROM notbounties WHERE uuid = ?;");
+            PreparedStatement ps = SQL.getConnection().prepareStatement("SELECT * FROM `notbounties` WHERE uuid = ?;");
             ps.setString(1, uuid.toString());
             ResultSet rs = ps.executeQuery();
             List<Setter> setters = new ArrayList<>();
             String name = "";
-            if (rs.getFetchSize() == 0)
-                return null;
             while (rs.next()){
                 if (name.isEmpty()){
                     name = rs.getString("name");
@@ -401,6 +401,8 @@ public class SQLGetter {
                 UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(rs.getString("suuid"));
                 setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist"))));
             }
+            if (setters.isEmpty())
+                return null;
             return new Bounty(uuid, setters, name);
         } catch (SQLException e){
             if (reconnect()){

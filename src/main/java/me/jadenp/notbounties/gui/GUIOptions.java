@@ -183,9 +183,12 @@ public class GUIOptions {
             assert meta != null;
 
             long time = System.currentTimeMillis();
+            Bounty bounty = getBounty(p);
             if (type.equals("bounty-gui")) {
                 amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
-                time = Objects.requireNonNull(getBounty(p)).getLatestSetter();
+                if (bounty != null) {
+                    time = bounty.getLatestSetter();
+                }
             } else {
                 Leaderboard leaderboard = null;
                 try {
@@ -221,18 +224,19 @@ public class GUIOptions {
                     }
                 }
                 // whitelist
-                Bounty bounty = getBounty(p);
-                assert bounty != null;
-                if (bounty.getAllWhitelists().contains(player.getUniqueId())) {
-                    whitelistNotify.stream().map(str -> parse(str, player)).forEach(lore::add);
-                } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId())) {
-                    whitelistNotify.stream().map(str -> parse(str, player)).forEach(lore::add);
-                } else if (showWhitelistedBounties || player.hasPermission("notbounties.admin")) {
-                    // not whitelisted
-                    for (Setter setter : bounty.getSetters()) {
-                        if (!setter.canClaim(player)) {
-                            notWhitelistedLore.stream().map(str -> parse(str, player)).forEach(lore::add);
-                            break;
+
+                if (bounty != null) {
+                    if (bounty.getAllWhitelists().contains(player.getUniqueId())) {
+                        whitelistNotify.stream().map(str -> parse(str, player)).forEach(lore::add);
+                    } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId())) {
+                        whitelistNotify.stream().map(str -> parse(str, player)).forEach(lore::add);
+                    } else if (showWhitelistedBounties || player.hasPermission("notbounties.admin")) {
+                        // not whitelisted
+                        for (Setter setter : bounty.getSetters()) {
+                            if (!setter.canClaim(player)) {
+                                notWhitelistedLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+                                break;
+                            }
                         }
                     }
                 }

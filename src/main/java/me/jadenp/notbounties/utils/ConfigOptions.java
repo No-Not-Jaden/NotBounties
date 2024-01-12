@@ -11,7 +11,6 @@ import me.jadenp.notbounties.map.BountyMap;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
@@ -132,6 +131,7 @@ public class ConfigOptions {
     public static boolean townyAllies;
     public static boolean RRLVoucherPerSetter;
     public static String RRLSetterLoreAddition;
+    public static boolean randomBountyOfflineSet;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -308,6 +308,7 @@ public class ConfigOptions {
         townyNation = bounties.getConfig().getBoolean("teams.towny-nation");
         townyTown = bounties.getConfig().getBoolean("teams.towny-town");
         townyAllies = bounties.getConfig().getBoolean("teams.towny-allies");
+        randomBountyOfflineSet = bounties.getConfig().getBoolean("random-bounties.offline-set");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
