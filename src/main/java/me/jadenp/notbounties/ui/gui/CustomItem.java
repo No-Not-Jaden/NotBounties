@@ -1,6 +1,6 @@
-package me.jadenp.notbounties.gui;
+package me.jadenp.notbounties.ui.gui;
 
-import me.jadenp.notbounties.utils.Head;
+import me.jadenp.notbounties.ui.Head;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.color;
-import static me.jadenp.notbounties.utils.ConfigOptions.parse;
+import static me.jadenp.notbounties.utils.LanguageOptions.color;
+import static me.jadenp.notbounties.utils.LanguageOptions.parse;
 
 public class CustomItem {
     private final Material material;

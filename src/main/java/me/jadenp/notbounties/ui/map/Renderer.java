@@ -1,8 +1,8 @@
-package me.jadenp.notbounties.map;
+package me.jadenp.notbounties.ui.map;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.gui.HeadFetcher;
+import me.jadenp.notbounties.ui.HeadFetcher;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
@@ -23,7 +23,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;

@@ -1,8 +1,9 @@
-package me.jadenp.notbounties.map;
+package me.jadenp.notbounties.ui.map;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
@@ -55,7 +56,7 @@ public class BountyBoard {
                 ItemStack map = BountyMap.getMap(bounty);
                 ItemMeta mapMeta = map.getItemMeta();
                 assert mapMeta != null;
-                mapMeta.setDisplayName(ConfigOptions.parse(ConfigOptions.boardName, bounty.getName(), bounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+                mapMeta.setDisplayName(LanguageOptions.parse(ConfigOptions.boardName, bounty.getName(), bounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
                 map.setItemMeta(mapMeta);
                 frame.setItem(map);
                 frame.setInvulnerable(true);

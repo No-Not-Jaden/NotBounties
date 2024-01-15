@@ -6,6 +6,7 @@ import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.sql.PreparedStatement;
@@ -90,6 +91,102 @@ public class SQLGetter {
             Bukkit.getLogger().warning(e.toString());
         }
     }
+    public void createOnlinePlayerTable() {
+        PreparedStatement ps;
+        try {
+            ps = SQL.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS bounty_players" +
+                    "(" +
+                    "    uuid CHAR(36) NOT NULL," +
+                    "    name VARCHAR(16) NOT NULL," +
+                    "    id INT DEFAULT 0 NOT NULL," +
+                    "    PRIMARY KEY (uuid)" +
+                    ");");
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            Bukkit.getLogger().warning(e.toString());
+        }
+    }
+    private long lastPlayerListRequest = 0;
+    private final List<OfflinePlayer> onlinePlayers = new ArrayList<>();
+    public List<OfflinePlayer> getOnlinePlayers() {
+        if (lastPlayerListRequest + 5000 > System.currentTimeMillis()) {
+            if (onlinePlayers.isEmpty())
+                onlinePlayers.addAll(Bukkit.getOnlinePlayers());
+            return onlinePlayers;
+        }
+        lastPlayerListRequest = System.currentTimeMillis();
+        return getNetworkPlayers();
+    }
+    private List<OfflinePlayer> getNetworkPlayers() {
+        List<OfflinePlayer> networkPlayers = new ArrayList<>();
+        try {
+            PreparedStatement ps = SQL.getConnection().prepareStatement("SELECT uuid FROM bounty_players;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                String uuid = rs.getString("uuid");
+                try {
+                    networkPlayers.add(Bukkit.getOfflinePlayer(UUID.fromString(uuid)));
+                } catch (IllegalArgumentException e) {
+                    Bukkit.getLogger().warning("[NotBounties] Removing invalid UUID on database: " + uuid);
+                    PreparedStatement ps1 = SQL.getConnection().prepareStatement("DELETE FROM bounty_players WHERE uuid = ?;");
+                    ps1.setString(1, uuid);
+                    ps1.executeUpdate();
+                }
+            }
+        } catch (SQLException e){
+            if (reconnect()){
+                return getNetworkPlayers();
+            }
+            if (debug)
+                Bukkit.getLogger().warning(e.toString());
+        }
+        return networkPlayers;
+    }
+    public void refreshOnlinePlayers() {
+        try {
+            PreparedStatement ps = SQL.getConnection().prepareStatement("DELETE FROM bounty_players WHERE id = ?;");
+            ps.setInt(1, SQL.getServerID());
+            ps.executeUpdate();
+        } catch (SQLException e){
+            if (reconnect()){
+                refreshOnlinePlayers();
+            }
+            if (debug)
+                Bukkit.getLogger().warning(e.toString());
+        }
+        for (Player player : Bukkit.getOnlinePlayers())
+            login(player);
+    }
+    public void logout(Player player) {
+        try {
+            PreparedStatement ps = SQL.getConnection().prepareStatement("DELETE FROM bounty_players WHERE uuid = ? AND id = ?;");
+            ps.setString(1, player.getUniqueId().toString());
+            ps.setInt(2, SQL.getServerID());
+            ps.executeUpdate();
+        } catch (SQLException e){
+            if (reconnect()){
+                logout(player);
+            }
+            if (debug)
+                Bukkit.getLogger().warning(e.toString());
+        }
+    }
+    public void login(Player player) {
+        try {
+            PreparedStatement ps = SQL.getConnection().prepareStatement("INSERT INTO bounty_players(uuid, name, id) VALUES(?, ?, ?) ON DUPLICATE KEY UPDATE id = ?;");
+            ps.setString(1, player.getUniqueId().toString());
+            ps.setString(2, player.getName());
+            ps.setInt(3, SQL.getServerID());
+            ps.setInt(4, SQL.getServerID());
+            ps.executeUpdate();
+        } catch (SQLException e){
+            if (reconnect()){
+                login(player);
+            }
+            if (debug)
+                Bukkit.getLogger().warning(e.toString());
+        }
+    }
     public void addData(String uuid, long claimed, long set, long received, double allTime, double immunity, double allClaimed){
         try {
             PreparedStatement ps = SQL.getConnection().prepareStatement("INSERT INTO bounty_data(uuid, claimed, sets, received, alltime, immunity, allclaimed) VALUES(?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE claimed = claimed + ?, sets = sets + ?, received = received + ?, alltime = alltime + ?, immunity = immunity + ?, allclaimed = allclaimed + ?;");
@@ -157,8 +254,8 @@ public class SQLGetter {
      * @param results maximum amount of results that could be returned
      * @return A descending ordered list of entries of a leaderboard stat
      */
-    public LinkedHashMap<String, Double> getTopStats(Leaderboard leaderboard, List<String> hiddenNames, int skip, int results){
-        LinkedHashMap<String, Double> data = new LinkedHashMap<>();
+    public LinkedHashMap<UUID, Double> getTopStats(Leaderboard leaderboard, List<String> hiddenNames, int skip, int results){
+        LinkedHashMap<UUID, Double> data = new LinkedHashMap<>();
         String listName = "";
         switch (leaderboard){
             case ALL:
@@ -183,7 +280,7 @@ public class SQLGetter {
                 for (Bounty bounty : getTopBounties(2)) {
                     if (hiddenNames.contains(bounty.getName()))
                         continue;
-                    data.put(bounty.getUUID().toString(), bounty.getTotalBounty());
+                    data.put(bounty.getUUID(), bounty.getTotalBounty());
                 }
                 return data;
         }
@@ -216,9 +313,9 @@ public class SQLGetter {
             while (rs.next()){
                 String uuid = rs.getString("uuid");
                 if (leaderboard.isMoney())
-                      data.put(uuid, rs.getDouble(2));
+                      data.put(UUID.fromString(uuid), rs.getDouble(2));
                 else
-                    data.put(uuid, (double) rs.getLong(2));
+                    data.put(UUID.fromString(uuid), (double) rs.getLong(2));
 
             }
         } catch (SQLException e){
@@ -460,7 +557,7 @@ public class SQLGetter {
         }
     }
     public List<Setter> removeOldBounties() {
-        long minTime = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * ConfigOptions.bountyExpire;
+        long minTime = (long) (System.currentTimeMillis() - 1000L * 60 * 60 * 24 * ConfigOptions.bountyExpire);
         try {
             PreparedStatement ps = SQL.getConnection().prepareStatement("DELETE notbounties WHERE time <= ?;");
             PreparedStatement ps1 = SQL.getConnection().prepareStatement("SELECT * FROM notbounties WHERE time <= ?;");

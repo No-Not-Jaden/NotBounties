@@ -1,7 +1,9 @@
 package me.jadenp.notbounties;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import me.jadenp.notbounties.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.LanguageOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
@@ -10,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Matcher;
 
@@ -51,6 +54,7 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_wanted%</p>
      * <p>%notbounties_notification%</p>
      * <p>%notbounties_mode%</p>
+     * <p>%notbounties_timed_bounty%</p>
      * @Depricated <p>%notbounties_bounties_claimed%</p>
      * <p>%notbounties_bounties_set%</p>
      * <p>%notbounties_bounties_received%</p>
@@ -61,7 +65,16 @@ public class BountyExpansion extends PlaceholderExpansion {
 
     @Override
     public String onRequest(OfflinePlayer player, String params){
-        String uuid = player.getUniqueId().toString();
+        UUID uuid = player.getUniqueId();
+        if (params.equalsIgnoreCase("timed_bounty")) {
+            if (BountyManager.hasBounty(player) && TimedBounties.isMaxed(Objects.requireNonNull(BountyManager.getBounty(player)).getTotalBounty()))
+                // maxed out, cant get any higher
+                return "";
+            long next = TimedBounties.getUntilNextBounty(player.getUniqueId());
+            if (next == -1)
+                return "";
+            return NotBounties.formatTime(next);
+        }
         if (params.equalsIgnoreCase("wanted")) {
             Bounty bounty = BountyManager.getBounty(player);
             if (bounty == null)
@@ -72,7 +85,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             Bounty bounty = BountyManager.getBounty(player);
             if (bounty != null){
                 if (params.endsWith("_formatted"))
-                    return color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty()) + NumberFormatting.currencySuffix);
+                    return LanguageOptions.color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty()) + NumberFormatting.currencySuffix);
                 return String.valueOf(bounty.getTotalBounty());
             }
             return "0";
@@ -103,25 +116,25 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (BountyManager.SQL.isConnected()){
                 return String.valueOf(BountyManager.data.getImmunity(player.getUniqueId().toString()));
             }
-            return String.valueOf(BountyManager.immunitySpent.get(player.getUniqueId().toString()));
+            return String.valueOf(BountyManager.immunitySpent.get(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("all_time_bounty")){
             if (BountyManager.SQL.isConnected()){
                 return String.valueOf(BountyManager.data.getAllTime(player.getUniqueId().toString()));
             }
-            return String.valueOf(BountyManager.allTimeBounties.get(player.getUniqueId().toString()));
+            return String.valueOf(BountyManager.allTimeBounties.get(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("currency_gained")){
             if (BountyManager.SQL.isConnected()){
                 return String.valueOf(BountyManager.data.getTotalClaimed(player.getUniqueId().toString()));
             }
-            return String.valueOf(BountyManager.allClaimedBounties.get(player.getUniqueId().toString()));
+            return String.valueOf(BountyManager.allClaimedBounties.get(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("notification")) {
-            if (NotBounties.disableBroadcast.contains(player.getUniqueId().toString())) {
+            if (NotBounties.disableBroadcast.contains(player.getUniqueId())) {
                 return "false";
             }
             return "true";
@@ -174,19 +187,19 @@ public class BountyExpansion extends PlaceholderExpansion {
                     return null;
                 }
             }
-            LinkedHashMap<String, Double> stat = leaderboard.getTop(rank - 1, 1);
+            LinkedHashMap<UUID, Double> stat = leaderboard.getTop(rank - 1, 1);
             if (stat.isEmpty())
                 return "0";
             boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL || leaderboard == Leaderboard.CURRENT;
-            Map.Entry<String, Double> entry = stat.entrySet().iterator().next();
+            Map.Entry<UUID, Double> entry = stat.entrySet().iterator().next();
             double amount = entry.getValue();
-            UUID uuid1 = UUID.fromString(entry.getKey());
+            UUID uuid1 = entry.getKey();
             String name = NotBounties.getPlayerName(uuid1);
             OfflinePlayer p = Bukkit.getOfflinePlayer(uuid1);
             if (ending == 1)
-                return parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(uuid1))), p);
+                return LanguageOptions.parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(uuid1))), p);
             if (ending == 2)
-                return parse(leaderboard.getFormattedStat(uuid1),p);
+                return LanguageOptions.parse(leaderboard.getFormattedStat(uuid1),p);
             if (ending == 3)
                 return NumberFormatting.getValue(leaderboard.getStat(uuid1));
             return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
@@ -197,9 +210,9 @@ public class BountyExpansion extends PlaceholderExpansion {
         try {
             Leaderboard leaderboard = Leaderboard.valueOf(value.toUpperCase());
             if (ending == 1)
-                return parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(player.getUniqueId()))), player);
+                return LanguageOptions.parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(player.getUniqueId()))), player);
             if (ending == 2)
-                return parse(leaderboard.getFormattedStat(player.getUniqueId()),player);
+                return LanguageOptions.parse(leaderboard.getFormattedStat(player.getUniqueId()),player);
             if (ending == 3)
                 return NumberFormatting.getValue(leaderboard.getStat(player.getUniqueId()));
             return NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId()));

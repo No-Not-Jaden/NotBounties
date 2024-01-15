@@ -1,9 +1,10 @@
-package me.jadenp.notbounties.gui;
+package me.jadenp.notbounties.ui;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.ui.gui.GUI;
+import me.jadenp.notbounties.ui.gui.GUIOptions;
+import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.ConfigOptions;
-import me.jadenp.notbounties.utils.Head;
-import me.jadenp.notbounties.utils.SkinsRestorerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;

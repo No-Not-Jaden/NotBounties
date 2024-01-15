@@ -1,10 +1,11 @@
-package me.jadenp.notbounties.map;
+package me.jadenp.notbounties.ui.map;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.LanguageOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -144,10 +145,10 @@ public class BountyMap implements Listener {
         MapMeta meta = (MapMeta) mapItem.getItemMeta();
         assert meta != null;
         meta.setMapView(mapView);
-        meta.setDisplayName(ConfigOptions.parse(ConfigOptions.speakings.get(66), bounty.getName(), bounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, bounty.getName(), bounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
         ArrayList<String> lore = new ArrayList<>();
-        for (String str : ConfigOptions.mapLore) {
-            lore.add(ConfigOptions.parse(str, bounty.getName(), bounty.getTotalBounty(), bounty.getLatestSetter(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+        for (String str : LanguageOptions.mapLore) {
+            lore.add(LanguageOptions.parse(str, bounty.getName(), bounty.getTotalBounty(), bounty.getLatestSetter(), Bukkit.getOfflinePlayer(bounty.getUUID())));
         }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

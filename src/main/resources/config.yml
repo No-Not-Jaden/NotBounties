@@ -49,6 +49,7 @@ bounty-tax: 0.0
 # players cannot go into debt
 death-tax: 0.0
 # how many real days until bounties expire | -1 to disable
+# the lowest this can go is 0.00347
 bounty-expire: -1
 # These player's bounty stats will be hidden from bounties top
 hide-stats:
@@ -65,6 +66,9 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 12 hours
 remove-banned-players: true
+# force the bounty claim procedure before the death event
+# do not enable this unless you know what you are doing
+force-death-event: false
 # this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
 redeem-reward-later:
   enabled: false
@@ -148,8 +152,13 @@ wanted-tag:
 # commands to be executed when a bounty is claimed
   # {player} is replaced with the person whose bounty was claimed
   # {killer} is replaced with the person who claimed the bounty
+  # {amount} is replaced with the bounty value
+  # {bounty} is replaced with the formatted bounty value
+  # {cost} is replaced with the formatted bounty value wrapped with the currency suffix and prefix
   # starting with [player] will run the command for the person whose bounty was claimed
   # starting with [killer] will run the command for the person who claimed the bounty
+  # starting with [message_player] will message the player with the NotBounties prefix
+  # starting with [message_killer] will message the killer with the NotBounties prefix
   # starting with nothing will run the command as console
   # using [sound_player] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the player
   # using [sound_killer] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the killer
@@ -158,6 +167,10 @@ wanted-tag:
   # adding >(amount) or <(amount) at the beginning will only run the following command if the claimed bounty was greater or equal to the amount
   #  This tempbans the player if they had a bounty claimed greater than or equal to 2500 currency
   #  ex: >(2499.99) tempban {player} 1h
+  # adding ~{player/killer({placeholder/material} {<|>|>=|<=|=|!=} {value}) will check a placeholder or material value before executing - The squiggly brackets are just to show the possible values
+  #  checking a material value of the player will not work unless they have respawned
+  #  This will message the killer if they have the bounty notification enabled
+  #  ex: ~killer(%notbounties_notification% = true) [message_killer] &eYou have claimed &6%notbounties_kills% &ebounties.
   # adding @(player/killer)permission or !@(player/killer)permission before everything with check for a permission of the player or killer to run the command
   #   This will check if the killer has the permission and will message the person they killed
   #   ex: @(killer)notbounties.view [killer] msg {player} It wasn't personal.
@@ -179,7 +192,7 @@ murder-bounty:
 # set a random bounty every once in a while
 random-bounties:
   # include offline players in the random bounties
-  offline-set: true
+  offline-set: false
   # minimum seconds between next random bounty - 0 to disable
   min-time: 0 # 86400 seconds in a day
   # maximum seconds between next random bounty
@@ -188,6 +201,18 @@ random-bounties:
   min-price: 10
   # maximum bounty price
   max-price: 100
+# add bounties after a set amount of time
+timed-bounties:
+  # the time in seconds before the next bounty is set - 0 to disable
+  time: 0
+  # how much the bounty will increase
+  bounty-increase: 10
+  # bounty amount that the player needs for timed-bounties to stop setting bounties - 0 to disable
+  max-bounty: 0
+  # reset the timer when the player dies
+  reset-on-death: true
+  # time will be tracked when the player is offline, and bounties will be set while they are offline
+  offline-tracking: false
 # wanted posters of bounty
 bounty-posters:
   # players can give themselves bounty posters of any bounty, otherwise, only admins can give posters
@@ -329,3 +354,6 @@ database:
   migrate-local-data: true
   # automatically try to connect to the database if a connection was lost
   auto-connect: false
+  # the id of the server used to get all players on the network
+  # this needs to be different for all servers connected to the same database
+  server-id: 1

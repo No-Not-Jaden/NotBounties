@@ -2,28 +2,26 @@ package me.jadenp.notbounties.utils;
 
 
 import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.BountyClaimCommands;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.gui.CustomItem;
-import me.jadenp.notbounties.gui.GUI;
-import me.jadenp.notbounties.gui.GUIOptions;
-import me.jadenp.notbounties.map.BountyMap;
+import me.jadenp.notbounties.autoBounties.MurderBounties;
+import me.jadenp.notbounties.autoBounties.RandomBounties;
+import me.jadenp.notbounties.autoBounties.TimedBounties;
+import me.jadenp.notbounties.ui.gui.CustomItem;
+import me.jadenp.notbounties.ui.gui.GUI;
+import me.jadenp.notbounties.ui.gui.GUIOptions;
+import me.jadenp.notbounties.ui.map.BountyMap;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryType;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static net.md_5.bungee.api.ChatColor.COLOR_CHAR;
 
 public class ConfigOptions {
     public static boolean autoConnect;
@@ -44,7 +42,7 @@ public class ConfigOptions {
     public static boolean bBountyParticle;
     public static int immunityType;
     public static double timeImmunity;
-    public static int permanentCost;
+    public static double permanentCost;
     public static double scalingRatio;
     public static int graceTime;
     public static int minBounty;
@@ -54,14 +52,8 @@ public class ConfigOptions {
     public static boolean rewardHeadSetter;
     public static boolean buyBack;
     public static double buyBackInterest;
-    public static List<String> buyBackLore;
-    //public static boolean usingPapi;
-    public static int bountyExpire;
+    public static double bountyExpire;
     public static boolean papiEnabled;
-    public static File language;
-    public static List<String> trackerLore;
-    public static List<String> voucherLore;
-    public static final List<String> speakings = new ArrayList<>();
     public static List<String> hiddenNames = new ArrayList<>();
     public static boolean updateNotification;
     public static final Map<String, CustomItem> customItems = new HashMap<>();
@@ -72,9 +64,8 @@ public class ConfigOptions {
     public static double bountyWhitelistCost;
     public static boolean HDBEnabled;
     public static int maxSetters;
-    public static List<String> notWhitelistedLore;
-    public static List<String> mapLore;
-    private static DateFormat dateFormat;
+
+    static DateFormat dateFormat;
     public static boolean giveOwnMap;
     public static boolean displayReward;
     public static String rewardText;
@@ -83,27 +74,18 @@ public class ConfigOptions {
     public static boolean bountyWhitelistEnabled;
     public static int updateInterval;
     public static boolean confirmation;
-    public static List<String> adminEditLore;
+
     public static boolean showWhitelistedBounties;
     public static boolean variableWhitelist;
-    public static List<String> whitelistNotify;
-    public static List<String> whitelistLore;
-    public static int murderCooldown;
-    public static double murderBountyIncrease;
-    public static boolean murderExcludeClaiming;
+
     public static String consoleName;
-    public static int randomBountyMinTime;
-    public static int randomBountyMaxTime;
-    public static double randomBountyMinPrice;
-    public static double randomBountyMaxPrice;
     public static boolean enableBlacklist;
-    public static List<String> blacklistLore;
+
     public static boolean liteBansEnabled;
     public static boolean removeBannedPlayers;
     public static boolean saveTemplates;
     public static String nameLine;
     public static boolean alwaysUpdate;
-    public static List<String> bountyClaimCommands = new ArrayList<>();
     public static boolean wanted;
     public static double wantedOffset;
     public static String wantedText;
@@ -122,7 +104,7 @@ public class ConfigOptions {
     public static boolean btAllies;
     public static boolean betterTeamsEnabled;
     public static String teamsPlaceholder;
-    public static List<String> rewardHeadLore;
+
     public static String boardName;
     public static int updateName;
     public static boolean townyAdvancedEnabled;
@@ -131,7 +113,9 @@ public class ConfigOptions {
     public static boolean townyAllies;
     public static boolean RRLVoucherPerSetter;
     public static String RRLSetterLoreAddition;
-    public static boolean randomBountyOfflineSet;
+    public static boolean forceDeathEvent;
+    public static boolean geyserEnabled;
+    public static boolean floodgateEnabled;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -142,7 +126,8 @@ public class ConfigOptions {
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
         betterTeamsEnabled = Bukkit.getPluginManager().isPluginEnabled("BetterTeams");
         townyAdvancedEnabled = Bukkit.getPluginManager().isPluginEnabled("Towny");
-        language = new File(bounties.getDataFolder() + File.separator + "language.yml");
+        geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
+        floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
 
         if (skinsRestorerEnabled)
             skinsRestorerClass = new SkinsRestorerClass();
@@ -215,24 +200,26 @@ public class ConfigOptions {
 
         // fill in any missing default settings
         for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
-            // Bukkit.getLogger().info("[key] " + key);
             if (!bounties.getConfig().isSet(key)) {
-                //Bukkit.getLogger().info("Not set -> " + config.getDefaults().get(key));
                 bounties.getConfig().set(key, bounties.getConfig().getDefaults().get(key));
             }
         }
 
-        NumberFormatting.setCurrencyOptions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
-        PVPRestrictions.setPVPRestrictions(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("pvp-restrictions")));
+        NumberFormatting.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
+        PVPRestrictions.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("pvp-restrictions")));
+        MurderBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("murder-bounty")));
+        RandomBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("random-bounties")));
+        TimedBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("timed-bounties")));
+        BountyClaimCommands.loadConfiguration(bounties.getConfig().getStringList("bounty-claim-commands"));
 
-        bountyExpire = bounties.getConfig().getInt("bounty-expire");
+        bountyExpire = bounties.getConfig().getDouble("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
         buyBack = bounties.getConfig().getBoolean("buy-own-bounties.enabled");
         buyBackInterest = bounties.getConfig().getDouble("buy-own-bounties.cost-multiply");
         immunityType = bounties.getConfig().getInt("immunity.type");
         timeImmunity = bounties.getConfig().getDouble("immunity.time-immunity.seconds");
-        permanentCost = bounties.getConfig().getInt("immunity.permanent-immunity.cost");
+        permanentCost = bounties.getConfig().getDouble("immunity.permanent-immunity.cost");
         scalingRatio = bounties.getConfig().getDouble("immunity.scaling-immunity.ratio");
         graceTime = bounties.getConfig().getInt("immunity.grace-period");
         minBounty = bounties.getConfig().getInt("minimum-bounty");
@@ -275,20 +262,12 @@ public class ConfigOptions {
         confirmation = bounties.getConfig().getBoolean("confirmation");
         showWhitelistedBounties = bounties.getConfig().getBoolean("bounty-whitelist.show-all-bounty");
         variableWhitelist = bounties.getConfig().getBoolean("bounty-whitelist.variable-whitelist");
-        murderCooldown = bounties.getConfig().getInt("murder-bounty.player-cooldown");
-        murderBountyIncrease = bounties.getConfig().getDouble("murder-bounty.bounty-increase");
         consoleName = bounties.getConfig().getString("console-bounty-name");
-        murderExcludeClaiming = bounties.getConfig().getBoolean("murder-bounty.exclude-claiming");
-        randomBountyMinTime = bounties.getConfig().getInt("random-bounties.min-time");
-        randomBountyMaxTime = bounties.getConfig().getInt("random-bounties.max-time");
-        randomBountyMinPrice = bounties.getConfig().getDouble("random-bounties.min-price");
-        randomBountyMaxPrice = bounties.getConfig().getDouble("random-bounties.max-price");
         enableBlacklist = bounties.getConfig().getBoolean("bounty-whitelist.enable-blacklist");
         removeBannedPlayers = bounties.getConfig().getBoolean("remove-banned-players");
         saveTemplates = bounties.getConfig().getBoolean("bounty-posters.save-templates");
         nameLine = bounties.getConfig().getString("bounty-posters.name-line");
         alwaysUpdate = bounties.getConfig().getBoolean("bounty-posters.always-update");
-        bountyClaimCommands = bounties.getConfig().getStringList("bounty-claim-commands");
         wanted = bounties.getConfig().getBoolean("wanted-tag.enabled");
         wantedOffset = bounties.getConfig().getDouble("wanted-tag.offset");
         wantedText = bounties.getConfig().getString("wanted-tag.text");
@@ -308,7 +287,7 @@ public class ConfigOptions {
         townyNation = bounties.getConfig().getBoolean("teams.towny-nation");
         townyTown = bounties.getConfig().getBoolean("teams.towny-town");
         townyAllies = bounties.getConfig().getBoolean("teams.towny-allies");
-        randomBountyOfflineSet = bounties.getConfig().getBoolean("random-bounties.offline-set");
+        forceDeathEvent = bounties.getConfig().getBoolean("force-death-event");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
@@ -327,18 +306,14 @@ public class ConfigOptions {
 
         // add immunity that isn't in time tracker - this should only do anything when immunity is switched to time immunity
         if (immunityType == 3) {
-            Map<String, Double> immunity = BountyManager.SQL.isConnected() ? BountyManager.data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : BountyManager.immunitySpent;
-            for (Map.Entry<String, Double> entry : immunity.entrySet()) {
-                if (!NotBounties.immunityTimeTracker.containsKey(UUID.fromString(entry.getKey())))
-                    NotBounties.immunityTimeTracker.put(UUID.fromString(entry.getKey()), (long) ((entry.getValue() * timeImmunity * 1000) + System.currentTimeMillis()));
+            Map<UUID, Double> immunity = BountyManager.SQL.isConnected() ? BountyManager.data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : BountyManager.immunitySpent;
+            for (Map.Entry<UUID, Double> entry : immunity.entrySet()) {
+                if (!NotBounties.immunityTimeTracker.containsKey(entry.getKey()))
+                    NotBounties.immunityTimeTracker.put(entry.getKey(), (long) ((entry.getValue() * timeImmunity * 1000) + System.currentTimeMillis()));
             }
         }
 
-        // stop next random bounty if it is changed
-        if (randomBountyMinTime == 0 && NotBounties.nextRandomBounty != 0)
-            NotBounties.nextRandomBounty = 0;
-        if (randomBountyMinTime != 0 && NotBounties.nextRandomBounty == 0)
-            NotBounties.setNextRandomBounty();
+
 
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
         if (!guiFile.exists()) {
@@ -364,8 +339,8 @@ public class ConfigOptions {
             guiConfig.set("bounty-gui.gui-name", "&d&lBounties &9&lPage");
             guiConfig.set("bounty-gui.add-page", true);
 
-            if (language.exists()) {
-                YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(language);
+            if (LanguageOptions.getLanguageFile().exists()) {
+                YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(LanguageOptions.getLanguageFile());
                 if (languageConfig.isSet("bounty-item-name") && languageConfig.isSet("bounty-item-lore") && languageConfig.isSet("bounty-item-lore")) {
                     // convert {amount} to %notbounties_bounty_formatted%
                     String unformatted = languageConfig.getString("bounty-item-name");
@@ -380,7 +355,7 @@ public class ConfigOptions {
                     languageConfig.set("gui-name", null);
                     languageConfig.set("bounty-item-name", null);
                     languageConfig.set("bounty-item-lore", null);
-                    languageConfig.save(language);
+                    languageConfig.save(LanguageOptions.getLanguageFile());
                 }
             }
 
@@ -486,365 +461,10 @@ public class ConfigOptions {
             }
 
 
-
-        if (!speakings.isEmpty())
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
-                    if (player.getOpenInventory().getTitle().contains(speakings.get(35))) {
-                        player.closeInventory();
-                    }
-                }
-            }
-
-
-        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(language);
-        if (configuration.isSet("bounty-stat-all")) {
-            configuration.set("bounty-stat.all.long", configuration.getString("bounty-stat-all"));
-            configuration.set("bounty-stat.kills.long", configuration.getString("bounty-stat-kills"));
-            configuration.set("bounty-stat.claimed.long", configuration.getString("bounty-stat-claimed"));
-            configuration.set("bounty-stat.deaths.long", configuration.getString("bounty-stat-deaths"));
-            configuration.set("bounty-stat.set.long", configuration.getString("bounty-stat-set"));
-            configuration.set("bounty-stat.immunity.long", configuration.getString("bounty-stat-immunity"));
-            configuration.set("bounty-stat-all", null);
-        }
-        if (bounties.getConfig().isSet("buy-own-bounties.lore-addition") && !configuration.isSet("buy-back-lore")) {
-            List<String> bbLore;
-            if (bounties.getConfig().isList("buy-own-bounties.lore-addition")) {
-                bbLore = bounties.getConfig().getStringList("buy-own-bounties.lore-addition");
-            } else {
-                bbLore = Collections.singletonList(bounties.getConfig().getString("buy-own-bounties.lore-addition"));
-            }
-            configuration.set("buy-back-lore", bbLore);
-            bounties.getConfig().set("buy-own-bounties.lore-addition", null);
-        }
-
-        // fill in any default options that aren't present
-        configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("language.yml")))));
-        for (String key : Objects.requireNonNull(configuration.getDefaults()).getKeys(true)) {
-            if (!configuration.isSet(key))
-                configuration.set(key, configuration.getDefaults().get(key));
-        }
-
         bounties.saveConfig();
-        configuration.save(language);
-
-        // 0 prefix
-        speakings.add(color(Objects.requireNonNull(configuration.getString("prefix"))));
-        // 1 unknown-number
-        speakings.add(color(Objects.requireNonNull(configuration.getString("unknown-number"))));
-        // 2 bounty-success
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-success"))));
-        // 3 unknown-player
-        speakings.add(color(Objects.requireNonNull(configuration.getString("unknown-player"))));
-        // 4 bounty-broadcast
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-broadcast"))));
-        // 5 no-permission
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-permission"))));
-        // 6 broke
-        speakings.add(color(Objects.requireNonNull(configuration.getString("broke"))));
-        // 7 claim-bounty-broadcast
-        speakings.add(color(Objects.requireNonNull(configuration.getString("claim-bounty-broadcast"))));
-        // 8 no-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-bounty"))));
-        // 9 check-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("check-bounty"))));
-        // 10 list-setter
-        speakings.add(color(Objects.requireNonNull(configuration.getString("list-setter"))));
-        // 11 list-total
-        speakings.add(color(Objects.requireNonNull(configuration.getString("list-total"))));
-        // 12 offline-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("offline-bounty"))));
-        // 13 whitelisted-players
-        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelisted-players"))));
-        // 14 success-remove-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("success-remove-bounty"))));
-        // 15 success-edit-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("success-edit-bounty"))));
-        // 16 no-setter
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-setter"))));
-        // 17 repeat-command-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("repeat-command-bounty"))));
-        // 18 permanent-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("permanent-immunity"))));
-        // 19 scaling-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("scaling-immunity"))));
-        // 20 buy-permanent-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("buy-permanent-immunity"))));
-        // 21 buy-scaling-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("buy-scaling-immunity"))));
-        // 22 grace-period
-        speakings.add(color(Objects.requireNonNull(configuration.getString("grace-period"))));
-        // 23 min-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("min-bounty"))));
-        // 24 unknown-command
-        speakings.add(color(Objects.requireNonNull(configuration.getString("unknown-command"))));
-        // 25 already-bought-perm
-        speakings.add(color(Objects.requireNonNull(configuration.getString("already-bought-perm"))));
-        // 26 removed-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("removed-immunity"))));
-        // 27 removed-other-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("removed-other-immunity"))));
-        // 28 no-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-immunity"))));
-        // 29 no-immunity-other
-        speakings.add(color(Objects.requireNonNull(configuration.getString("no-immunity-other"))));
-        // 30 repeat-command-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("repeat-command-immunity"))));
-        // 31 expired-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("expired-bounty"))));
-        // 32 bounty-tracker-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-tracker-name"))));
-        // 33 tracker-give
-        speakings.add(color(Objects.requireNonNull(configuration.getString("tracker-give"))));
-        // 34 tracker-receive
-        speakings.add(color(Objects.requireNonNull(configuration.getString("tracker-receive"))));
-        // 35 tracked-notify
-        speakings.add(color(Objects.requireNonNull(configuration.getString("tracked-notify"))));
-        // 36 bounty-top
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-top"))));
-        // 37 bounty-top-title
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-top-title"))));
-        // 38 enable-broadcast
-        speakings.add(color(Objects.requireNonNull(configuration.getString("enable-broadcast"))));
-        // 39 disable-broadcast
-        speakings.add(color(Objects.requireNonNull(configuration.getString("disable-broadcast"))));
-        // 40 bounty-voucher-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-voucher-name"))));
-        // 41 redeem-voucher
-        speakings.add(color(Objects.requireNonNull(configuration.getString("redeem-voucher"))));
-        // 42 bounty-receiver
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-receiver"))));
-        // 43 big-bounty
-        speakings.add(color(Objects.requireNonNull(configuration.getString("big-bounty"))));
-        // bounty-stat
-        // 44 all.long
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.all.long"))));
-        // 45 kills.long
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.kills.long"))));
-        // 46 claimed.long
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.claimed.long"))));
-        // 47 deaths.long
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.deaths.long"))));
-        // 48 set.long
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.set.long"))));
-        // 49 immunity.long
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.immunity.long"))));
-        // 50 all.short
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.all.short"))));
-        // 51 kills.short
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.kills.short"))));
-        // 52 claimed.short
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.claimed.short"))));
-        // 53 deaths.short
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.deaths.short"))));
-        // 54 set.short
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.set.short"))));
-        // 55 immunity.short
-        speakings.add(color(Objects.requireNonNull(configuration.getString("bounty-stat.immunity.short"))));
-        // 56 whitelist-max
-        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-max"))));
-        // 57 whitelist-reset
-        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-reset"))));
-        // 58 whitelist-change
-        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-change"))));
-        // 59 murder
-        speakings.add(color(Objects.requireNonNull(configuration.getString("murder"))));
-        // 60 immunity-expire
-        speakings.add(color(Objects.requireNonNull(configuration.getString("immunity-expire"))));
-        // 61 buy-time-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("buy-time-immunity"))));
-        // 62 time-immunity
-        speakings.add(color(Objects.requireNonNull(configuration.getString("time-immunity"))));
-        // 63 whitelist-toggle
-        speakings.add(color(Objects.requireNonNull(configuration.getString("whitelist-toggle"))));
-        // 64 death-tax
-        speakings.add(color(Objects.requireNonNull(configuration.getString("death-tax"))));
-        // 65 max-setters
-        speakings.add(color(Objects.requireNonNull(configuration.getString("max-setters"))));
-        // 66 map-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("map-name"))));
-        // 67 map-give
-        speakings.add(color(Objects.requireNonNull(configuration.getString("map-give"))));
-        // 68 map-receive
-        speakings.add(color(Objects.requireNonNull(configuration.getString("map-receive"))));
-        // 69 blacklist-toggle
-        speakings.add(color(Objects.requireNonNull(configuration.getString("blacklist-toggle"))));
-        // 70 reward-head-name
-        speakings.add(color(Objects.requireNonNull(configuration.getString("reward-head-name"))));
-
-        voucherLore = new ArrayList<>();
-        configuration.getStringList("bounty-voucher-lore").forEach(str -> voucherLore.add(color(str)));
-        trackerLore = new ArrayList<>();
-        configuration.getStringList("bounty-tracker-lore").forEach(str -> trackerLore.add(color(str)));
-        notWhitelistedLore = new ArrayList<>();
-        configuration.getStringList("not-whitelisted").forEach(str -> notWhitelistedLore.add(color(str)));
-        mapLore = new ArrayList<>();
-        configuration.getStringList("map-lore").forEach(lore -> mapLore.add(color(lore)));
-        buyBackLore = new ArrayList<>();
-        configuration.getStringList("buy-back-lore").forEach(lore -> buyBackLore.add(color(lore)));
-        adminEditLore = new ArrayList<>();
-        configuration.getStringList("admin-edit-lore").forEach(lore -> adminEditLore.add(color(lore)));
-        whitelistNotify = new ArrayList<>();
-        configuration.getStringList("whitelist-notify").forEach(lore -> whitelistNotify.add(color(lore)));
-        whitelistLore = new ArrayList<>();
-        configuration.getStringList("whitelist-lore").forEach(lore -> whitelistLore.add(color(lore)));
-        blacklistLore = new ArrayList<>();
-        configuration.getStringList("blacklist-lore").forEach(lore -> blacklistLore.add(color(lore)));
-        rewardHeadLore = new ArrayList<>();
-        configuration.getStringList("reward-head-lore").forEach(lore -> rewardHeadLore.add(color(lore)));
+        LanguageOptions.reloadOptions();
     }
 
-
-    public static String color(String str) {
-        str = net.md_5.bungee.api.ChatColor.translateAlternateColorCodes('&', str);
-        return translateHexColorCodes("&#", "", str);
-    }
-
-    public static String translateHexColorCodes(String startTag, String endTag, String message) {
-        final Pattern hexPattern = Pattern.compile(startTag + "([A-Fa-f0-9]{6})" + endTag);
-        Matcher matcher = hexPattern.matcher(message);
-        StringBuffer buffer = new StringBuffer(message.length() + 4 * 8);
-        while (matcher.find()) {
-            String group = matcher.group(1);
-            matcher.appendReplacement(buffer, COLOR_CHAR + "x"
-                    + COLOR_CHAR + group.charAt(0) + COLOR_CHAR + group.charAt(1)
-                    + COLOR_CHAR + group.charAt(2) + COLOR_CHAR + group.charAt(3)
-                    + COLOR_CHAR + group.charAt(4) + COLOR_CHAR + group.charAt(5)
-            );
-        }
-        return matcher.appendTail(buffer).toString();
-    }
-
-    public static String parse(String str, String player, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null) {
-            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
-        }
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
-
-    public static String parse(String str, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null) {
-            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
-        }
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
-    public static String parse(String str, long time, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{time}", dateFormat.format(time));
-        if (receiver != null && receiver.getName() != null) {
-            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
-        }
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
-
-    public static String parse(String str, double amount, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null) {
-            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
-        }
-        if (papiEnabled && receiver != null) {
-            str = color(new PlaceholderAPIClass().parse(receiver, str));
-        }
-        return color(str);
-    }
-
-    public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
-    public static String parse(String str, String player, double amount, long time, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(time)));
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
-
-    public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
-
-    public static String parse(String str, String player, double amount, double bounty, long time, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(time)));
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
-
-
-    public static String parse(String str, String sender, String player, double amount, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
-
-    public static String parse(String str, String sender, String player, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-
-        return color(str);
-    }
-
-
-    public static String parse(String str, String sender, String player, double amount, double totalBounty, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(dateFormat.format(new Date())));
-        if (papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
-    }
 
     public static LinkedHashMap<Integer, String> sortByValue(Map<Integer, String> hm) {
         // Create a list from elements of HashMap
@@ -875,6 +495,6 @@ public class ConfigOptions {
                 break;
             }
         }
-        return parse(wantedText.replaceAll("\\{level}", Matcher.quoteReplacement(levelReplace)), bounty.getTotalBounty(), player);
+        return LanguageOptions.parse(wantedText.replaceAll("\\{level}", Matcher.quoteReplacement(levelReplace)), bounty.getTotalBounty(), player);
     }
 }

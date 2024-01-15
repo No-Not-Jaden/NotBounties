@@ -18,6 +18,7 @@ public class MySQL {
     private String username;
     private String password;
     private boolean useSSL;
+    private final int serverID;
 
     public MySQL(Plugin plugin){
         this.plugin = plugin;
@@ -27,6 +28,7 @@ public class MySQL {
         username = (plugin.getConfig().isSet("database.user") ? plugin.getConfig().getString("database.user") : "user");
         password = (plugin.getConfig().isSet("database.password") ? plugin.getConfig().getString("database.password") : "");
         useSSL = (plugin.getConfig().isSet("database.use-ssl") && plugin.getConfig().getBoolean("database.use-ssl"));
+        serverID = plugin.getConfig().isSet("database.server-id") ? plugin.getConfig().getInt("database.server-id") : 1;
     }
 
     public String getDatabase() {
@@ -72,7 +74,10 @@ public class MySQL {
         } else {
             return "N/A";
         }
+    }
 
+    public int getServerID() {
+        return serverID;
     }
 
     public void disconnect(){

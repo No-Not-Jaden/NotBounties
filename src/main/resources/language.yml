@@ -124,6 +124,62 @@ bounty-stat:
   immunity:
     long: '&eYou have spent &2{amount}&e on immunity.'
     short: '&6Bounty immunity: &e{amount}'
+help:
+  title: '&7&m               &9&l Not&d&lBounties &7&m               '
+  basic:
+    - '&1Bounty tax is currently: &5{tax}%'
+    - '&1Whitelist cost is currently: {whitelist} per player.'
+    - '&9/bounty help &8- &dShows this message.'
+    - '&9/bounty tutorial &8- &dShows a text tutorial.'
+    - '&9/bounty bdc &8- &dToggles the bounty broadcast message.'
+  view:
+    - '&9/bounty check (player) &8- &dChecks a bounty.'
+    - '&9/bounty list &8- &dLists all bounties.'
+    - '&9/bounty top (all/kills/claimed/deaths/set/immunity) <list> &8- &dLists the top 10 players with the respective stats.'
+    - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) &8- &dView your bounty stats.'
+    - '&9/bounty &8- &dOpens bounty GUI.'
+  set:
+    - '&9/bounty (player) (amount) <whitelisted players> &8- &dAdds a bounty to a player.'
+    - '&9/bounty set <offline> &8- &dOpens the set bounty GUI.'
+  whitelist:
+    - '&9/bounty whitelist (add/remove/set) (whitelisted players) &8- &dChange the players that can claim the bounties you set.'
+    - '&9/bounty whitelist <offline> &8- &dOpens the set whitelist GUI.'
+    - '&9/bounty whitelist reset &8- &dResets your whitelisted players.'
+    - '&9/bounty whitelist view &8- &dDisplays your whitelisted players in chat.'
+  blacklist:
+    - '&9/bounty whitelist toggle &8- &dToggles your whitelist into a blacklist or vice versa.'
+  buy-own:
+    - '&9/bounty buy &8- &dBuys your own bounty for {buy_back_interest}x the price.'
+  buy-immunity:
+    permanent:
+      - '&9/bounty immunity &8- &dBuy immunity to bounties set on you for {permanent_cost} currency.'
+    scaling:
+      - '&9/bounty immunity &8- &dBuy immunity to bounties set on you for {scaling_ratio}x the price you spend.'
+    time:
+      - '&9/bounty immunity (price) &8- &dBuy immunity to bounties for price * {time_immunity} seconds.'
+  remove-immunity:
+    - '&9/bounty immunity remove &8- &dRemoves purchased immunity from yourself.'
+  poster-own:
+    - '&9/bounty poster (player) &8- &dGives you a poster of a player''s bounty.'
+  poster-other:
+    - '&9//bounty poster (player) (receiver) &8- &dGives receiver a poster of a player''s bounty.'
+  tracker-own:
+    - '&9/bounty tracker (player) &8- &dGives you a compass that tracks a player with a bounty.'
+  tracker-other:
+    - '&9/bounty tracker (player) (receiver) &8- &dGives receiver a compass that tracks a player with a bounty.'
+  admin:
+    - '&9/bounty immunity remove (player) &8- &dRemoves purchased immunity from a player.'
+    - '&9/bounty remove (player) &8- &dRemoves all bounties from a player.'
+    - '&9/bounty remove (player) from (setter) &8- &dRemoves a specific bounty put on a player.'
+    - '&9/bounty edit (player) (amount) &8- &dEdits a player''s total bounty.'
+    - '&9/bounty edit (player) from (setter) (amount) &8- &dEdits a specific bounty put on a player.'
+    - '&9/bounty board <rank> &8- &dCreates a board for current bounties.'
+    - '&9/bounty board clear &8- &dRemoves every bounty board.'
+    - '&9/bounty board remove &8- &dRemoves a specific bounty board.'
+    - '&9/bounty reload &8- &dReloads the plugin.'
+    - '&9/bounty debug &8- &dShows debugging info.'
+  immune:
+    - '&dNote: You are immune to having bounties placed on you.'
 
 
 

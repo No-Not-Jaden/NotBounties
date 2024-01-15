@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.gui;
+package me.jadenp.notbounties.ui.gui;
 
 public class CommandPrompt {
     private final String command;

@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.map;
+package me.jadenp.notbounties.ui.map;
 
 import me.jadenp.notbounties.NotBounties;
 import org.bukkit.Bukkit;

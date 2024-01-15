@@ -15,7 +15,7 @@ public class PVPRestrictions implements Listener {
     private static int pvpTime;
     private static final Map<UUID, PVPHistory> historyMap = new HashMap<>();
 
-    public static void setPVPRestrictions(ConfigurationSection configurationSection) {
+    public static void loadConfiguration(ConfigurationSection configurationSection) {
         worlds = configurationSection.getStringList("worlds");
         rule = configurationSection.getInt("rule");
         pvpTime = configurationSection.getInt("pvp-time");

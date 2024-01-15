@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.map;
+package me.jadenp.notbounties.ui.map;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;

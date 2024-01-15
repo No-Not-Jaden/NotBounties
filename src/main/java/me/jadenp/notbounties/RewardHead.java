@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.utils.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -10,7 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.LanguageOptions.rewardHeadLore;
+import static me.jadenp.notbounties.utils.LanguageOptions.rewardHeadName;
 
 public class RewardHead {
     private final String playerName;
@@ -42,9 +44,9 @@ public class RewardHead {
         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         assert skullMeta != null;
         skullMeta.setOwningPlayer(player);
-        skullMeta.setDisplayName(parse(speakings.get(70), player.getName(), amount, player));
+        skullMeta.setDisplayName(LanguageOptions.parse(rewardHeadName, player.getName(), amount, player));
         List<String> lore = new ArrayList<>();
-        rewardHeadLore.stream().map(str -> parse(str, player.getName(), amount, player)).forEach(lore::add);
+        rewardHeadLore.forEach(str -> lore.add(LanguageOptions.parse(str, player.getName(), amount, player)));
         skullMeta.setLore(lore);
         skull.setItemMeta(skullMeta);
         return skull;

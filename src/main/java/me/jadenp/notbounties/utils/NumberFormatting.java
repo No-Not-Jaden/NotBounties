@@ -42,7 +42,7 @@ public class NumberFormatting {
     public static boolean overrideVault;
     public static boolean manualEconomy;
 
-    public static void setCurrencyOptions(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
+    public static void loadConfiguration(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
         vaultEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
         overrideVault = currencyOptions.getBoolean("override-vault");
         manualEconomy = currencyOptions.getBoolean("manual-economy");
@@ -145,9 +145,9 @@ public class NumberFormatting {
 
 
         if (currencyOptions.isSet("prefix"))
-            currencyPrefix = color(Objects.requireNonNull(currencyOptions.getString("prefix")));
+            currencyPrefix = LanguageOptions.color(Objects.requireNonNull(currencyOptions.getString("prefix")));
         if (currencyOptions.isSet("suffix"))
-            currencySuffix = color(Objects.requireNonNull(currencyOptions.getString("suffix")));
+            currencySuffix = LanguageOptions.color(Objects.requireNonNull(currencyOptions.getString("suffix")));
         if (currencyOptions.isList("add-commands"))
             addCommands = currencyOptions.getStringList("add-commands");
         else addCommands = Collections.singletonList(currencyOptions.getString("add-commands"));
@@ -280,8 +280,14 @@ public class NumberFormatting {
 
 
     public static Map<Material, Long> doRemoveCommands(Player p, double amount, List<ItemStack> additionalItems) {
-        if (manualEconomy)
+        if (manualEconomy) {
+            for (String removeCommand : removeCommands) {
+                String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+            }
             return new HashMap<>();
+        }
+
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.withdraw(p, amount)) {
                 return new HashMap<>();
@@ -310,8 +316,8 @@ public class NumberFormatting {
             }
             for (int i = 0; i < Math.min(balancedRemove.length-1, modifiedRemoveCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", balancedRemove[i])));
-                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
+                    String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(balancedRemove[i])));
+                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     removeItem(p, Material.valueOf(currency.get(i)), (long) (balancedRemove[i]), customModelDatas.get(i));
                     removedItems.put(Material.valueOf(currency.get(i)), (long) (balancedRemove[i]));
@@ -323,14 +329,14 @@ public class NumberFormatting {
             }
             // do the rest of the remove commands
             for (int i = balancedRemove.length-1; i < modifiedRemoveCommands.size(); i++) {
-                String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
+                String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
         } else {
             // just do remove commands
             for (String removeCommand : removeCommands) {
-                String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
+                String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
             if (!currency.get(0).contains("%")) {
                 removeItem(p, Material.valueOf(currency.get(0)), (long) amount, customModelDatas.get(0));
@@ -575,8 +581,14 @@ public class NumberFormatting {
     }
 
     public static void doAddCommands(Player p, double amount) {
-        if (manualEconomy)
+        if (manualEconomy) {
+            for (String addCommand : addCommands) {
+                String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+            }
             return;
+        }
+
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.deposit(p, amount)) {
                 return;
@@ -603,8 +615,8 @@ public class NumberFormatting {
             }
             for (int i = 0; i < Math.min(balancedAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", balancedAdd[i])));
-                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
+                    String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(balancedAdd[i])));
+                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
                     if (customModelDatas.get(i) != -1) {
@@ -618,16 +630,16 @@ public class NumberFormatting {
             }
             // do the rest of the add commands
             for (int i = balancedAdd.length; i < modifiedAddCommands.size(); i++) {
-                String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
+                String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
         } else if (addSingleCurrency.equalsIgnoreCase("first")) {
             // remove other currency commands
             IntStream.range(1, currency.size()).forEach(modifiedAddCommands::remove);
             // just do add commands
             for (String addCommand : modifiedAddCommands) {
-                String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", amount / Floats.toArray(currencyValues.values())[0])));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
+                String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
             if (!currency.get(0).contains("%")) {
                 ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
@@ -649,8 +661,8 @@ public class NumberFormatting {
             }
             for (int i = 0; i < Math.min(descendingAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", descendingAdd[i])));
-                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
+                    String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(descendingAdd[i])));
+                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
                     if (customModelDatas.get(i) != -1) {
@@ -664,8 +676,8 @@ public class NumberFormatting {
             }
             // do the rest of the add commands
             for (int i = descendingAdd.length; i < modifiedAddCommands.size(); i++) {
-                String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(String.format("%.8f", amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), parse(command, p));
+                String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
         }
     }
@@ -698,6 +710,16 @@ public class NumberFormatting {
         if (!usingPapi)
             bal = (long) bal;
         return bal >= amount;
+    }
+
+    public static boolean shouldUseDecimals(){
+        if (vaultEnabled && !overrideVault)
+            return true;
+        for (String c : currency) {
+            if (c.contains("%"))
+                return true;
+        }
+        return false;
     }
 
     // use this instead?
@@ -800,7 +822,7 @@ public class NumberFormatting {
      * @param material Material to check for
      * @return amount of items in the players inventory that are a certain material
      */
-    private static int checkAmount(Player player, Material material, int customModelData) {
+    public static int checkAmount(Player player, Material material, int customModelData) {
         int amount = 0;
         ItemStack[] contents = player.getInventory().getContents();
         for (ItemStack content : contents) {

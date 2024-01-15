@@ -12,6 +12,8 @@ softdepend:
   - SkinsRestorer
   - BetterTeams
   - Towny
+  - Geyser-Spigot
+  - floodgate
 commands:
   notbounties:
     aliases:

@@ -10,6 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.LanguageOptions.*;
 
 
 public class Tutorial {                                                              //
@@ -18,30 +19,30 @@ public class Tutorial {                                                         
         if (args.length == 1 || args[1].equals("1")) {
             for (int i = 0; i < 10; i++)
                 sender.sendMessage("");
-            sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+            sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
             sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Bounty Broadcast");
-            sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+            sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
             sender.sendMessage(ChatColor.WHITE + "Getting messages for all the bounties set and claimed");
             sender.sendMessage(ChatColor.WHITE + "can be annoying. You can disable messages for bounties");
             sendCommandMessage(sender, "not concerning you with {command}.", "/bounty bdc", true);
             sendPageMessage(sender, 1);
-            sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+            sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
             return;
         }
         int page;
         try {
             page = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
-            sender.sendMessage(parse(speakings.get(0) + speakings.get(24), null));
+            sender.sendMessage(parse(prefix + unknownCommand, null));
             return;
         }
         for (int i = 0; i < 10; i++)
             sender.sendMessage("");
-        sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+        sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
         switch (page) {
             case 2:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Bounty Information");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sendCommandMessage(sender, "To view bounties, open the bounty GUI with {command}. To", "/bounty", true);
                 sendCommandMessage(sender, "view bounties in chat, do {command}. To get more", "/bounty list", true);
                 sender.sendMessage(ChatColor.WHITE + "information on a bounty, you can run the command");
@@ -50,7 +51,7 @@ public class Tutorial {                                                         
                 break;
             case 3:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Bounty Statistics");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sender.sendMessage(ChatColor.WHITE + "A variety of statistics are recorded to be apart of the");
                 sender.sendMessage(ChatColor.WHITE + "bounty leaderboards. Recorded values are:");
                 sender.sendMessage(ChatColor.WHITE + "- Total bounty accumulated. (All)");
@@ -65,7 +66,7 @@ public class Tutorial {                                                         
                 break;
             case 4:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Bounty Whitelist");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sender.sendMessage(ChatColor.WHITE + "You can pick up to 10 players to be whitelisted to a bounty");
                 sender.sendMessage(ChatColor.WHITE + "you set. Each additional player on your whitelist makes");
                 sender.sendMessage(ChatColor.WHITE + "bounties cost "+ NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix + ChatColor.WHITE + " more. You can open the whitelist GUI");
@@ -78,7 +79,7 @@ public class Tutorial {                                                         
                 break;
             case 5:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Bounty Whitelist cont.");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 if (variableWhitelist) {
                     sender.sendMessage(ChatColor.WHITE + "Don't worry if you forget a few players. You can change");
                     sender.sendMessage(ChatColor.WHITE + "your whitelist, and all bounties set by you will have");
@@ -91,7 +92,7 @@ public class Tutorial {                                                         
                 break;
             case 6:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Setting a Bounty");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sender.sendMessage(ChatColor.WHITE + "Setting a bounty is fairly simple. You only need 2 parts:");
                 sender.sendMessage(ChatColor.WHITE + "the name of your target, and the price. You can set a");
                 sendCommandMessage(sender, "bounty through the GUI with {command} or " + ChatColor.GOLD + "/bounty (player)" + ChatColor.WHITE + ".", "/bounty set", true);
@@ -101,7 +102,7 @@ public class Tutorial {                                                         
                 break;
             case 7:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Buying Your Bounty");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sender.sendMessage(ChatColor.WHITE + "Don't like a bounty set on you? You can buy back your");
                 sender.sendMessage(ChatColor.WHITE + "own bounties for " + ConfigOptions.buyBackInterest * 100 + "% of the bounty cost. To make");
                 sender.sendMessage(ChatColor.WHITE + "the purchase, left click your bounty in the GUI or do");
@@ -109,7 +110,7 @@ public class Tutorial {                                                         
                 break;
             case 8:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Immunity");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sender.sendMessage(ChatColor.WHITE + "To avoid having to pay the hefty interest rate when");
                 sender.sendMessage(ChatColor.WHITE + "buying your own bounty, you can buy immunity with");
                 if (immunityType == 0) {
@@ -126,13 +127,13 @@ public class Tutorial {                                                         
             break;
             case 9:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Remove Immunity");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sender.sendMessage(ChatColor.WHITE + "If your immunity is bothersome, you can remove it with");
                 sendCommandMessage(sender, "{command}. You will not get a refund.", "/bounty immunity remove", true);
                 break;
             case 10:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Wanted Posters");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sender.sendMessage(ChatColor.WHITE + "Wanted posters are helpful for letting people know of a");
                 sendCommandMessage(sender, "bounty you've set. You can get one with {command}.", "/bounty poster (player)", false);
                 sender.sendMessage(ChatColor.WHITE + "Sometimes finding players can be difficult, but with");
@@ -141,12 +142,12 @@ public class Tutorial {                                                         
                 break;
             case 11:
                 sender.sendMessage("                    " + ChatColor.YELLOW + ChatColor.BOLD + "Commands");
-                sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+                sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sendCommandMessage(sender, "To view the commands you have access to, do {command}.", "/bounty help", false);
                 break;
         }
         sendPageMessage(sender, page);
-        sender.sendMessage(speakings.get(0) + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
+        sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
 
 
     }

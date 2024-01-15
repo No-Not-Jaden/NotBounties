@@ -1,10 +1,12 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.ui;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.stream.JsonReader;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.HeadDataBaseClass;
+import me.jadenp.notbounties.utils.SkinsRestorerClass;
+import me.jadenp.notbounties.utils.bedrock.FloodGateClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -18,9 +20,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Base64;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.HDBEnabled;
-import static me.jadenp.notbounties.utils.ConfigOptions.skinsRestorerEnabled;
+import static me.jadenp.notbounties.utils.ConfigOptions.*;
 
 public class Head {
     public static ItemStack createPlayerSkull(String data){
@@ -70,19 +73,38 @@ public class Head {
 
     public static URL getTextureURL(UUID uuid) {
         try {
-            URL url = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid);
-            InputStreamReader reader = new InputStreamReader(url.openStream());
-            JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseReader(reader).getAsJsonObject() : new JsonParser().parse(reader).getAsJsonObject();
-            JsonObject textureProperty = input.get("properties").getAsJsonArray().get(0).getAsJsonObject();
-            String texture = textureProperty.get("value").getAsString();
-            reader.close();
+            String texture = null;
+            if (floodgateEnabled) {
+                FloodGateClass floodGateClass = new FloodGateClass();
+                if (floodGateClass.isBedrockPlayer(uuid))
+                    texture = floodGateClass.getTextureValue(uuid).get();
+            }
+            if (texture == null)
+                texture = getTextureValue(uuid).get();
             String urlJson = new String(Base64.getDecoder().decode(texture));
             JsonObject urlInput = NotBounties.serverVersion >= 18 ? JsonParser.parseString(urlJson).getAsJsonObject() : new JsonParser().parse(urlJson).getAsJsonObject();
             JsonElement skinURL = urlInput.get("textures").getAsJsonObject().get("SKIN").getAsJsonObject().get("url");
             return new URL(skinURL.getAsString());
-        } catch (IOException e) {
+        } catch (IOException | ExecutionException | InterruptedException e) {
+            Bukkit.getLogger().warning(e.toString());
             return null;
         }
+    }
+
+    private static CompletableFuture<String> getTextureValue(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                URL url = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid);
+                InputStreamReader reader = new InputStreamReader(url.openStream());
+                JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseReader(reader).getAsJsonObject() : new JsonParser().parse(reader).getAsJsonObject();
+                JsonObject textureProperty = input.get("properties").getAsJsonArray().get(0).getAsJsonObject();
+                reader.close();
+                return textureProperty.get("value").getAsString();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
     }
 
 

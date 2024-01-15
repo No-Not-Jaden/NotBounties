@@ -1,9 +1,10 @@
-package me.jadenp.notbounties.gui;
+package me.jadenp.notbounties.ui.gui;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.ui.HeadFetcher;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.NumberFormatting;
 import org.bukkit.Bukkit;
@@ -22,6 +23,7 @@ import java.util.regex.Matcher;
 import static me.jadenp.notbounties.utils.BountyManager.getBounty;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.NumberFormatting.*;
+import static me.jadenp.notbounties.utils.LanguageOptions.*;
 
 public class GUIOptions {
     private final List<Integer> playerSlots; // this size of this is how many player slots per page
@@ -122,12 +124,12 @@ public class GUIOptions {
      * @param page   Page of gui - This will change the items in player slots and page items if enabled
      * @return Custom GUI Inventory
      */
-    public Inventory createInventory(Player player, long page, LinkedHashMap<String, String> values, String... replacements) {
+    public Inventory createInventory(Player player, long page, LinkedHashMap<UUID, String> values, String... replacements) {
         OfflinePlayer[] playerItems = new OfflinePlayer[values.size()];
         String[] amount = new String[values.size()];
         int index = 0;
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            playerItems[index] = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey()));
+        for (Map.Entry<UUID, String> entry : values.entrySet()) {
+            playerItems[index] = Bukkit.getOfflinePlayer(entry.getKey());
             amount[index] = entry.getValue();
             index++;
         }
@@ -142,8 +144,8 @@ public class GUIOptions {
 
         if (page < 1) {
             page = 1;
-            GUI.playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(page, type, GUI.playerInfo.get(player.getUniqueId()).getData()));
         }
+
         String name = addPage ? this.name + " " + page : this.name;
         if (amount.length > 0) {
             double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
@@ -256,8 +258,9 @@ public class GUIOptions {
             int slot = type.equals("select-price") || type.equals("confirm-bounty") ? playerSlots.get(i) : (playerSlots.get((int) (i - playerSlots.size() * (page-1))));
             contents[slot] = skull;
         }
-        new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, new Object[0]), unloadedHeads);
+        new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, new Object[0], values.keySet().toArray(new UUID[0])), unloadedHeads);
         inventory.setContents(contents);
+        //GUI.playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, type, null, playerItems));
         return inventory;
 
     }
