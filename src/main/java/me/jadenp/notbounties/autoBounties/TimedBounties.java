@@ -54,8 +54,14 @@ public class TimedBounties {
             nextBounties = updatedNextBounties;
         }
         offlineTracking = updatedOfflineTracking;
-        if (time == 0 || bountyIncrease == 0)
+        if (time == 0 || bountyIncrease == 0) {
             nextBounties.clear();
+        } else {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!nextBounties.containsKey(player.getUniqueId()))
+                    nextBounties.put(player.getUniqueId(), System.currentTimeMillis() + time * 1000);
+            }
+        }
     }
 
     public static void update() {

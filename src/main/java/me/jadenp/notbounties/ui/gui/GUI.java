@@ -16,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -125,16 +126,17 @@ public class GUI implements Listener {
             Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard ? (Leaderboard) data[0] : Leaderboard.ALL;
             replacements = new String[]{leaderboard.toString()};
         }
-
-        player.openInventory(gui.createInventory(player, page, values, replacements));
-        playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, name, data, values.keySet().toArray(new UUID[0])));
+        Inventory inventory = gui.createInventory(player, page, values, replacements);
+        player.openInventory(inventory);
+        playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, name, data, values.keySet().toArray(new UUID[0]), player.getOpenInventory().getTitle()));
     }
 
 
     // is this called when server forces the inventory to be closed?
     @EventHandler
     public void onGUIClose(InventoryCloseEvent event){
-        playerInfo.remove(event.getPlayer().getUniqueId());
+        if (playerInfo.containsKey(event.getPlayer().getUniqueId()) && playerInfo.get(event.getPlayer().getUniqueId()).getTitle().equals(event.getView().getTitle()))
+            playerInfo.remove(event.getPlayer().getUniqueId());
     }
 
     /**
@@ -157,7 +159,7 @@ public class GUI implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!playerInfo.containsKey(event.getWhoClicked().getUniqueId())) // check if they are in a NotBounties GUI
             return;
-        // find the gui - yeah, a linear search
+
         PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
         GUIOptions gui = getGUI(info.getGuiType());
 
@@ -170,7 +172,7 @@ public class GUI implements Listener {
         if (event.getCurrentItem() == null)
             return;
         // check if it is a player slot
-        if (gui.getPlayerSlots().contains(event.getSlot()) && event.getCurrentItem().getType() == Material.PLAYER_HEAD){
+        if (gui.getPlayerSlots().contains(event.getSlot()) && gui.getPlayerSlots().indexOf(event.getSlot()) < info.getPlayers().length && event.getCurrentItem().getType() == Material.PLAYER_HEAD){
             SkullMeta meta = (SkullMeta) event.getCurrentItem().getItemMeta();
             assert meta != null;
             assert meta.getOwningPlayer() != null;

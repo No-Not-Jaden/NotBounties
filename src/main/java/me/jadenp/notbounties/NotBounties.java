@@ -39,18 +39,12 @@ import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 import static me.jadenp.notbounties.utils.LanguageOptions.*;
 
 /**
- * Placeholder conditionals with bounty claim commands - x
- * Timed Bounties for surviving - x
  * Proxy Messaging
- * SQL online players - x
- * Expire time to use decimals - x
- * Translate help message - x
- * call death event - x
- * update notification disable msg -
- * exclusive currency - x
- * geyser - x
- * Optimized code
- * Added messages and new placeholders for the bounty claim commands
+ * Webhooks
+ * Challenges
+ * bstats
+ * bimodal currency
+ * partial manual economy
  */
 
 public final class NotBounties extends JavaPlugin {

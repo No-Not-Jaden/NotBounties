@@ -258,7 +258,7 @@ public class GUIOptions {
             int slot = type.equals("select-price") || type.equals("confirm-bounty") ? playerSlots.get(i) : (playerSlots.get((int) (i - playerSlots.size() * (page-1))));
             contents[slot] = skull;
         }
-        new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, new Object[0], values.keySet().toArray(new UUID[0])), unloadedHeads);
+        new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, new Object[0], values.keySet().toArray(new UUID[0]), name), unloadedHeads);
         inventory.setContents(contents);
         //GUI.playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, type, null, playerItems));
         return inventory;
