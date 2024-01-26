@@ -1,0 +1,20 @@
+link: 'https://discord.com/api/webhooks/...'
+text-to-speech: false
+bounty-set:
+  # use {receiver} or {player} or leave blank to disable
+  username: '{player}'
+  # switch the avatar and the display image
+  # by default, the avatar is the setter, and the message image is the receiver
+  switch-images: false
+  title: 'title'
+  description: 'description'
+  color: RED
+  footer:
+    text: 'footer'
+    image-url: ''
+  content:
+    field:
+      name: 'name'
+      value: 'value'
+      inline: false
+

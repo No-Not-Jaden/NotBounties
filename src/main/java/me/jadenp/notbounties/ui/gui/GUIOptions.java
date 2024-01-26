@@ -100,6 +100,8 @@ public class GUIOptions {
         if (slot >= customItems.length)
             return null;
         CustomItem item = customItems[slot];
+        if (item == null)
+            return null;
         if (!type.equals("select-price")) {
             // next
             if (getPageType(item.getCommands()) == 1 && page * playerSlots.size() >= entryAmount) {

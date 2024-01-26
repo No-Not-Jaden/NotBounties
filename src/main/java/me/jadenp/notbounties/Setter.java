@@ -33,11 +33,15 @@ public class Setter implements Comparable<Setter>{
     public boolean canClaim(Player player) {
         if (player == null)
             return true;
+        return canClaim(player.getUniqueId());
+    }
+
+    public boolean canClaim(UUID claimerUuid) {
         if (whitelist.getList().isEmpty())
             return true;
         if (ConfigOptions.variableWhitelist)
             return (NotBounties.getPlayerWhitelist(uuid).getList().isEmpty() || NotBounties.getPlayerWhitelist(uuid).isBlacklist()) != NotBounties.getPlayerWhitelist(uuid).getList().contains(player.getUniqueId());
-        return whitelist.isBlacklist() != whitelist.getList().contains(player.getUniqueId());
+        return whitelist.isBlacklist() != whitelist.getList().contains(claimerUuid);
     }
 
     public boolean isNotified() {

@@ -1071,7 +1071,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 new BukkitRunnable() {
                                                     @Override
                                                     public void run() {
-                                                        NumberFormatting.doRemoveCommands(parser, total, new ArrayList<>());
+                                                        if (manualEconomy != ManualEconomy.PARTIAL)
+                                                            NumberFormatting.doRemoveCommands(parser, total, new ArrayList<>());
                                                         addBounty(parser, player, amount, whitelist);
                                                         reopenBountiesGUI();
                                                     }

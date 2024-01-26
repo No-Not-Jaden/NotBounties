@@ -40,11 +40,6 @@ public class ConfigOptions {
     public static int minBroadcast;
     public static int bBountyThreshold;
     public static boolean bBountyParticle;
-    public static int immunityType;
-    public static double timeImmunity;
-    public static double permanentCost;
-    public static double scalingRatio;
-    public static int graceTime;
     public static int minBounty;
     public static double bountyTax;
     public static boolean rewardHeadClaimed;
@@ -80,7 +75,6 @@ public class ConfigOptions {
 
     public static String consoleName;
     public static boolean enableBlacklist;
-
     public static boolean liteBansEnabled;
     public static boolean removeBannedPlayers;
     public static boolean saveTemplates;
@@ -113,9 +107,14 @@ public class ConfigOptions {
     public static boolean townyAllies;
     public static boolean RRLVoucherPerSetter;
     public static String RRLSetterLoreAddition;
-    public static boolean forceDeathEvent;
+    public enum ClaimOrder {
+        BEFORE, REGULAR, AFTER
+    };
+    public static ClaimOrder claimOrder;
     public static boolean geyserEnabled;
     public static boolean floodgateEnabled;
+    public static boolean sendBStats;
+    public static boolean timeImmunityOfflineTracking;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -159,13 +158,7 @@ public class ConfigOptions {
             bounties.getConfig().set("reward-heads", null);
             bounties.getConfig().set("reward-heads.setters", prevOption);
         }
-        if (bounties.getConfig().isSet("immunity.buy-immunity")) {
-            if (bounties.getConfig().getBoolean("immunity.buy-immunity")) bounties.getConfig().set("immunity.type", 0);
-            else if (bounties.getConfig().getBoolean("immunity.permanent-immunity.enabled")) bounties.getConfig().set("immunity.type", 1);
-            else bounties.getConfig().set("immunity.type", 2);
-            bounties.getConfig().set("immunity.buy-immunity", null);
-            bounties.getConfig().set("immunity.permanent-immunity.enabled", null);
-        }
+
         if (bounties.getConfig().isSet("bounty-whitelist-cost")) {
             bounties.getConfig().set("bounty-whitelist.cost", bounties.getConfig().getInt("bounty-whitelist-cost"));
             bounties.getConfig().set("bounty-whitelist-cost", null);
@@ -196,6 +189,42 @@ public class ConfigOptions {
         }
         if (bounties.getConfig().isBoolean("redeem-reward-later"))
             bounties.getConfig().set("redeem-reward-later.enabled", bounties.getConfig().getBoolean("redeem-reward-later"));
+        if (bounties.getConfig().isSet("force-death-event")) {
+            if (bounties.getConfig().getBoolean("force-death-event"))
+                bounties.getConfig().set("claim-order", "BEFORE");
+            else
+                bounties.getConfig().set("claim-order", "REGULAR");
+            bounties.getConfig().set("force-death-event", null);
+        }
+        if (bounties.getConfig().isBoolean("currency.manual-economy")) {
+            if (bounties.getConfig().getBoolean("currency.manual-economy"))
+                bounties.getConfig().set("currency.manual-economy", "MANUAL");
+            else
+                bounties.getConfig().set("currency.manual-economy", "AUTOMATIC");
+        }
+        if (bounties.getConfig().isSet("immunity.buy-immunity")) {
+            if (bounties.getConfig().getBoolean("immunity.buy-immunity")) bounties.getConfig().set("immunity.type", "DISABLE");
+            else if (bounties.getConfig().getBoolean("immunity.permanent-immunity.enabled")) bounties.getConfig().set("immunity.type", "PERMANENT");
+            else bounties.getConfig().set("immunity.type", "SCALING");
+            bounties.getConfig().set("immunity.buy-immunity", null);
+            bounties.getConfig().set("immunity.permanent-immunity.enabled", null);
+        }
+        if (bounties.getConfig().isInt("immunity.type")) {
+            switch (bounties.getConfig().getInt("immunity.type")) {
+                case 0:
+                    bounties.getConfig().set("immunity.type", "DISABLE");
+                    break;
+                case 1:
+                    bounties.getConfig().set("immunity.type", "PERMANENT");
+                    break;
+                case 2:
+                    bounties.getConfig().set("immunity.type", "SCALING");
+                    break;
+                case 3:
+                    bounties.getConfig().set("immunity.type", "TIME");
+                    break;
+            }
+        }
 
 
         // fill in any missing default settings
@@ -217,11 +246,6 @@ public class ConfigOptions {
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
         buyBack = bounties.getConfig().getBoolean("buy-own-bounties.enabled");
         buyBackInterest = bounties.getConfig().getDouble("buy-own-bounties.cost-multiply");
-        immunityType = bounties.getConfig().getInt("immunity.type");
-        timeImmunity = bounties.getConfig().getDouble("immunity.time-immunity.seconds");
-        permanentCost = bounties.getConfig().getDouble("immunity.permanent-immunity.cost");
-        scalingRatio = bounties.getConfig().getDouble("immunity.scaling-immunity.ratio");
-        graceTime = bounties.getConfig().getInt("immunity.grace-period");
         minBounty = bounties.getConfig().getInt("minimum-bounty");
         bountyTax = bounties.getConfig().getDouble("bounty-tax");
         tracker = bounties.getConfig().getBoolean("bounty-tracker.enabled");
@@ -287,7 +311,13 @@ public class ConfigOptions {
         townyNation = bounties.getConfig().getBoolean("teams.towny-nation");
         townyTown = bounties.getConfig().getBoolean("teams.towny-town");
         townyAllies = bounties.getConfig().getBoolean("teams.towny-allies");
-        forceDeathEvent = bounties.getConfig().getBoolean("force-death-event");
+        try {
+            claimOrder = ClaimOrder.valueOf(Objects.requireNonNull(bounties.getConfig().getString("claim-order")).toUpperCase());
+        } catch (IllegalArgumentException e) {
+            claimOrder = ClaimOrder.REGULAR;
+            Bukkit.getLogger().warning("[NotBounties] claim-order is not set to a proper value!");
+        }
+        sendBStats = bounties.getConfig().getBoolean("send-bstats");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
@@ -303,15 +333,6 @@ public class ConfigOptions {
         wantedLevels = sortByValue(wantedLevels);
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
-
-        // add immunity that isn't in time tracker - this should only do anything when immunity is switched to time immunity
-        if (immunityType == 3) {
-            Map<UUID, Double> immunity = BountyManager.SQL.isConnected() ? BountyManager.data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : BountyManager.immunitySpent;
-            for (Map.Entry<UUID, Double> entry : immunity.entrySet()) {
-                if (!NotBounties.immunityTimeTracker.containsKey(entry.getKey()))
-                    NotBounties.immunityTimeTracker.put(entry.getKey(), (long) ((entry.getValue() * timeImmunity * 1000) + System.currentTimeMillis()));
-            }
-        }
 
 
 

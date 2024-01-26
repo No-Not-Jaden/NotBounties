@@ -171,7 +171,7 @@ public class Events implements Listener {
             NumberFormatting.givePlayer(killer, rewardHead.getItem(), 1);
         }
         // do commands
-        if (ConfigOptions.deathTax > 0) {
+        if (ConfigOptions.deathTax > 0 && NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL) {
             Map<Material, Long> removedItems = NumberFormatting.doRemoveCommands(player, bounty.getTotalBounty(killer) * ConfigOptions.deathTax, drops);
             if (!removedItems.isEmpty()) {
                 // send message
@@ -209,14 +209,22 @@ public class Events implements Listener {
             }
         }
         if (!redeemRewardLater) {
-            NumberFormatting.doAddCommands(killer, bounty.getTotalBounty(killer));
+            if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
+                NumberFormatting.doAddCommands(killer, bounty.getBounty(new UUID(0,0)).getTotalBounty(killer));
+            } else {
+                NumberFormatting.doAddCommands(killer, bounty.getTotalBounty(killer));
+            }
         } else {
             // give voucher
-
+            if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
+                NumberFormatting.doAddCommands(killer, bounty.getBounty(new UUID(0,0)).getTotalBounty(killer));
+            }
             if (RRLVoucherPerSetter) {
                 // multiple vouchers
                 for (Setter setter : bounty.getSetters()) {
                     if (!setter.canClaim(killer))
+                        continue;
+                    if (setter.getUuid().equals(new UUID(0,0)) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL)
                         continue;
                     ItemStack item = new ItemStack(Material.PAPER);
                     ItemMeta meta = item.getItemMeta();
@@ -251,6 +259,8 @@ public class Events implements Listener {
                 if (!RRLSetterLoreAddition.isEmpty()) {
                     for (Setter setter : bounty.getSetters()) {
                         if (!setter.canClaim(killer))
+                            continue;
+                        if (setter.getUuid().equals(new UUID(0,0)) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL)
                             continue;
                         lore.add(parse(RRLSetterLoreAddition, setter.getName(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
                     }
@@ -332,7 +342,7 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        if (forceDeathEvent)
+        if (claimOrder != ClaimOrder.REGULAR)
             return;
         if (!(event.getEntity() instanceof Player))
             return;
@@ -434,7 +444,7 @@ public class Events implements Listener {
             }
 
         // redeem reward later
-        if (event.getAction() == Action.RIGHT_CLICK_AIR && !NumberFormatting.manualEconomy) {
+        if (event.getAction() == Action.RIGHT_CLICK_AIR && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC) {
             if (event.getItem() != null) {
                 ItemStack item = event.getItem();
                 Player player = event.getPlayer();
@@ -666,7 +676,8 @@ public class Events implements Listener {
                     // check if past expire time
                     if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
                         // refund money
-                        NumberFormatting.doAddCommands(event.getPlayer(), setter.getAmount());
+                        if (NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL)
+                            NumberFormatting.doAddCommands(event.getPlayer(), setter.getAmount());
                         event.getPlayer().sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getAmount(), event.getPlayer()));
                         setterIterator.remove();
                     }
@@ -706,7 +717,8 @@ public class Events implements Listener {
 
         // check if they had a bounty refunded
         if (refundedBounties.containsKey(event.getPlayer().getUniqueId())) {
-            NumberFormatting.doAddCommands(event.getPlayer(), refundedBounties.get(event.getPlayer().getUniqueId()));
+            if (NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL)
+                NumberFormatting.doAddCommands(event.getPlayer(), refundedBounties.get(event.getPlayer().getUniqueId()));
             refundedBounties.remove(event.getPlayer().getUniqueId());
         }
 
@@ -740,12 +752,30 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!forceDeathEvent || !(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player))
+        if (claimOrder != ClaimOrder.BEFORE || !(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player))
             return;
         Player player = (Player) event.getEntity();
         if (event.getDamage() >= player.getHealth() && player.getInventory().getItemInMainHand().getType() != Material.TOTEM_OF_UNDYING && player.getInventory().getItemInOffHand().getType() != Material.TOTEM_OF_UNDYING){
             claimBounty(player, (Player) event.getDamager(), Arrays.asList(player.getInventory().getContents()), true);
         }
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        if (claimOrder != ClaimOrder.AFTER)
+            return;
+        Player player = event.getPlayer();
+        Player killer = player.getKiller();
+        if (killer != null)
+            claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
+                /*
+        if (player.getLastDamageCause() instanceof EntityDamageByEntityEvent) {
+            EntityDamageByEntityEvent event1 = (EntityDamageByEntityEvent) player.getLastDamageCause();
+            if (!(event1.getDamager() instanceof Player))
+                return;
+            Player killer = (Player) event1.getDamager();
+            claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
+        }*/
     }
 
 }

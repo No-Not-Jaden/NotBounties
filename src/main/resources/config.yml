@@ -15,10 +15,14 @@ currency:
   # descending - currency will be given in descending order of weights
   # first - only the first currency in the object list will be given
   # ratio - a ratio of the currencies with their weights will be given
+  # bimodal - add the first currency, remove the second
   add-single-currency: descending
-  # this option will disable adding and removing currency requiring the players to do it themselves and on the honor system
+  # this option will change how involved NotBounties will be with currency transactions
+  # AUTOMATIC - NotBounties will do all the currency transactions
+  # PARTIAL - NotBounties will only do the currency transactions for auto-bounties
+  # MANUAL - NotBounties will not do any currency transactions, but will run the remove and add commands
   # I suggest pairing this up with the redeem-reward-later option for a voucher of proof
-  manual-economy: false
+  manual-economy: AUTOMATIC
 # formatting of large numbers
 number-formatting:
   # Same as EssentialsX config
@@ -66,9 +70,10 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 12 hours
 remove-banned-players: true
-# force the bounty claim procedure before the death event
-# do not enable this unless you know what you are doing
-force-death-event: false
+# Change the order when the bounties are claimed event wise
+# BEFORE, REGULAR, or AFTER can be used
+# do not change this unless you know what you are doing
+claim-order: REGULAR
 # this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
 redeem-reward-later:
   enabled: false
@@ -278,11 +283,11 @@ buy-own-bounties:
 immunity:
   # players can buy immunity from having bounties set on them as opposed to having immunity from the permission node notbounties.immune
   # Immunity types:
-  # 0 - disabled
-  # 1 - permanent immunity
-  # 2 - scaling immunity
-  # 3 - time immunity
-  type: 2
+  # DISABLE
+  # PERMANENT
+  # SCALING
+  # TIME
+  type: SCALING
   # immunity will never run out
   permanent-immunity:
     cost: 128
@@ -298,6 +303,8 @@ immunity:
     # how many seconds 1 currency will add to your immunity
     # ex: spending $15 with seconds: 3600 will give you 54000 seconds of immunity, or 15 hours
     seconds: 3600
+    # time will count down while players are offline
+    offline-tracking: true
   # in SECONDS how long before a player can set a bounty on a player that was just killed with a bounty
   grace-period: 10
 # give players with big bounties perks
@@ -357,3 +364,5 @@ database:
   # the id of the server used to get all players on the network
   # this needs to be different for all servers connected to the same database
   server-id: 1
+# send server stats like most other plugins do
+send-bstats: true

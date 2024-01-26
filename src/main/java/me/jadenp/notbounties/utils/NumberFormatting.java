@@ -35,17 +35,29 @@ public class NumberFormatting {
     public static LinkedHashMap<Long, String> nfDivisions = new LinkedHashMap<>();
     public static DecimalFormat decimalFormat;
     public static Locale locale;
-    public static String addSingleCurrency = "descending";
+    public enum CurrencyAddType {
+        DESCENDING, FIRST, RATIO, BIMODAL
+    }
+    public static CurrencyAddType addSingleCurrency = CurrencyAddType.DESCENDING;
     public static boolean usingPapi = false;
     private static VaultClass vaultClass = null;
     public static boolean vaultEnabled;
     public static boolean overrideVault;
-    public static boolean manualEconomy;
+    public enum ManualEconomy {
+        AUTOMATIC, PARTIAL, MANUAL
+    }
+    public static ManualEconomy manualEconomy;
 
     public static void loadConfiguration(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
         vaultEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
         overrideVault = currencyOptions.getBoolean("override-vault");
-        manualEconomy = currencyOptions.getBoolean("manual-economy");
+        try {
+            manualEconomy = ManualEconomy.valueOf(Objects.requireNonNull(currencyOptions.getString("manual-economy")).toUpperCase());
+        } catch (IllegalArgumentException e) {
+            manualEconomy = ManualEconomy.AUTOMATIC;
+            Bukkit.getLogger().warning("[NotBounties] Invalid manual-economy type!");
+        }
+
         if (vaultEnabled && !overrideVault) {
             vaultClass = new VaultClass();
             //Bukkit.getLogger().info("Using Vault as currency!");
@@ -163,8 +175,12 @@ public class NumberFormatting {
         if (removeCommands.size() < placeholderCurrencies)
             Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + removeCommands.size() + " remove commands!");
 
-        addSingleCurrency = currencyOptions.getString("add-single-currency");
-
+        try {
+            addSingleCurrency = CurrencyAddType.valueOf(Objects.requireNonNull(currencyOptions.getString("add-single-currency")).toUpperCase());
+        } catch (IllegalArgumentException e) {
+            addSingleCurrency = CurrencyAddType.DESCENDING;
+            Bukkit.getLogger().warning("[NotBounties] Invalid add-single-currency type!");
+        }
 
 
         useDivisions = numberFormatting.getBoolean("use-divisions");
@@ -280,7 +296,7 @@ public class NumberFormatting {
 
 
     public static Map<Material, Long> doRemoveCommands(Player p, double amount, List<ItemStack> additionalItems) {
-        if (manualEconomy) {
+        if (manualEconomy == ManualEconomy.MANUAL) {
             for (String removeCommand : removeCommands) {
                 String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
@@ -301,6 +317,18 @@ public class NumberFormatting {
         }
         Map<Material, Long> removedItems = new HashMap<>();
         if (currency.size() > 1) {
+            if (addSingleCurrency == CurrencyAddType.BIMODAL) {
+                // just do remove commands
+                for (String removeCommand : removeCommands) {
+                    String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+                }
+                if (!currency.get(1).contains("%")) {
+                    removeItem(p, Material.valueOf(currency.get(1)), (long) amount, customModelDatas.get(1));
+                    removedItems.put(Material.valueOf(currency.get(1)), (long) amount);
+                }
+                return removedItems;
+            }
             List<String> modifiedRemoveCommands = new ArrayList<>(removeCommands);
             // add empty spaces in list for item currencies
             for (int i = 0; i < currency.size(); i++) {
@@ -581,7 +609,7 @@ public class NumberFormatting {
     }
 
     public static void doAddCommands(Player p, double amount) {
-        if (manualEconomy) {
+        if (manualEconomy == ManualEconomy.MANUAL) {
             for (String addCommand : addCommands) {
                 String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
@@ -606,7 +634,7 @@ public class NumberFormatting {
             if (!currency.get(i).contains("%"))
                 modifiedAddCommands.add(i, "");
         }
-        if (addSingleCurrency.equalsIgnoreCase("ratio") && currency.size() > 1) {
+        if (addSingleCurrency == CurrencyAddType.RATIO && currency.size() > 1) {
             float[] currencyWeightsCopy = Floats.toArray(currencyWeights);
             float[] currencyValuesCopy = Floats.toArray(currencyValues.values());
             double[] balancedAdd = balanceAddCurrency(amount, currencyWeightsCopy, currencyValuesCopy);
@@ -633,7 +661,7 @@ public class NumberFormatting {
                 String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
-        } else if (addSingleCurrency.equalsIgnoreCase("first")) {
+        } else if (addSingleCurrency == CurrencyAddType.FIRST) {
             // remove other currency commands
             IntStream.range(1, currency.size()).forEach(modifiedAddCommands::remove);
             // just do add commands
@@ -641,6 +669,24 @@ public class NumberFormatting {
                 String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
+            // give item if using
+            if (!currency.get(0).contains("%")) {
+                ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
+                if (customModelDatas.get(0) != -1) {
+                    ItemMeta meta = item.getItemMeta();
+                    assert meta != null;
+                    meta.setCustomModelData(customModelDatas.get(0));
+                    item.setItemMeta(meta);
+                }
+                givePlayer(p, item, (long) (amount / Floats.toArray(currencyValues.values())[0]));
+            }
+        } else if (addSingleCurrency == CurrencyAddType.BIMODAL) {
+            // do all the add commands with the first currency
+            for (String addCommand : addCommands) {
+                String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+            }
+            // give item if using
             if (!currency.get(0).contains("%")) {
                 ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
                 if (customModelDatas.get(0) != -1) {

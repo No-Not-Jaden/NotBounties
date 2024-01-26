@@ -34,8 +34,7 @@ import java.util.stream.Collectors;
 import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.NumberFormatting.overrideVault;
-import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
+import static me.jadenp.notbounties.utils.NumberFormatting.*;
 
 public class BountyManager {
     public static MySQL SQL;
@@ -614,7 +613,7 @@ public class BountyManager {
             }
         } else {
             Player player = Bukkit.getPlayer(setter.getUuid());
-            if (player != null)
+            if (player != null && manualEconomy != ManualEconomy.PARTIAL)
                 NumberFormatting.doAddCommands(player, setter.getAmount());
             else
                 addRefund(setter.getUuid(), setter.getAmount());

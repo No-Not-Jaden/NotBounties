@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.NumberFormatting.manualEconomy;
 import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 import static me.jadenp.notbounties.utils.LanguageOptions.*;
 
@@ -42,9 +43,12 @@ import static me.jadenp.notbounties.utils.LanguageOptions.*;
  * Proxy Messaging
  * Webhooks
  * Challenges
- * bstats
- * bimodal currency
- * partial manual economy
+ * bimodal currency -
+ * partial manual economy -
+ * after claim order -
+ * time immunity offline tracking - save different values in bounties.yml
+ * bounty expire time for auto bounties
+ * bounty expire offline tracking
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -63,8 +67,6 @@ public final class NotBounties extends JavaPlugin {
     public static final Map<String, Long> repeatBuyCommand = new HashMap<>();
     public static final Map<String, Long> repeatBuyCommand2 = new HashMap<>();
 
-    public static final Map<UUID, Long> immunityTimeTracker = new HashMap<>();
-    public static final Map<String, Long> gracePeriod = new HashMap<>();
 
     public static final List<Player> displayParticle = new ArrayList<>();
     public static final Map<UUID, AboveNameText> wantedText = new HashMap<>();
@@ -116,6 +118,11 @@ public final class NotBounties extends JavaPlugin {
         } catch (IOException e) {
             Bukkit.getLogger().warning("NotBounties is having trouble loading saved bounties.");
             Bukkit.getLogger().warning(e.toString());
+        }
+
+        if (sendBStats) {
+            int pluginId = 20776;
+            new Metrics(this, pluginId);
         }
 
 
@@ -388,43 +395,7 @@ public final class NotBounties extends JavaPlugin {
                 MurderBounties.cleanPlayerKills();
                 // if they have expire-time enabled
                 if (bountyExpire > 0) {
-                    // go through all the bounties and remove setters if it has been more than expire time
-                    if (SQL.isConnected()) {
-                        List<Setter> setters = data.removeOldBounties();
-                        for (Setter setter : setters) {
-                            refundSetter(setter);
-                        }
-                    } else {
-                        ListIterator<Bounty> bountyIterator = bountyList.listIterator();
-                        while (bountyIterator.hasNext()) {
-                            Bounty bounty = bountyIterator.next();
-                            List<Setter> expiredSetters = new ArrayList<>();
-                            ListIterator<Setter> setterIterator = bounty.getSetters().listIterator();
-                            while (setterIterator.hasNext()) {
-                                Setter setter = setterIterator.next();
-                                if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
-                                    // check if setter is online
-                                    Player player = Bukkit.getPlayer(setter.getUuid());
-                                    if (player != null) {
-                                        NumberFormatting.doAddCommands(player, setter.getAmount());
-                                        player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getAmount(), player));
-                                    } else {
-                                        expiredSetters.add(setter);
-                                    }
-                                    setterIterator.remove();
-                                }
-                            }
-                            // add bounty to expired bounties if some have expired
-                            if (!expiredSetters.isEmpty()) {
-                                expiredBounties.add(new Bounty(bounty.getUUID(), expiredSetters, bounty.getName()));
-                            }
-                            //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
-                            // remove bounty if all the setters have been removed
-                            if (bounty.getSetters().isEmpty()) {
-                                bountyIterator.remove();
-                            }
-                        }
-                    }
+                    removeExpiredBounties();
                 }
 
                 save();
@@ -857,6 +828,52 @@ public final class NotBounties extends JavaPlugin {
         if (SQL.isConnected())
             return data.getOnlinePlayers();
         return new ArrayList<>(Bukkit.getOnlinePlayers());
+    }
+
+    public static void removeExpiredBounties() {
+        // go through all the bounties and remove setters if it has been more than expire time
+        if (SQL.isConnected()) {
+            List<Setter> setters = data.removeOldBounties();
+            for (Setter setter : setters) {
+                refundSetter(setter);
+            }
+        } else {
+            ListIterator<Bounty> bountyIterator = bountyList.listIterator();
+            while (bountyIterator.hasNext()) {
+                Bounty bounty = bountyIterator.next();
+                List<Setter> expiredSetters = new ArrayList<>();
+                ListIterator<Setter> setterIterator = bounty.getSetters().listIterator();
+                while (setterIterator.hasNext()) {
+                    Setter setter = setterIterator.next();
+                    if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
+                        if (setter.getUuid().equals(new UUID(0,0))) {
+                            setterIterator.remove();
+                            continue;
+                        }
+
+                        // check if setter is online
+                        Player player = Bukkit.getPlayer(setter.getUuid());
+                        if (player != null) {
+                            if (manualEconomy != NumberFormatting.ManualEconomy.PARTIAL)
+                                NumberFormatting.doAddCommands(player, setter.getAmount());
+                            player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getAmount(), player));
+                        } else {
+                            expiredSetters.add(setter);
+                        }
+                        setterIterator.remove();
+                    }
+                }
+                // add bounty to expired bounties if some have expired
+                if (!expiredSetters.isEmpty()) {
+                    expiredBounties.add(new Bounty(bounty.getUUID(), expiredSetters, bounty.getName()));
+                }
+                //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
+                // remove bounty if all the setters have been removed
+                if (bounty.getSetters().isEmpty()) {
+                    bountyIterator.remove();
+                }
+            }
+        }
     }
 
 

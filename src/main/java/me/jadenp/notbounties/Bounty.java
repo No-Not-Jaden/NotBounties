@@ -123,6 +123,16 @@ public class Bounty implements Comparable<Bounty>{
         return setters.stream().mapToLong(Setter::getTimeCreated).filter(setter -> setter >= 0).max().orElse(0);
     }
 
+    public Setter getLastSetter() {
+        long latest = getLatestSetter();
+        for (Setter setter : setters) {
+            if (setter.getTimeCreated() == latest)
+                return setter;
+        }
+        return setters.get(setters.size()-1);
+    }
+
+
     public double getTotalBounty(){
         double total = 0;
         for (Setter setters : setters){
@@ -137,11 +147,15 @@ public class Bounty implements Comparable<Bounty>{
      * @return The total claimable bounty value for the player
      */
     public double getTotalBounty(Player claimer){
-        if (claimer.getUniqueId().equals(uuid))
+        return getTotalBounty(claimer.getUniqueId());
+    }
+
+    public double getTotalBounty(UUID claimerUuid) {
+        if (claimerUuid.equals(uuid))
             return getTotalBounty();
         double total = 0;
         for (Setter setters : setters){
-            if (setters.canClaim(claimer))
+            if (setters.canClaim(claimerUuid))
                 total += setters.getAmount();
         }
         return total;
@@ -212,6 +226,16 @@ public class Bounty implements Comparable<Bounty>{
         }
         return setters.stream().map(Setter::getWhitelist).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toList());
     }
+
+    public Bounty getBounty(UUID setterUUID) {
+        List<Setter> matchingSetters = new ArrayList<>();
+        for (Setter setter : setters) {
+            if (setter.getUuid().equals(setterUUID))
+                matchingSetters.add(setter);
+        }
+        return new Bounty(uuid, matchingSetters, name);
+    }
+
 
     @Override
     public String toString() {
