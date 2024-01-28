@@ -107,7 +107,7 @@ public class ConfigOptions {
     public static String RRLSetterLoreAddition;
     public enum ClaimOrder {
         BEFORE, REGULAR, AFTER
-    };
+    }
     public static ClaimOrder claimOrder;
     public static boolean geyserEnabled;
     public static boolean floodgateEnabled;

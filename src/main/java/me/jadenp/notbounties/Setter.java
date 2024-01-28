@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Setter implements Comparable<Setter>{
@@ -22,11 +23,7 @@ public class Setter implements Comparable<Setter>{
         this.uuid = uuid;
         this.amount = amount;
         this.timeCreated = timeCreated;
-        if (notified == null){
-            this.notified = true;
-        } else {
-            this.notified = notified;
-        }
+        this.notified = Objects.requireNonNullElse(notified, true);
         this.whitelist = whitelist;
     }
 
