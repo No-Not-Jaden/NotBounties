@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.Immunity;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -113,16 +114,21 @@ public class Tutorial {                                                         
                 sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "                                        ");
                 sender.sendMessage(ChatColor.WHITE + "To avoid having to pay the hefty interest rate when");
                 sender.sendMessage(ChatColor.WHITE + "buying your own bounty, you can buy immunity with");
-                if (immunityType == 0) {
-                    sender.sendMessage(ChatColor.WHITE + "nothing. (disabled)");
-                } else if (immunityType == 1) {
-                    sendCommandMessage(sender, "{command}. Immunity is permanent and costs " + NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.permanentCost) + NumberFormatting.currencySuffix + ChatColor.WHITE + ".", "/bounty immunity", true);
-                } else if (immunityType == 2) {
-                    sendCommandMessage(sender, "{command}. Immunity will protect you", "/bounty immunity (price)", false);
-                    sender.sendMessage(ChatColor.WHITE + "from bounties set under " + NumberFormatting.formatNumber(ConfigOptions.scalingRatio) + "x the price you spend.");
-                } else if (immunityType == 3) {
-                    sendCommandMessage(sender, "{command}. Immunity will protect you", "/bounty immunity (price)", false);
-                    sender.sendMessage(ChatColor.WHITE + "for price x " + ConfigOptions.timeImmunity + " seconds.");
+                switch (Immunity.immunityType) {
+                    case DISABLE:
+                        sender.sendMessage(ChatColor.WHITE + "nothing. (disabled)");
+                        break;
+                    case PERMANENT:
+                        sendCommandMessage(sender, "{command}. Immunity is permanent and costs " + NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix + ChatColor.WHITE + ".", "/bounty immunity", true);
+                        break;
+                    case SCALING:
+                        sendCommandMessage(sender, "{command}. Immunity will protect you", "/bounty immunity (price)", false);
+                        sender.sendMessage(ChatColor.WHITE + "from bounties set under " + NumberFormatting.formatNumber(Immunity.getScalingRatio()) + "x the price you spend.");
+                        break;
+                    case TIME:
+                        sendCommandMessage(sender, "{command}. Immunity will protect you", "/bounty immunity (price)", false);
+                        sender.sendMessage(ChatColor.WHITE + "for price x " + Immunity.getTime() + " seconds.");
+                        break;
                 }
             break;
             case 9:

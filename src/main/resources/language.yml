@@ -154,9 +154,9 @@ help:
     permanent:
       - '&9/bounty immunity &8- &dBuy immunity to bounties set on you for {permanent_cost} currency.'
     scaling:
-      - '&9/bounty immunity &8- &dBuy immunity to bounties set on you for {scaling_ratio}x the price you spend.'
+      - '&9/bounty immunity (price) &8- &dBuy immunity to bounties set on you for {scaling_ratio}x the price you spend.'
     time:
-      - '&9/bounty immunity (price) &8- &dBuy immunity to bounties for price * {time_immunity} seconds.'
+      - '&9/bounty immunity (price) &8- &dBuy immunity to bounties for price * {time_immunity}.'
   remove-immunity:
     - '&9/bounty immunity remove &8- &dRemoves purchased immunity from yourself.'
   poster-own:

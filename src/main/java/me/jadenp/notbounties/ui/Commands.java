@@ -1,9 +1,6 @@
 package me.jadenp.notbounties.ui;
 
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.Leaderboard;
-import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.bountyEvents.BountyEditEvent;
 import me.jadenp.notbounties.bountyEvents.BountyRemoveEvent;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -51,7 +48,6 @@ public class Commands implements CommandExecutor, TabCompleter {
         if (command.getName().equalsIgnoreCase("notbounties")) {
             Player parser = getParser(sender);
             if (args.length > 0) {
-                final String whitelistText = "whitelist";
                 if (args[0].equalsIgnoreCase("help") && sender.hasPermission("notbounties.basic")) {
                     LanguageOptions.sendHelpMessage(sender);
                 } else if (args[0].equalsIgnoreCase("update-notification")) {
@@ -208,10 +204,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         // usage
                         sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " (add/remove/set) (" + whitelistText + "ed players)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Change the players that can claim the bounties you set.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " <offline>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Opens the set whitelist GUI.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " reset" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Resets your whitelisted players.");
-                        sender.sendMessage(ChatColor.BLUE + "/bounty " + whitelistText + " view" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Displays your whitelisted players in chat.");
+                        sendHelpMessage(sender, helpWhitelist);
                         return true;
                     } else {
                         sender.sendMessage(prefix + ChatColor.RED + "Only players can use this command.");
@@ -266,7 +259,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args.length != 2) {
                         // usage
                         sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sender.sendMessage(ChatColor.BLUE + "/bounty stat (all/kills/claimed/deaths/set/immunity)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "View your bounty stats.");
+                        sendHelpMessage(sender, helpView);
                         return true;
                     }
                     try {
@@ -274,7 +267,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } catch (IllegalArgumentException e) {
                         // more usage
                         sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sender.sendMessage(ChatColor.BLUE + "/bounty stat (all/kills/claimed/deaths/set/immunity)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "View your bounty stats.");
+                        sendHelpMessage(sender, helpView);
                         return true;
                     }
 
@@ -287,7 +280,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 leaderboard = Leaderboard.valueOf(args[1].toUpperCase());
                             } catch (IllegalArgumentException e) {
                                 sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sender.sendMessage(ChatColor.BLUE + "/bounty top (all/kills/claimed/deaths/set/immunity) <list>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Lists the top 10 players with the respective stats.");
+                                sendHelpMessage(sender, helpView);
                                 return true;
                             }
                         } else {
@@ -321,14 +314,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (sender.hasPermission("notbounties.removeimmunity") || sender.hasPermission("notbounties.admin")) {
                                 if (sender instanceof Player) {
                                     // remove immunity
-                                    double immunitySpent = SQL.isConnected() ? data.getImmunity((parser).getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat((parser).getUniqueId());
-                                    if (immunitySpent > 0) {
-                                        if (SQL.isConnected())
-                                            data.setImmunity((parser).getUniqueId().toString(), 0);
-                                        else
-                                            BountyManager.immunitySpent.put((parser).getUniqueId(), 0.0);
-                                        if (immunityType == 3)
-                                            immunityTimeTracker.remove((parser).getUniqueId());
+                                    if (Immunity.removeImmunity(parser.getUniqueId())) {
                                         sender.sendMessage(parse(prefix + removedImmunity, sender.getName(), (parser)));
                                     } else {
                                         // doesn't have immunity
@@ -340,14 +326,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                             } else {
                                 // usage
                                 if (sender instanceof Player)
-                                    if (sender.hasPermission("notbounties.buyimmunity") && immunityType > 0) {
+                                    if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
                                         sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                        if (immunityType == 1) {
-                                            sender.sendMessage(ChatColor.BLUE + "/bounty immunity" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you for " + permanentCost + " currency.");
-                                        } else if (immunityType == 2) {
-                                            sender.sendMessage(ChatColor.BLUE + "/bounty immunity (price)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you under " + scalingRatio + "x the price you spend.");
-                                        } else if (immunityType == 3) {
-                                            sender.sendMessage(ChatColor.BLUE + "/bounty immunity (price)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties for price * " + ConfigOptions.timeImmunity + " seconds.");
+                                        switch (Immunity.immunityType) {
+                                            case PERMANENT:
+                                                sendHelpMessage(sender, helpBuyImmunityPermanent);
+                                                break;
+                                            case SCALING:
+                                                sendHelpMessage(sender, helpBuyImmunityScaling);
+                                                break;
+                                            case TIME:
+                                                sendHelpMessage(sender, helpBuyImmunityTime);
+                                                break;
                                         }
                                     } else {
                                         sender.sendMessage(parse(prefix + unknownCommand, parser));
@@ -361,14 +351,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(prefix + unknownPlayer, args[0], parser));
                                     return true;
                                 }
-                                double immunitySpent = SQL.isConnected() ? data.getImmunity(p.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(p.getUniqueId());
-                                if (immunitySpent > 0) {
-                                    if (SQL.isConnected())
-                                        data.setImmunity(p.getUniqueId().toString(), 0);
-                                    else
-                                        BountyManager.immunitySpent.put(p.getUniqueId(), 0.0);
-                                    if (immunityType == 3)
-                                        immunityTimeTracker.remove(p.getUniqueId());
+                                if (Immunity.removeImmunity(p.getUniqueId())) {
                                     sender.sendMessage(parse(prefix + removedOtherImmunity, p.getName(), p));
                                 } else {
                                     // doesn't have immunity
@@ -377,15 +360,19 @@ public class Commands implements CommandExecutor, TabCompleter {
                             } else {
                                 if (sender.hasPermission("notbounties.removeimmunity")) {
                                     sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                    sender.sendMessage(ChatColor.BLUE + "/bounty immunity remove" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes purchased immunity from yourself.");
-                                } else if (sender.hasPermission("notbounties.buyimmunity") && immunityType > 0) {
+                                    sendHelpMessage(sender, helpRemoveImmunity);
+                                } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
                                     sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                    if (immunityType == 1) {
-                                        sender.sendMessage(ChatColor.BLUE + "/bounty immunity" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you for " + permanentCost + " currency.");
-                                    } else if (immunityType == 2) {
-                                        sender.sendMessage(ChatColor.BLUE + "/bounty immunity (price)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you under " + scalingRatio + "x the price you spend.");
-                                    } else if (immunityType == 3) {
-                                        sender.sendMessage(ChatColor.BLUE + "/bounty immunity (price)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties for price * " + ConfigOptions.timeImmunity + " seconds.");
+                                    switch (Immunity.immunityType) {
+                                        case PERMANENT:
+                                            sendHelpMessage(sender, helpBuyImmunityPermanent);
+                                            break;
+                                        case SCALING:
+                                            sendHelpMessage(sender, helpBuyImmunityScaling);
+                                            break;
+                                        case TIME:
+                                            sendHelpMessage(sender, helpBuyImmunityTime);
+                                            break;
                                     }
                                 } else {
                                     sender.sendMessage(parse(prefix + unknownCommand, parser));
@@ -395,18 +382,22 @@ public class Commands implements CommandExecutor, TabCompleter {
                             // usage
                             if (sender.hasPermission("notbounties.admin")) {
                                 sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sender.sendMessage(ChatColor.BLUE + "/bounty immunity remove (player)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes purchased immunity from a player.");
+                                sendHelpMessage(sender, helpAdmin);
                             } else if (sender.hasPermission("notbounties.removeimmunity")) {
                                 sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sender.sendMessage(ChatColor.BLUE + "/bounty immunity remove" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes purchased immunity from yourself.");
-                            } else if (sender.hasPermission("notbounties.buyimmunity") && immunityType > 0) {
+                                sendHelpMessage(sender, helpRemoveImmunity);
+                            } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
                                 sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                if (immunityType == 1) {
-                                    sender.sendMessage(ChatColor.BLUE + "/bounty immunity" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you for " + permanentCost + " currency.");
-                                } else if (immunityType == 2) {
-                                    sender.sendMessage(ChatColor.BLUE + "/bounty immunity (price)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you under " + scalingRatio + "x the price you spend.");
-                                } else if (immunityType == 3) {
-                                    sender.sendMessage(ChatColor.BLUE + "/bounty immunity (price)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties for price * " + ConfigOptions.timeImmunity + " seconds.");
+                                switch (Immunity.immunityType) {
+                                    case PERMANENT:
+                                        sendHelpMessage(sender, helpBuyImmunityPermanent);
+                                        break;
+                                    case SCALING:
+                                        sendHelpMessage(sender, helpBuyImmunityScaling);
+                                        break;
+                                    case TIME:
+                                        sendHelpMessage(sender, helpBuyImmunityTime);
+                                        break;
                                 }
                             } else {
                                 sender.sendMessage(parse(prefix + unknownCommand, parser));
@@ -414,32 +405,32 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     } else {
                         if (sender instanceof Player) {
-                            if (immunityType > 0) {
+                            if (Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
                                 if (sender.hasPermission("notbounties.buyimmunity")) {
-                                    if (immunityType == 1) {
-                                        double immunitySpent = SQL.isConnected() ? data.getImmunity((parser).getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat((parser).getUniqueId());
-                                        if (immunitySpent < permanentCost && !sender.hasPermission("notbounties.immune")) {
+                                    if (Immunity.immunityType == Immunity.ImmunityType.PERMANENT) {
+                                        double immunitySpent = Immunity.getImmunity(parser.getUniqueId());
+                                        if (immunitySpent < Immunity.getPermanentCost() && !sender.hasPermission("notbounties.immune")) {
                                             if ((repeatBuyCommand2.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyCommand2.get((parser).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
                                                 // try to find bounty and buy it
                                                 repeatBuyCommand2.remove((parser).getUniqueId().toString());
-                                                if (checkBalance(parser, permanentCost)) {
-                                                    NumberFormatting.doRemoveCommands(parser, permanentCost, new ArrayList<>());
+                                                if (checkBalance(parser, Immunity.getPermanentCost())) {
+                                                    NumberFormatting.doRemoveCommands(parser, Immunity.getPermanentCost(), new ArrayList<>());
                                                     // successfully bought perm immunity
                                                     if (SQL.isConnected()) {
-                                                        data.addData((parser).getUniqueId().toString(), 0, 0, 0, 0, permanentCost, 0);
+                                                        data.addData((parser).getUniqueId().toString(), 0, 0, 0, 0, Immunity.getPermanentCost(), 0);
                                                         sender.sendMessage(parse(prefix + buyPermanentImmunity, data.getImmunity((parser).getUniqueId().toString()), parser));
                                                     } else {
-                                                        BountyManager.immunitySpent.put((parser).getUniqueId(), Leaderboard.IMMUNITY.getStat((parser).getUniqueId()) + permanentCost);
+                                                        BountyManager.immunitySpent.put((parser).getUniqueId(), Leaderboard.IMMUNITY.getStat((parser).getUniqueId()) + Immunity.getPermanentCost());
                                                         sender.sendMessage(parse(prefix + buyPermanentImmunity, Leaderboard.IMMUNITY.getStat((parser).getUniqueId()), parser));
                                                     }
                                                 } else {
-                                                    sender.sendMessage(parse(prefix + broke, permanentCost, parser));
+                                                    sender.sendMessage(parse(prefix + broke, Immunity.getPermanentCost(), parser));
                                                 }
 
                                             } else {
                                                 // ask to repeat
                                                 repeatBuyCommand2.put((parser).getUniqueId().toString(), System.currentTimeMillis());
-                                                sender.sendMessage(parse(prefix + repeatCommandImmunity, permanentCost, parser));
+                                                sender.sendMessage(parse(prefix + repeatCommandImmunity, Immunity.getPermanentCost(), parser));
                                             }
                                         } else {
                                             // already bought immunity
@@ -460,19 +451,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 if (checkBalance(parser, amount)) {
                                                     NumberFormatting.doRemoveCommands(parser, amount, new ArrayList<>());
                                                     // successfully bought scaling immunity - amount x scalingRatio
-                                                    double immunity;
-                                                    if (SQL.isConnected()) {
-                                                        data.addData((parser).getUniqueId().toString(), 0, 0, 0, 0, amount, 0);
-                                                        immunity = data.getImmunity((parser).getUniqueId().toString());
+                                                    Immunity.addImmunity(parser.getUniqueId(), amount);
+                                                    if (Immunity.immunityType == Immunity.ImmunityType.SCALING) {
+                                                        sender.sendMessage(parse(prefix + buyScalingImmunity, Immunity.getImmunity(parser.getUniqueId()) * Immunity.getScalingRatio(), parser));
                                                     } else {
-                                                        immunitySpent.put((parser).getUniqueId(), Leaderboard.IMMUNITY.getStat((parser).getUniqueId()) + (amount));
-                                                        immunity = Leaderboard.IMMUNITY.getStat((parser).getUniqueId());
-                                                    }
-                                                    if (immunityType == 2) {
-                                                        sender.sendMessage(parse(prefix + buyScalingImmunity, immunity * scalingRatio, parser));
-                                                    } else {
-                                                        sender.sendMessage(parse(prefix + buyTimeImmunity.replaceAll("\\{time}", Matcher.quoteReplacement(NotBounties.formatTime((long) (immunity * ConfigOptions.timeImmunity * 1000L)))), immunity * ConfigOptions.timeImmunity, parser));
-                                                        immunityTimeTracker.put((parser).getUniqueId(), (long) (System.currentTimeMillis() + immunity * ConfigOptions.timeImmunity * 1000L));
+                                                        sender.sendMessage(parse(prefix + buyTimeImmunity.replaceAll("\\{time}", Matcher.quoteReplacement(NotBounties.formatTime(Immunity.getTimeImmunity(parser)))), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getTime(), parser));
+
                                                     }
                                                 } else {
                                                     // broke
@@ -486,7 +470,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         } else {
                                             // usage
                                             sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                            sender.sendMessage(ChatColor.BLUE + "/bounty immunity (price)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Buy immunity to bounties set on you under " + scalingRatio + "x the price you spend.");
+                                            if (Immunity.immunityType == Immunity.ImmunityType.SCALING)
+                                                sendHelpMessage(sender, helpBuyImmunityScaling);
+                                            else if (Immunity.immunityType == Immunity.ImmunityType.TIME)
+                                                sendHelpMessage(sender, helpBuyImmunityTime);
                                         }
                                     }
                                 } else {
@@ -579,7 +566,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                         } else {
                             sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sender.sendMessage(ChatColor.BLUE + "/bounty check (player)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Checks a bounty.");
+                            sendHelpMessage(sender, helpView);
                         }
                     } else {
                         sender.sendMessage(parse(prefix + noPermission, parser));
@@ -684,14 +671,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     } else {
                                         // usage
                                         sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                        sender.sendMessage(ChatColor.BLUE + "/bounty remove (player)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes all bounties from a player.");
-                                        sender.sendMessage(ChatColor.BLUE + "/bounty remove (player) from (setter)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes a specific bounty put on a player.");
+                                        sendHelpMessage(sender, helpAdmin);
                                     }
                                 } else {
                                     // usage
                                     sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                    sender.sendMessage(ChatColor.BLUE + "/bounty remove (player)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes all bounties from a player.");
-                                    sender.sendMessage(ChatColor.BLUE + "/bounty remove (player) from (setter)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes a specific bounty put on a player.");
+                                    sendHelpMessage(sender, helpAdmin);
                                 }
                             } else {
                                 // could not find bounty
@@ -701,8 +686,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         } else {
                             // usage
                             sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sender.sendMessage(ChatColor.BLUE + "/bounty remove (player)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes all bounties from a player.");
-                            sender.sendMessage(ChatColor.BLUE + "/bounty remove (player) from (setter)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Removes a specific bounty put on a player.");
+                            sendHelpMessage(sender, helpAdmin);
 
                         }
                     } else {
@@ -797,14 +781,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     } else {
                                         // usage
                                         sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                        sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a player's total bounty.");
-                                        sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) from (setter) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a specific bounty put on a player.");
+                                        sendHelpMessage(sender, helpAdmin);
                                     }
                                 } else {
                                     // usage
                                     sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                    sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a player's total bounty.");
-                                    sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) from (setter) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a specific bounty put on a player.");
+                                    sendHelpMessage(sender, helpAdmin);
                                 }
                             } else {
                                 // couldn't find bounty
@@ -814,8 +796,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         } else {
                             // usage
                             sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a player's total bounty.");
-                            sender.sendMessage(ChatColor.BLUE + "/bounty edit (player) from (setter) (amount)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Edits a specific bounty put on a player.");
+                            sendHelpMessage(sender, helpAdmin);
 
                         }
                     } else {
@@ -830,9 +811,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args.length == 1) {
                         // usage
                         sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sender.sendMessage(ChatColor.BLUE + "/bounty poster (player)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Gives you a poster of a player's bounty.");
+                        sendHelpMessage(sender, helpPosterOwn);
                         if (sender.hasPermission("notbounties.admin"))
-                            sender.sendMessage(ChatColor.BLUE + "/bounty poster (player) (receiver)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Gives receiver a poster of a player's bounty.");
+                            sendHelpMessage(sender, helpPosterOther);
 
                         return true;
                     }
@@ -943,8 +924,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                             } else {
                                 // usage
                                 sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sender.sendMessage(ChatColor.BLUE + "/bounty tracker (player)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Gives you a compass that tracks a player with a bounty.");
-                                sender.sendMessage(ChatColor.BLUE + "/bounty tracker (player) (receiver)" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Gives receiver a compass that tracks a player with a bounty.");
+                                sendHelpMessage(sender, helpTrackerOwn);
+                                sendHelpMessage(sender, helpTrackerOther);
 
                             }
                         } else {
@@ -957,8 +938,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             // can't find player
                             if (args.length == 1) {
                                 sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sender.sendMessage(ChatColor.BLUE + "/bounty (player) (amount) <whitelisted players>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Adds a bounty to a player.");
-                                sender.sendMessage(ChatColor.BLUE + "/bounty set <offline>" + ChatColor.DARK_GRAY + " - " + ChatColor.LIGHT_PURPLE + "Opens the set bounty GUI.");
+                                sendHelpMessage(sender, helpSet);
                             } else {
                                 sender.sendMessage(parse(prefix + unknownPlayer, args[0], parser));
                             }
@@ -1018,34 +998,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                         // check if it is a player
 
                         if (sender instanceof Player) {
-                            if (NotBounties.gracePeriod.containsKey(player.getUniqueId().toString())) {
-                                long timeSinceDeath = System.currentTimeMillis() - NotBounties.gracePeriod.get(player.getUniqueId().toString());
-                                if (timeSinceDeath < graceTime * 1000L) {
-                                    // still in grace period
-                                    long timeLeft = (graceTime * 1000L) - timeSinceDeath;
-
-                                    String message = parse(prefix + LanguageOptions.gracePeriod.replaceAll("\\{time}", Matcher.quoteReplacement(NotBounties.formatTime(timeLeft))), player.getName(), player);
-                                    sender.sendMessage(message);
+                            // check fir immunity
+                            switch (Immunity.getAppliedImmunity(player, amount)) {
+                                case GRACE_PERIOD:
+                                    sender.sendMessage(parse(prefix + LanguageOptions.gracePeriod.replaceAll("\\{time}", Matcher.quoteReplacement(NotBounties.formatTime(Immunity.getGracePeriod(player.getUniqueId())))), player.getName(), player));
                                     return true;
-                                } else {
-                                    NotBounties.gracePeriod.remove(player.getUniqueId().toString());
-                                }
-                            }
-                            double immunitySpent = SQL.isConnected() ? data.getImmunity(player.getUniqueId().toString()) : Leaderboard.IMMUNITY.getStat(player.getUniqueId());
-                            if ((player.isOnline() && Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immune")) || (!player.isOnline() && immunePerms.contains(player.getUniqueId().toString())) || (immunityType == 1 && immunitySpent >= permanentCost)) {
-                                // has permanent immunity
-                                sender.sendMessage(parse(prefix + permanentImmunity, player.getName(), immunitySpent, player));
-                                return true;
-                            }
-                            if (immunityType == 3 && immunityTimeTracker.containsKey(player.getUniqueId())) {
-                                // has time immunity
-                                sender.sendMessage(parse(prefix + LanguageOptions.timeImmunity.replaceAll("\\{time}", Matcher.quoteReplacement(NotBounties.formatTime(immunityTimeTracker.get(player.getUniqueId()) - System.currentTimeMillis()))), player.getName(), immunitySpent, player));
-                                return true;
-                            }
-                            if (amount <= immunitySpent && immunityType == 2) {
-                                // has scaling immunity
-                                sender.sendMessage(parse(prefix + scalingImmunity, player.getName(), immunitySpent, player));
-                                return true;
+                                case PERMANENT:
+                                    sender.sendMessage(parse(prefix + permanentImmunity, player.getName(), Immunity.getImmunity(player.getUniqueId()), player));
+                                    return true;
+                                case SCALING:
+                                    sender.sendMessage(parse(prefix + scalingImmunity, player.getName(), Immunity.getImmunity(player.getUniqueId()), player));
+                                    return true;
+                                case TIME:
+                                    sender.sendMessage(parse(prefix + LanguageOptions.timeImmunity.replaceAll("\\{time}", Matcher.quoteReplacement(NotBounties.formatTime(Immunity.getTimeImmunity(player)))), player.getName(), Immunity.getImmunity(player.getUniqueId()), player));
+                                    return true;
+
                             }
 
                             if (!args[args.length - 1].equalsIgnoreCase("--confirm") && confirmation) {
@@ -1064,7 +1031,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                     @Override
                                                     public void run() {
                                                         // has permanent immunity
-                                                        sender.sendMessage(parse(prefix + permanentImmunity, player.getName(), immunitySpent, player));
+                                                        sender.sendMessage(parse(prefix + permanentImmunity, player.getName(), Immunity.getImmunity(player.getUniqueId()), player));
                                                     }
                                                 }.runTask(NotBounties.getInstance());
                                             } else {
@@ -1153,7 +1120,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("notbounties.buyown") && buyBack) {
                     tab.add("buy");
                 }
-                if (immunityType > 0 || sender.hasPermission("notbounties.admin")) {
+                if (Immunity.immunityType != Immunity.ImmunityType.DISABLE || sender.hasPermission("notbounties.admin")) {
                     if (sender.hasPermission("notbounties.buyimmunity")) {
                         tab.add("immunity");
                     }
@@ -1175,7 +1142,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else if (args[0].equalsIgnoreCase("immunity")) {
                     if ((sender.hasPermission("notbounties.admin") || sender.hasPermission("notbounties.removeimmunity")))
                         tab.add("remove");
-                    if ((sender.hasPermission("notbounties.admin") || sender.hasPermission("notbounties.buyimmunity")) && immunityType == 1)
+                    if ((sender.hasPermission("notbounties.admin") || sender.hasPermission("notbounties.buyimmunity")) && Immunity.immunityType == Immunity.ImmunityType.PERMANENT)
                         tab.add("--confirm");
                 } else if ((args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("stat")) && sender.hasPermission("notbounties.view")) {
                     tab.add("all");
@@ -1219,7 +1186,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             tab.add(NotBounties.getPlayerName(p.getUniqueId()));
                         }
                     }
-                    if ((sender.hasPermission("notbounties.admin") || sender.hasPermission("notbounties.buyimmunity")) && immunityType > 1)
+                    if ((sender.hasPermission("notbounties.admin") || sender.hasPermission("notbounties.buyimmunity")) && (Immunity.immunityType == Immunity.ImmunityType.SCALING || Immunity.immunityType == Immunity.ImmunityType.TIME))
                         tab.add("--confirm");
                 } else if (args[0].equalsIgnoreCase("tracker") && tracker) {
                     for (OfflinePlayer p : NotBounties.getNetworkPlayers()) {

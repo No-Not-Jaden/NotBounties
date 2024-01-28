@@ -1,10 +1,7 @@
 package me.jadenp.notbounties.utils;
 
 
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.BountyClaimCommands;
-import me.jadenp.notbounties.Leaderboard;
-import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.autoBounties.MurderBounties;
 import me.jadenp.notbounties.autoBounties.RandomBounties;
 import me.jadenp.notbounties.autoBounties.TimedBounties;
@@ -19,6 +16,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -114,8 +112,6 @@ public class ConfigOptions {
     public static boolean geyserEnabled;
     public static boolean floodgateEnabled;
     public static boolean sendBStats;
-    public static boolean timeImmunityOfflineTracking;
-
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
         NotBounties bounties = NotBounties.getInstance();
@@ -226,12 +222,11 @@ public class ConfigOptions {
             }
         }
 
-
-        // fill in any missing default settings
+        // fill in any default options that aren't present
+        bounties.getConfig().setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("config.yml")))));
         for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
-            if (!bounties.getConfig().isSet(key)) {
+            if (!bounties.getConfig().isSet(key))
                 bounties.getConfig().set(key, bounties.getConfig().getDefaults().get(key));
-            }
         }
 
         NumberFormatting.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
@@ -240,6 +235,7 @@ public class ConfigOptions {
         RandomBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("random-bounties")));
         TimedBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("timed-bounties")));
         BountyClaimCommands.loadConfiguration(bounties.getConfig().getStringList("bounty-claim-commands"));
+        Immunity.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("immunity")));
 
         bountyExpire = bounties.getConfig().getDouble("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");

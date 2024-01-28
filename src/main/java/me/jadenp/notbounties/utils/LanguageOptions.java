@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.Immunity;
 import me.jadenp.notbounties.NotBounties;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -103,22 +104,22 @@ public class LanguageOptions {
     public static List<String> blacklistLore;
     public static List<String> rewardHeadLore;
     public static List<String> buyBackLore;
-    private static List<String> helpBasic;
-    private static List<String> helpView;
-    private static List<String> helpSet;
-    private static List<String> helpWhitelist;
-    private static List<String> helpBlacklist;
-    private static List<String> helpBuyOwn;
-    private static List<String> helpBuyImmunityPermanent;
-    private static List<String> helpBuyImmunityScaling;
-    private static List<String> helpBuyImmunityTime;
-    private static List<String> helpRemoveImmunity;
-    private static List<String> helpTrackerOwn;
-    private static List<String> helpTrackerOther;
-    private static List<String> helpAdmin;
-    private static List<String> helpImmune;
-    private static List<String> helpPosterOwn;
-    private static List<String> helpPosterOther;
+    public static List<String> helpBasic;
+    public static List<String> helpView;
+    public static List<String> helpSet;
+    public static List<String> helpWhitelist;
+    public static List<String> helpBlacklist;
+    public static List<String> helpBuyOwn;
+    public static List<String> helpBuyImmunityPermanent;
+    public static List<String> helpBuyImmunityScaling;
+    public static List<String> helpBuyImmunityTime;
+    public static List<String> helpRemoveImmunity;
+    public static List<String> helpTrackerOwn;
+    public static List<String> helpTrackerOther;
+    public static List<String> helpAdmin;
+    public static List<String> helpImmune;
+    public static List<String> helpPosterOwn;
+    public static List<String> helpPosterOther;
 
     public static File getLanguageFile() {
         return new File(NotBounties.getInstance().getDataFolder() + File.separator + "language.yml");
@@ -283,13 +284,17 @@ public class LanguageOptions {
         if (sender.hasPermission("notbounties.buyown") & buyBack) {
             sendHelpMessage(sender, helpBuyOwn);
         }
-        if (sender.hasPermission("notbounties.buyimmunity") && immunityType > 0) {
-            if (immunityType == 1) {
-                sendHelpMessage(sender, helpBuyImmunityPermanent);
-            } else if (immunityType == 2) {
-                sendHelpMessage(sender, helpBuyImmunityScaling);
-            } else if (immunityType == 3) {
-                sendHelpMessage(sender, helpBuyImmunityTime);
+        if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
+            switch (Immunity.immunityType) {
+                case PERMANENT:
+                    sendHelpMessage(sender, helpBuyImmunityPermanent);
+                    break;
+                case SCALING:
+                    sendHelpMessage(sender, helpBuyImmunityScaling);
+                    break;
+                case TIME:
+                    sendHelpMessage(sender, helpBuyImmunityTime);
+                    break;
             }
         }
         if (sender.hasPermission("notbounties.removeimmunity")) {
@@ -316,15 +321,15 @@ public class LanguageOptions {
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
     }
 
-    private static void sendHelpMessage(CommandSender sender, List<String> message) {
+    public static void sendHelpMessage(CommandSender sender, List<String> message) {
         Player parser = sender instanceof Player ? (Player) sender : null;
         for (String str : message) {
             str = str.replaceAll("\\{whitelist}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix));
             str = str.replaceAll("\\{tax}", Matcher.quoteReplacement(NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)));
             str = str.replaceAll("\\{buy_back_interest}", Matcher.quoteReplacement(NumberFormatting.formatNumber(ConfigOptions.buyBackInterest)));
-            str = str.replaceAll("\\{permanent_cost}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.permanentCost) + NumberFormatting.currencySuffix));
-            str = str.replaceAll("\\{scaling_ratio}", Matcher.quoteReplacement(NumberFormatting.formatNumber(ConfigOptions.scalingRatio)));
-            str = str.replaceAll("\\{time_immunity}", Matcher.quoteReplacement(NumberFormatting.formatNumber(ConfigOptions.timeImmunity)));
+            str = str.replaceAll("\\{permanent_cost}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
+            str = str.replaceAll("\\{scaling_ratio}", Matcher.quoteReplacement(NumberFormatting.formatNumber(Immunity.getScalingRatio())));
+            str = str.replaceAll("\\{time_immunity}", Matcher.quoteReplacement(NotBounties.formatTime((long) (Immunity.getTime() * 1000L))));
             sender.sendMessage(parse(str, parser));
         }
     }

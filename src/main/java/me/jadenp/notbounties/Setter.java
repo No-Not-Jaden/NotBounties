@@ -40,7 +40,7 @@ public class Setter implements Comparable<Setter>{
         if (whitelist.getList().isEmpty())
             return true;
         if (ConfigOptions.variableWhitelist)
-            return (NotBounties.getPlayerWhitelist(uuid).getList().isEmpty() || NotBounties.getPlayerWhitelist(uuid).isBlacklist()) != NotBounties.getPlayerWhitelist(uuid).getList().contains(player.getUniqueId());
+            return (NotBounties.getPlayerWhitelist(uuid).getList().isEmpty() || NotBounties.getPlayerWhitelist(uuid).isBlacklist()) != NotBounties.getPlayerWhitelist(uuid).getList().contains(claimerUuid);
         return whitelist.isBlacklist() != whitelist.getList().contains(claimerUuid);
     }
 

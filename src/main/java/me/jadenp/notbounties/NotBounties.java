@@ -43,12 +43,16 @@ import static me.jadenp.notbounties.utils.LanguageOptions.*;
  * Proxy Messaging
  * Webhooks
  * Challenges
- * bimodal currency -
- * partial manual economy -
- * after claim order -
- * time immunity offline tracking - save different values in bounties.yml
+ * bimodal currency - x
+ * partial manual economy - x
+ * after claim order - x
+ * replace help messages in usage - x
+ * Immunity expire time - x
  * bounty expire time for auto bounties
+ * add skinsrestorer file?
  * bounty expire offline tracking
+ * edit bounty stats
+ * view other's stats
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -183,17 +187,8 @@ public final class NotBounties extends JavaPlugin {
             });
         }
 
-        // register immunity times
-        if (immunityType == 3) {
-            Map<UUID, Double> immunity = SQL.isConnected() ? data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : immunitySpent;
-            for (Map.Entry<UUID, Double> entry : immunity.entrySet()) {
-                immunityTimeTracker.put(entry.getKey(), (long) ((entry.getValue() * ConfigOptions.timeImmunity * 1000) + System.currentTimeMillis()));
-            }
-        }
-
         // make bounty tracker work & big bounty particle & time immunity
         new BukkitRunnable() {
-            int sqlTimer = 0;
             List<BountyBoard> queuedBoards = new ArrayList<>();
 
             @Override
@@ -319,48 +314,8 @@ public final class NotBounties extends JavaPlugin {
                             }
                         }
                 }
-                if (immunityType == 3) {
-                    // iterate through immunity and update it
-                    if (SQL.isConnected() && sqlTimer >= 150) {
-                        // check if there is immunity there that isn't recorded
-                        LinkedHashMap<UUID, Double> immunityData = data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1);
-                        for (Map.Entry<UUID, Double> entry : immunityData.entrySet()) {
-                            UUID uuid = entry.getKey();
-                            if (entry.getValue() > 0)
-                                if (!immunityTimeTracker.containsKey(uuid)) {
-                                    // add to time tracker
-                                    immunityTimeTracker.put(uuid, (long) ((entry.getValue() * ConfigOptions.timeImmunity * 1000) + System.currentTimeMillis()));
-                                } else if (Math.abs(immunityTimeTracker.get(uuid) - ((long) ((entry.getValue() * ConfigOptions.timeImmunity) + System.currentTimeMillis()))) > 3000) {
-                                    // values are farther than 3 seconds apart, update
-                                    immunityTimeTracker.put(uuid, (long) ((entry.getValue() * ConfigOptions.timeImmunity * 1000) + System.currentTimeMillis()));
-                                }
-                        }
-                        sqlTimer = 0;
-                    }
-                    sqlTimer++;
 
-                    // iterate through time tracker to find any expired immunity.
-                    List<UUID> expiredImmunity = new ArrayList<>();
-                    for (Map.Entry<UUID, Long> entry : immunityTimeTracker.entrySet()) {
-                        if (System.currentTimeMillis() > entry.getValue())
-                            expiredImmunity.add(entry.getKey());
-                        else if (SQL.isConnected())
-                            data.setImmunity(entry.getKey().toString(), (double) (entry.getValue() - System.currentTimeMillis()) / 1000);
-                        else
-                            immunitySpent.put(entry.getKey(), (double) (entry.getValue() - System.currentTimeMillis()) / (1000 * ConfigOptions.timeImmunity));
-                    }
-                    for (UUID uuid : expiredImmunity) {
-                        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-                        if (player.isOnline())
-                            Objects.requireNonNull(player.getPlayer()).sendMessage(parse(prefix + immunityExpire, player));
-                        immunityTimeTracker.remove(uuid);
-                        if (SQL.isConnected())
-                            data.setImmunity(uuid.toString(), 0);
-                        else
-                            immunitySpent.put(uuid, 0.0);
-                    }
-                }
-
+                Immunity.update();
                 RandomBounties.update();
                 TimedBounties.update();
 
@@ -723,13 +678,15 @@ public final class NotBounties extends JavaPlugin {
 
 
     public static String formatTime(long ms) {
-
+        long days = (long) (ms / (8.64 * Math.pow(10,7)));
+        ms = (long) (ms % (8.64 * Math.pow(10,7)));
         long hours = ms / 3600000L;
         ms = ms % 3600000L;
         long minutes = ms / 60000L;
         ms = ms % 60000L;
         long seconds = ms / 1000L;
         String time = "";
+        if (days > 0) time += days + "d ";
         if (hours > 0) time += hours + "h ";
         if (minutes > 0) time += minutes + "m ";
         if (seconds > 0) time += seconds + "s";
@@ -871,6 +828,10 @@ public final class NotBounties extends JavaPlugin {
                 // remove bounty if all the setters have been removed
                 if (bounty.getSetters().isEmpty()) {
                     bountyIterator.remove();
+                    if (wantedText.containsKey(bounty.getUUID())) {
+                        wantedText.get(bounty.getUUID()).removeStand();
+                        wantedText.remove(bounty.getUUID());
+                    }
                 }
             }
         }

@@ -72,6 +72,7 @@ public class Events implements Listener {
         }
 
         TimedBounties.logout(event.getPlayer());
+        Immunity.logout(event.getPlayer());
 
         if (SQL.isConnected())
             data.logout(event.getPlayer());
@@ -302,7 +303,7 @@ public class Events implements Listener {
                 }
             }
         }
-       NotBounties.gracePeriod.put(player.getUniqueId().toString(), System.currentTimeMillis());
+       Immunity.startGracePeriod(player);
 
         if (trackerRemove > 0)
             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -723,6 +724,7 @@ public class Events implements Listener {
         }
 
         TimedBounties.login(event.getPlayer());
+        Immunity.login(event.getPlayer());
         if (SQL.isConnected())
             data.login(event.getPlayer());
     }
@@ -768,13 +770,16 @@ public class Events implements Listener {
         Player killer = player.getKiller();
         if (killer != null)
             claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
-                /*
-        if (player.getLastDamageCause() instanceof EntityDamageByEntityEvent) {
+
+        /*if (player.getLastDamageCause() instanceof EntityDamageByEntityEvent) {
+            Bukkit.getLogger().info("1");
             EntityDamageByEntityEvent event1 = (EntityDamageByEntityEvent) player.getLastDamageCause();
             if (!(event1.getDamager() instanceof Player))
                 return;
-            Player killer = (Player) event1.getDamager();
-            claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
+            Bukkit.getLogger().info("2");
+            Player killer1 = (Player) event1.getDamager();
+            //claimBounty(player, killer1, Arrays.asList(player.getInventory().getContents()), true);
+
         }*/
     }
 

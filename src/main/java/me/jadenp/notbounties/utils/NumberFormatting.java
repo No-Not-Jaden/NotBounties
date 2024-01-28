@@ -168,18 +168,30 @@ public class NumberFormatting {
             removeCommands = currencyOptions.getStringList("remove-commands");
         else removeCommands = Collections.singletonList(currencyOptions.getString("remove-commands"));
 
-        // warning for not enough remove/add commands
-        int placeholderCurrencies = (int) currency.stream().filter(currencyName -> currencyName.contains("%")).count();
-        if (addCommands.size() < placeholderCurrencies)
-            Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + addCommands.size() + " add commands!");
-        if (removeCommands.size() < placeholderCurrencies)
-            Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + removeCommands.size() + " remove commands!");
-
         try {
             addSingleCurrency = CurrencyAddType.valueOf(Objects.requireNonNull(currencyOptions.getString("add-single-currency")).toUpperCase());
         } catch (IllegalArgumentException e) {
             addSingleCurrency = CurrencyAddType.DESCENDING;
             Bukkit.getLogger().warning("[NotBounties] Invalid add-single-currency type!");
+        }
+
+        // warning for not enough remove/add commands
+        if (addSingleCurrency == CurrencyAddType.BIMODAL) {
+            if (currency.size() < 2) {
+                Bukkit.getLogger().warning("Using bimodal currency but there aren't 2 currencies to use!");
+            } else {
+                if (currency.get(0).contains("%") && addCommands.isEmpty())
+                    Bukkit.getLogger().warning("Detected a placeholder for the first currency, but there are no add commands!");
+                if (currency.get(1).contains("%") && removeCommands.isEmpty())
+                    Bukkit.getLogger().warning("Detected a placeholder for the second currency, but there are no remove commands!");
+            }
+
+        } else {
+            int placeholderCurrencies = (int) currency.stream().filter(currencyName -> currencyName.contains("%")).count();
+            if (addCommands.size() < placeholderCurrencies)
+                Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + addCommands.size() + " add commands!");
+            if (removeCommands.size() < placeholderCurrencies)
+                Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + removeCommands.size() + " remove commands!");
         }
 
 
@@ -298,6 +310,8 @@ public class NumberFormatting {
     public static Map<Material, Long> doRemoveCommands(Player p, double amount, List<ItemStack> additionalItems) {
         if (manualEconomy == ManualEconomy.MANUAL) {
             for (String removeCommand : removeCommands) {
+                if (removeCommand.isEmpty())
+                    continue;
                 String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
@@ -320,6 +334,8 @@ public class NumberFormatting {
             if (addSingleCurrency == CurrencyAddType.BIMODAL) {
                 // just do remove commands
                 for (String removeCommand : removeCommands) {
+                    if (removeCommand.isEmpty())
+                        continue;
                     String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 }
@@ -343,6 +359,8 @@ public class NumberFormatting {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough remove commands for your currency! Currency will not be removed properly!");
             }
             for (int i = 0; i < Math.min(balancedRemove.length-1, modifiedRemoveCommands.size()); i++) {
+                if (modifiedRemoveCommands.get(i).isEmpty())
+                    continue;
                 if (currency.get(i).contains("%")) {
                     String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(balancedRemove[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
@@ -357,12 +375,16 @@ public class NumberFormatting {
             }
             // do the rest of the remove commands
             for (int i = balancedRemove.length-1; i < modifiedRemoveCommands.size(); i++) {
+                if (modifiedRemoveCommands.get(i).isEmpty())
+                    continue;
                 String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
         } else {
             // just do remove commands
             for (String removeCommand : removeCommands) {
+                if (removeCommand.isEmpty())
+                    continue;
                 String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
@@ -611,6 +633,8 @@ public class NumberFormatting {
     public static void doAddCommands(Player p, double amount) {
         if (manualEconomy == ManualEconomy.MANUAL) {
             for (String addCommand : addCommands) {
+                if (addCommand.isEmpty())
+                    continue;
                 String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
@@ -642,6 +666,8 @@ public class NumberFormatting {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
             }
             for (int i = 0; i < Math.min(balancedAdd.length, modifiedAddCommands.size()); i++) {
+                if (modifiedAddCommands.get(i).isEmpty())
+                    continue;
                 if (currency.get(i).contains("%")) {
                     String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(balancedAdd[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
@@ -658,6 +684,8 @@ public class NumberFormatting {
             }
             // do the rest of the add commands
             for (int i = balancedAdd.length; i < modifiedAddCommands.size(); i++) {
+                if (modifiedAddCommands.get(i).isEmpty())
+                    continue;
                 String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
@@ -666,6 +694,8 @@ public class NumberFormatting {
             IntStream.range(1, currency.size()).forEach(modifiedAddCommands::remove);
             // just do add commands
             for (String addCommand : modifiedAddCommands) {
+                if (addCommand.isEmpty())
+                    continue;
                 String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
@@ -683,6 +713,8 @@ public class NumberFormatting {
         } else if (addSingleCurrency == CurrencyAddType.BIMODAL) {
             // do all the add commands with the first currency
             for (String addCommand : addCommands) {
+                if (addCommand.isEmpty())
+                    continue;
                 String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
@@ -706,6 +738,8 @@ public class NumberFormatting {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
             }
             for (int i = 0; i < Math.min(descendingAdd.length, modifiedAddCommands.size()); i++) {
+                if (modifiedAddCommands.get(i).isEmpty())
+                    continue;
                 if (currency.get(i).contains("%")) {
                     String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(descendingAdd[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
@@ -722,6 +756,8 @@ public class NumberFormatting {
             }
             // do the rest of the add commands
             for (int i = descendingAdd.length; i < modifiedAddCommands.size(); i++) {
+                if (modifiedAddCommands.get(i).isEmpty())
+                    continue;
                 String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
