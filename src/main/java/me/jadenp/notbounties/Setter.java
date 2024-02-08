@@ -16,8 +16,9 @@ public class Setter implements Comparable<Setter>{
     private final long timeCreated;
     private boolean notified;
     private final Whitelist whitelist;
+    private final long receiverPlaytime;
 
-    public Setter(String name, UUID uuid, double amount, long timeCreated, @Nullable Boolean notified, Whitelist whitelist){
+    public Setter(String name, UUID uuid, double amount, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime){
 
         this.name = name;
         this.uuid = uuid;
@@ -25,6 +26,11 @@ public class Setter implements Comparable<Setter>{
         this.timeCreated = timeCreated;
         this.notified = Objects.requireNonNullElse(notified, true);
         this.whitelist = whitelist;
+        this.receiverPlaytime = receiverPlaytime;
+    }
+
+    public long getReceiverPlaytime(){
+        return receiverPlaytime;
     }
 
     public boolean canClaim(Player player) {

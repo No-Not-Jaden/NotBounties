@@ -49,7 +49,6 @@ public class BountyManager {
     public static final Map<UUID, Double> allClaimedBounties = new HashMap<>();
     public static final Map<UUID, List<RewardHead>> headRewards = new HashMap<>();
     public static final List<Bounty> bountyList = new ArrayList<>();
-    public static final List<Bounty> expiredBounties = new ArrayList<>();
 
     public static void loadBounties(){
         SQL = new MySQL(NotBounties.getInstance());
@@ -75,7 +74,6 @@ public class BountyManager {
                 i = 0;
                 while (configuration.getString("bounties." + i + ".uuid") != null) {
                     List<Setter> setters = new ArrayList<>();
-                    List<Setter> expiredSetters = new ArrayList<>();
                     int l = 0;
                     while (configuration.getString("bounties." + i + "." + l + ".uuid") != null) {
                         List<String> whitelistUUIDs = new ArrayList<>();
@@ -88,23 +86,14 @@ public class BountyManager {
                             convertedUUIDs.add(UUID.fromString(uuid));
                         // check for old CONSOLE UUID
                         UUID setterUUID = Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")).equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")));
-                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), setterUUID, configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), new Whitelist(convertedUUIDs, blacklist));
-                        if (bountyExpire > 0) {
-                            if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
-                                expiredSetters.add(setter);
-                            } else {
-                                setters.add(setter);
-                            }
-                        } else {
-                            setters.add(setter);
-                        }
+                        // check for no playtime
+                        long playTime = configuration.isSet("bounties." + i + "." + l + ".playtime") ? configuration.getLong("bounties." + i + "." + l + ".playtime") : 0;
+                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), setterUUID, configuration.getDouble("bounties." + i + "." + l + ".amount"), configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), new Whitelist(convertedUUIDs, blacklist), playTime);
+                        setters.add(setter);
                         l++;
                     }
                     if (!setters.isEmpty()) {
                         bountyList.add(new Bounty(UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + ".uuid"))), setters, configuration.getString("bounties." + i + ".name")));
-                    }
-                    if (!expiredSetters.isEmpty()) {
-                        expiredBounties.add(new Bounty(UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + ".uuid"))), expiredSetters, configuration.getString("bounties." + i + ".name")));
                     }
                     i++;
                 }
@@ -387,7 +376,7 @@ public class BountyManager {
             if (bounty == null) {
                 bounty = new Bounty(setter, receiver, amount, whitelist);
             }
-            data.addBounty(new Bounty(setter, receiver, amount, whitelist), new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist));
+            data.addBounty(new Bounty(setter, receiver, amount, whitelist), new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
             bounty.addBounty(setter, amount, whitelist);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, amount, 0, 0);
         } else {
@@ -492,7 +481,7 @@ public class BountyManager {
             if (bounty == null) {
                 bounty = new Bounty(receiver, amount, whitelist);
             }
-            data.addBounty(new Bounty(receiver, amount, whitelist), new Setter(consoleName, new UUID(0, 0), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist));
+            data.addBounty(new Bounty(receiver, amount, whitelist), new Setter(consoleName, new UUID(0, 0), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
             bounty.addBounty(amount, whitelist);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, amount, 0, 0);
         } else {
@@ -604,19 +593,24 @@ public class BountyManager {
         }
     }
 
-    public static void refundSetter(Setter setter) {
+    public static boolean refundSetter(Setter setter) {
         if (vaultEnabled && !overrideVault) {
             OfflinePlayer player = Bukkit.getOfflinePlayer(setter.getUuid());
             if (!NumberFormatting.getVaultClass().deposit(player, setter.getAmount())) {
                 Bukkit.getLogger().warning("Error depositing currency with vault!");
                 addRefund(player.getUniqueId(), setter.getAmount());
+                return false;
             }
+            return true;
         } else {
             Player player = Bukkit.getPlayer(setter.getUuid());
-            if (player != null && manualEconomy != ManualEconomy.PARTIAL)
+            if (player != null && manualEconomy != ManualEconomy.PARTIAL) {
                 NumberFormatting.doAddCommands(player, setter.getAmount());
-            else
-                addRefund(setter.getUuid(), setter.getAmount());
+                return true;
+            }
+            addRefund(setter.getUuid(), setter.getAmount());
+            return false;
+
         }
     }
 

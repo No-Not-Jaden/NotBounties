@@ -45,7 +45,6 @@ public class ConfigOptions {
     public static boolean rewardHeadSetter;
     public static boolean buyBack;
     public static double buyBackInterest;
-    public static double bountyExpire;
     public static boolean papiEnabled;
     public static List<String> hiddenNames = new ArrayList<>();
     public static boolean updateNotification;
@@ -112,6 +111,7 @@ public class ConfigOptions {
     public static boolean geyserEnabled;
     public static boolean floodgateEnabled;
     public static boolean sendBStats;
+    public static double autoBountyExpireTime;
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
         NotBounties bounties = NotBounties.getInstance();
@@ -222,6 +222,33 @@ public class ConfigOptions {
             }
         }
 
+        // move auto-bounties to one configuration section
+        if (bounties.getConfig().isConfigurationSection("murder-bounty") &&
+                bounties.getConfig().isConfigurationSection("random-bounties") &&
+                bounties.getConfig().isConfigurationSection("timed-bounties")) {
+            bounties.getConfig().set("auto-bounties.murder-bounty.player-cooldown", bounties.getConfig().getInt("murder-bounty.player-cooldown"));
+            bounties.getConfig().set("auto-bounties.murder-bounty.bounty-increase", bounties.getConfig().getDouble("murder-bounty.bounty-increase"));
+            bounties.getConfig().set("auto-bounties.murder-bounty.exclude-claiming", bounties.getConfig().getBoolean("murder-bounty.exclude-claiming"));
+            bounties.getConfig().set("auto-bounties.random-bounties.offline-set", bounties.getConfig().getBoolean("random-bounties.offline-set"));
+            bounties.getConfig().set("auto-bounties.random-bounties.min-time", bounties.getConfig().getInt("random-bounties.min-time"));
+            bounties.getConfig().set("auto-bounties.random-bounties.max-time", bounties.getConfig().getInt("random-bounties.max-time"));
+            bounties.getConfig().set("auto-bounties.random-bounties.min-price", bounties.getConfig().getDouble("random-bounties.min-price"));
+            bounties.getConfig().set("auto-bounties.random-bounties.max-price", bounties.getConfig().getDouble("random-bounties.max-price"));
+            bounties.getConfig().set("auto-bounties.timed-bounties.time", bounties.getConfig().getInt("timed-bounties.time"));
+            bounties.getConfig().set("auto-bounties.timed-bounties.bounty-increase", bounties.getConfig().getDouble("timed-bounties.bounty-increase"));
+            bounties.getConfig().set("auto-bounties.timed-bounties.max-bounty", bounties.getConfig().getDouble("timed-bounties.max-bounty"));
+            bounties.getConfig().set("auto-bounties.timed-bounties.reset-on-death", bounties.getConfig().getBoolean("timed-bounties.reset-on-death"));
+            bounties.getConfig().set("auto-bounties.timed-bounties.offline-tracking", bounties.getConfig().getBoolean("timed-bounties.offline-tracking"));
+            bounties.getConfig().set("timed-bounties", null);
+            bounties.getConfig().set("random-bounties", null);
+            bounties.getConfig().set("murder-bounty", null);
+        }
+
+        if (bounties.getConfig().isInt("bounty-expire") || bounties.getConfig().isDouble("bounty-expire")) {
+            bounties.getConfig().set("bounty-expire.time", bounties.getConfig().getDouble("bounty-expire"));
+            bounties.getConfig().set("bounty-expire.offline-tracking", true);
+        }
+
         // fill in any default options that aren't present
         bounties.getConfig().setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("config.yml")))));
         for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
@@ -231,13 +258,13 @@ public class ConfigOptions {
 
         NumberFormatting.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));
         PVPRestrictions.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("pvp-restrictions")));
-        MurderBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("murder-bounty")));
-        RandomBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("random-bounties")));
-        TimedBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("timed-bounties")));
+        MurderBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.murder-bounty")));
+        RandomBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.random-bounties")));
+        TimedBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.timed-bounties")));
         BountyClaimCommands.loadConfiguration(bounties.getConfig().getStringList("bounty-claim-commands"));
         Immunity.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("immunity")));
+        BountyExpire.loadConfiguration(bounties.getConfig().getConfigurationSection("bounty-expire"));
 
-        bountyExpire = bounties.getConfig().getDouble("bounty-expire");
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
         buyBack = bounties.getConfig().getBoolean("buy-own-bounties.enabled");
@@ -314,6 +341,7 @@ public class ConfigOptions {
             Bukkit.getLogger().warning("[NotBounties] claim-order is not set to a proper value!");
         }
         sendBStats = bounties.getConfig().getBoolean("send-bstats");
+        autoBountyExpireTime = bounties.getConfig().getDouble("auto-bounties.expire-time");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {

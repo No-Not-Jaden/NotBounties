@@ -5,7 +5,6 @@ import me.jadenp.notbounties.autoBounties.RandomBounties;
 import me.jadenp.notbounties.autoBounties.TimedBounties;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
-import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.ui.map.BountyMap;
@@ -30,29 +29,24 @@ import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.NumberFormatting.manualEconomy;
-import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
 
 /**
  * Proxy Messaging
  * Webhooks
  * Challenges
- * bimodal currency - x
- * partial manual economy - x
- * after claim order - x
- * replace help messages in usage - x
- * Immunity expire time - x
- * bounty expire time for auto bounties
+ * bounty expire time for auto bounties -
  * add skinsrestorer file?
- * bounty expire offline tracking
- * edit bounty stats
- * view other's stats
+ * bounty expire offline tracking -
+ * edit bounty stats -
+ * view other's stats -
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -349,9 +343,7 @@ public final class NotBounties extends JavaPlugin {
             public void run() {
                 MurderBounties.cleanPlayerKills();
                 // if they have expire-time enabled
-                if (bountyExpire > 0) {
-                    removeExpiredBounties();
-                }
+                BountyExpire.removeExpiredBounties();
 
                 save();
                 try {
@@ -484,6 +476,7 @@ public final class NotBounties extends JavaPlugin {
                     List<String> whitelist = setters.getWhitelist().getList().stream().map(UUID::toString).collect(Collectors.toList());
                     configuration.set("bounties." + i + "." + f + ".whitelist", whitelist);
                     configuration.set("bounties." + i + "." + f + ".blacklist", setters.getWhitelist().isBlacklist());
+                    configuration.set("bounties." + i + "." + f + ".playtime", setters.getReceiverPlaytime());
                     f++;
                 }
                 i++;
@@ -639,6 +632,11 @@ public final class NotBounties extends JavaPlugin {
         bountyBoards.clear();
     }
 
+    /**
+     * Returns an OfflinePlayer from their logged name
+     * @param name Name of the player
+     * @return The OfflinePlayer or null if one hasn't been logged yet.
+     */
     public static OfflinePlayer getPlayer(String name) {
         Player player = Bukkit.getPlayer(name);
         if (player != null)
@@ -787,55 +785,7 @@ public final class NotBounties extends JavaPlugin {
         return new ArrayList<>(Bukkit.getOnlinePlayers());
     }
 
-    public static void removeExpiredBounties() {
-        // go through all the bounties and remove setters if it has been more than expire time
-        if (SQL.isConnected()) {
-            List<Setter> setters = data.removeOldBounties();
-            for (Setter setter : setters) {
-                refundSetter(setter);
-            }
-        } else {
-            ListIterator<Bounty> bountyIterator = bountyList.listIterator();
-            while (bountyIterator.hasNext()) {
-                Bounty bounty = bountyIterator.next();
-                List<Setter> expiredSetters = new ArrayList<>();
-                ListIterator<Setter> setterIterator = bounty.getSetters().listIterator();
-                while (setterIterator.hasNext()) {
-                    Setter setter = setterIterator.next();
-                    if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
-                        if (setter.getUuid().equals(new UUID(0,0))) {
-                            setterIterator.remove();
-                            continue;
-                        }
 
-                        // check if setter is online
-                        Player player = Bukkit.getPlayer(setter.getUuid());
-                        if (player != null) {
-                            if (manualEconomy != NumberFormatting.ManualEconomy.PARTIAL)
-                                NumberFormatting.doAddCommands(player, setter.getAmount());
-                            player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getAmount(), player));
-                        } else {
-                            expiredSetters.add(setter);
-                        }
-                        setterIterator.remove();
-                    }
-                }
-                // add bounty to expired bounties if some have expired
-                if (!expiredSetters.isEmpty()) {
-                    expiredBounties.add(new Bounty(bounty.getUUID(), expiredSetters, bounty.getName()));
-                }
-                //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
-                // remove bounty if all the setters have been removed
-                if (bounty.getSetters().isEmpty()) {
-                    bountyIterator.remove();
-                    if (wantedText.containsKey(bounty.getUUID())) {
-                        wantedText.get(bounty.getUUID()).removeStand();
-                        wantedText.remove(bounty.getUUID());
-                    }
-                }
-            }
-        }
-    }
 
 
 }

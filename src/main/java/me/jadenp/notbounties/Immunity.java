@@ -183,6 +183,20 @@ public class Immunity {
             }
     }
 
+    public static void setImmunity(UUID uuid, double amount) {
+        if (SQL.isConnected()) {
+            double currentImmunity = data.getImmunity(uuid.toString());
+            data.addData(uuid.toString(), 0,0,0,0, amount - currentImmunity,0);
+        } else {
+            immunitySpent.put(uuid, amount);
+        }
+        if (immunityType == ImmunityType.TIME)
+            if (Bukkit.getOfflinePlayer(uuid).isOnline() || !timeOfflineTracking)
+                immunityTimeTracker.put(uuid, (long) (amount * time * 1000L + System.currentTimeMillis()));
+            else
+                immunityTimeTracker.put(uuid, (long) (amount * time * 1000L));
+    }
+
     private static Map<UUID, Double> getImmunity() {
         return BountyManager.SQL.isConnected() ? BountyManager.data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : BountyManager.immunitySpent;
     }

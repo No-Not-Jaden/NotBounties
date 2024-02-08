@@ -1,9 +1,6 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.ConfigOptions;
-import me.jadenp.notbounties.utils.NumberFormatting;
-import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.*;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -23,7 +20,7 @@ public class Bounty implements Comparable<Bounty>{
         this.uuid = receiver.getUniqueId();
         name = receiver.getName();
         // add to the total bounty
-        setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(),receiver.isOnline(), whitelist));
+        setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(),receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
     }
 
     public Bounty(OfflinePlayer receiver, double amount, Whitelist whitelist){
@@ -31,14 +28,14 @@ public class Bounty implements Comparable<Bounty>{
         this.uuid = receiver.getUniqueId();
         name = receiver.getName();
         // add to the total bounty
-        setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist));
+        setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
     }
 
     public Bounty(Bounty bounty) {
         uuid = bounty.getUUID();
         name = bounty.getName();
         for (Setter setter : bounty.getSetters()) {
-            setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist()));
+            setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime()));
         }
     }
 
@@ -71,13 +68,13 @@ public class Bounty implements Comparable<Bounty>{
             for (int i = 0; i < setters.size(); i++) {
                 if (setters.get(i).getUuid().equals(setter.getUniqueId()) && compareWhitelists(whitelist, setters.get(i).getWhitelist())) {
                     // same person
-                    setters.set(i, new Setter(setter.getName(), setter.getUniqueId(), setters.get(i).getAmount() + amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
+                    setters.set(i, new Setter(setter.getName(), setter.getUniqueId(), setters.get(i).getAmount() + amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
                     return;
                 }
             }
         }
         // otherwise, add a new setter
-        setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
+        setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
     }
 
     // console set bounty
@@ -86,12 +83,12 @@ public class Bounty implements Comparable<Bounty>{
         for (int i = 0; i < setters.size(); i++){
             if (setters.get(i).getUuid().equals(new UUID(0,0)) && compareWhitelists(whitelist, setters.get(i).getWhitelist())){
                 // same person
-                setters.set(i, new Setter(ConfigOptions.consoleName, new UUID(0,0), setters.get(i).getAmount() + amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
+                setters.set(i, new Setter(ConfigOptions.consoleName, new UUID(0,0), setters.get(i).getAmount() + amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
                 return;
             }
         }
         // otherwise, add a new setter
-        setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist));
+        setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
     }
 
     public void removeBounty(UUID uuid){
@@ -109,7 +106,7 @@ public class Bounty implements Comparable<Bounty>{
         for (int i = 0; i < setters.size(); i++){
             if (setters.get(i).getUuid().equals(uuid)){
                 // same person
-                setters.set(i, new Setter(setters.get(i).getName(), setters.get(i).getUuid(), newAmount, setters.get(i).getTimeCreated(), setters.get(i).isNotified(), setters.get(i).getWhitelist()));
+                setters.set(i, new Setter(setters.get(i).getName(), setters.get(i).getUuid(), newAmount, setters.get(i).getTimeCreated(), setters.get(i).isNotified(), setters.get(i).getWhitelist(), setters.get(i).getReceiverPlaytime()));
                 return;
             }
         }
@@ -185,7 +182,7 @@ public class Bounty implements Comparable<Bounty>{
                 // setter already exists
                 Setter firstSetter = setterMap.get(setter.getUuid());
                 // replace setter in map with combined values
-                setterMap.replace(setter.getUuid(), new Setter(setter.getName(), setter.getUuid(), setter.getAmount() + firstSetter.getAmount(), Math.max(setter.getTimeCreated(), firstSetter.getTimeCreated()), setter.isNotified() && firstSetter.isNotified(), setter.getWhitelist()));
+                setterMap.replace(setter.getUuid(), new Setter(setter.getName(), setter.getUuid(), setter.getAmount() + firstSetter.getAmount(), Math.max(setter.getTimeCreated(), firstSetter.getTimeCreated()), setter.isNotified() && firstSetter.isNotified(), setter.getWhitelist(), firstSetter.getReceiverPlaytime()));
             } else {
                 setterMap.put(setter.getUuid(), setter);
             }

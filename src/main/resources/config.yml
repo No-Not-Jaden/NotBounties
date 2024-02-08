@@ -185,39 +185,44 @@ wanted-tag:
   # a command that is just <respawn> will force the player to respawn. This is useful if you want to tp them somewhere after they die
   # You can use placeholders, but they will always be parsed for the player who died
 bounty-claim-commands: []
-# add a bounty if a player kills another player
-murder-bounty:
-  # How many seconds before you can kill the same person and increase your bounty
-  player-cooldown: 360
-  # how much the bounty increases per player kill. Consider raising minimum-broadcast if you change this if you don't want a message in chat
-  # set to 0 to disable
-  bounty-increase: 0
-  # you will be excluded from the bounty increase if you are claiming another bounty
-  exclude-claiming: true
-# set a random bounty every once in a while
-random-bounties:
-  # include offline players in the random bounties
-  offline-set: false
-  # minimum seconds between next random bounty - 0 to disable
-  min-time: 0 # 86400 seconds in a day
-  # maximum seconds between next random bounty
-  max-time: 0
-  # minimum bounty price
-  min-price: 10
-  # maximum bounty price
-  max-price: 100
-# add bounties after a set amount of time
-timed-bounties:
-  # the time in seconds before the next bounty is set - 0 to disable
-  time: 0
-  # how much the bounty will increase
-  bounty-increase: 10
-  # bounty amount that the player needs for timed-bounties to stop setting bounties - 0 to disable
-  max-bounty: 0
-  # reset the timer when the player dies
-  reset-on-death: true
-  # time will be tracked when the player is offline, and bounties will be set while they are offline
-  offline-tracking: false
+auto-bounties:
+  # number of days until auto bounties expire
+  # overrides the bounty-expire value unless it is set to -1
+  # -2 will disable do matter the value of bounty-expire
+  expire-time: -1
+  # add a bounty if a player kills another player
+  murder-bounty:
+    # how many seconds before you can kill the same person and increase your bounty
+    player-cooldown: 360
+    # how much the bounty increases per player kill. Consider raising minimum-broadcast if you change this if you don't want a message in chat
+    # set to 0 to disable
+    bounty-increase: 0
+    # you will be excluded from the bounty increase if you are claiming another bounty
+    exclude-claiming: true
+  # set a random bounty every once in a while
+  random-bounties:
+    # include offline players in the random bounties
+    offline-set: false
+    # minimum seconds between next random bounty - 0 to disable
+    min-time: 0 # 86400 seconds in a day
+    # maximum seconds between next random bounty
+    max-time: 0
+    # minimum bounty price
+    min-price: 10
+    # maximum bounty price
+    max-price: 100
+  # add bounties after a set amount of time
+  timed-bounties:
+    # the time in seconds before the next bounty is set - 0 to disable
+    time: 0
+    # how much the bounty will increase
+    bounty-increase: 10
+    # bounty amount that the player needs for timed-bounties to stop setting bounties - 0 to disable
+    max-bounty: 0
+    # reset the timer when the player dies
+    reset-on-death: true
+    # time will be tracked when the player is offline, and bounties will be set while they are offline
+    offline-tracking: false
 # wanted posters of bounty
 bounty-posters:
   # players can give themselves bounty posters of any bounty, otherwise, only admins can give posters

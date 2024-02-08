@@ -94,6 +94,8 @@ public class LanguageOptions {
     public static String blacklistToggle;
     public static String rewardHeadName;
     public static String helpTitle;
+    public static String updateStat;
+
     public static List<String> trackerLore;
     public static List<String> voucherLore;
     public static List<String> notWhitelistedLore;
@@ -236,6 +238,7 @@ public class LanguageOptions {
         blacklistToggle = configuration.getString("blacklist-toggle");
         rewardHeadName = configuration.getString("reward-head-name");
         helpTitle = configuration.getString("help.title");
+        updateStat = configuration.getString("update-stat");
 
         voucherLore = configuration.getStringList("bounty-voucher-lore");
         trackerLore = configuration.getStringList("bounty-tracker-lore");

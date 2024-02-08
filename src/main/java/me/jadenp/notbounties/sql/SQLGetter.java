@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.sql;
 
 import me.jadenp.notbounties.*;
+import me.jadenp.notbounties.utils.BountyExpire;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ConfigOptions;
 import me.jadenp.notbounties.utils.Whitelist;
@@ -38,7 +39,8 @@ public class SQLGetter {
                     "    amount FLOAT(53) DEFAULT 0 NOT NULL," +
                     "    notified BOOLEAN DEFAULT TRUE NOT NULL," +
                     "    time BIGINT NOT NULL," +
-                    "    whitelist VARCHAR(369)" +
+                    "    whitelist VARCHAR(369)," +
+                    "    playtime BIGINT DEFAULT 0 NOT NULL" +
                     ");");
             ps.executeUpdate();
             ps = SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = ? and table_name = 'notbounties' and column_name = 'amount';");
@@ -55,6 +57,12 @@ public class SQLGetter {
             rs = ps.executeQuery();
             if (!rs.next()){
                 ps = SQL.getConnection().prepareStatement("ALTER TABLE notbounties ADD whitelist VARCHAR(369);");
+                ps.executeUpdate();
+            }
+            ps = SQL.getConnection().prepareStatement("SHOW COLUMNS FROM `notbounties` LIKE 'playtime';");
+            rs = ps.executeQuery();
+            if (!rs.next()){
+                ps = SQL.getConnection().prepareStatement("ALTER TABLE notbounties ADD playtime BIGINT DEFAULT 0 NOT NULL;");
                 ps.executeUpdate();
             }
 
@@ -461,7 +469,7 @@ public class SQLGetter {
 
     public void addBounty(Bounty bounty, Setter setter){
         try {
-            PreparedStatement ps = SQL.getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, time, whitelist) VALUES(?, ?, ?, ?, ?, ?, ?, ?);");
+            PreparedStatement ps = SQL.getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, time, whitelist, playtime) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);");
             ps.setString(1, bounty.getUUID().toString());
             ps.setString(2, bounty.getName());
             ps.setString(3, setter.getName());
@@ -470,6 +478,7 @@ public class SQLGetter {
             ps.setBoolean(6, setter.isNotified());
             ps.setLong(7, setter.getTimeCreated());
             ps.setString(8, encodeWhitelist(setter.getWhitelist()));
+            ps.setLong(9, setter.getReceiverPlaytime());
             ps.executeUpdate();
         } catch (SQLException e){
             if (reconnect()){
@@ -496,7 +505,7 @@ public class SQLGetter {
                     name = rs.getString("name");
                 }
                 UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(rs.getString("suuid"));
-                setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist"))));
+                setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist")), rs.getLong("playtime")));
             }
             if (setters.isEmpty())
                 return null;
@@ -556,20 +565,54 @@ public class SQLGetter {
                 Bukkit.getLogger().warning(e.toString());
         }
     }
+    public List<Setter> removeOldPlaytimeBounties() {
+        List<Bounty> bounties = getTopBounties(-1);
+        List<Setter> expiredSetters = new ArrayList<>();
+        for (Bounty bounty : bounties) {
+            for (Setter setter : bounty.getSetters()) {
+                if (BountyExpire.isExpired(bounty.getUUID(), setter)) {
+                    expiredSetters.add(setter);
+                    removeSetter(bounty.getUUID(), setter.getUuid());
+                }
+            }
+        }
+        return expiredSetters;
+    }
     public List<Setter> removeOldBounties() {
-        long minTime = (long) (System.currentTimeMillis() - 1000L * 60 * 60 * 24 * ConfigOptions.bountyExpire);
+        long minTime = (long) (System.currentTimeMillis() - 1000L * 60 * 60 * 24 * BountyExpire.getTime());
+        double autoExpire = ConfigOptions.autoBountyExpireTime == -1 ? BountyExpire.getTime() : ConfigOptions.autoBountyExpireTime;
+        long minTimeAuto = (long) (System.currentTimeMillis() - 1000L * 60 * 60 * 24 * autoExpire);
         try {
-            PreparedStatement ps = SQL.getConnection().prepareStatement("DELETE notbounties WHERE time <= ?;");
-            PreparedStatement ps1 = SQL.getConnection().prepareStatement("SELECT * FROM notbounties WHERE time <= ?;");
+            PreparedStatement ps = SQL.getConnection().prepareStatement("DELETE notbounties WHERE time <= ? AND suuid != ?;");
+            PreparedStatement ps1 = SQL.getConnection().prepareStatement("SELECT * FROM notbounties WHERE time <= ? AND suuid != ?;");
+            PreparedStatement ps2 = SQL.getConnection().prepareStatement("DELETE notbounties WHERE time <= ? AND suuid == ?;");
+            PreparedStatement ps3 = SQL.getConnection().prepareStatement("SELECT * FROM notbounties WHERE time <= ? AND suuid=!= ?;");
             ps.setLong(1, minTime);
             ps1.setLong(1, minTime);
+            ps2.setLong(1, minTimeAuto);
+            ps3.setLong(1, minTimeAuto);
+            String consoleUUID = new UUID(0,0).toString();
+            ps.setString(2, consoleUUID);
+            ps1.setString(2, consoleUUID);
+            ps2.setString(2, consoleUUID);
+            ps3.setString(2, consoleUUID);
             List<Setter> setters = new ArrayList<>();
-            ResultSet rs = ps1.executeQuery();
-            while (rs.next()){
-                UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(rs.getString("suuid"));
-                setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist"))));
+            if (BountyExpire.getTime() > 0) {
+                ResultSet rs = ps1.executeQuery();
+                while (rs.next()) {
+                    UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(rs.getString("suuid"));
+                    setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist")), rs.getLong("playtime")));
+                }
+                ps.executeUpdate();
             }
-            ps.executeUpdate();
+            if (autoExpire > -1) {
+                ResultSet rs = ps3.executeQuery();
+                while (rs.next()) {
+                    UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(rs.getString("suuid"));
+                    setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist")), rs.getLong("playtime")));
+                }
+                ps2.executeUpdate();
+            }
             return setters;
         } catch (SQLException e){
             if (reconnect()){
@@ -610,11 +653,13 @@ public class SQLGetter {
                     if (bountyAmounts.containsKey(uuid)){
                        bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"), decodeWhitelist(resultSet.getString("whitelist")));
                     } else {
-                        bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(new Setter(resultSet.getString("setter"), UUID.fromString(resultSet.getString("suuid")), resultSet.getDouble("amount"), resultSet.getLong("time"), resultSet.getBoolean("notified"), decodeWhitelist(resultSet.getString("whitelist"))))), resultSet.getString("name")));
+                        bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(new Setter(resultSet.getString("setter"), UUID.fromString(resultSet.getString("suuid")), resultSet.getDouble("amount"), resultSet.getLong("time"), resultSet.getBoolean("notified"), decodeWhitelist(resultSet.getString("whitelist")), resultSet.getLong("playtime")))), resultSet.getString("name")));
                     }
                 }
             }
             List<Bounty> sortedList = new ArrayList<>(bountyAmounts.values());
+            if (sortType == -1)
+                return sortedList;
             Bounty temp;
             for (int i = 0; i < sortedList.size(); i++) {
                 for (int j = i + 1; j < sortedList.size(); j++) {

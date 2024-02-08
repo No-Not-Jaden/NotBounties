@@ -73,6 +73,7 @@ public class Events implements Listener {
 
         TimedBounties.logout(event.getPlayer());
         Immunity.logout(event.getPlayer());
+        BountyExpire.logout(event.getPlayer());
 
         if (SQL.isConnected())
             data.logout(event.getPlayer());
@@ -664,35 +665,8 @@ public class Events implements Listener {
             }
             headRewards.remove(event.getPlayer().getUniqueId());
         }
-        // if they have expire-time enabled
-        if (bountyExpire > 0) {
-            boolean change = false;
-            // go through all the bounties and remove setters if it has been more than expire time
-            ListIterator<Bounty> bountyIterator = expiredBounties.listIterator();
-            while (bountyIterator.hasNext()) {
-                Bounty bounty = bountyIterator.next();
-                ListIterator<Setter> setterIterator = bounty.getSetters().listIterator();
-                while (setterIterator.hasNext()) {
-                    Setter setter = setterIterator.next();
-                    // check if past expire time
-                    if (System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire) {
-                        // refund money
-                        if (NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL)
-                            NumberFormatting.doAddCommands(event.getPlayer(), setter.getAmount());
-                        event.getPlayer().sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getAmount(), event.getPlayer()));
-                        setterIterator.remove();
-                    }
-                }
-                //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
-                // remove bounty if all the setters have been removed
-                if (bounty.getSetters().isEmpty()) {
-                    bountyIterator.remove();
-                    change = true;
-                }
-            }
-            if (change) {
-                Commands.reopenBountiesGUI();
-            }
+        if (BountyExpire.removeExpiredBounties()) {
+            Commands.reopenBountiesGUI();
         }
 
         // check for updates
@@ -725,6 +699,7 @@ public class Events implements Listener {
 
         TimedBounties.login(event.getPlayer());
         Immunity.login(event.getPlayer());
+        BountyExpire.login(event.getPlayer());
         if (SQL.isConnected())
             data.login(event.getPlayer());
     }

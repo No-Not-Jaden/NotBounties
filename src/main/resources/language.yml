@@ -102,6 +102,7 @@ reward-head-lore:
   - '&4{amount}&4'
   - '&4bounty on it.'
   - ''
+update-stat: '&6{player}''s &f{leaderboard} &evalue has now been set to {amount}.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
@@ -137,6 +138,7 @@ help:
     - '&9/bounty list &8- &dLists all bounties.'
     - '&9/bounty top (all/kills/claimed/deaths/set/immunity) <list> &8- &dLists the top 10 players with the respective stats.'
     - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) &8- &dView your bounty stats.'
+    - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) &8- &dView another player''s stats.'
     - '&9/bounty &8- &dOpens bounty GUI.'
   set:
     - '&9/bounty (player) (amount) <whitelisted players> &8- &dAdds a bounty to a player.'
@@ -173,6 +175,8 @@ help:
     - '&9/bounty remove (player) from (setter) &8- &dRemoves a specific bounty put on a player.'
     - '&9/bounty edit (player) (amount) &8- &dEdits a player''s total bounty.'
     - '&9/bounty edit (player) from (setter) (amount) &8- &dEdits a specific bounty put on a player.'
+    - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) edit (change) &8- &dEdits a player''s stat value.'
+    - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) setValue (new value) &8- &dSets a player''s stat value.'
     - '&9/bounty board <rank> &8- &dCreates a board for current bounties.'
     - '&9/bounty board clear &8- &dRemoves every bounty board.'
     - '&9/bounty board remove &8- &dRemoves a specific bounty board.'

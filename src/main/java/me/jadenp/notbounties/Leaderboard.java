@@ -105,6 +105,61 @@ public enum Leaderboard {
 
     }
 
+    public void displayStats(OfflinePlayer statOwner, OfflinePlayer receiver, boolean shorten) {
+        String msg = parseStats(prefix + getStatMsg(shorten), statOwner);
+        if (receiver.isOnline()) {
+            Player p = receiver.getPlayer();
+            assert p != null;
+            p.sendMessage(msg);
+        }
+    }
+
+    public void setStat(UUID uuid, double newAmount) {
+        if (SQL.isConnected()) {
+            double current = getStat(uuid);
+            switch (this) {
+                case ALL:
+                    data.addData(uuid.toString(), 0,0,0,current-newAmount,0,0);
+                    return;
+                case KILLS:
+                    data.addData(uuid.toString(), (long) (current-newAmount),0,0,0,0,0);
+                    return;
+                case CLAIMED:
+                    data.addData(uuid.toString(), 0,0,0,0,0,current-newAmount);
+                    return;
+                case DEATHS:
+                    data.addData(uuid.toString(), 0L, 0L, (long) (current-newAmount),0,0,0);
+                    return;
+                case SET:
+                    data.addData(uuid.toString(), 0,(long) (current-newAmount),0,0,0,0);
+                    return;
+                case IMMUNITY:
+                    Immunity.setImmunity(uuid, newAmount);
+                    return;
+            }
+            return;
+        }
+        switch (this){
+            case ALL:
+                allTimeBounties.put(uuid, newAmount);
+                return;
+            case KILLS:
+                killBounties.put(uuid, newAmount);
+                return;
+            case CLAIMED:
+                allClaimedBounties.put(uuid, newAmount);
+                return;
+            case DEATHS:
+                deathBounties.put(uuid, newAmount);
+                return;
+            case SET:
+                setBounties.put(uuid, newAmount);
+                return;
+            case IMMUNITY:
+                Immunity.setImmunity(uuid, newAmount);
+        }
+    }
+
     public String getFormattedStat(UUID uuid){
         if (money) {
             return NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(getStat(uuid)) + NumberFormatting.currencySuffix;
