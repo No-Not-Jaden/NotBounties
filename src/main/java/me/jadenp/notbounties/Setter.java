@@ -1,6 +1,6 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;

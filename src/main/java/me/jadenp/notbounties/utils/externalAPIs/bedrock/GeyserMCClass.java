@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.utils.bedrock;
+package me.jadenp.notbounties.utils.externalAPIs.bedrock;
 
 import org.geysermc.geyser.api.GeyserApi;
 

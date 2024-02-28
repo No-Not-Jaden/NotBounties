@@ -1,7 +1,8 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.utils.configuration;
 
-import me.jadenp.notbounties.Immunity;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -18,7 +19,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static net.md_5.bungee.api.ChatColor.COLOR_CHAR;
 
 public class LanguageOptions {
@@ -340,22 +341,35 @@ public class LanguageOptions {
     public static String parse(String str, String player, OfflinePlayer receiver) {
         str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
         str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null) {
-            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
-        }
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
+        return parse(str, receiver);
     }
 
     public static String parse(String str, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null) {
-            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
+        if (receiver != null) {
+            if (receiver.getName() != null) {
+                str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
+                str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
+            }
+            str = str.replaceAll("\\{balance}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
+            // {whitelist<2>} turns into the name of the second player in the receiver's whitelist
+            while (str.contains("{whitelist<") && str.substring(str.indexOf("{whitelist<")).contains(">}")) {
+                int num;
+                String stringValue = str.substring(str.indexOf("{whitelist<") + 11, str.indexOf("{whitelist<") + str.substring(str.indexOf("{whitelist<")).indexOf(">}"));
+                try {
+                    num = Integer.parseInt(stringValue);
+                } catch (NumberFormatException e) {
+                    str = str.replace("{whitelist<" + stringValue + ">}", "<Error>");
+                    continue;
+                }
+                if (num < 1)
+                    num = 1;
+                Whitelist whitelist = NotBounties.getPlayerWhitelist(receiver.getUniqueId());
+                if (whitelist.getList().size() > num)
+                    str = str.replace("{whitelist<" + stringValue + ">}", "");
+                else
+                    str = str.replace("{whitelist<" + stringValue + ">}", NotBounties.getPlayerName(whitelist.getList().get(num-1)));
+            }
         }
         if (ConfigOptions.papiEnabled && receiver != null) {
             str = new PlaceholderAPIClass().parse(receiver, str);
@@ -365,107 +379,47 @@ public class LanguageOptions {
 
     public static String parse(String str, long time, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", ConfigOptions.dateFormat.format(time));
-        if (receiver != null && receiver.getName() != null) {
-            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
-        }
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
+        return parse(str, receiver);
     }
 
     public static String parse(String str, double amount, OfflinePlayer receiver) {
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
-        if (receiver != null && receiver.getName() != null) {
-            str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
-        }
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = color(new PlaceholderAPIClass().parse(receiver, str));
-        }
-        return color(str);
+        return parse(str, receiver);
     }
 
     public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
         str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
+        return parse(str,amount,receiver);
     }
 
     public static String parse(String str, String player, double amount, long time, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(time)));
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
+        return parse(str, player, amount, receiver);
     }
 
     public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
+        return parse(str, player, amount, receiver);
     }
 
     public static String parse(String str, String player, double amount, double bounty, long time, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(time)));
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
+        return parse(str, player, amount, bounty, receiver);
     }
 
     public static String parse(String str, String sender, String player, double amount, OfflinePlayer receiver) {
         str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
+        return parse(str, player, amount, receiver);
     }
 
     public static String parse(String str, String sender, String player, OfflinePlayer receiver) {
         str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-
-        return color(str);
+        return parse(str, player, receiver);
     }
 
     public static String parse(String str, String sender, String player, double amount, double totalBounty, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
-        if (ConfigOptions.papiEnabled && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
-        return color(str);
+        return parse(str, sender, player, amount, receiver);
     }
 
     public static String color(String str) {

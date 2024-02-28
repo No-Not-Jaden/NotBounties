@@ -1,9 +1,9 @@
 package me.jadenp.notbounties.sql;
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.utils.BountyExpire;
+import me.jadenp.notbounties.utils.configuration.BountyExpire;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;

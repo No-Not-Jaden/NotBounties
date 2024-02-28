@@ -24,8 +24,24 @@ public class Whitelist {
     public void setList(List<UUID> list) {
         this.list = list;
     }
+
+    /**
+     * Toggle the blacklist mode
+     * @return the state of the new blacklist mode
+     */
     public boolean toggleBlacklist(){
         blacklist = !blacklist;
         return blacklist;
+    }
+
+    /**
+     * Set the blacklist mode
+     * @param blacklist New blacklist mode
+     * @return true if there was a change in mode
+     */
+    public boolean setBlacklist(boolean blacklist) {
+        boolean change = this.blacklist != blacklist;
+        this.blacklist = blacklist;
+        return change;
     }
 }

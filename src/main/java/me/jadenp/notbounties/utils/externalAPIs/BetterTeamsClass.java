@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.utils.externalAPIs;
 
 import com.booksaw.betterTeams.Team;
 import org.bukkit.entity.Player;

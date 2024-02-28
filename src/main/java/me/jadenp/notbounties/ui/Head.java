@@ -4,9 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.utils.HeadDataBaseClass;
-import me.jadenp.notbounties.utils.SkinsRestorerClass;
-import me.jadenp.notbounties.utils.bedrock.FloodGateClass;
+import me.jadenp.notbounties.utils.externalAPIs.HeadDataBaseClass;
+import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
+import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -23,7 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class Head {
     public static ItemStack createPlayerSkull(String data){

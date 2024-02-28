@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static me.jadenp.notbounties.utils.LanguageOptions.color;
-import static me.jadenp.notbounties.utils.LanguageOptions.parse;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.color;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.parse;
 
 public class CustomItem {
     private final Material material;

@@ -1,6 +1,9 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.*;
+import me.jadenp.notbounties.utils.configuration.BountyExpire;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;

@@ -1,11 +1,15 @@
 package me.jadenp.notbounties.ui;
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.autoBounties.MurderBounties;
-import me.jadenp.notbounties.autoBounties.TimedBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.*;
+import me.jadenp.notbounties.utils.configuration.*;
+import me.jadenp.notbounties.utils.externalAPIs.BetterTeamsClass;
+import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.externalAPIs.TownyAdvancedClass;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -43,16 +47,10 @@ import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class Events implements Listener {
-
-
-
-    public Events() {
-    }
-
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
@@ -339,7 +337,7 @@ public class Events implements Listener {
                 }
             }
         Commands.reopenBountiesGUI();
-        BountyClaimCommands.execute(player, killer, totalBounty);
+        ActionCommands.executeBountyClaim(player, killer, totalBounty);
     }
 
     @EventHandler
@@ -639,17 +637,8 @@ public class Events implements Listener {
             }
             bounty.combineSetters();
             updateBounty(bounty);
-            if (bounty.getTotalBounty() - addedAmount < bBountyThreshold && bounty.getTotalBounty() > bBountyThreshold) {
-                event.getPlayer().sendMessage(parse(prefix + bigBounty, event.getPlayer()));
-                if (bBountyCommands != null && !bBountyCommands.isEmpty()) {
-                    for (String command : bBountyCommands) {
-                        if (papiEnabled)
-                            command = new PlaceholderAPIClass().parse(event.getPlayer(), command);
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replaceAll("\\{player}", Matcher.quoteReplacement(event.getPlayer().getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(bounty.getTotalBounty() + "")));
-                    }
-                }
-            }
-            if (bounty.getTotalBounty() > bBountyThreshold) {
+            BigBounty.setBounty(event.getPlayer(), bounty, addedAmount);
+            if (bounty.getTotalBounty() > BigBounty.getThreshold()) {
                 displayParticle.add(event.getPlayer());
             }
             if (wanted && bounty.getTotalBounty() >= minWanted) {

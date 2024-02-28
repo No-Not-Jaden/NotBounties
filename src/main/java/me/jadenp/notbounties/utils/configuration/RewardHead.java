@@ -1,6 +1,5 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.utils.configuration;
 
-import me.jadenp.notbounties.utils.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -11,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static me.jadenp.notbounties.utils.LanguageOptions.rewardHeadLore;
-import static me.jadenp.notbounties.utils.LanguageOptions.rewardHeadName;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.rewardHeadLore;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.rewardHeadName;
 
 public class RewardHead {
     private final String playerName;

@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.utils.configuration;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
@@ -10,8 +10,8 @@ import org.bukkit.entity.Player;
 import java.util.*;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.utils.ConfigOptions.autoBountyExpireTime;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.autoBountyExpireTime;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 
 public class BountyExpire {

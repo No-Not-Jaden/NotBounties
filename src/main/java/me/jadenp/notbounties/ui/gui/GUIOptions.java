@@ -5,8 +5,8 @@ import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.ui.HeadFetcher;
-import me.jadenp.notbounties.utils.ConfigOptions;
-import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -21,9 +21,9 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.BountyManager.getBounty;
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.NumberFormatting.*;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class GUIOptions {
     private final List<Integer> playerSlots; // this size of this is how many player slots per page
@@ -153,8 +153,8 @@ public class GUIOptions {
             double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
             String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
             name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", playerName);
-            name = parse(name, player);
         }
+        name = parse(name, player);
         Inventory inventory = Bukkit.createInventory(player, size, name);
         ItemStack[] contents = inventory.getContents();
         // set up regular items

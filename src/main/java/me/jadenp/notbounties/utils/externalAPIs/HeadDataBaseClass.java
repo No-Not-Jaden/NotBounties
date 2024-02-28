@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.utils.externalAPIs;
 
 import me.arcaniax.hdb.api.HeadDatabaseAPI;
 import org.bukkit.inventory.ItemStack;

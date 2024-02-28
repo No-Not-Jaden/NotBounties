@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.utils;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.configuration.LanguageOptions;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -22,8 +24,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class CurrencySetup implements Listener {
     public static UUID currencySetupPlayer = null;

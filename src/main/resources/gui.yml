@@ -56,13 +56,13 @@ custom-items:
   next:
     material: ARROW
     amount: 1
-    name : '&7Next Page'
+    name : '&l→ &7Next Page'
     commands:
       - '[next]'
   back:
     material: ARROW
     amount: 1
-    name: '&7Previous Page'
+    name: '&l← &7Previous Page'
     commands:
       - '[back]'
   set-bounty:

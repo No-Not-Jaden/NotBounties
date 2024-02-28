@@ -1,5 +1,6 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.utils.configuration;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.BountyManager;
 import org.bukkit.GameMode;
 import org.bukkit.entity.ArmorStand;
@@ -8,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 @SuppressWarnings("UnstableApiUsage")
 public class AboveNameText {

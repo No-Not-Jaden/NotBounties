@@ -1,8 +1,9 @@
-package me.jadenp.notbounties.utils.bedrock;
+package me.jadenp.notbounties.utils.externalAPIs.bedrock;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.jadenp.notbounties.NotBounties;
+import org.geysermc.cumulus.form.util.FormBuilder;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.io.IOException;
@@ -20,6 +21,10 @@ public class FloodGateClass {
 
     public boolean isBedrockPlayer(UUID uuid) {
         return api.isFloodgatePlayer(uuid);
+    }
+
+    public void sendForm(UUID uuid, FormBuilder<?, ?, ?> formBuilder) {
+        api.sendForm(uuid, formBuilder);
     }
 
     public CompletableFuture<String> getTextureValue(UUID uuid) {

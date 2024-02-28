@@ -1,0 +1,282 @@
+# master enable option for a different gui for bedrock players
+enabled: true
+custom-components:
+  # identifier
+  next:
+    # text displaying on or above component
+    text: '&l→ &7Next Page'
+    # type of component
+    # Options: BUTTON, DROPDOWN, INPUT, LABEL, SLIDER, STEP_SLIDER, TOGGLE
+    # See examples below for how to use each component
+    type: BUTTON
+    # image URL for the button - not required
+    image: ''
+    # button will run these commands on click
+    commands:
+      - '[next]'
+  back:
+    text: '&l← &7Previous Page'
+    type: BUTTON
+    commands:
+      - '[back]'
+  return-selection:
+    text: '&l↪ &cReturn to Selection'
+    type: BUTTON
+    commands:
+      - '[gui] selection-gui'
+  return-player-selector:
+    text: '&l↪ &cReturn to Player Selection Type'
+    type: BUTTON
+    commands:
+      - '[gui] player-selector'
+  view-bounties:
+    text: '⎆ &eView Bounties'
+    type: BUTTON
+    commands:
+      - '[gui] bounty-gui'
+  set-bounty:
+    text: '⎆ &eSet Bounty'
+    type: BUTTON
+    commands:
+      - '[gui] set-bounty'
+  set-whitelist:
+    text: '⎆ &eSet Whitelist'
+    type: BUTTON
+    commands:
+      - '[gui] set-whitelist'
+  add-offline:
+    text: '&7See all players'
+    type: BUTTON
+    commands:
+      - '[offline]'
+  # Toggle example
+  toggle-offline:
+    text: '&7Toggle Offline Players'
+    type: TOGGLE
+    # default value true/false or on/off
+    default: false
+    # add <ON> or <OFF> at the beginning to change when the command is executed
+    commands:
+      - '[offline]'
+  reset-whitelist:
+    text: '&fReset whitelist'
+    type: BUTTON
+    commands:
+      - '[p] bounty whitelist reset'
+      - '[gui] set-whitelist 1'
+  # Dropdown example
+  remove-whitelist-player:
+    text: '&fRemove Specific Player:'
+    type: DROPDOWN
+    # text that appears in the dropdown
+    # the first line is the default
+    options:
+      - 'Choose a player'
+      - '{whitelist<1>}'
+      - '{whitelist<2>}'
+      - '{whitelist<3>}'
+      - '{whitelist<4>}'
+      - '{whitelist<5>}'
+      - '{whitelist<6>}'
+      - '{whitelist<7>}'
+      - '{whitelist<8>}'
+      - '{whitelist<9>}'
+      - '{whitelist<10>}'
+    # the command that occurs after a selection
+    # if the dropdown list is the same size as the command list,
+    # the only command that will execute is the one with the same index of the clicked box
+    # otherwise, all commands are run and {dropdown} is replaced with the text clicked
+    commands:
+      - ''
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+      - '[p] whitelist remove {dropdown}'
+  # Toggle example
+  blacklist-mode:
+    text: '&0&fBlacklist Mode'
+    type: TOGGLE
+    # Can use any regular actions here
+    # [on] only triggers the action if the toggle is on
+    # [off] does the same thing but in reverse
+    commands:
+      - '[on] bounty whitelist toggle blacklist'
+      - '[off] bounty whitelist toggle whitelist'
+  # Step_Slider example
+  # this won't work for price select
+  select-step:
+    text: '&2Select value:'
+    type: STEP_SLIDER
+    # what the slider starts on - 10 will be the default in this example
+    default-step: 1
+    # slider options
+    options:
+      - '10'
+      - '20'
+      - '50'
+      - '100'
+      - '500'
+  # Slider example
+  price-select-slider:
+    text: '&2Quick Price Select:'
+    type: SLIDER
+    # a number or placeholder
+    # {balance} for the user's balance
+    min: 0
+    max: '{balance}'
+    # step size for the slider
+    step: 1
+    # value to start on
+    default: 0
+    commands:
+      - '' # add actions here if necessary, {value} will be replaced with the slider value
+  # Input example
+  price-select-input:
+    text: '&aAlternative Price Input:'
+    type: INPUT
+    # text that goes in the input before any value
+    placeholder: '0'
+    commands:
+      - '' # add actions here if necessary, {value} will be replaced with the input value
+  # Label example
+  price-select-info:
+    text: 'Select the bounty price using either the &2Quick Price Select &rslider or the &aAlternative Price Input&r.'
+    type: LABEL
+  player-select-info:
+    text: 'Choose to use the player selection menu, or input a player name.'
+    type: LABEL
+  set-bounty-button:
+    text: 'Player Selection Menu'
+    type: BUTTON
+    commands:
+      - '[gui] set-bounty'
+  set-bounty-input-button:
+    text: 'Input Player Name'
+    type: BUTTON
+    commands:
+      - '[gui] set-bounty-input'
+  input-player:
+    text: 'Player Name'
+    type: INPUT
+    commands:
+      - '[p] bounty {value}'
+selection-gui:
+  enabled: true
+  gui-name: '&6&lMain Menu'
+  components:
+    1: view-bounties
+    2: set-bounty
+    3: set-whitelist
+bounty-gui:
+  enabled: true
+  # how the bounty menu is sorted
+  # 0 : newer bounties at top
+  # 1 : older bounties at top
+  # 2 : more expensive bounties at top
+  # 3 : less expensive bounties at top
+  sort-type: 2
+  # name of the gui - does not accept placeholders
+  gui-name: '&d&lBounties &9&lPage'
+  # this will add the page number at the end of the gui name
+  add-page: true
+  # this will remove items with actions of [next] or [back] if there is no next page or previous page
+  remove-page-items: true
+  # text next to the player
+  player-text: '&c&l{player}&8: &4{bounty}'
+  # max amount of players shown in one page
+  max-players: 10
+  # extra components in the GUI
+  # the type of form depends on the amount of button components
+  # 0 buttons = custom form
+  # <=2 buttons = modal form
+  # >2 buttons = simple form
+  components:
+    # priority before/after the player items
+    # negative numbers will go before, and positive will go after
+    -2: return-selection
+    -1: back
+    1: next
+leaderboard:
+  enabled: true
+  gui-name: '&d&lBounties &9&lTop'
+  add-page: true
+  remove-page-items: true
+  player-text: '&e&l{player}&8 <=> &6{rank}&8: &7{amount}'
+  max-players: 10
+  components:
+    -1: back
+    1: next
+set-bounty:
+  enabled: true
+  gui-name: '&d&lSelect &9&lPlayer'
+  add-page: true
+  remove-page-items: true
+  player-text: '&e&l{player}&8 <=> &7Immunity: &f{amount}'
+  max-players: 25
+  components:
+    -3: return-player-selector
+    -2: add-offline
+    -1: back
+    1: next
+set-bounty-input:
+  enabled: true
+  gui-name: '&d&lSelect &9&lPlayer'
+  components:
+    1: input-player
+player-selector:
+  gui-name: '&9&lSelect Player Input Type'
+  add-page: false
+  max-players: 25
+  components:
+    1: set-bounty-button
+    2: set-bounty-input-button
+set-whitelist:
+  enabled: true
+  gui-name: '&d&lSelect &7&lWhitelisted &9&lPlayers'
+  add-page: true
+  remove-page-items: true
+  player-text: '&e&l{player}'
+  components:
+    -4: return-selection
+    -3: add-offline
+    -2: reset-whitelist
+    -1: back
+    1: next
+# custom form
+select-price:
+  enabled: true
+  gui-name: '&d&lSelect &9&lBounty Value:&f'
+  add-page: true
+  remove-page-items: false
+  player-text: '&2Price: &a{amount_tax}'
+  # if this is a custom form:
+  # the {value} text is decided by
+  # any non-numerical input components with no commands
+  # else -> any step-slider components with no commands
+  # else -> any dropdown components with no commands
+  # else -> any non-numerical input components
+  # else -> any step-slider components
+  # else -> any dropdown components
+  # the {quantity} amount is decided by the same thing except
+  # it uses the regular slider and the dropdown and input must be numbers
+  # this feature is useful for having multiple ways to input a value and using only one
+  # to use specific values of inputs, use {value<x>} where x is the component number
+  # ex: {value3} will be the value of the prise-select-input component
+  completion-commands:
+    - '[p] bounty {value} {quantity}'
+  components:
+    1: price-select-info
+    2: price-select-slider
+    3: price-select-input
+confirm:
+  enabled: true
+  gui-name: '&6&lAre you sure?'
+confirm-bounty:
+  enabled: true
+  gui-name: '&6&lBounty Cost: &2{amount_tax}'

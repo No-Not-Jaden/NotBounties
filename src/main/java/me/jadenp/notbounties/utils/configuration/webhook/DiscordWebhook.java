@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.utils.configuration.webhook;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.awt.Color;

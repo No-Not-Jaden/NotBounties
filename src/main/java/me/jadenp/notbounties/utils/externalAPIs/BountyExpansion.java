@@ -1,10 +1,13 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.utils.externalAPIs;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import me.jadenp.notbounties.autoBounties.TimedBounties;
+import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.Leaderboard;
+import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.LanguageOptions;
-import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.configuration.LanguageOptions;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -16,7 +19,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class BountyExpansion extends PlaceholderExpansion {
 
@@ -48,6 +51,7 @@ public class BountyExpansion extends PlaceholderExpansion {
     /**
      * Add "_formatted" to the end to add the currency prefix and suffix
      * Add "_full" to the end of leaderboard to add what the stat is about
+     * Add "_value" to the e nd of leaderboard to get the raw value
      * <p>%notbounties_bounty%</p>
      * <p>%notbounties_(all/kills/claimed/deaths/set/immunity/current)%</p>
      * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity/current)%</p>
@@ -86,7 +90,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (bounty != null){
                 if (params.endsWith("_formatted"))
                     return LanguageOptions.color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty()) + NumberFormatting.currencySuffix);
-                return String.valueOf(bounty.getTotalBounty());
+                return NumberFormatting.getValue(bounty.getTotalBounty());
             }
             return "0";
         }

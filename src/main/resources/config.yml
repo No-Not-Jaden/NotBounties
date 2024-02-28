@@ -164,6 +164,7 @@ wanted-tag:
   # starting with [killer] will run the command for the person who claimed the bounty
   # starting with [message_player] will message the player with the NotBounties prefix
   # starting with [message_killer] will message the killer with the NotBounties prefix
+  # starting with [broadcast] will message the whole server (except players with bounty broadcast disabled) with the NotBounties prefix
   # starting with nothing will run the command as console
   # using [sound_player] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the player
   # using [sound_killer] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the killer
@@ -317,9 +318,15 @@ big-bounties:
   # how big their bounty must be for the effects to take place
   # set -1 to disable
   bounty-threshold: 25000
+  # When to use the threshold to trigger
+  # ONCE - Trigger the commands once after the bounty has reached the threshold
+  # AMOUNT - Trigger the commands if the set amount is greater than the threshold
+  # SET - Trigger the commands every time a bounty is set on a player with the total bounty above the threshold
+  trigger: ONCE
   # whether a soul fire flame will be above the player's head
   particle: true
   # commands to be executed when the player reaches a bounty over the threshold
+  # same format as bounty-claim-commands without a killer
   commands:
     - 'minecraft:effect give {player} minecraft:glowing 10 0'
 # special compass allows you to track people with bounties

@@ -1,14 +1,19 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.utils.configuration;
 
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.autoBounties.MurderBounties;
-import me.jadenp.notbounties.autoBounties.RandomBounties;
-import me.jadenp.notbounties.autoBounties.TimedBounties;
+import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
+import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.map.BountyMap;
+import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.PVPRestrictions;
+import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
+import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -24,7 +29,6 @@ import java.util.regex.Matcher;
 public class ConfigOptions {
     public static boolean autoConnect;
     public static boolean migrateLocalData;
-    public static List<String> bBountyCommands = new ArrayList<>();
     public static boolean tracker;
     public static boolean giveOwnTracker;
     public static int trackerRemove;
@@ -36,8 +40,6 @@ public class ConfigOptions {
     public static boolean TABPosition;
     public static boolean TABWorld;
     public static int minBroadcast;
-    public static int bBountyThreshold;
-    public static boolean bBountyParticle;
     public static int minBounty;
     public static double bountyTax;
     public static boolean rewardHeadClaimed;
@@ -261,9 +263,10 @@ public class ConfigOptions {
         MurderBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.murder-bounty")));
         RandomBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.random-bounties")));
         TimedBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.timed-bounties")));
-        BountyClaimCommands.loadConfiguration(bounties.getConfig().getStringList("bounty-claim-commands"));
+        ActionCommands.loadConfiguration(bounties.getConfig().getStringList("bounty-claim-commands"), bounties.getConfig().getStringList("big-bounties.commands"));
         Immunity.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("immunity")));
-        BountyExpire.loadConfiguration(bounties.getConfig().getConfigurationSection("bounty-expire"));
+        BountyExpire.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-expire")));
+        BigBounty.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("big-bounties")));
 
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
@@ -285,9 +288,6 @@ public class ConfigOptions {
         RRLVoucherPerSetter = bounties.getConfig().getBoolean("redeem-reward-later.voucher-per-setter");
         RRLSetterLoreAddition = bounties.getConfig().getString("redeem-reward-later.setter-lore-addition");
         minBroadcast = bounties.getConfig().getInt("minimum-broadcast");
-        bBountyThreshold = bounties.getConfig().getInt("big-bounties.bounty-threshold");
-        bBountyParticle = bounties.getConfig().getBoolean("big-bounties.particle");
-        bBountyCommands = bounties.getConfig().getStringList("big-bounties.commands");
         migrateLocalData = bounties.getConfig().getBoolean("database.migrate-local-data");
         autoConnect = bounties.getConfig().getBoolean("database.auto-connect");
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
@@ -508,6 +508,8 @@ public class ConfigOptions {
 
         bounties.saveConfig();
         LanguageOptions.reloadOptions();
+        WebhookOptions.reloadOptions();
+        BedrockGUI.reloadOptions();
     }
 
 

@@ -1,8 +1,9 @@
 package me.jadenp.notbounties.utils;
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.autoBounties.RandomBounties;
-import me.jadenp.notbounties.autoBounties.TimedBounties;
+import me.jadenp.notbounties.utils.configuration.*;
+import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.bountyEvents.BountySetEvent;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
@@ -28,13 +29,12 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.*;
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.NumberFormatting.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 
 public class BountyManager {
     public static MySQL SQL;
@@ -400,17 +400,7 @@ public class BountyManager {
             Player onlineReceiver = receiver.getPlayer();
             assert onlineReceiver != null;
             // check for big bounty
-            if (bounty.getTotalBounty() > bBountyThreshold && bounty.getTotalBounty() - amount < bBountyThreshold) {
-                onlineReceiver.sendMessage(parse(prefix + bigBounty, receiver));
-                displayParticle.add(onlineReceiver);
-                if (bBountyCommands != null && !bBountyCommands.isEmpty()) {
-                    for (String command : bBountyCommands) {
-                        if (papiEnabled)
-                            command = new PlaceholderAPIClass().parse(receiver, command);
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replaceAll("\\{player}", Matcher.quoteReplacement(onlineReceiver.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(bounty.getTotalBounty() + "")));
-                    }
-                }
-            }
+            BigBounty.setBounty(onlineReceiver, bounty, amount);
             // send messages
             onlineReceiver.sendMessage(parse(prefix + bountyReceiver, setter.getName(), amount, bounty.getTotalBounty(), receiver));
 
@@ -504,17 +494,7 @@ public class BountyManager {
             Player onlineReceiver = receiver.getPlayer();
             assert onlineReceiver != null;
             // check for big bounty
-            if (bounty.getTotalBounty() > bBountyThreshold && bounty.getTotalBounty() - amount < bBountyThreshold) {
-                onlineReceiver.sendMessage(parse(prefix + bigBounty, receiver));
-                displayParticle.add(onlineReceiver);
-                if (bBountyCommands != null && !bBountyCommands.isEmpty()) {
-                    for (String command : bBountyCommands) {
-                        if (papiEnabled)
-                            command = new PlaceholderAPIClass().parse(receiver, command);
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replaceAll("\\{player}", Matcher.quoteReplacement(onlineReceiver.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(bounty.getTotalBounty() + "")));
-                    }
-                }
-            }
+            BigBounty.setBounty(onlineReceiver, bounty, amount);
             // send messages
             onlineReceiver.sendMessage(parse(prefix + bountyReceiver, consoleName, amount, bounty.getTotalBounty(), receiver));
 

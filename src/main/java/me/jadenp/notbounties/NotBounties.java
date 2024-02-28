@@ -1,14 +1,19 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.autoBounties.MurderBounties;
-import me.jadenp.notbounties.autoBounties.RandomBounties;
-import me.jadenp.notbounties.autoBounties.TimedBounties;
+import com.mysql.cj.util.StringUtils;
+import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.*;
+import me.jadenp.notbounties.utils.configuration.*;
+import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
+import me.jadenp.notbounties.utils.externalAPIs.BountyExpansion;
+import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -34,19 +39,34 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.NumberFormatting.vaultEnabled;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEnabled;
 
 /**
  * Proxy Messaging
- * Webhooks
+ * Webhooks -
  * Challenges
- * bounty expire time for auto bounties -
- * add skinsrestorer file?
- * bounty expire offline tracking -
- * edit bounty stats -
- * view other's stats -
+ * reward player when bounty expires on them
+ * bedrock ui
+ * big bounty commands and bounty claim commands sync -
+ * broadcast -
+ * update wiki
+ * big bounty multiple executes -
+ * can use divisions in inputs -
+ * more placeholders with raw values -
+ * regular ppl can remove their set bounty
+ * gui can do all action commands -
+ * gui name parsed -
+ * whitelist toggle whitelist/blacklist -
+ * Action commands moved all together -
+ * big bounty moved into a new class -
+ * big bounty triggers -
+ * seeded text parse -
+ * tryParse detects divisions -
+ * leaderboard & other guis are properly formatted value wise -
+ * use the closest player in text -
+ *
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -90,6 +110,7 @@ public final class NotBounties extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(new CurrencySetup(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new BountyMap(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new PVPRestrictions(), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new WebhookOptions(), this);
 
         this.saveDefaultConfig();
 
@@ -297,8 +318,8 @@ public final class NotBounties extends JavaPlugin {
                     }
 
                 // big bounty particle
-                if (bBountyThreshold != -1) {
-                    if (bBountyParticle)
+                if (BigBounty.getThreshold() != -1) {
+                    if (BigBounty.isParticle())
                         for (Player player : displayParticle) {
                             if (player.isOnline()) {
                                 for (Player viewer : Bukkit.getOnlinePlayers()) {
@@ -577,7 +598,7 @@ public final class NotBounties extends JavaPlugin {
             topBounties = new ArrayList<>(bountyList);
         }
         for (Bounty bounty : topBounties) {
-            if (bounty.getTotalBounty() >= bBountyThreshold) {
+            if (bounty.getTotalBounty() >= BigBounty.getThreshold()) {
                 OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
                 if (player.isOnline()) {
                     displayParticle.add(player.getPlayer());
@@ -646,8 +667,23 @@ public final class NotBounties extends JavaPlugin {
         try {
             return Bukkit.getOfflinePlayer(UUID.fromString(name));
         } catch (IllegalArgumentException e) {
+            UUID closest = getClosestPlayer(name);
+            if (closest != null)
+                return Bukkit.getOfflinePlayer(closest);
             return null;
         }
+    }
+
+    private static UUID getClosestPlayer(String playerName) {
+        List<String> viableNames = new ArrayList<>();
+        for (Map.Entry<String, UUID> entry : loggedPlayers.entrySet()) {
+            if (entry.getKey().toLowerCase().startsWith(playerName.toLowerCase()))
+                viableNames.add(entry.getKey());
+        }
+        if (viableNames.isEmpty())
+            return null;
+        Collections.sort(viableNames);
+        return loggedPlayers.get(viableNames.get(0));
     }
 
     public static String getPlayerName(UUID uuid) {
@@ -784,8 +820,5 @@ public final class NotBounties extends JavaPlugin {
             return data.getOnlinePlayers();
         return new ArrayList<>(Bukkit.getOnlinePlayers());
     }
-
-
-
 
 }

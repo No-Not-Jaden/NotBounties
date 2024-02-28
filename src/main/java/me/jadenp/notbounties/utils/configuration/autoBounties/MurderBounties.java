@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.autoBounties;
+package me.jadenp.notbounties.utils.configuration.autoBounties;
 
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.configuration.ConfigurationSection;
@@ -8,9 +8,9 @@ import java.util.*;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.BountyManager.getBounty;
-import static me.jadenp.notbounties.utils.LanguageOptions.parse;
-import static me.jadenp.notbounties.utils.LanguageOptions.murder;
-import static me.jadenp.notbounties.utils.LanguageOptions.prefix;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.parse;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.murder;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.prefix;
 
 public class MurderBounties {
     private static int murderCooldown;

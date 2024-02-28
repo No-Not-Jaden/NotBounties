@@ -2,8 +2,8 @@ package me.jadenp.notbounties.ui.map;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.utils.ConfigOptions;
-import me.jadenp.notbounties.utils.LanguageOptions;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;

@@ -1,5 +1,6 @@
-package me.jadenp.notbounties;
+package me.jadenp.notbounties.utils.configuration;
 
+import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.utils.BountyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -11,7 +12,7 @@ import java.util.*;
 import static me.jadenp.notbounties.NotBounties.immunePerms;
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.BountyManager.immunitySpent;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class Immunity {
     public enum ImmunityType {

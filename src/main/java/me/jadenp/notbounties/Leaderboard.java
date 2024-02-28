@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.utils.configuration.Immunity;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -11,9 +12,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public enum Leaderboard {
     //(all/kills/claimed/deaths/set/immunity)
@@ -334,12 +335,12 @@ public enum Leaderboard {
                 case CLAIMED:
                 case IMMUNITY:
                 case CURRENT:
-                    formattedList.put(entry.getKey(), NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(entry.getValue()) + NumberFormatting.currencySuffix);
+                    formattedList.put(entry.getKey(), NumberFormatting.currencyPrefix + NumberFormatting.getValue(entry.getValue()) + NumberFormatting.currencySuffix);
                     break;
                 case KILLS:
                 case DEATHS:
                 case SET:
-                    formattedList.put(entry.getKey(), NumberFormatting.formatNumber(entry.getValue()));
+                    formattedList.put(entry.getKey(), NumberFormatting.getValue(entry.getValue()));
                     break;
             }
         }

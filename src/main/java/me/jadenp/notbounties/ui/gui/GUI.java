@@ -3,9 +3,13 @@ package me.jadenp.notbounties.ui.gui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
+import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUIOptions;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.ConfigOptions;
-import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.configuration.ActionCommands;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -27,8 +31,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class GUI implements Listener {
 
@@ -42,6 +46,10 @@ public class GUI implements Listener {
         if (customGuis.containsKey(guiName))
             return customGuis.get(guiName);
         return null;
+    }
+
+    public static void addCommandPrompt(UUID uuid, CommandPrompt commandPrompt) {
+        commandPrompts.put(uuid, commandPrompt);
     }
 
     public GUI(){}
@@ -113,12 +121,8 @@ public class GUI implements Listener {
     }
 
     public static void openGUI(Player player, String name, long page, Object... data) {
-        if (!customGuis.containsKey(name))
-            return;
-        GUIOptions gui = customGuis.get(name);
         if (page < 1)
             page = 1;
-
 
         LinkedHashMap<UUID, String> values = getGUIValues(player, name, page, data);
         String[] replacements = new String[0];
@@ -126,8 +130,17 @@ public class GUI implements Listener {
             Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard ? (Leaderboard) data[0] : Leaderboard.ALL;
             replacements = new String[]{leaderboard.toString()};
         }
-        Inventory inventory = gui.createInventory(player, page, values, replacements);
-        player.openInventory(inventory);
+        if (geyserEnabled && floodgateEnabled && BedrockGUI.enabled && new FloodGateClass().isBedrockPlayer(player.getUniqueId()) && BedrockGUI.isGUIEnabled(name)) {
+            // open bedrock gui
+            BedrockGUI.openGUI(player, name, page, values, replacements);
+        } else {
+            // open java gui
+            if (!customGuis.containsKey(name))
+                return;
+            GUIOptions gui = customGuis.get(name);
+            Inventory inventory = gui.createInventory(player, page, values, replacements);
+            player.openInventory(inventory);
+        }
         playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, name, data, values.keySet().toArray(new UUID[0]), player.getOpenInventory().getTitle()));
     }
 
@@ -248,176 +261,10 @@ public class GUI implements Listener {
             CustomItem customItem = gui.getCustomItem(event.getSlot(), info.getPage(), getGUIValues((Player) event.getWhoClicked(), guiType, info.getPage(), info.getData()).size());
             if (customItem == null)
                 return;
-            for (String command : customItem.getCommands()){
-                command = command.replaceAll("\\{player}", Matcher.quoteReplacement(event.getWhoClicked().getName()));
-                command = command.replaceAll("\\{page}", Matcher.quoteReplacement(info.getPage() + ""));
-                while (command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")){
-                    String replacement = "";
-                    try {
-                        int slot = Integer.parseInt(command.substring(command.indexOf("{slot") + 5, command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length()));
-                        ItemStack item = event.getInventory().getContents()[slot];
-                        if (item != null) {
-                            if (item.getType() == Material.PLAYER_HEAD) {
-                                SkullMeta meta = (SkullMeta) item.getItemMeta();
-                                assert meta != null;
-                                OfflinePlayer player = meta.getOwningPlayer();
-                                if (player != null && player.getName() != null) {
-                                    replacement = meta.getOwningPlayer().getName();
-                                } else {
-                                    Bukkit.getLogger().warning("Invalid player for slot " + slot);
-                                }
-                            }
-                            if (replacement == null)
-                                replacement = "";
-                            if (replacement.isEmpty()) {
-                                ItemMeta meta = item.getItemMeta();
-                                assert meta != null;
-                                replacement = meta.getDisplayName();
-                            }
-                        }
-                    } catch (NumberFormatException e){
-                        Bukkit.getLogger().warning("Error getting slot in command: \n" + command);
-                    }
-                    command = command.substring(0, command.indexOf("{slot")) + replacement + command.substring(command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length()+ 1);
-                }
-                if (command.startsWith("@")){
-                    String permission = command.substring(1, command.indexOf(" "));
-                    if (!event.getWhoClicked().hasPermission(permission))
-                        continue;
-                    command = command.substring(command.indexOf(" ") + 1);
-                } else if (command.startsWith("!@")){
-                    String permission = command.substring(2, command.indexOf(" "));
-                    if (event.getWhoClicked().hasPermission(permission))
-                        continue;
-                    command = command.substring(command.indexOf(" ") + 1);
-                }
-                if (command.startsWith("[close]")) {
-                    event.getView().close();
-                } else if (command.startsWith("[p]")) {
-                    Bukkit.dispatchCommand(event.getWhoClicked(), command.substring(4));
-                } else if (command.startsWith("[next]")) {
-                    int amount = 1;
-                    try {
-                        amount = Integer.parseInt(command.substring(7));
-                    } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
-                    if (guiType.equals("select-price")){
-                        String uuid = info.getData().length > 0 ? (String) info.getData()[0] : Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
-                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, uuid);
-                    } else if (guiType.equals("leaderboard")){
-                        Leaderboard leaderboard = (Leaderboard) info.getData()[0];
-                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, leaderboard);
-                    } else {
-                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() + amount, info.getData());
-                    }
-
-                } else if (command.startsWith("[back]")) {
-                    int amount = 1;
-                    try {
-                        amount = Integer.parseInt(command.substring(7));
-                    } catch (IndexOutOfBoundsException | NumberFormatException ignored){}
-                    if (guiType.equals("select-price")){
-                        String uuid = (String) info.getData()[0]; //((SkullMeta) event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta()).getOwningPlayer().getUniqueId().toString();
-                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount, uuid);
-                    } else if (guiType.equals("leaderboard")){
-                        Leaderboard leaderboard = (Leaderboard) info.getData()[0];
-                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount, leaderboard);
-                    }  else {
-                        openGUI((Player) event.getWhoClicked(), gui.getType(), info.getPage() - amount, info.getData());
-                    }
-                } else if (command.startsWith("[gui]")){
-                    int amount = 1;
-                    String guiName = command.substring(6);
-                    if (guiName.contains(" ")) {
-                        try {
-                            String number = guiName.substring(guiName.indexOf(" ") + 1);
-                            if (number.contains(" ")){
-                                amount = Integer.parseInt(number.substring(0, number.indexOf(" ")));
-                            } else {
-                                amount = Integer.parseInt(number);
-                            }
-                            guiName = guiName.substring(0, guiName.indexOf(" "));
-                        } catch (IndexOutOfBoundsException | NumberFormatException ignored) {
-                        }
-                    }
-                    if (guiName.equalsIgnoreCase("leaderboard")) {
-                        Leaderboard l = Leaderboard.ALL;
-                        try {
-                            l = Leaderboard.valueOf(command.substring(command.lastIndexOf(" ") + 1).toUpperCase());
-                        } catch (IllegalArgumentException ignored){}
-                        openGUI((Player) event.getWhoClicked(), guiName, amount, l);
-                    } else if (guiName.equalsIgnoreCase("set-bounty") || guiName.equalsIgnoreCase("set-whitelist")){
-                        // [gui] set-bounty 1 offline
-                        int length = 7 + guiType.length();
-                        if (command.length() > length && command.substring(length + 1).contains(" ")){
-                            String afterName = command.substring(length + 1);
-                            String lastArg = afterName.substring(afterName.indexOf(" ") + 1);
-                            if (lastArg.equalsIgnoreCase("offline") && info.getData().length > 0 && info.getData()[0] instanceof String && ((String) info.getData()[0]).equalsIgnoreCase("offline")) {
-                                lastArg = "";
-                            }
-                            openGUI((Player) event.getWhoClicked(), guiName, amount, lastArg);
-                        } else {
-                            openGUI((Player) event.getWhoClicked(), guiName, amount);
-                        }
-                    } else {
-                        openGUI((Player) event.getWhoClicked(), guiName, amount);
-                    }
-
-                } else if (command.equalsIgnoreCase("[offline]")) {
-                    if (info.getData().length > 0 && info.getData()[0] instanceof String && ((String) info.getData()[0]).equalsIgnoreCase("offline"))
-                        openGUI((Player) event.getWhoClicked(), info.getGuiType(), info.getPage());
-                    else
-                        openGUI((Player) event.getWhoClicked(), info.getGuiType(), info.getPage(), "offline");
-                } else if (command.startsWith("[sound] ")) {
-                    command = command.substring(8);
-                    double volume = 1;
-                    double pitch = 1;
-                    String sound;
-                    if (command.contains(" ")) {
-                        sound = command.substring(0, command.indexOf(" "));
-                        command = command.substring(sound.length() + 1);
-                        try {
-                            if (command.contains(" ")) {
-                                volume = NumberFormatting.tryParse(command.substring(0,command.indexOf(" ")));
-                                command = command.substring(command.indexOf(" ") + 1);
-                                pitch = NumberFormatting.tryParse(command);
-                            } else {
-                                volume = NumberFormatting.tryParse(command);
-                            }
-                        } catch (NumberFormatException e) {
-                            Bukkit.getLogger().warning("[NotBounties] Unknown number for [sound] command in gui " + gui.getType() + " : " + command);
-                            continue;
-                        }
-                    } else {
-                        sound = command;
-                    }
-                    Sound realSound;
-                    try {
-                        realSound = Sound.valueOf(sound.toUpperCase());
-                    } catch (IllegalArgumentException e) {
-                        Bukkit.getLogger().warning("[NotBounties] Unknown sound for [sound] command in gui " + gui.getType() + " : " + sound);
-                        continue;
-                    }
-                    ((Player) event.getWhoClicked()).playSound(event.getWhoClicked().getEyeLocation(), realSound, (float) volume, (float) pitch);
-                } else if (command.startsWith("[cprompt] ") || command.startsWith("[pprompt] ")) {
-                    boolean playerPrompt = command.startsWith("[pprompt] ");
-                    command = command.substring(10);
-                    String prompt = "&eEnter anything in chat.";
-                    if (command.contains("<") && command.substring(command.indexOf("<")).contains(">")) {
-                        prompt = command.substring(command.indexOf("<") + 1, command.substring(0,command.indexOf("<")).length() + command.substring(command.indexOf("<")).indexOf(">"));
-                    }
-                    event.getWhoClicked().closeInventory();
-                    event.getWhoClicked().sendMessage(parse(prompt, (OfflinePlayer) event.getWhoClicked()));
-                    if (command.contains(prompt))
-                        command = command.replace(prompt, "~placeholder~");
-                    commandPrompts.put(event.getWhoClicked().getUniqueId(), new CommandPrompt(command, playerPrompt));
-                } else {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-                }
-                //Bukkit.getLogger().info(command);
-            }
+            ActionCommands.executeGUI((Player) event.getWhoClicked(), customItem.getCommands());
         }
-
     }
+
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void asyncChatEvent(AsyncPlayerChatEvent event) {

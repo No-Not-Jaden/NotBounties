@@ -1,8 +1,8 @@
-package me.jadenp.notbounties.autoBounties;
+package me.jadenp.notbounties.utils.configuration.autoBounties;
 
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.utils.LiteBansClass;
-import me.jadenp.notbounties.utils.NumberFormatting;
+import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import static me.jadenp.notbounties.utils.BountyManager.addBounty;
-import static me.jadenp.notbounties.utils.ConfigOptions.liteBansEnabled;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.liteBansEnabled;
 
 public class RandomBounties {
     private static int randomBountyMinTime;

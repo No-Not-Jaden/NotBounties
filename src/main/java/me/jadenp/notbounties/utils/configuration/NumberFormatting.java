@@ -1,11 +1,10 @@
-package me.jadenp.notbounties.utils;
+package me.jadenp.notbounties.utils.configuration;
 
 import com.google.common.primitives.Floats;
 import me.jadenp.notbounties.NotBounties;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.externalAPIs.VaultClass;
+import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -20,7 +19,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.stream.IntStream;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class NumberFormatting {
     public static List<String> currency;
@@ -837,7 +836,9 @@ public class NumberFormatting {
      * @param player Player to get balance from
      * @return Balance of player
      */
-    public static double getBalance(Player player) {
+    public static double getBalance(OfflinePlayer player) {
+        if (vaultEnabled && !overrideVault)
+            return vaultClass.getBalance(player);
         if (currency.isEmpty()){
             Bukkit.getLogger().warning("[NotBounties] Cannot get balance of player because there is nothing setup for currency!");
         }
@@ -865,7 +866,7 @@ public class NumberFormatting {
         return sortedBalance;
     }
 
-    private static double getBalance(Player player, String currencyName, int customModelData){
+    private static double getBalance(OfflinePlayer player, String currencyName, int customModelData){
         if (currencyName.contains("%")) {
             if (papiEnabled) {
                 // using placeholderAPI
@@ -882,11 +883,39 @@ public class NumberFormatting {
             }
         } else {
             // item
-            return checkAmount(player, Material.valueOf(currencyName), customModelData) * currencyValues.get(currencyName);
+            if (player.isOnline())
+                return checkAmount(Objects.requireNonNull(player.getPlayer()), Material.valueOf(currencyName), customModelData) * currencyValues.get(currencyName);
+            return 0;
         }
     }
 
+    /**
+     * Tries to parse a double value from a string.
+     * The method looks for any suffix values like 'K', 'M', 'B', etc.
+     * The parsing is then done with decimal format.
+     * @param number Number string to be parsed
+     * @return The parsed number
+     * @throws NumberFormatException if the string is not a number
+     */
     public static double tryParse(String number) throws NumberFormatException {
+        long modifier = 1;
+        // case-sensitive
+        for (Map.Entry<Long, String> division : nfDivisions.entrySet()) {
+            if (number.endsWith(division.getValue())) {
+                modifier = division.getKey();
+                number = number.substring(0,number.length() - division.getValue().length());
+                break;
+            }
+        }
+        // not case-sensitive
+        if (modifier == 1)
+            for (Map.Entry<Long, String> division : nfDivisions.entrySet()) {
+                if (number.toLowerCase().endsWith(division.getValue().toLowerCase())) {
+                    number = number.substring(0,number.length() - division.getValue().length());
+                    modifier = division.getKey();
+                    break;
+                }
+            }
         double amount;
         try {
             amount = decimalFormat.parse(number).doubleValue();
@@ -894,7 +923,7 @@ public class NumberFormatting {
         } catch (ParseException e) {
             amount = Double.parseDouble(number);
         }
-        return amount;
+        return amount * modifier;
     }
 
     /**

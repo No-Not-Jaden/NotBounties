@@ -9,7 +9,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import static me.jadenp.notbounties.NotBounties.*;
-import static me.jadenp.notbounties.utils.ConfigOptions.wanted;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.wanted;
 
 public class RemovePersistentEntitiesEvent implements Listener {
     @EventHandler

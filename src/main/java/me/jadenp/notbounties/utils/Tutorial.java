@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.utils;
 
-import me.jadenp.notbounties.Immunity;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.Immunity;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -10,11 +12,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-import static me.jadenp.notbounties.utils.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 
-public class Tutorial {                                                              //
+public class Tutorial {
 
     public static void onCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == 1 || args[1].equals("1")) {
