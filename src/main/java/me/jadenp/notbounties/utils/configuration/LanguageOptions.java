@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.utils.configuration;
 
+import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.ChatColor;
@@ -96,6 +98,7 @@ public class LanguageOptions {
     public static String rewardHeadName;
     public static String helpTitle;
     public static String updateStat;
+    public static String selfSetDeny;
 
     public static List<String> trackerLore;
     public static List<String> voucherLore;
@@ -123,6 +126,7 @@ public class LanguageOptions {
     public static List<String> helpImmune;
     public static List<String> helpPosterOwn;
     public static List<String> helpPosterOther;
+    public static List<String> helpRemoveSet;
 
     public static File getLanguageFile() {
         return new File(NotBounties.getInstance().getDataFolder() + File.separator + "language.yml");
@@ -240,6 +244,7 @@ public class LanguageOptions {
         rewardHeadName = configuration.getString("reward-head-name");
         helpTitle = configuration.getString("help.title");
         updateStat = configuration.getString("update-stat");
+        selfSetDeny = configuration.getString("self-set-deny");
 
         voucherLore = configuration.getStringList("bounty-voucher-lore");
         trackerLore = configuration.getStringList("bounty-tracker-lore");
@@ -267,6 +272,7 @@ public class LanguageOptions {
         helpImmune = configuration.getStringList("help.immune");
         helpPosterOwn = configuration.getStringList("help.poster-own");
         helpPosterOther = configuration.getStringList("help.poster-other");
+        helpRemoveSet = configuration.getStringList("help.remove-set");
     }
 
     public static void sendHelpMessage(CommandSender sender) {
@@ -304,6 +310,9 @@ public class LanguageOptions {
         if (sender.hasPermission("notbounties.removeimmunity")) {
             sendHelpMessage(sender, helpRemoveImmunity);
         }
+        if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission("notbounties.admin")) {
+            sendHelpMessage(sender, helpRemoveSet);
+        }
         if (sender.hasPermission("notbounties.admin") || giveOwnMap) {
             sendHelpMessage(sender, helpPosterOwn);
             if (sender.hasPermission("notbounties.admin"))
@@ -333,7 +342,7 @@ public class LanguageOptions {
             str = str.replaceAll("\\{buy_back_interest}", Matcher.quoteReplacement(NumberFormatting.formatNumber(ConfigOptions.buyBackInterest)));
             str = str.replaceAll("\\{permanent_cost}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
             str = str.replaceAll("\\{scaling_ratio}", Matcher.quoteReplacement(NumberFormatting.formatNumber(Immunity.getScalingRatio())));
-            str = str.replaceAll("\\{time_immunity}", Matcher.quoteReplacement(NotBounties.formatTime((long) (Immunity.getTime() * 1000L))));
+            str = str.replaceAll("\\{time_immunity}", Matcher.quoteReplacement(formatTime((long) (Immunity.getTime() * 1000L))));
             sender.sendMessage(parse(str, parser));
         }
     }
@@ -346,29 +355,41 @@ public class LanguageOptions {
 
     public static String parse(String str, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
+        str = str.replaceAll("\\{min_bounty}", Matcher.quoteReplacement(NumberFormatting.getValue(ConfigOptions.minBounty)));
+        Bounty bounty = BountyManager.getBounty(receiver);
+        if (bounty != null) {
+            str = str.replaceAll("\\{min_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getLowestExpireTime(bounty))));
+            str = str.replaceAll("\\{max_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getHighestExpireTime(bounty))));
+        } else {
+            str = str.replaceAll("\\{min_expire}", "");
+            str = str.replaceAll("\\{max_expire}", "");
+        }
         if (receiver != null) {
             if (receiver.getName() != null) {
                 str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
                 str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
             }
             str = str.replaceAll("\\{balance}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
-            // {whitelist<2>} turns into the name of the second player in the receiver's whitelist
-            while (str.contains("{whitelist<") && str.substring(str.indexOf("{whitelist<")).contains(">}")) {
+            Whitelist whitelist = NotBounties.getPlayerWhitelist(receiver.getUniqueId());
+            str = str.replaceAll("\\{whitelist}", Matcher.quoteReplacement(whitelist.toString()));
+            String mode = whitelist.isBlacklist() ? "Blacklist" : "Whitelist";
+            str = str.replaceAll("\\{mode}", Matcher.quoteReplacement(mode));
+            // {whitelist2} turns into the name of the second player in the receiver's whitelist
+            while (str.contains("{whitelist") && str.substring(str.indexOf("{whitelist")).contains("}")) {
                 int num;
-                String stringValue = str.substring(str.indexOf("{whitelist<") + 11, str.indexOf("{whitelist<") + str.substring(str.indexOf("{whitelist<")).indexOf(">}"));
+                String stringValue = str.substring(str.indexOf("{whitelist") + 10, str.indexOf("{whitelist") + str.substring(str.indexOf("{whitelist")).indexOf(">}"));
                 try {
                     num = Integer.parseInt(stringValue);
                 } catch (NumberFormatException e) {
-                    str = str.replace("{whitelist<" + stringValue + ">}", "<Error>");
+                    str = str.replace("{whitelist" + stringValue + "}", "<Error>");
                     continue;
                 }
                 if (num < 1)
                     num = 1;
-                Whitelist whitelist = NotBounties.getPlayerWhitelist(receiver.getUniqueId());
                 if (whitelist.getList().size() > num)
-                    str = str.replace("{whitelist<" + stringValue + ">}", "");
+                    str = str.replace("{whitelist" + stringValue + "}", "");
                 else
-                    str = str.replace("{whitelist<" + stringValue + ">}", NotBounties.getPlayerName(whitelist.getList().get(num-1)));
+                    str = str.replace("{whitelist" + stringValue + "}", NotBounties.getPlayerName(whitelist.getList().get(num-1)));
             }
         }
         if (ConfigOptions.papiEnabled && receiver != null) {
@@ -440,5 +461,21 @@ public class LanguageOptions {
             );
         }
         return matcher.appendTail(buffer).toString();
+    }
+
+    public static String formatTime(long ms) {
+        long days = (long) (ms / (8.64 * Math.pow(10,7)));
+        ms = (long) (ms % (8.64 * Math.pow(10,7)));
+        long hours = ms / 3600000L;
+        ms = ms % 3600000L;
+        long minutes = ms / 60000L;
+        ms = ms % 60000L;
+        long seconds = ms / 1000L;
+        String time = "";
+        if (days > 0) time += days + "d ";
+        if (hours > 0) time += hours + "h ";
+        if (minutes > 0) time += minutes + "m ";
+        if (seconds > 0) time += seconds + "s";
+        return time;
     }
 }

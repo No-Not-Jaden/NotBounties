@@ -114,6 +114,7 @@ public class ConfigOptions {
     public static boolean floodgateEnabled;
     public static boolean sendBStats;
     public static double autoBountyExpireTime;
+    public static boolean selfSetting;
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
         NotBounties bounties = NotBounties.getInstance();
@@ -353,6 +354,7 @@ public class ConfigOptions {
                 Bukkit.getLogger().info("[NotBounties] Wanted tag level: \"" + key + "\" is not a whole number!");
             }
         }
+        selfSetting = bounties.getConfig().getBoolean("self-setting");
 
         wantedLevels = sortByValue(wantedLevels);
 
@@ -509,7 +511,8 @@ public class ConfigOptions {
         bounties.saveConfig();
         LanguageOptions.reloadOptions();
         WebhookOptions.reloadOptions();
-        BedrockGUI.reloadOptions();
+        if (geyserEnabled && floodgateEnabled)
+            BedrockGUI.reloadOptions();
     }
 
 

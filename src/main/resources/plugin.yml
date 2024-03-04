@@ -54,6 +54,9 @@ permissions:
   notbounties.basic:
     default: true
     description: use help, tutorial, and broadcast commands
+  notbounties.removeset:
+    default: false
+    description: remove bounties you set
   notbounties.player:
     description: all the basic player permissions
     children:

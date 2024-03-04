@@ -1,79 +1,105 @@
 link: 'https://discord.com/api/webhooks/...'
 text-to-speech: false
 bounty-set:
-  enabled: false
+  enabled: true
+  # change the name of the webhook in the message
   # use {receiver} or {player} or leave blank to disable
   username: '{player}'
-  message: 'message!'
+  # plain text message
+  message: ''
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false
-  title: 'title'
-  description: 'description'
-  color: RED
+  # title of the embed
+  title: '{player} has set a bounty on {receiver}!'
+  # description of the embed
+  description: '{mode}ed players: **{whitelist}**'
+  # Colors can be a color from here: https://docs.oracle.com/javase/8/docs/api/java/awt/Color.html
+  # Hex works ex: '#4287f5'
+  # RGB works ex: '216, 59, 227'
+  color: GREEN
+  # bottom text of embed
   footer:
-    text: 'footer'
+    text: 'Kill {receiver} to receive this reward!'
     image-url: ''
+  # add extra content to the embed
   content:
+    # this can be named whatever
     field:
-      name: 'name'
-      value: 'value'
-      inline: false
+      name: '__Bounty Increase__'
+      value: '{amount}'
+      inline: true
+    whatever:
+      name: '__Total Bounty__'
+      value: '{bounty}'
+      inline: true
 bounty-claim:
-  enabled: false
+  enabled: true
   # use {receiver} or {player} or leave blank to disable
   username: '{player}'
-  message: 'message!'
+  message: ''
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false
-  title: 'title'
-  description: 'description'
-  color: RED
+  title: '{player} has claimed the bounty on {receiver}!'
+  description: ''
+  color: '#d1a221'
   footer:
-    text: 'footer'
+    text: ''
     image-url: ''
   content:
     field:
-      name: 'name'
-      value: 'value'
-      inline: false
+      name: '__Bounty Claimed__'
+      value: '{amount}'
+      inline: true
+    field2:
+      name: '__Remaining Bounty__'
+      value: '{bounty}'
+      inline: true
 bounty-remove:
-  enabled: false
+  enabled: true
   # use {receiver} or {player} or leave blank to disable
   username: '{player}'
-  message: 'message!'
+  message: ''
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false
-  title: 'title'
-  description: 'description'
-  color: RED
+  title: '{player} has removed part of {receiver}''s bounty'
+  description: ''
+  color: '255, 0, 0'
   footer:
-    text: 'footer'
+    text: 'Gotta be quicker next time!'
     image-url: ''
   content:
     field:
-      name: 'name'
-      value: 'value'
-      inline: false
+      name: '__Bounty Removed__'
+      value: '{amount}'
+      inline: true
+    field2:
+      name: '__Remaining Bounty__'
+      value: '{bounty}'
+      inline: true
 bounty-edit:
-  enabled: false
+  enabled: true
   # use {receiver} or {player} or leave blank to disable
   username: '{player}'
-  message: 'message!'
+  message: ''
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false
-  title: 'title'
-  description: 'description'
-  color: RED
+  title: '{player} has edited {receiver}''s bounty'
+  description: ''
+  color: BLUE
   footer:
-    text: 'footer'
+    text: ':eyes:'
     image-url: ''
   content:
     field:
-      name: 'name'
-      value: 'value'
-      inline: false
+      name: '__Bounty Edited__'
+      value: '{amount}'
+      inline: true
+    field2:
+      name: '__Remaining Bounty__'
+      value: '{bounty}'
+      inline: true
 

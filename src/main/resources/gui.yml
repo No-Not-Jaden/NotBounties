@@ -30,6 +30,7 @@ custom-items:
     #   ex: '@notbounties.admin [next]' will only go to the next page if the player clicking the item has notbounties.admin
     #   '!@essentials.fly [p] top' will run the command /top as the player if the player doesn't have essentials.fly
     # {player} will be replaced with the name of the player who clicked
+    # {player<x>} will be replaced with the name of the x player in the GUI. If there are 3 players in the GUI, {player2} will be the second player in the GUI (with respect to how player-slots are ordered)
     # {slot<x>} will be replaced with the name of the owner of the skull in that slot, or if there is no skull, it will be replaced with the item name
     commands: []
   custom-head:

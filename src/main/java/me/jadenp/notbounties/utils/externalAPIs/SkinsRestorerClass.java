@@ -5,6 +5,7 @@ import net.skinsrestorer.api.PropertyUtils;
 import net.skinsrestorer.api.SkinsRestorer;
 import net.skinsrestorer.api.SkinsRestorerProvider;
 import net.skinsrestorer.api.exception.DataRequestException;
+import net.skinsrestorer.api.property.SkinIdentifier;
 import net.skinsrestorer.api.property.SkinProperty;
 import net.skinsrestorer.api.storage.PlayerStorage;
 import org.bukkit.Bukkit;
@@ -14,9 +15,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Base64;
@@ -82,6 +80,14 @@ public class SkinsRestorerClass {
         } catch (DataRequestException ignored) {
         }
         return null;
+    }
+
+    public String getSkinTextureID(UUID uuid) {
+        if (!connect())
+            return null;
+        PlayerStorage playerStorage = skinsRestorer.getPlayerStorage();
+        Optional<SkinIdentifier> property = playerStorage.getSkinIdOfPlayer(uuid);
+        return property.map(SkinIdentifier::getIdentifier).orElse(null);
     }
 
 

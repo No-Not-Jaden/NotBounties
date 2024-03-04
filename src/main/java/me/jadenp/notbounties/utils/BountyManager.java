@@ -573,23 +573,24 @@ public class BountyManager {
         }
     }
 
-    public static boolean refundSetter(Setter setter) {
+    public static void refundSetter(Setter setter) {
+        refundPlayer(setter.getUuid(), setter.getAmount());
+    }
+
+    public static void refundPlayer(UUID uuid, double amount) {
         if (vaultEnabled && !overrideVault) {
-            OfflinePlayer player = Bukkit.getOfflinePlayer(setter.getUuid());
-            if (!NumberFormatting.getVaultClass().deposit(player, setter.getAmount())) {
-                Bukkit.getLogger().warning("Error depositing currency with vault!");
-                addRefund(player.getUniqueId(), setter.getAmount());
-                return false;
+            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+            if (!NumberFormatting.getVaultClass().deposit(player, amount)) {
+                Bukkit.getLogger().warning("[NotBounties] Error depositing currency with vault!");
+                addRefund(player.getUniqueId(), amount);
             }
-            return true;
         } else {
-            Player player = Bukkit.getPlayer(setter.getUuid());
+            Player player = Bukkit.getPlayer(uuid);
             if (player != null && manualEconomy != ManualEconomy.PARTIAL) {
-                NumberFormatting.doAddCommands(player, setter.getAmount());
-                return true;
+                NumberFormatting.doAddCommands(player, amount);
+                return;
             }
-            addRefund(setter.getUuid(), setter.getAmount());
-            return false;
+            addRefund(uuid, amount);
 
         }
     }

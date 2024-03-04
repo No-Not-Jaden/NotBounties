@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.ui.gui;
 
 import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.ui.HeadFetcher;
@@ -22,8 +21,8 @@ import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.BountyManager.getBounty;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
+import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 
 public class GUIOptions {
     private final List<Integer> playerSlots; // this size of this is how many player slots per page
@@ -194,13 +193,7 @@ public class GUIOptions {
                     time = bounty.getLatestSetter();
                 }
             } else {
-                Leaderboard leaderboard = null;
-                try {
-                    leaderboard = Leaderboard.valueOf(replacements[0]);
-                } catch (IllegalArgumentException ignored) {
-                }
-                if (leaderboard == null)
-                    amount[i] = formatNumber(amount[i]);
+                amount[i] = formatNumber(amount[i]);
             }
 
             final String finalAmount = amount[i];

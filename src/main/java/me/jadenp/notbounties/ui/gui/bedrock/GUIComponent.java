@@ -3,8 +3,8 @@ package me.jadenp.notbounties.ui.gui.bedrock;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
 import org.geysermc.cumulus.component.ButtonComponent;
 import org.geysermc.cumulus.component.Component;
 import org.geysermc.cumulus.component.impl.*;
@@ -26,6 +26,33 @@ public class GUIComponent {
     private ComponentType type;
     private Map<String, String> options = new HashMap<>();
 
+    /**
+     * Creation of a player GUI Component
+     * @param text Displayed Player Text
+     * @param type Type of component
+     * @param player Player that this component represents
+     * @param amount Amount tied to this component
+     * @param playerCommands Commands to be executed on click (if a button)
+     */
+    public GUIComponent(String text, ComponentType type, OfflinePlayer player, String amount, List<String> playerCommands) {
+        this.name = "?player_component?";
+        this.text = text;
+        this.type = type;
+        // pre parsed commands
+        // arguably better than parsing after click
+        List<String> parsedCommands = new ArrayList<>();
+        for (String cmd : playerCommands) {
+            parsedCommands.add(LanguageOptions.parse(cmd, NumberFormatting.tryParse(amount), player));
+        }
+        commands = new ArrayList<>(parsedCommands);
+        // create components
+        buildComponent(player);
+    }
+
+    /**
+     * Creation of a custom GUI Component from a YAML configuration section
+     * @param configuration Configuration section to build the GUI Component from
+     */
     public GUIComponent(ConfigurationSection configuration) {
         name = configuration.getName();
         if (configuration.isSet("text"))
@@ -47,7 +74,7 @@ public class GUIComponent {
         for (String key : configuration.getKeys(false)) {
             if (key.equals("text") || key.equals("commands") || key.equals("type"))
                 continue;
-            if (configuration.isString("key")) {
+            if (configuration.isString(key)) {
                 options.put(key, configuration.getString(key));
             }
         }
@@ -72,7 +99,7 @@ public class GUIComponent {
         return type;
     }
 
-    public GUIComponent buildComponent(Player player) {
+    public GUIComponent buildComponent(OfflinePlayer player) {
         String text = LanguageOptions.parse(this.text, player);
         switch (type) {
             case LABEL:
@@ -128,6 +155,15 @@ public class GUIComponent {
                 } else {
                     defaultValue = min;
                 }
+                // check if variables are in bounds
+                if (min > max)
+                    min = max;
+                if (max < min)
+                    max = min;
+                if (defaultValue < min)
+                    defaultValue = min;
+                if (defaultValue > max)
+                    defaultValue = max;
                 component = new SliderComponentImpl(text, min, max, step, defaultValue);
                 break;
             case STEP_SLIDER:
@@ -176,5 +212,14 @@ public class GUIComponent {
 
     public Component getComponent() {
         return component;
+    }
+
+    @Override
+    public String toString() {
+        return "GUIComponent{" +
+                "name='" + name + '\'' +
+                ", text='" + text + '\'' +
+                ", type=" + type +
+                '}';
     }
 }

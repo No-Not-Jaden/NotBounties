@@ -52,9 +52,17 @@ bounty-tax: 0.0
 # ex: death-tax = 0.1, a bounty set for 100 would cost the player 10 when they die
 # players cannot go into debt
 death-tax: 0.0
-# how many real days until bounties expire | -1 to disable
-# the lowest this can go is 0.00347
-bounty-expire: -1
+# make old bounties expire after a while
+bounty-expire:
+  # how many real days until bounties expire | -1 to disable
+  # the lowest this can go is 0.00347 which is 5 minutes
+  # check auto-bounties for their expiry time
+  time: -1
+  # track the player while they are offline
+  offline-tracking: true
+  # give the bounty amount to the receiver if it expires.
+  # if you change this, change the expired-bounty message in language.yml because it won't be accurate anymore
+  reward-receiver: false
 # These player's bounty stats will be hidden from bounties top
 hide-stats:
   - Not_Jaden
@@ -70,6 +78,8 @@ confirmation: true
 console-bounty-name: Sheriff
 # this will remove bounties of banned players - checks are run every 12 hours
 remove-banned-players: true
+# allow players to set bounties on themselves
+self-setting: true
 # Change the order when the bounties are claimed event wise
 # BEFORE, REGULAR, or AFTER can be used
 # do not change this unless you know what you are doing
@@ -317,6 +327,7 @@ immunity:
 big-bounties:
   # how big their bounty must be for the effects to take place
   # set -1 to disable
+  # bounty must be greater than the threshold (exclusive)
   bounty-threshold: 25000
   # When to use the threshold to trigger
   # ONCE - Trigger the commands once after the bounty has reached the threshold

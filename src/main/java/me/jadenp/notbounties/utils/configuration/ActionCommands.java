@@ -65,7 +65,7 @@ public class ActionCommands {
         new BukkitRunnable() {
             @Override
             public void run() {
-                for (String command : bountyClaimCommands) {
+                for (String command : bigBountyCommands) {
                     execute(player, player, totalBounty, command);
                 }
             }
@@ -75,7 +75,6 @@ public class ActionCommands {
     private static void execute(Player player, Player killer, double totalBounty, String command) {
         if (command.isEmpty())
             return;
-
         PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, "", new Object[0], new UUID[0], "");
 
         command = command.replaceAll("\\{player}", Matcher.quoteReplacement(player.getName()));
@@ -116,9 +115,25 @@ public class ActionCommands {
             command = command.substring(0, command.indexOf("{slot")) + replacement + command.substring(command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length() + 1);
         }
 
+        // check for {player<x>}
+        while (command.contains("{player") && command.substring(command.indexOf("{player")).contains("}")) {
+            String replacement = "";
+            String slotString = command.substring(command.indexOf("{player") + 7, command.substring(command.indexOf("{player")).indexOf("}") + command.substring(0, command.indexOf("{player")).length());
+            try {
+                int slot = Integer.parseInt(slotString);
+                if (info.getPlayers().length > slot-1) {
+                    replacement = NotBounties.getPlayerName(info.getPlayers()[slot-1]);
+                }
+            } catch (NumberFormatException e) {
+                Bukkit.getLogger().warning("Error getting player in command: \n" + command);
+            }
+            command = command.replace(Matcher.quoteReplacement("{player" + slotString + "}"), Matcher.quoteReplacement(replacement));
+            //command = command.substring(0, command.indexOf("{player")) + replacement + command.substring(command.substring(command.indexOf("{player")).indexOf("}") + command.substring(0, command.indexOf("{player")).length() + 1);
+        }
+
         boolean canceled = false;
         int loops = 100; // to stop an infinite loop if the command isn't formatted correctly
-        while (command.startsWith("<(") || command.startsWith(">(") || command.startsWith("@(") || command.startsWith("!@(") || command.startsWith("~player(") || command.startsWith("~killer(")) {
+        while (command.startsWith("<(") || command.startsWith(">(") || command.startsWith("@(") || command.startsWith("!@(") || command.startsWith("~player(") || command.startsWith("~killer(") || (player.getUniqueId().equals(killer.getUniqueId()) && (command.startsWith("@") || command.startsWith("!@")))) {
             if (command.startsWith("<(") && command.contains(") ")) {
                 double amount;
                 try {
@@ -161,6 +176,18 @@ public class ActionCommands {
                 if (killer.hasPermission(permission))
                     canceled = true;
                 command = command.substring(command.indexOf(" ") + 1);
+            } else if (player.getUniqueId().equals(killer.getUniqueId())) {
+                if (command.startsWith("@")) {
+                    String permission = command.substring(1, command.indexOf(" "));
+                    if (!player.hasPermission(permission))
+                        canceled = true;
+                    command = command.substring(command.indexOf(" ") + 1);
+                } else if (command.startsWith("!@")) {
+                    String permission = command.substring(2, command.indexOf(" "));
+                    if (player.hasPermission(permission))
+                        canceled = true;
+                    command = command.substring(command.indexOf(" ") + 1);
+                }
             }
 
             if (command.startsWith("~player(") && command.contains(") ")) {
@@ -187,11 +214,16 @@ public class ActionCommands {
         if (canceled)
             return;
 
+        //Bukkit.getLogger().info("Parsed Action: \"" + command + "\"");
 
-        if (command.startsWith("[player] ")) {
+        if (command.startsWith("[player] ") || command.startsWith("[p] ")) {
             if (papiEnabled)
                 command = new PlaceholderAPIClass().parse(player, command);
-            Bukkit.dispatchCommand(player, command.substring(9));
+            if (command.startsWith("[player] "))
+                command = command.substring(9);
+            else
+                command = command.substring(4);
+            Bukkit.dispatchCommand(player,command);
         } else if (command.startsWith("[killer] ")) {
             if (papiEnabled)
                 command = new PlaceholderAPIClass().parse(killer, command);
@@ -206,7 +238,7 @@ public class ActionCommands {
             String message = command.substring(12);
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (!NotBounties.disableBroadcast.contains(p.getUniqueId())) {
-                    p.sendMessage(message);
+                    p.sendMessage(LanguageOptions.parse(prefix + message, killer));
                 }
             }
         } else if (command.startsWith("[sound_player] ")) {
@@ -366,6 +398,7 @@ public class ActionCommands {
             GUI.addCommandPrompt(player.getUniqueId(), new CommandPrompt(command, playerPrompt));
         } else if (command.startsWith("[close]")) {
             player.getOpenInventory().close();
+            playerInfo.remove(player.getUniqueId());  // would only do something for bedrock players
         } else if (command.startsWith("[next]")) {
             int amount = 1;
             try {
@@ -374,7 +407,13 @@ public class ActionCommands {
             }
             if (info.getGuiType().equals("select-price")) {
                 GUIOptions gui = GUI.getGUI("select-price");
-                String uuid = info.getData().length > 0 ? (String) info.getData()[0] : Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
+                String uuid;
+                if (info.getData().length > 0) {
+                    uuid = (String) info.getData()[0];
+                } else {
+                    assert gui != null;
+                    uuid = Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
+                }
                 openGUI(player, info.getGuiType(), info.getPage() + amount, uuid);
             } else if (info.getGuiType().equals("leaderboard")) {
                 Leaderboard leaderboard = (Leaderboard) info.getData()[0];

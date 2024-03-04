@@ -1,9 +1,5 @@
 package me.jadenp.notbounties;
 
-import com.mysql.cj.util.StringUtils;
-import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
-import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
-import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
 import me.jadenp.notbounties.ui.gui.GUI;
@@ -11,6 +7,9 @@ import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.*;
 import me.jadenp.notbounties.utils.configuration.*;
+import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.externalAPIs.BountyExpansion;
 import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
@@ -45,28 +44,35 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
 
 /**
  * Proxy Messaging
- * Webhooks -
+ * Webhooks - x
  * Challenges
- * reward player when bounty expires on them
- * bedrock ui
- * big bounty commands and bounty claim commands sync -
- * broadcast -
+ * reward player when bounty expires on them - x
+ * bedrock ui -
+ * big bounty commands and bounty claim commands sync - x
+ * broadcast - x
  * update wiki
- * big bounty multiple executes -
- * can use divisions in inputs -
- * more placeholders with raw values -
- * regular ppl can remove their set bounty
- * gui can do all action commands -
- * gui name parsed -
- * whitelist toggle whitelist/blacklist -
- * Action commands moved all together -
- * big bounty moved into a new class -
- * big bounty triggers -
- * seeded text parse -
- * tryParse detects divisions -
- * leaderboard & other guis are properly formatted value wise -
- * use the closest player in text -
- *
+ * big bounty multiple executes - x
+ * can use divisions in inputs - x
+ * more placeholders with raw values - x
+ * regular ppl can remove their set bounty (permission)- x
+ * gui can do all action commands - x
+ * gui name parsed - x
+ * whitelist toggle whitelist/blacklist - x
+ * Action commands moved all together - x
+ * big bounty moved into a new class - x
+ * big bounty triggers - x
+ * seeded text parse - x
+ * tryParse detects divisions - x
+ * leaderboard & other guis are properly formatted value wise - x
+ * use the closest player in text - x
+ * {whitelist<x>} & {whitelist} & {mode} - x
+ * {min_expire} & {max_expire} - x
+ * option to set bounties on yourself - x
+ * skinrestorer works with webhooks - x
+ * change stats & view other stats - x
+ * updated some messages x
+ * not enough money msg before confirmation - x
+ * bounty buy goes to gui confirmation - x
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -711,24 +717,6 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public static String formatTime(long ms) {
-        long days = (long) (ms / (8.64 * Math.pow(10,7)));
-        ms = (long) (ms % (8.64 * Math.pow(10,7)));
-        long hours = ms / 3600000L;
-        ms = ms % 3600000L;
-        long minutes = ms / 60000L;
-        ms = ms % 60000L;
-        long seconds = ms / 1000L;
-        String time = "";
-        if (days > 0) time += days + "d ";
-        if (hours > 0) time += hours + "h ";
-        if (minutes > 0) time += minutes + "m ";
-        if (seconds > 0) time += seconds + "s";
-        return time;
-    }
-
-
-
     public void sendDebug(CommandSender sender) throws SQLException {
         sender.sendMessage(parse(prefix + ChatColor.WHITE + "NotBounties debug info:", null));
         String connected = SQL.isConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
@@ -743,7 +731,10 @@ public final class NotBounties extends JavaPlugin {
         String skinsRestorer = skinsRestorerEnabled ? ChatColor.GREEN + "SkinsRestorer" : ChatColor.RED + "SkinsRestorer";
         String betterTeams = betterTeamsEnabled ? ChatColor.GREEN + "BetterTeams" : ChatColor.RED + "BetterTeams";
         String townyAdvanced = townyAdvancedEnabled ? ChatColor.GREEN + "TownyAdvanced" : ChatColor.RED + "TownyAdvanced";
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "]");
+        String geyser = geyserEnabled ? ChatColor.GREEN + "GeyserMC" : ChatColor.RED + "GeyserMC";
+        String floodgate = floodgateEnabled ? ChatColor.GREEN + "Floodgate" : ChatColor.RED + "Floodgate";
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "\n               "
+                + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser + ChatColor.GRAY + "|" + floodgate + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));

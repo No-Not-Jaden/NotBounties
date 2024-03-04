@@ -1,5 +1,7 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.NotBounties;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -43,5 +45,19 @@ public class Whitelist {
         boolean change = this.blacklist != blacklist;
         this.blacklist = blacklist;
         return change;
+    }
+
+    @Override
+    public String toString() {
+        if (list.isEmpty()) {
+            return "<X>";
+        } else {
+            StringBuilder builder = new StringBuilder();
+            for (UUID uuid : list) {
+                builder.append(NotBounties.getPlayerName(uuid)).append(" ");
+            }
+            builder.deleteCharAt(builder.length()-1);
+            return builder.toString();
+        }
     }
 }

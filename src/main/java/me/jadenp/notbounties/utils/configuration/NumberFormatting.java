@@ -898,6 +898,16 @@ public class NumberFormatting {
      * @throws NumberFormatException if the string is not a number
      */
     public static double tryParse(String number) throws NumberFormatException {
+        // remove any currency prefixes or suffixes
+        if (!currencyPrefix.isEmpty() && number.startsWith(currencyPrefix)) {
+            number = number.substring(currencyPrefix.length());
+        }
+        if (!currencySuffix.isEmpty() && number.startsWith(currencySuffix)) {
+            number = number.substring(0, number.length()-currencySuffix.length());
+        }
+        // remove any colors
+        number = ChatColor.stripColor(number);
+        // parse any divisions
         long modifier = 1;
         // case-sensitive
         for (Map.Entry<Long, String> division : nfDivisions.entrySet()) {
@@ -916,6 +926,7 @@ public class NumberFormatting {
                     break;
                 }
             }
+        // try parsing through decimal format and regular double parsing
         double amount;
         try {
             amount = decimalFormat.parse(number).doubleValue();

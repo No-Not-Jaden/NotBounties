@@ -103,6 +103,7 @@ reward-head-lore:
   - '&4bounty on it.'
   - ''
 update-stat: '&6{player}''s &f{leaderboard} &evalue has now been set to {amount}.'
+self-set-deny: '&4You can''t set a bounty on yourself.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
@@ -161,6 +162,8 @@ help:
       - '&9/bounty immunity (price) &8- &dBuy immunity to bounties for price * {time_immunity}.'
   remove-immunity:
     - '&9/bounty immunity remove &8- &dRemoves purchased immunity from yourself.'
+  remove-set:
+    - '&9/bounty remove (player) &8- &dRemoved your set bounties on the player.'
   poster-own:
     - '&9/bounty poster (player) &8- &dGives you a poster of a player''s bounty.'
   poster-other:
