@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.ui.gui.bedrock;
 
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.ui.gui.GUIOptions;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
@@ -21,12 +20,14 @@ public class BedrockGUI {
             NotBounties.getInstance().saveResource("bedrock-gui.yml", false);
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(getFile());
         // fill in any default options that aren't present
-        configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("bedrock-gui.yml")))));
-        for (String key : Objects.requireNonNull(configuration.getDefaults()).getKeys(true)) {
-            if (!configuration.isSet(key))
-                configuration.set(key, configuration.getDefaults().get(key));
+        if (NotBounties.getInstance().getResource("bedrock-gui.yml") != null) {
+            configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("bedrock-gui.yml")))));
+            for (String key : Objects.requireNonNull(configuration.getDefaults()).getKeys(true)) {
+                if (!configuration.isSet(key))
+                    configuration.set(key, configuration.getDefaults().get(key));
+            }
+            configuration.save(getFile());
         }
-        configuration.save(getFile());
         enabled = configuration.getBoolean("enabled");
         // register GUIs
         customGuis.clear();

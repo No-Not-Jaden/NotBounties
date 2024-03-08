@@ -213,6 +213,9 @@ public class BedrockGUIOptions {
             String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
             name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", playerName);
         }
+        name = name.replaceAll("\\{page}", Matcher.quoteReplacement(page + ""));
+        int maxPage = type.equals("select-price") ? (int) NumberFormatting.getBalance(player) : (playerItems.length / maxPlayers) + 1;
+        name = name.replaceAll("\\{page_max}", Matcher.quoteReplacement(maxPage + ""));
         name = parse(name, player);
         List<GUIComponent> usedGUIComponents = new ArrayList<>();
 

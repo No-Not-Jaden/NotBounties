@@ -104,6 +104,7 @@ reward-head-lore:
   - ''
 update-stat: '&6{player}''s &f{leaderboard} &evalue has now been set to {amount}.'
 self-set-deny: '&4You can''t set a bounty on yourself.'
+entity-remove: '&a{amount} entities were removed.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
@@ -183,6 +184,7 @@ help:
     - '&9/bounty board <rank> &8- &dCreates a board for current bounties.'
     - '&9/bounty board clear &8- &dRemoves every bounty board.'
     - '&9/bounty board remove &8- &dRemoves a specific bounty board.'
+    - '&9/bounty cleanEntities <radius> &8- &dRemoves persistent bounty entities.'
     - '&9/bounty reload &8- &dReloads the plugin.'
     - '&9/bounty debug &8- &dShows debugging info.'
   immune:

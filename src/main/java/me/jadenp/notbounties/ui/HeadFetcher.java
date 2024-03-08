@@ -143,8 +143,10 @@ public class HeadFetcher {
         try {
             meta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
         } catch (NullPointerException e) {
-            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getPlayerName(uuid));
-            meta.setOwnerProfile(profile);
+            if (NotBounties.serverVersion >= 18) {
+                PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getPlayerName(uuid));
+                meta.setOwnerProfile(profile);
+            }
         }
         head.setItemMeta(meta);
         return head;

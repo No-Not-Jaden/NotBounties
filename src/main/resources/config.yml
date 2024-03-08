@@ -199,7 +199,7 @@ bounty-claim-commands: []
 auto-bounties:
   # number of days until auto bounties expire
   # overrides the bounty-expire value unless it is set to -1
-  # -2 will disable do matter the value of bounty-expire
+  # -2 will disable no matter the value of bounty-expire
   expire-time: -1
   # add a bounty if a player kills another player
   murder-bounty:

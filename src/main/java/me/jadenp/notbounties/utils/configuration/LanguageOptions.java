@@ -99,6 +99,7 @@ public class LanguageOptions {
     public static String helpTitle;
     public static String updateStat;
     public static String selfSetDeny;
+    public static String entityRemove;
 
     public static List<String> trackerLore;
     public static List<String> voucherLore;
@@ -163,12 +164,14 @@ public class LanguageOptions {
         }
 
         // fill in any default options that aren't present
-        configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("language.yml")))));
-        for (String key : Objects.requireNonNull(configuration.getDefaults()).getKeys(true)) {
-            if (!configuration.isSet(key))
-                configuration.set(key, configuration.getDefaults().get(key));
+        if (NotBounties.getInstance().getResource("language.yml") != null) {
+            configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("language.yml")))));
+            for (String key : Objects.requireNonNull(configuration.getDefaults()).getKeys(true)) {
+                if (!configuration.isSet(key))
+                    configuration.set(key, configuration.getDefaults().get(key));
+            }
+            configuration.save(language);
         }
-        configuration.save(language);
         bounties.saveConfig();
 
         prefix = configuration.getString("prefix");
@@ -245,6 +248,7 @@ public class LanguageOptions {
         helpTitle = configuration.getString("help.title");
         updateStat = configuration.getString("update-stat");
         selfSetDeny = configuration.getString("self-set-deny");
+        entityRemove = configuration.getString("entity-remove");
 
         voucherLore = configuration.getStringList("bounty-voucher-lore");
         trackerLore = configuration.getStringList("bounty-tracker-lore");
@@ -400,6 +404,7 @@ public class LanguageOptions {
 
     public static String parse(String str, long time, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", ConfigOptions.dateFormat.format(time));
+        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(time + ""));
         return parse(str, receiver);
     }
 

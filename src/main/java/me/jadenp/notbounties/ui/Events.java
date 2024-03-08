@@ -691,12 +691,17 @@ public class Events implements Listener {
         BountyExpire.login(event.getPlayer());
         if (SQL.isConnected())
             data.login(event.getPlayer());
+
+        // remove persistent bounty entities in chunk
+        if (wanted || !bountyBoards.isEmpty())
+            RemovePersistentEntitiesEvent.cleanChunk(event.getPlayer().getLocation());
     }
 
 
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
+        // remove persistent entities (wanted tags & bounty boards)
         if (serverVersion <= 16)
             if (wanted || !bountyBoards.isEmpty())
                 for (Entity entity : event.getChunk().getEntities()) {

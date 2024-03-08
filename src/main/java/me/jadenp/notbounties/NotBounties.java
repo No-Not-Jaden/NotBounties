@@ -73,6 +73,10 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * updated some messages x
  * not enough money msg before confirmation - x
  * bounty buy goes to gui confirmation - x
+ *
+ * parse {page} in title or {page_max}
+ * other ways to remove wanted tags
+ * check for plugin reload
  */
 
 public final class NotBounties extends JavaPlugin {

@@ -73,6 +73,28 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } else {
                         sender.sendMessage(parse(prefix + ChatColor.YELLOW + "The update notification is now " + ChatColor.RED + "disabled" + ChatColor.YELLOW + ".", parser));
                     }
+                } else if (args[0].equalsIgnoreCase("cleanEntities")) {
+                    if (!sender.hasPermission("notbounties.admin")) {
+                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        return true;
+                    }
+                    if (!(sender instanceof Player)) {
+                        sender.sendMessage("Only players can use this command!");
+                        return true;
+                    }
+                    double radius;
+                    if (args.length == 1) {
+                        radius = 10;
+                    } else {
+                        try {
+                            radius = Double.parseDouble(args[1]);
+                        } catch (NumberFormatException e) {
+                            sender.sendMessage(parse(prefix + unknownNumber, parser));
+                            return true;
+                        }
+                    }
+                    RemovePersistentEntitiesEvent.cleanAsync(parser.getNearbyEntities(radius, radius, radius), sender);
+                    return true;
                 } else if (args[0].equalsIgnoreCase("debug")) {
                     if (!sender.hasPermission("notbounties.admin")) {
                         sender.sendMessage(parse(prefix + noPermission, parser));
@@ -1270,6 +1292,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("currency");
                     tab.add("debug");
                     tab.add("board");
+                    tab.add("cleanEntities");
                 } else if (sender.hasPermission("notbounties.removeset")) {
                     tab.add("remove");
                 }

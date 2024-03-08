@@ -253,10 +253,12 @@ public class ConfigOptions {
         }
 
         // fill in any default options that aren't present
-        bounties.getConfig().setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("config.yml")))));
-        for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
-            if (!bounties.getConfig().isSet(key))
-                bounties.getConfig().set(key, bounties.getConfig().getDefaults().get(key));
+        if (NotBounties.getInstance().getResource("config.yml") != null) {
+            bounties.getConfig().setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("config.yml")))));
+            for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
+                if (!bounties.getConfig().isSet(key))
+                    bounties.getConfig().set(key, bounties.getConfig().getDefaults().get(key));
+            }
         }
 
         NumberFormatting.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("currency")), bounties.getConfig().getConfigurationSection("number-formatting"));

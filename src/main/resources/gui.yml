@@ -21,7 +21,7 @@ custom-items:
     # [back] <x> goes to the last x amount of pages or last page if x is empty
     # [gui] (gui name) (page) (leaderboard/offline) opens a new gui - only gui name is required, ex: [gui] bounty-gui | [gui] leaderboard 1 kills | [gui] set-bounty 1 offline
     # [offline] toggles offline players to the set-bounty GUI and the set-whitelist GUI
-    # [pprompt] (command) <what value> - closes the GUI and prompts the player for a value - player executes the finished command
+    # [pprompt] (command) <what value> - closes the GUI and prompts the player for a value - player executes the finished command - closes the GUI and prompts the player for a value - player executes the finished command
     # [cprompt] (command) <what value> - console executes the finished command
     #   ex: '[pprompt] bounty {slot13} <&eWhat amount?>'
     # using [sound] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the player
@@ -259,7 +259,7 @@ set-bounty:
   # same sort for leaderboard, but this sorts immunity
   sort-type: 3
   size: 54
-  gui-name: '&d&lSelect &9&lPlayer'
+  gui-name: '&d&lSelect &9&lPlayer &7[{page}/{page_max}]'
   add-page: false
   remove-page-items: true
   player-slots:

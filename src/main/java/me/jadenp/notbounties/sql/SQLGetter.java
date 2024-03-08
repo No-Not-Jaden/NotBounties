@@ -148,6 +148,8 @@ public class SQLGetter {
             if (debug)
                 Bukkit.getLogger().warning(e.toString());
         }
+        onlinePlayers.clear();
+        onlinePlayers.addAll(networkPlayers);
         return networkPlayers;
     }
     public void refreshOnlinePlayers() {
