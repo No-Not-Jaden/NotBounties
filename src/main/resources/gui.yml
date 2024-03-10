@@ -182,7 +182,8 @@ bounty-gui:
   # how many slots in the GUI
   # looks best with multiples of 9
   size: 54
-  # name of the gui - does not accept placeholders
+  # name of the gui
+  # you can use {page} and {page_max} separately from the add-page option
   gui-name: '&d&lBounties &9&lPage'
   # this will add the page number at the end of the gui name
   add-page: true

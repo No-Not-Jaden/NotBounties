@@ -360,15 +360,16 @@ public class LanguageOptions {
     public static String parse(String str, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
         str = str.replaceAll("\\{min_bounty}", Matcher.quoteReplacement(NumberFormatting.getValue(ConfigOptions.minBounty)));
-        Bounty bounty = BountyManager.getBounty(receiver);
-        if (bounty != null) {
-            str = str.replaceAll("\\{min_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getLowestExpireTime(bounty))));
-            str = str.replaceAll("\\{max_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getHighestExpireTime(bounty))));
-        } else {
-            str = str.replaceAll("\\{min_expire}", "");
-            str = str.replaceAll("\\{max_expire}", "");
-        }
+
         if (receiver != null) {
+            Bounty bounty = BountyManager.getBounty(receiver);
+            if (bounty != null) {
+                str = str.replaceAll("\\{min_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getLowestExpireTime(bounty))));
+                str = str.replaceAll("\\{max_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getHighestExpireTime(bounty))));
+            } else {
+                str = str.replaceAll("\\{min_expire}", "");
+                str = str.replaceAll("\\{max_expire}", "");
+            }
             if (receiver.getName() != null) {
                 str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
                 str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));

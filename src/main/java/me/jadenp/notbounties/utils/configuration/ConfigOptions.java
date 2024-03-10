@@ -369,54 +369,55 @@ public class ConfigOptions {
             bounties.saveResource("gui.yml", false);
         }
         YamlConfiguration guiConfig = YamlConfiguration.loadConfiguration(guiFile);
-        boolean guiChanges = false;
-        if (bounties.getConfig().isConfigurationSection("advanced-gui")) {
-            // migrate everything to gui.yml
-            guiConfig.set("bounty-gui", null);
-            ConfigurationSection section = bounties.getConfig().getConfigurationSection("advanced-gui");
-            assert section != null;
-            guiConfig.set("bounty-gui.sort-type", section.get("sort-type"));
-            guiConfig.set("bounty-gui.size", section.get("size"));
-            for (String key : Objects.requireNonNull(section.getConfigurationSection("custom-items")).getKeys(false)) {
-                guiConfig.set("custom-items." + key, section.get("custom-items." + key));
-            }
-            guiConfig.set("bounty-gui.player-slots", section.get("bounty-slots"));
-            guiConfig.set("bounty-gui.remove-page-items", true);
-            guiConfig.set("bounty-gui.head-lore", Arrays.asList("&7<&m                        &7>", "&4Bounty: &6%notbounties_bounty_formatted%", "&4&oKill this player to", "&4&oreceive this reward", "&7<&m                        &7>"));
-            guiConfig.set("bounty-gui.head-name", "&4☠ &c&l{player} &4☠");
-
-            guiConfig.set("bounty-gui.gui-name", "&d&lBounties &9&lPage");
-            guiConfig.set("bounty-gui.add-page", true);
-
-            if (LanguageOptions.getLanguageFile().exists()) {
-                YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(LanguageOptions.getLanguageFile());
-                if (languageConfig.isSet("bounty-item-name") && languageConfig.isSet("bounty-item-lore") && languageConfig.isSet("bounty-item-lore")) {
-                    // convert {amount} to %notbounties_bounty_formatted%
-                    String unformatted = languageConfig.getString("bounty-item-name");
-                    assert unformatted != null;
-                    unformatted = unformatted.replaceAll("\\{amount}", "%notbounties_bounty_formatted%");
-                    guiConfig.set("bounty-gui.head-name", unformatted);
-
-                    List<String> unformattedList = languageConfig.getStringList("bounty-item-lore");
-                    unformattedList.replaceAll(s -> s.replaceAll("\\{amount}", "%notbounties_bounty_formatted%"));
-                    guiConfig.set("bounty-gui.head-lore", unformattedList);
-                    guiConfig.set("bounty-gui.gui-name", languageConfig.getString("gui-name"));
-                    languageConfig.set("gui-name", null);
-                    languageConfig.set("bounty-item-name", null);
-                    languageConfig.set("bounty-item-lore", null);
-                    languageConfig.save(LanguageOptions.getLanguageFile());
+        if (guiConfig.getKeys(true).size() > 2) {
+            boolean guiChanges = false;
+            if (bounties.getConfig().isConfigurationSection("advanced-gui")) {
+                // migrate everything to gui.yml
+                guiConfig.set("bounty-gui", null);
+                ConfigurationSection section = bounties.getConfig().getConfigurationSection("advanced-gui");
+                assert section != null;
+                guiConfig.set("bounty-gui.sort-type", section.get("sort-type"));
+                guiConfig.set("bounty-gui.size", section.get("size"));
+                for (String key : Objects.requireNonNull(section.getConfigurationSection("custom-items")).getKeys(false)) {
+                    guiConfig.set("custom-items." + key, section.get("custom-items." + key));
                 }
+                guiConfig.set("bounty-gui.player-slots", section.get("bounty-slots"));
+                guiConfig.set("bounty-gui.remove-page-items", true);
+                guiConfig.set("bounty-gui.head-lore", Arrays.asList("&7<&m                        &7>", "&4Bounty: &6%notbounties_bounty_formatted%", "&4&oKill this player to", "&4&oreceive this reward", "&7<&m                        &7>"));
+                guiConfig.set("bounty-gui.head-name", "&4☠ &c&l{player} &4☠");
+
+                guiConfig.set("bounty-gui.gui-name", "&d&lBounties &9&lPage");
+                guiConfig.set("bounty-gui.add-page", true);
+
+                if (LanguageOptions.getLanguageFile().exists()) {
+                    YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(LanguageOptions.getLanguageFile());
+                    if (languageConfig.isSet("bounty-item-name") && languageConfig.isSet("bounty-item-lore") && languageConfig.isSet("bounty-item-lore")) {
+                        // convert {amount} to %notbounties_bounty_formatted%
+                        String unformatted = languageConfig.getString("bounty-item-name");
+                        assert unformatted != null;
+                        unformatted = unformatted.replaceAll("\\{amount}", "%notbounties_bounty_formatted%");
+                        guiConfig.set("bounty-gui.head-name", unformatted);
+
+                        List<String> unformattedList = languageConfig.getStringList("bounty-item-lore");
+                        unformattedList.replaceAll(s -> s.replaceAll("\\{amount}", "%notbounties_bounty_formatted%"));
+                        guiConfig.set("bounty-gui.head-lore", unformattedList);
+                        guiConfig.set("bounty-gui.gui-name", languageConfig.getString("gui-name"));
+                        languageConfig.set("gui-name", null);
+                        languageConfig.set("bounty-item-name", null);
+                        languageConfig.set("bounty-item-lore", null);
+                        languageConfig.save(LanguageOptions.getLanguageFile());
+                    }
+                }
+
+                for (String key : Objects.requireNonNull(section.getConfigurationSection("layout")).getKeys(false)) {
+                    guiConfig.set("bounty-gui.layout." + key, section.get("layout." + key));
+                }
+
+                bounties.getConfig().set("advanced-gui", null);
+                guiChanges = true;
             }
 
-            for (String key : Objects.requireNonNull(section.getConfigurationSection("layout")).getKeys(false)) {
-                guiConfig.set("bounty-gui.layout." + key, section.get("layout." + key));
-            }
-
-            bounties.getConfig().set("advanced-gui", null);
-            guiChanges = true;
-        }
-
-        customItems.clear();
+            customItems.clear();
 
 
             if (!guiConfig.isSet("set-whitelist")) {
@@ -508,7 +509,9 @@ public class ConfigOptions {
                     Bukkit.getLogger().warning("Unknown GUI in gui.yml: \"" + key + "\"");
                 }
             }
-
+        } else {
+            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the gui.yml file. Fix the error or GUIs wont work!");
+        }
 
         bounties.saveConfig();
         LanguageOptions.reloadOptions();

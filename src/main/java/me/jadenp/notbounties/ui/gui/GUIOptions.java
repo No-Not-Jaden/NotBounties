@@ -69,6 +69,10 @@ public class GUIOptions {
                 if (ConfigOptions.customItems.containsKey(item)) {
                     CustomItem customItem = ConfigOptions.customItems.get(item);
                     for (int i : slots) {
+                        if (i >= customItems.length) {
+                            Bukkit.getLogger().warning("[NotBounties] Error loading custom item in GUI: " + type);
+                            Bukkit.getLogger().warning("Slot " + i + " is bigger than the inventory size! (max=" + (size-1) + ")");
+                        }
                         //Bukkit.getLogger().info(i + "");
                         if (customItems[i] != null) {
                             if (getPageType(customItem.getCommands()) > 0) {
