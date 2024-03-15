@@ -8,6 +8,7 @@ import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.*;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.externalAPIs.BetterTeamsClass;
+import me.jadenp.notbounties.utils.externalAPIs.KingdomsXClass;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import me.jadenp.notbounties.utils.externalAPIs.TownyAdvancedClass;
 import net.md_5.bungee.api.ChatMessageType;
@@ -93,6 +94,11 @@ public class Events implements Listener {
         if (townyAdvancedEnabled) {
             TownyAdvancedClass townyAdvancedClass = new TownyAdvancedClass();
             if ((!townyNation && townyAdvancedClass.inSameNation(player, killer)) || (!townyTown && townyAdvancedClass.inSameTown(player, killer)) || (!townyAllies && townyAdvancedClass.areNationsAllied(player, killer)))
+                return;
+        }
+        if (kingdomsXEnabled) {
+            KingdomsXClass kingdomsXClass = new KingdomsXClass();
+            if ((!kingdomsXNation && kingdomsXClass.inSameNation(player, killer)) || (!kingdomsXKingdom && kingdomsXClass.inSameKingdom(player,killer)) || (!kingdomsXNationAllies && kingdomsXClass.getNationRelation(player, killer) == 2) || (!kingdomsXKingdomAllies && kingdomsXClass.getKingdomRelation(player, killer) == 2))
                 return;
         }
         if (!scoreboardTeamClaim) {

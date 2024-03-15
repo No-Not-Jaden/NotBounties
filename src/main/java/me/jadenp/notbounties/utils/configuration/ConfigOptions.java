@@ -115,6 +115,11 @@ public class ConfigOptions {
     public static boolean sendBStats;
     public static double autoBountyExpireTime;
     public static boolean selfSetting;
+    public static boolean kingdomsXEnabled;
+    public static boolean kingdomsXNation;
+    public static boolean kingdomsXNationAllies;
+    public static boolean kingdomsXKingdom;
+    public static boolean kingdomsXKingdomAllies;
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
         NotBounties bounties = NotBounties.getInstance();
@@ -126,6 +131,7 @@ public class ConfigOptions {
         townyAdvancedEnabled = Bukkit.getPluginManager().isPluginEnabled("Towny");
         geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
         floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
+        kingdomsXEnabled = Bukkit.getPluginManager().isPluginEnabled("Kingdoms");
 
         if (skinsRestorerEnabled)
             skinsRestorerClass = new SkinsRestorerClass();
@@ -345,6 +351,10 @@ public class ConfigOptions {
         }
         sendBStats = bounties.getConfig().getBoolean("send-bstats");
         autoBountyExpireTime = bounties.getConfig().getDouble("auto-bounties.expire-time");
+        kingdomsXNation = bounties.getConfig().getBoolean("teams.kingdoms-nation");
+        kingdomsXNationAllies = bounties.getConfig().getBoolean("teams.kingdoms-nation-allies");
+        kingdomsXKingdom = bounties.getConfig().getBoolean("teams.kingdoms-kingdom");
+        kingdomsXKingdomAllies = bounties.getConfig().getBoolean("teams.kingdoms-kingdom-allies");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {

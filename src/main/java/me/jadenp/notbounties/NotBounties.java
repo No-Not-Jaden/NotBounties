@@ -44,39 +44,8 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
 
 /**
  * Proxy Messaging
- * Webhooks - x
  * Challenges
- * reward player when bounty expires on them - x
- * bedrock ui -
- * big bounty commands and bounty claim commands sync - x
- * broadcast - x
- * update wiki
- * big bounty multiple executes - x
- * can use divisions in inputs - x
- * more placeholders with raw values - x
- * regular ppl can remove their set bounty (permission)- x
- * gui can do all action commands - x
- * gui name parsed - x
- * whitelist toggle whitelist/blacklist - x
- * Action commands moved all together - x
- * big bounty moved into a new class - x
- * big bounty triggers - x
- * seeded text parse - x
- * tryParse detects divisions - x
- * leaderboard & other guis are properly formatted value wise - x
- * use the closest player in text - x
- * {whitelist<x>} & {whitelist} & {mode} - x
- * {min_expire} & {max_expire} - x
- * option to set bounties on yourself - x
- * skinrestorer works with webhooks - x
- * change stats & view other stats - x
- * updated some messages x
- * not enough money msg before confirmation - x
- * bounty buy goes to gui confirmation - x
- *
- * parse {page} in title or {page_max}
- * other ways to remove wanted tags
- * check for plugin reload
+ * KingdomsX -
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -737,8 +706,10 @@ public final class NotBounties extends JavaPlugin {
         String townyAdvanced = townyAdvancedEnabled ? ChatColor.GREEN + "TownyAdvanced" : ChatColor.RED + "TownyAdvanced";
         String geyser = geyserEnabled ? ChatColor.GREEN + "GeyserMC" : ChatColor.RED + "GeyserMC";
         String floodgate = floodgateEnabled ? ChatColor.GREEN + "Floodgate" : ChatColor.RED + "Floodgate";
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "\n               "
-                + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser + ChatColor.GRAY + "|" + floodgate + ChatColor.GRAY + "]");
+        String kingdoms = kingdomsXEnabled ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans);
+        sender.sendMessage("                  " + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser);
+        sender.sendMessage("                  " + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));

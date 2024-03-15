@@ -125,6 +125,15 @@ teams:
   towny-town: false
   # claim if nations are allied
   towny-allies: false
+  # <===> KingdomsX <===>
+  # claim if in the same nation
+  kingdoms-nation: false
+  # claim if nations are allied
+  kingdoms-nation-allies: false
+  # claim if in the same kingdom
+  kingdoms-kingdom: false
+  # claim if kingdoms are allied
+  kingdoms-kingdom-allies: false
 # auto-updating bounty poster board
 bounty-board:
   # 0 oldest bounties
