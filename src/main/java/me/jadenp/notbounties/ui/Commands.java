@@ -615,11 +615,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (event.isCancelled())
                                                 return true;
                                             NumberFormatting.doRemoveCommands(parser, (bounty.getTotalBounty() * buyBackInterest), new ArrayList<>());
-                                            if (SQL.isConnected()) {
-                                                data.removeBounty(bounty.getUUID());
-                                            } else {
-                                                bountyList.remove(bounty);
-                                            }
+                                            BountyManager.removeBounty(bounty.getUUID());
                                             reopenBountiesGUI();
                                             sender.sendMessage(parse(prefix + successRemoveBounty, sender.getName(), parser));
                                         } else {
@@ -715,11 +711,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     Bukkit.getPluginManager().callEvent(event);
                                     if (event.isCancelled())
                                         return true;
-                                    if (SQL.isConnected()) {
-                                        data.removeBounty(toRemove.getUUID());
-                                    } else {
-                                        bountyList.remove(toRemove);
-                                    }
+                                    BountyManager.removeBounty(toRemove.getUUID());
                                     refundBounty(toRemove);
                                     // successfully removed
                                     NotBounties.removeWantedTag(toRemove.getUUID());
@@ -747,11 +739,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 return true;
                                             toRemove.removeBounty(actualRemove.getUuid());
                                             if (toRemove.getSetters().isEmpty()) {
-                                                if (SQL.isConnected()) {
-                                                    data.removeBounty(toRemove.getUUID());
-                                                } else {
-                                                    bountyList.remove(toRemove);
-                                                }
+                                                BountyManager.removeBounty(toRemove.getUUID());
                                             } else if (SQL.isConnected()) {
                                                 data.removeSetter(toRemove.getUUID(), actualRemove.getUuid());
                                             }
@@ -844,11 +832,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             return true;
                         toRemove.removeBounty(actualRemove.getUuid());
                         if (toRemove.getSetters().isEmpty()) {
-                            if (SQL.isConnected()) {
-                                data.removeBounty(toRemove.getUUID());
-                            } else {
-                                bountyList.remove(toRemove);
-                            }
+                            BountyManager.removeBounty(toRemove.getUUID());
                         } else if (SQL.isConnected()) {
                             data.removeSetter(toRemove.getUUID(), actualRemove.getUuid());
                         }

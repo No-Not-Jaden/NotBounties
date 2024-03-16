@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils.configuration;
 
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
+import me.jadenp.notbounties.utils.BountyClaimRequirements;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
@@ -92,18 +93,9 @@ public class ConfigOptions {
     public static boolean skinsRestorerEnabled;
     public static SkinsRestorerClass skinsRestorerClass;
     public static int boardStaggeredUpdate;
-    public static boolean scoreboardTeamClaim;
-    public static boolean btClaim;
-    public static boolean btAllies;
-    public static boolean betterTeamsEnabled;
-    public static String teamsPlaceholder;
 
     public static String boardName;
     public static int updateName;
-    public static boolean townyAdvancedEnabled;
-    public static boolean townyNation;
-    public static boolean townyTown;
-    public static boolean townyAllies;
     public static boolean RRLVoucherPerSetter;
     public static String RRLSetterLoreAddition;
     public enum ClaimOrder {
@@ -115,11 +107,7 @@ public class ConfigOptions {
     public static boolean sendBStats;
     public static double autoBountyExpireTime;
     public static boolean selfSetting;
-    public static boolean kingdomsXEnabled;
-    public static boolean kingdomsXNation;
-    public static boolean kingdomsXNationAllies;
-    public static boolean kingdomsXKingdom;
-    public static boolean kingdomsXKingdomAllies;
+
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
         NotBounties bounties = NotBounties.getInstance();
@@ -127,11 +115,8 @@ public class ConfigOptions {
         papiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         liteBansEnabled = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
-        betterTeamsEnabled = Bukkit.getPluginManager().isPluginEnabled("BetterTeams");
-        townyAdvancedEnabled = Bukkit.getPluginManager().isPluginEnabled("Towny");
         geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
         floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
-        kingdomsXEnabled = Bukkit.getPluginManager().isPluginEnabled("Kingdoms");
 
         if (skinsRestorerEnabled)
             skinsRestorerClass = new SkinsRestorerClass();
@@ -253,9 +238,25 @@ public class ConfigOptions {
             bounties.getConfig().set("murder-bounty", null);
         }
 
+        // move bounty-expire to a new configuration section
         if (bounties.getConfig().isInt("bounty-expire") || bounties.getConfig().isDouble("bounty-expire")) {
             bounties.getConfig().set("bounty-expire.time", bounties.getConfig().getDouble("bounty-expire"));
             bounties.getConfig().set("bounty-expire.offline-tracking", true);
+        }
+
+        // create configuration sections for each external team plugin
+        if (bounties.getConfig().isBoolean("teams.bt-claim")) {
+            bounties.getConfig().set("teams.better-teams.team", bounties.getConfig().getBoolean("teams.bt-claim"));
+            bounties.getConfig().set("teams.better-teams.ally", bounties.getConfig().getBoolean("teams.bt-allies"));
+            bounties.getConfig().set("teams.towny-advanced.nation", bounties.getConfig().getBoolean("teams.towny-nation"));
+            bounties.getConfig().set("teams.towny-advanced.town", bounties.getConfig().getBoolean("teams.towny-town"));
+            bounties.getConfig().set("teams.towny-advanced.ally", bounties.getConfig().getBoolean("teams.towny-allies"));
+            bounties.getConfig().set("teams.bt-claim", null);
+            bounties.getConfig().set("teams.bt-allies", null);
+            bounties.getConfig().set("teams.towny-nation", null);
+            bounties.getConfig().set("teams.towny-town", null);
+            bounties.getConfig().set("teams.towny-allies", null);
+
         }
 
         // fill in any default options that aren't present
@@ -276,6 +277,7 @@ public class ConfigOptions {
         Immunity.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("immunity")));
         BountyExpire.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-expire")));
         BigBounty.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("big-bounties")));
+        BountyClaimRequirements.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("teams")));
 
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
@@ -334,15 +336,8 @@ public class ConfigOptions {
         boardGlow = bounties.getConfig().getBoolean("bounty-board.glow");
         boardInvisible = bounties.getConfig().getBoolean("bounty-board.invisible");
         boardStaggeredUpdate = bounties.getConfig().getInt("bounty-board.staggered-update");
-        scoreboardTeamClaim = bounties.getConfig().getBoolean("teams.scoreboard-claim");
-        btClaim = bounties.getConfig().getBoolean("teams.bt-claim");
-        btAllies = bounties.getConfig().getBoolean("teams.bt-allies");
-        teamsPlaceholder = bounties.getConfig().getString("teams.placeholder");
         boardName = bounties.getConfig().getString("bounty-board.item-name");
         updateName = bounties.getConfig().getInt("bounty-board.update-name");
-        townyNation = bounties.getConfig().getBoolean("teams.towny-nation");
-        townyTown = bounties.getConfig().getBoolean("teams.towny-town");
-        townyAllies = bounties.getConfig().getBoolean("teams.towny-allies");
         try {
             claimOrder = ClaimOrder.valueOf(Objects.requireNonNull(bounties.getConfig().getString("claim-order")).toUpperCase());
         } catch (IllegalArgumentException e) {
@@ -351,10 +346,6 @@ public class ConfigOptions {
         }
         sendBStats = bounties.getConfig().getBoolean("send-bstats");
         autoBountyExpireTime = bounties.getConfig().getDouble("auto-bounties.expire-time");
-        kingdomsXNation = bounties.getConfig().getBoolean("teams.kingdoms-nation");
-        kingdomsXNationAllies = bounties.getConfig().getBoolean("teams.kingdoms-nation-allies");
-        kingdomsXKingdom = bounties.getConfig().getBoolean("teams.kingdoms-kingdom");
-        kingdomsXKingdomAllies = bounties.getConfig().getBoolean("teams.kingdoms-kingdom-allies");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
@@ -401,7 +392,7 @@ public class ConfigOptions {
 
                 if (LanguageOptions.getLanguageFile().exists()) {
                     YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(LanguageOptions.getLanguageFile());
-                    if (languageConfig.isSet("bounty-item-name") && languageConfig.isSet("bounty-item-lore") && languageConfig.isSet("bounty-item-lore")) {
+                    if (languageConfig.isString("bounty-item-name") && languageConfig.isList("bounty-item-lore")) {
                         // convert {amount} to %notbounties_bounty_formatted%
                         String unformatted = languageConfig.getString("bounty-item-name");
                         assert unformatted != null;

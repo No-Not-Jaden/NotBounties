@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>1.18.1</version>
+    <version>1.18.2</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -85,6 +85,10 @@
         <repository>
             <id>opencollab-snapshot</id>
             <url>https://repo.opencollab.dev/main/</url>
+        </repository>
+        <repository>
+            <id>sk89q-repo</id>
+            <url>https://maven.enginehub.org/repo/</url>
         </repository>
     </repositories>
     <dependencies>
@@ -170,6 +174,18 @@
             <groupId>com.github.cryptomorin</groupId>
             <artifactId>kingdoms</artifactId>
             <version>1.16.20.5</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.angeschossen</groupId>
+            <artifactId>LandsAPI</artifactId>
+            <version>6.44.13</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.sk89q.worldguard</groupId>
+            <artifactId>worldguard-bukkit</artifactId>
+            <version>7.0.9</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

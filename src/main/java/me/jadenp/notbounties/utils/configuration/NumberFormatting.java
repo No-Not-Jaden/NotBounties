@@ -198,12 +198,20 @@ public class NumberFormatting {
 
         String localeString = numberFormatting.getString("format-locale");
         String pattern = numberFormatting.getString("pattern");
+        if (localeString == null) {
+            // this shouldn't ever get used because of the auto-generation of missing options
+            Bukkit.getLogger().warning("[NotBounties] No number formatting locale set! Defaulting to en-US.");
+            localeString = "en-US";
+        }
+        if (pattern == null) {
+            // this shouldn't get used either
+            Bukkit.getLogger().warning("[NotBounties] No number formatting pattern set! Defaulting to \"#,###.##\"");
+            pattern = "#,###.##";
+        }
 
-        assert localeString != null;
         String[] localeSplit = localeString.split("-");
         locale = new Locale(localeSplit[0], localeSplit[1]);
 
-        assert pattern != null;
         decimalFormat = new DecimalFormat(pattern, new DecimalFormatSymbols(locale));
 
         NumberFormatting.nfDivisions.clear();
@@ -674,9 +682,10 @@ public class NumberFormatting {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
                     if (customModelDatas.get(i) != -1) {
                         ItemMeta meta = item.getItemMeta();
-                        assert meta != null;
-                        meta.setCustomModelData(customModelDatas.get(i));
-                        item.setItemMeta(meta);
+                        if (meta != null) {
+                            meta.setCustomModelData(customModelDatas.get(i));
+                            item.setItemMeta(meta);
+                        }
                     }
                     givePlayer(p, item, (long) balancedAdd[i]);
                 }
@@ -703,9 +712,10 @@ public class NumberFormatting {
                 ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
                 if (customModelDatas.get(0) != -1) {
                     ItemMeta meta = item.getItemMeta();
-                    assert meta != null;
-                    meta.setCustomModelData(customModelDatas.get(0));
-                    item.setItemMeta(meta);
+                    if (meta != null) {
+                        meta.setCustomModelData(customModelDatas.get(0));
+                        item.setItemMeta(meta);
+                    }
                 }
                 givePlayer(p, item, (long) (amount / Floats.toArray(currencyValues.values())[0]));
             }
@@ -722,9 +732,10 @@ public class NumberFormatting {
                 ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
                 if (customModelDatas.get(0) != -1) {
                     ItemMeta meta = item.getItemMeta();
-                    assert meta != null;
-                    meta.setCustomModelData(customModelDatas.get(0));
-                    item.setItemMeta(meta);
+                    if (meta != null) {
+                        meta.setCustomModelData(customModelDatas.get(0));
+                        item.setItemMeta(meta);
+                    }
                 }
                 givePlayer(p, item, (long) (amount / Floats.toArray(currencyValues.values())[0]));
             }
@@ -746,9 +757,10 @@ public class NumberFormatting {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
                     if (customModelDatas.get(i) != -1) {
                         ItemMeta meta = item.getItemMeta();
-                        assert meta != null;
-                        meta.setCustomModelData(customModelDatas.get(i));
-                        item.setItemMeta(meta);
+                        if (meta != null) {
+                            meta.setCustomModelData(customModelDatas.get(i));
+                            item.setItemMeta(meta);
+                        }
                     }
                     givePlayer(p, item, (long) descendingAdd[i]);
                 }

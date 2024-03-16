@@ -54,9 +54,10 @@ public class SkinsRestorerClass {
                 return null;
             }
             profile.setTextures(textures);
-            assert meta != null;
-            meta.setOwnerProfile(profile);
-            head.setItemMeta(meta);
+            if (meta != null) {
+                meta.setOwnerProfile(profile);
+                head.setItemMeta(meta);
+            }
             return head;
         } else {
             try {

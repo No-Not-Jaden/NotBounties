@@ -105,8 +105,8 @@ public class ActionCommands {
                         replacement = "";
                     if (replacement.isEmpty()) {
                         ItemMeta meta = item.getItemMeta();
-                        assert meta != null;
-                        replacement = meta.getDisplayName();
+                        if (meta != null)
+                            replacement = meta.getDisplayName();
                     }
                 }
             } catch (NumberFormatException e) {
@@ -411,8 +411,11 @@ public class ActionCommands {
                 if (info.getData().length > 0) {
                     uuid = (String) info.getData()[0];
                 } else {
-                    assert gui != null;
-                    uuid = Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
+                    if (gui != null)
+                        uuid = Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
+                    else
+                        // select-price GUI hasn't been set up
+                        uuid = new UUID(0,0).toString();
                 }
                 openGUI(player, info.getGuiType(), info.getPage() + amount, uuid);
             } else if (info.getGuiType().equals("leaderboard")) {

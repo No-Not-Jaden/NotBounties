@@ -124,8 +124,8 @@ public class HeadFetcher {
     private ItemStack copyItemText(ItemStack from, ItemStack to) {
         ItemMeta fromMeta = from.getItemMeta();
         ItemMeta toMeta = to.getItemMeta();
-        assert fromMeta != null;
-        assert toMeta != null;
+        if (fromMeta == null || toMeta == null)
+            return to;
         if (fromMeta.hasDisplayName())
             toMeta.setDisplayName(fromMeta.getDisplayName());
         if (fromMeta.hasLore())

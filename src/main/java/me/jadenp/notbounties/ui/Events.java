@@ -1,16 +1,13 @@
 package me.jadenp.notbounties.ui;
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
-import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
 import me.jadenp.notbounties.ui.map.BountyBoard;
-import me.jadenp.notbounties.utils.*;
+import me.jadenp.notbounties.utils.BountyClaimRequirements;
+import me.jadenp.notbounties.utils.UpdateChecker;
 import me.jadenp.notbounties.utils.configuration.*;
-import me.jadenp.notbounties.utils.externalAPIs.BetterTeamsClass;
-import me.jadenp.notbounties.utils.externalAPIs.KingdomsXClass;
-import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
-import me.jadenp.notbounties.utils.externalAPIs.TownyAdvancedClass;
+import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -40,8 +37,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -79,42 +75,11 @@ public class Events implements Listener {
 
     }
 
-    public void claimBounty(Player player, Player killer, List<ItemStack> drops, boolean forceEditDrops) {
+    public void claimBounty(@NotNull Player player, @NotNull Player killer, List<ItemStack> drops, boolean forceEditDrops) {
         TimedBounties.onDeath(player);
-        // check world filter
-        if ((worldFilter && !worldFilterNames.contains(player.getWorld().getName()) || (!worldFilter && worldFilterNames.contains(player.getWorld().getName()))))
+        // check if a bounty can be claimed
+        if (!BountyClaimRequirements.canClaim(player, killer))
             return;
-        assert killer != null;
-        // check for teams
-        if (betterTeamsEnabled) {
-            BetterTeamsClass betterTeamsClass = new BetterTeamsClass();
-            if ((!btClaim && betterTeamsClass.onSameTeam(player, killer)) || (!btAllies && betterTeamsClass.areAllies(player, killer)))
-                return;
-        }
-        if (townyAdvancedEnabled) {
-            TownyAdvancedClass townyAdvancedClass = new TownyAdvancedClass();
-            if ((!townyNation && townyAdvancedClass.inSameNation(player, killer)) || (!townyTown && townyAdvancedClass.inSameTown(player, killer)) || (!townyAllies && townyAdvancedClass.areNationsAllied(player, killer)))
-                return;
-        }
-        if (kingdomsXEnabled) {
-            KingdomsXClass kingdomsXClass = new KingdomsXClass();
-            if ((!kingdomsXNation && kingdomsXClass.inSameNation(player, killer)) || (!kingdomsXKingdom && kingdomsXClass.inSameKingdom(player,killer)) || (!kingdomsXNationAllies && kingdomsXClass.getNationRelation(player, killer) == 2) || (!kingdomsXKingdomAllies && kingdomsXClass.getKingdomRelation(player, killer) == 2))
-                return;
-        }
-        if (!scoreboardTeamClaim) {
-            if (Bukkit.getScoreboardManager() != null) {
-                Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
-                for (Team team : sb.getTeams()) {
-                    if (team.hasEntry(player.getDisplayName()) && team.hasEntry(killer.getDisplayName()))
-                        return;
-                }
-            }
-        }
-        if (papiEnabled && !teamsPlaceholder.isEmpty()) {
-            PlaceholderAPIClass placeholderAPIClass = new PlaceholderAPIClass();
-            if (placeholderAPIClass.parse(player, teamsPlaceholder).equals(placeholderAPIClass.parse(killer, teamsPlaceholder)))
-                return;
-        }
 
         MurderBounties.killPlayer(player, killer);
 

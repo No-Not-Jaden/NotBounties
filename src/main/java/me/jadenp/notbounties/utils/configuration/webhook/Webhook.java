@@ -35,8 +35,9 @@ public class Webhook {
             content.add(new WebhookField(Objects.requireNonNull(configuration.getConfigurationSection("content." + key))));
         }
 
-        String colorString = configuration.isSet("color") ? configuration.getString("color") : "BLACK";
-        assert colorString != null;
+        String colorString = configuration.getString("color");
+        if (colorString == null)
+            colorString = "BLACK";
         try {
             Field field = Class.forName("java.awt.Color").getField(colorString);
             color = (Color) field.get(null);

@@ -12,7 +12,9 @@ import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.externalAPIs.BountyExpansion;
+import me.jadenp.notbounties.utils.externalAPIs.LandsClass;
 import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
+import me.jadenp.notbounties.utils.externalAPIs.WorldGuardClass;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -45,7 +47,12 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
 /**
  * Proxy Messaging
  * Challenges
- * KingdomsX -
+ * Paged help commands
+ * KingdomsX - x
+ * Lands - x
+ * WorldGuard - x
+ * Can't remove bounty - x
+ * Use air as fill - x
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -78,11 +85,20 @@ public final class NotBounties extends JavaPlugin {
     public static NamespacedKey namespacedKey;
     public static int serverVersion = 20;
 
+    @Override
+    public void onLoad() {
+        instance = this;
+        // register api flags
+        if (getServer().getPluginManager().getPlugin("WorldGuard") != null)
+            new WorldGuardClass().registerClaimFlag();
+        if (getServer().getPluginManager().getPlugin("Lands") != null)
+            new LandsClass().registerClaimFlag();
+    }
+
 
     @Override
     public void onEnable() {
         // Plugin startup logic
-        instance = this;
         Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(new Commands());
         Bukkit.getServer().getPluginManager().registerEvents(new Events(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new GUI(), this);
@@ -702,14 +718,16 @@ public final class NotBounties extends JavaPlugin {
         String hdb = HDBEnabled ? ChatColor.GREEN + "HeadDataBase" : ChatColor.RED + "HeadDataBase";
         String liteBans = liteBansEnabled ? ChatColor.GREEN + "LiteBans" : ChatColor.RED + "LiteBans";
         String skinsRestorer = skinsRestorerEnabled ? ChatColor.GREEN + "SkinsRestorer" : ChatColor.RED + "SkinsRestorer";
-        String betterTeams = betterTeamsEnabled ? ChatColor.GREEN + "BetterTeams" : ChatColor.RED + "BetterTeams";
-        String townyAdvanced = townyAdvancedEnabled ? ChatColor.GREEN + "TownyAdvanced" : ChatColor.RED + "TownyAdvanced";
+        String betterTeams = BountyClaimRequirements.betterTeamsEnabled ? ChatColor.GREEN + "BetterTeams" : ChatColor.RED + "BetterTeams";
+        String townyAdvanced = BountyClaimRequirements.townyAdvancedEnabled ? ChatColor.GREEN + "TownyAdvanced" : ChatColor.RED + "TownyAdvanced";
         String geyser = geyserEnabled ? ChatColor.GREEN + "GeyserMC" : ChatColor.RED + "GeyserMC";
         String floodgate = floodgateEnabled ? ChatColor.GREEN + "Floodgate" : ChatColor.RED + "Floodgate";
-        String kingdoms = kingdomsXEnabled ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
+        String kingdoms = BountyClaimRequirements.kingdomsXEnabled ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
+        String lands = BountyClaimRequirements.landsEnabled ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
+        String worldGuard = BountyClaimRequirements.worldGuardEnabled ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
         sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans);
         sender.sendMessage("                  " + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser);
-        sender.sendMessage("                  " + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "]");
+        sender.sendMessage("                  " + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "|" + lands + ChatColor.GRAY + "|" + worldGuard + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));

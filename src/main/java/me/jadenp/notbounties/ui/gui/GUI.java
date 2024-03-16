@@ -187,7 +187,6 @@ public class GUI implements Listener {
         if (gui.getPlayerSlots().contains(event.getSlot()) && gui.getPlayerSlots().indexOf(event.getSlot()) < info.getPlayers().length && event.getCurrentItem().getType() == Material.PLAYER_HEAD){
             SkullMeta meta = (SkullMeta) event.getCurrentItem().getItemMeta();
             assert meta != null;
-            assert meta.getOwningPlayer() != null;
             //OfflinePlayer player = meta.getOwningPlayer();
             OfflinePlayer player = Bukkit.getOfflinePlayer(info.getPlayers()[gui.getPlayerSlots().indexOf(event.getSlot())]);
             String playerName = NotBounties.getPlayerName(player.getUniqueId());
@@ -229,7 +228,7 @@ public class GUI implements Listener {
                     } else {
                         if (event.getWhoClicked().hasPermission("notbounties.admin")) {
                             openGUI((Player) event.getWhoClicked(), "bounty-gui", playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
-                            event.getWhoClicked().sendMessage(parse(prefix + noBounty, meta.getOwningPlayer().getName(), meta.getOwningPlayer()));
+                            event.getWhoClicked().sendMessage(parse(prefix + noBounty, Objects.requireNonNull(meta.getOwningPlayer()).getName(), meta.getOwningPlayer()));
                         }
                     }
                     break;

@@ -375,9 +375,10 @@ public class BountyManager {
             bounty = data.getBounty(receiver.getUniqueId());
             if (bounty == null) {
                 bounty = new Bounty(setter, receiver, amount, whitelist);
+            } else {
+                bounty.addBounty(setter, amount, whitelist);
             }
             data.addBounty(new Bounty(setter, receiver, amount, whitelist), new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
-            bounty.addBounty(setter, amount, whitelist);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, amount, 0, 0);
         } else {
             allTimeBounties.replace(receiver.getUniqueId(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + amount);
@@ -606,6 +607,14 @@ public class BountyManager {
     public static List<Bounty> getPublicBounties(int sortType) {
         List<Bounty> bounties = SQL.isConnected() ? data.getTopBounties(sortType) : sortBounties(sortType);
         return bounties.stream().filter(bounty -> !hiddenNames.contains(bounty.getName())).collect(Collectors.toList());
+    }
+
+    public static void removeBounty(UUID uuid) {
+        if (SQL.isConnected()) {
+            data.removeBounty(uuid);
+        } else {
+            bountyList.removeIf(bounty -> bounty.getUUID().equals(uuid));
+        }
     }
 
 }

@@ -116,7 +116,6 @@ public class GUIComponent {
                 String placeholder = "";
                 if (options.containsKey("placeholder"))
                     placeholder = options.get("placeholder");
-                assert placeholder != null;
                 component = new InputComponentImpl(text, LanguageOptions.parse(placeholder, player),"");
                 break;
             case SLIDER:

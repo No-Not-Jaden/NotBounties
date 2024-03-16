@@ -76,15 +76,15 @@ public class BedrockGUIOptions {
                 }
 
                 String componentID = settings.getString("components." + key);
-                assert componentID != null;
-                if (customItems.isConfigurationSection(componentID)) {
-                    GUIComponent component = new GUIComponent(Objects.requireNonNull(customItems.getConfigurationSection(componentID)));
-                    if (component.getType() == GUIComponent.ComponentType.BUTTON)
-                        buttonCount++;
-                    components.put(order, component);
-                } else {
-                    Bukkit.getLogger().warning("[NotBounties] Could not find custom item \"" + componentID + "\" in bedrock-gui.yml");
-                }
+                if (componentID != null)
+                    if (customItems.isConfigurationSection(componentID)) {
+                        GUIComponent component = new GUIComponent(Objects.requireNonNull(customItems.getConfigurationSection(componentID)));
+                        if (component.getType() == GUIComponent.ComponentType.BUTTON)
+                            buttonCount++;
+                        components.put(order, component);
+                    } else {
+                        Bukkit.getLogger().warning("[NotBounties] Could not find custom item \"" + componentID + "\" in bedrock-gui.yml");
+                    }
             }
 
         if (buttonCount > 2) {
