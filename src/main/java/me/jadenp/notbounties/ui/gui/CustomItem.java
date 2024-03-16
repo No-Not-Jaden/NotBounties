@@ -65,7 +65,7 @@ public class CustomItem {
         if (itemStack == null)
             return null;
         ItemMeta meta = itemStack.getItemMeta();
-        assert meta != null;
+        if (meta == null) return itemStack;
         if (name != null)
             meta.setDisplayName(parse(color(name.replaceAll("\\{leaderboard}", replacements[0])), player));
         if (!lore.isEmpty()) {
