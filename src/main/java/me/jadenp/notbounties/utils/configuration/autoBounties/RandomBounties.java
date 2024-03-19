@@ -32,6 +32,12 @@ public class RandomBounties {
         randomBountyMaxPrice = randomBounties.getDouble("max-price");
         randomBountyOfflineSet = randomBounties.getBoolean("offline-set");
 
+        // make sure amounts are in bounds
+        if (randomBountyMaxTime < randomBountyMinTime)
+            randomBountyMaxTime = randomBountyMinTime;
+        if (randomBountyMaxPrice < randomBountyMinPrice)
+            randomBountyMaxPrice = randomBountyMinPrice;
+
         // stop next random bounty if it is changed
         if (!isRandomBountiesEnabled() && nextRandomBounty != 0)
             nextRandomBounty = 0;
