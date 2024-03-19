@@ -90,7 +90,7 @@ public class BountyExpire {
      * @return true if the compare time is larger than the expire time
      */
     private static boolean isExpired(long compareTime, boolean autoBounty) {
-        return getExpireTime(compareTime, autoBounty) > 0;
+        return getExpireTime(compareTime, autoBounty) <= 0;
     }
 
     /**

@@ -23,7 +23,7 @@ public class Bounty implements Comparable<Bounty>{
         this.uuid = receiver.getUniqueId();
         name = receiver.getName();
         // add to the total bounty
-        setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(),receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
+        setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
     }
 
     public Bounty(OfflinePlayer receiver, double amount, Whitelist whitelist){

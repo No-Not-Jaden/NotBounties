@@ -482,6 +482,8 @@ public class LanguageOptions {
         if (hours > 0) time += hours + "h ";
         if (minutes > 0) time += minutes + "m ";
         if (seconds > 0) time += seconds + "s";
+        if (time.isEmpty())
+            return "0s";
         return time;
     }
 }

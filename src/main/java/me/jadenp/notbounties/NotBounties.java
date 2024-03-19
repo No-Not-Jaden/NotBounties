@@ -48,11 +48,6 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Proxy Messaging
  * Challenges
  * Paged help commands
- * KingdomsX - x
- * Lands - x
- * WorldGuard - x
- * Can't remove bounty - x
- * Use air as fill - x
  */
 
 public final class NotBounties extends JavaPlugin {

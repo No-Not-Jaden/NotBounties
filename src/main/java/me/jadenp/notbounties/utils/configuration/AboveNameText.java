@@ -11,10 +11,10 @@ import org.bukkit.util.Vector;
 
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
-@SuppressWarnings("UnstableApiUsage")
 public class AboveNameText {
     private final Player player;
     private ArmorStand armorStand = null;
+    private long nextUpdateTime = 0;
     public AboveNameText(Player player) {
         this.player = player;
         if (!BountyManager.hasBounty(player))
@@ -32,9 +32,12 @@ public class AboveNameText {
             if (armorStand == null) {
                 spawnWantedTag();
             }
-            String text = getWantedDisplayText(player);
-            if (!text.equalsIgnoreCase(armorStand.getCustomName())) {
-                armorStand.setCustomName(text);
+            if (nextUpdateTime < System.currentTimeMillis()) {
+                String text = getWantedDisplayText(player);
+                if (!text.equalsIgnoreCase(armorStand.getCustomName())) {
+                    armorStand.setCustomName(text);
+                }
+                nextUpdateTime = System.currentTimeMillis() + 2000; // update every second
             }
             if (NotBounties.serverVersion >= 17 && player.canSee(armorStand))
                 player.hideEntity(NotBounties.getInstance(), armorStand);

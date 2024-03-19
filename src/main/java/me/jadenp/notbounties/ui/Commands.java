@@ -661,12 +661,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 return true;
                             }
 
-                            sender.sendMessage(parse(prefix + checkBounty, p.getName(), bounty.getTotalBounty(parser), bounty.getLatestSetter(), parser));
+                            sender.sendMessage(parse(prefix + checkBounty, p.getName(), bounty.getTotalBounty(parser), bounty.getLatestSetter(), p));
                             for (Setter setters : bounty.getSetters()) {
                                 if (showWhitelistedBounties || sender.hasPermission("notbounties.admin") || !(sender instanceof Player) || setters.canClaim(parser)) {
                                     sender.sendMessage(parse(prefix + listSetter, setters.getName(), setters.getAmount(), setters.getTimeCreated(), parser));
                                     if (!setters.canClaim(parser))
-                                        notWhitelistedLore.stream().filter(s -> !s.isEmpty()).map(s -> parse(s, parser)).forEach(sender::sendMessage);
+                                        notWhitelistedLore.stream().filter(s -> !s.isEmpty()).map(s -> parse(s, p)).forEach(sender::sendMessage);
                                 }
                             }
                             return true;
