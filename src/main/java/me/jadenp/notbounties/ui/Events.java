@@ -60,6 +60,33 @@ public class Events implements Listener {
                 immunePerms.add(event.getPlayer().getUniqueId().toString());
             }
         }
+        if (autoImmuneMurderPerms.contains(event.getPlayer().getUniqueId().toString())) {
+            if (!event.getPlayer().hasPermission("notbounties.immunity.murder")) {
+                autoImmuneMurderPerms.remove(event.getPlayer().getUniqueId().toString());
+            }
+        } else {
+            if (event.getPlayer().hasPermission("notbounties.immunity.murder")) {
+                autoImmuneMurderPerms.add(event.getPlayer().getUniqueId().toString());
+            }
+        }
+        if (autoImmuneRandomPerms.contains(event.getPlayer().getUniqueId().toString())) {
+            if (!event.getPlayer().hasPermission("notbounties.immunity.random")) {
+                autoImmuneRandomPerms.remove(event.getPlayer().getUniqueId().toString());
+            }
+        } else {
+            if (event.getPlayer().hasPermission("notbounties.immunity.random")) {
+                autoImmuneRandomPerms.add(event.getPlayer().getUniqueId().toString());
+            }
+        }
+        if (autoImmuneTimedPerms.contains(event.getPlayer().getUniqueId().toString())) {
+            if (!event.getPlayer().hasPermission("notbounties.immunity.timed")) {
+                autoImmuneTimedPerms.remove(event.getPlayer().getUniqueId().toString());
+            }
+        } else {
+            if (event.getPlayer().hasPermission("notbounties.immunity.timed")) {
+                autoImmuneTimedPerms.add(event.getPlayer().getUniqueId().toString());
+            }
+        }
         displayParticle.remove(event.getPlayer());
         if (NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
             NotBounties.wantedText.get(event.getPlayer().getUniqueId()).removeStand();

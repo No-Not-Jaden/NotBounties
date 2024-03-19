@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.utils.configuration.autoBounties;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
 import me.jadenp.notbounties.utils.Whitelist;
 import org.bukkit.Bukkit;
@@ -87,8 +89,11 @@ public class TimedBounties {
                                 if (player.isOnline() || offlineTracking)
                                     nextBounties.replace(entry.getKey(), System.currentTimeMillis() + time * 1000);
                                 else nextBounties.replace(entry.getKey(), time * 1000);
-                                if (!hasBounty(player) || !isMaxed(Objects.requireNonNull(getBounty(player)).getTotalBounty()))
-                                    addBounty(player, bountyIncrease, new Whitelist(new ArrayList<>(), false));
+                                if (!hasBounty(player) || !isMaxed(Objects.requireNonNull(getBounty(player)).getTotalBounty())) {
+                                    // check immunity
+                                    if ((ConfigOptions.autoBountyOverrideImmunity || Immunity.getAppliedImmunity(player, bountyIncrease) == Immunity.ImmunityType.DISABLE) && !hasImmunity(player))
+                                        addBounty(player, bountyIncrease, new Whitelist(new ArrayList<>(), false));
+                                }
                             }
                         }.runTask(NotBounties.getInstance());
 
@@ -144,5 +149,11 @@ public class TimedBounties {
             return nextBounties.get(uuid) - System.currentTimeMillis();
         }
         return -1;
+    }
+
+    private static boolean hasImmunity(OfflinePlayer player) {
+        if (player.isOnline())
+            return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.timed");
+        return NotBounties.autoImmuneTimedPerms.contains(player.getUniqueId().toString());
     }
 }

@@ -25,43 +25,43 @@ commands:
       - bounty
       - nbounties
       - bounties
-    description: set and check bounties
+    description: Set and check bounties.
 permissions:
   notbounties.admin:
     default: op
-    description: remove or edit bounties
+    description: Remove or edit bounties.
   notbounties.set:
     default: true
-    description: set bounties
+    description: Set bounties.
   notbounties.view:
     default: true
-    description: view bounties and the bounty GUI
+    description: View bounties and the bounty GUI.
   notbounties.buyown:
     default: true
-    description: buy your own bounty
+    description: Buy your own bounty.
   notbounties.immune:
     default: false
-    description: immune to having bounties set on them
+    description: Immune to having bounties set on them.
   notbounties.buyimmunity:
     default: true
-    description: buy immunity
+    description: Buy immunity.
   notbounties.removeimmunity:
     default: false
-    description: remove own immunity
+    description: Remove own immunity.
   notbounties.tracker:
     default: true
-    description: use a bounty tracker
+    description: Use a bounty tracker.
   notbounties.whitelist:
     default: true
-    description: whitelist players to claim your bounty
+    description: Whitelist players to claim your bounty.
   notbounties.basic:
     default: true
-    description: use help, tutorial, and broadcast commands
+    description: Use help, tutorial, and broadcast commands.
   notbounties.removeset:
     default: false
-    description: remove bounties you set
+    description: Remove bounties you set.
   notbounties.player:
-    description: all the basic player permissions
+    description: All the basic player permissions.
     children:
       - notbounties.set
       - notbounties.view
@@ -71,3 +71,12 @@ permissions:
       - notbounties.tracker
       - notbounties.whitelist
       - notbounties.basic
+  notbounties.immunity.murder:
+    default: false
+    description: Immune to murder auto-bounties.
+  notbounties.immunity.random:
+    default: false
+    description: Immune to random auto-bounties.
+  notbounties.immunity.timed:
+    default: false
+    description: Immune to timed auto-bounties.

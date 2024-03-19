@@ -224,7 +224,11 @@ auto-bounties:
   # overrides the bounty-expire value unless it is set to -1
   # -2 will disable no matter the value of bounty-expire
   expire-time: -1
+  # players with immunity will be able to have bounties set on them by auto bounties
+  # this does not override the permission specific immunities like notbounties.immunity.murder
+  override-immunity: true
   # add a bounty if a player kills another player
+  # Immune permission: notbounties.immunity.murder
   murder-bounty:
     # how many seconds before you can kill the same person and increase your bounty
     player-cooldown: 360
@@ -234,6 +238,7 @@ auto-bounties:
     # you will be excluded from the bounty increase if you are claiming another bounty
     exclude-claiming: true
   # set a random bounty every once in a while
+  # Immune permission: notbounties.immunity.random
   random-bounties:
     # include offline players in the random bounties
     offline-set: false
@@ -246,6 +251,7 @@ auto-bounties:
     # maximum bounty price
     max-price: 100
   # add bounties after a set amount of time
+  # Immune permission: notbounties.immunity.timed
   timed-bounties:
     # the time in seconds before the next bounty is set - 0 to disable
     time: 0

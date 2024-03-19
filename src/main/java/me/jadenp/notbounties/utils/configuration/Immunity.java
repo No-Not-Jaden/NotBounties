@@ -16,7 +16,38 @@ import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class Immunity {
     public enum ImmunityType {
-        DISABLE, PERMANENT, SCALING, TIME, GRACE_PERIOD
+        /**
+         * No immunity or immunity is disabled
+         */
+        DISABLE,
+        /**
+         * Permanent immunity - bought or with the notbounties.immune permission
+         */
+        PERMANENT,
+        /**
+         * Scaling immunity - every x currency spent covers x*ratio worth of bounties
+         */
+        SCALING,
+        /**
+         * Time immunity - tick, tock. Your time counts down every second.
+         */
+        TIME,
+        /**
+         * Grace period immunity - a bounty was just claimed on this person
+         */
+        GRACE_PERIOD,
+        /**
+         * Auto bounty murder immunity - bounties can't be placed on this person for murdering another player
+         */
+        MURDER,
+        /**
+         * Auto bounty random immunity - random auto bounties can't be placed on this person
+         */
+        RANDOM,
+        /**
+         * Auto bounty timed immunity - timed auto bounties can't be placed on this person
+         */
+        TIMED
     }
     public static ImmunityType immunityType;
     private static boolean timeOfflineTracking = false;

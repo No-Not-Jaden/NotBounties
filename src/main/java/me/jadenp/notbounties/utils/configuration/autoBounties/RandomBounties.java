@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.utils.configuration.autoBounties;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.Whitelist;
@@ -10,6 +12,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 
 import static me.jadenp.notbounties.utils.BountyManager.addBounty;
@@ -44,8 +47,12 @@ public class RandomBounties {
                 return;
             }
             UUID uuid = randomBountyOfflineSet ? (UUID) NotBounties.loggedPlayers.values().toArray()[(int) (Math.random() * NotBounties.loggedPlayers.values().size())] : ((OfflinePlayer) NotBounties.getNetworkPlayers().toArray()[(int) (Math.random() * NotBounties.getNetworkPlayers().size())]).getUniqueId();
+            final double[] price = {randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice)};
             try {
                 OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+                // check immunity
+                if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(player, price[0]) != Immunity.ImmunityType.DISABLE || hasImmunity(player))
+                    return;
                 new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -53,10 +60,9 @@ public class RandomBounties {
                             if (liteBansEnabled) {
                                 if (new LiteBansClass().isPlayerNotBanned(player.getUniqueId())) {
                                     // back into sync thread
-                                    double price = randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice);
-                                    if (NumberFormatting.shouldUseDecimals())
-                                        price = (long) price;
-                                    double finalPrice = price;
+                                    if (!NumberFormatting.shouldUseDecimals())
+                                        price[0] = (long) price[0];
+                                    double finalPrice = price[0];
                                     new BukkitRunnable() {
                                         @Override
                                         public void run() {
@@ -65,10 +71,9 @@ public class RandomBounties {
                                     }.runTask(NotBounties.getInstance());
                                 }
                             } else {
-                                double price = randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice);
-                                if (NumberFormatting.shouldUseDecimals())
-                                    price = (long) price;
-                                double finalPrice = price;
+                                if (!NumberFormatting.shouldUseDecimals())
+                                    price[0] = (long) price[0];
+                                double finalPrice = price[0];
                                 new BukkitRunnable() {
                                     @Override
                                     public void run() {
@@ -101,5 +106,11 @@ public class RandomBounties {
     public static void setNextRandomBounty() {
         nextRandomBounty = System.currentTimeMillis() + randomBountyMinTime * 1000L + (long) (Math.random() * (randomBountyMaxTime - randomBountyMinTime) * 1000L);
         //Bukkit.getLogger().info(nextRandomBounty + "");
+    }
+
+    private static boolean hasImmunity(OfflinePlayer player) {
+        if (player.isOnline())
+            return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.random");
+        return NotBounties.autoImmuneRandomPerms.contains(player.getUniqueId().toString());
     }
 }

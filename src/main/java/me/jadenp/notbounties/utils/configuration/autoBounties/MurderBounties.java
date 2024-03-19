@@ -1,6 +1,10 @@
 package me.jadenp.notbounties.utils.configuration.autoBounties;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.Immunity;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
@@ -41,6 +45,9 @@ public class MurderBounties {
         // check if we should increase the killer's bounty
         if (murderBountyIncrease > 0) {
             if (!killer.hasMetadata("NPC")) { // don't raise bounty on a npc
+                // check immunity
+                if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(killer, murderBountyIncrease) != Immunity.ImmunityType.DISABLE || hasImmunity(killer))
+                    return;
                 if (!playerKills.containsKey(killer.getUniqueId()) ||
                         !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
                         playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) {
@@ -55,5 +62,11 @@ public class MurderBounties {
                 }
             }
         }
+    }
+
+    private static boolean hasImmunity(OfflinePlayer player) {
+        if (player.isOnline())
+            return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.murder");
+        return NotBounties.autoImmuneMurderPerms.contains(player.getUniqueId().toString());
     }
 }

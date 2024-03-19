@@ -106,6 +106,7 @@ public class ConfigOptions {
     public static boolean floodgateEnabled;
     public static boolean sendBStats;
     public static double autoBountyExpireTime;
+    public static boolean autoBountyOverrideImmunity;
     public static boolean selfSetting;
 
     public static void reloadOptions() throws IOException {
@@ -346,6 +347,7 @@ public class ConfigOptions {
         }
         sendBStats = bounties.getConfig().getBoolean("send-bstats");
         autoBountyExpireTime = bounties.getConfig().getDouble("auto-bounties.expire-time");
+        autoBountyOverrideImmunity =  bounties.getConfig().getBoolean("auto-bounties.override-immunity");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {

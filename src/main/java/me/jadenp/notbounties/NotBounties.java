@@ -63,6 +63,9 @@ public final class NotBounties extends JavaPlugin {
     public static final Map<String, UUID> loggedPlayers = new HashMap<>();
 
     public static List<String> immunePerms = new ArrayList<>();
+    public static List<String> autoImmuneMurderPerms = new ArrayList<>();
+    public static List<String> autoImmuneRandomPerms = new ArrayList<>();
+    public static List<String> autoImmuneTimedPerms = new ArrayList<>();
     public static final List<UUID> disableBroadcast = new ArrayList<>();
     /**
      * Player UUID, Whitelist UUIDs
@@ -469,6 +472,9 @@ public final class NotBounties extends JavaPlugin {
     public void save() {
         YamlConfiguration configuration = new YamlConfiguration();
         configuration.set("immune-permissions", immunePerms);
+        configuration.set("immunity-murder", autoImmuneMurderPerms);
+        configuration.set("immunity-random", autoImmuneMurderPerms);
+        configuration.set("immunity-timed", autoImmuneMurderPerms);
         int i = 0;
         for (Map.Entry<String, UUID> entry : loggedPlayers.entrySet()) {
             String key = entry.getKey();
