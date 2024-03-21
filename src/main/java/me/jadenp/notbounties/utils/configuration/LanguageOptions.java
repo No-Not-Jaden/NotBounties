@@ -5,6 +5,11 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -128,6 +133,8 @@ public class LanguageOptions {
     public static List<String> helpPosterOwn;
     public static List<String> helpPosterOther;
     public static List<String> helpRemoveSet;
+    public static String nextPage;
+    public static String previousPage;
 
     public static File getLanguageFile() {
         return new File(NotBounties.getInstance().getDataFolder() + File.separator + "language.yml");
@@ -277,6 +284,26 @@ public class LanguageOptions {
         helpPosterOwn = configuration.getStringList("help.poster-own");
         helpPosterOther = configuration.getStringList("help.poster-other");
         helpRemoveSet = configuration.getStringList("help.remove-set");
+        previousPage = configuration.getString("help.previous-page");
+        nextPage = configuration.getString("help.next-page");
+    }
+
+    private static int getAdjustedPage(CommandSender sender, int page) {
+        if (page == 2 && !sender.hasPermission("notbounties.view"))
+            page++;
+        if (page == 3 && !sender.hasPermission("notbounties.set"))
+            page++;
+        if (page == 4 && !(sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled))
+            page++;
+        if (page == 5 && !(sender.hasPermission("notbounties.buyown") && buyBack) && !(sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE))
+            page++;
+        if (page == 6 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission("notbounties.admin")))
+            page++;
+        if (page == 7 && !(sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission("notbounties.admin") || giveOwnMap))
+            page++;
+        if (page == 8 && !sender.hasPermission("notbounties.admin"))
+            page++;
+        return page;
     }
 
     public static void sendHelpMessage(CommandSender sender) {
@@ -336,6 +363,112 @@ public class LanguageOptions {
             sendHelpMessage(sender, helpImmune);
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
+    }
+
+    public static void sendHelpMessage(CommandSender sender, int page) {
+        if (!(sender instanceof Player)) {
+            sendHelpMessage(sender);
+            return;
+        }
+        Player parser = (Player) sender;
+        sender.sendMessage(parse(helpTitle, parser));
+        page = getAdjustedPage(sender, page);
+
+
+        switch (page) {
+            case 1:
+                // basic
+                sendHelpMessage(sender, helpBasic);
+                if (sender.hasPermission("notbounties.immune")) {
+                    sendHelpMessage(sender, helpImmune);
+                }
+                break;
+            case 2:
+                // view
+                sendHelpMessage(sender, helpView);
+                break;
+            case 3:
+                // set
+                sendHelpMessage(sender, helpSet);
+                break;
+            case 4:
+                // whitelist
+                sendHelpMessage(sender, helpWhitelist);
+                if (enableBlacklist)
+                    sendHelpMessage(sender, helpBlacklist);
+                break;
+            case 5:
+                // buy
+                if (sender.hasPermission("notbounties.buyown") & buyBack) {
+                    sendHelpMessage(sender, helpBuyOwn);
+                }
+                if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
+                    switch (Immunity.immunityType) {
+                        case PERMANENT:
+                            sendHelpMessage(sender, helpBuyImmunityPermanent);
+                            break;
+                        case SCALING:
+                            sendHelpMessage(sender, helpBuyImmunityScaling);
+                            break;
+                        case TIME:
+                            sendHelpMessage(sender, helpBuyImmunityTime);
+                            break;
+                    }
+                }
+                break;
+            case 6:
+                // remove
+                if (sender.hasPermission("notbounties.removeimmunity"))
+                    sendHelpMessage(sender, helpRemoveImmunity);
+                if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission("notbounties.admin"))
+                    sendHelpMessage(sender, helpRemoveSet);
+                break;
+            case 7:
+                // item
+                if (sender.hasPermission("notbounties.admin") || giveOwnMap) {
+                    sendHelpMessage(sender, helpPosterOwn);
+                    if (sender.hasPermission("notbounties.admin"))
+                        sendHelpMessage(sender, helpPosterOther);
+                }
+                if (tracker)
+                    if (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker"))) {
+                        sendHelpMessage(sender, helpTrackerOwn);
+                        if (sender.hasPermission("notbounties.admin"))
+                            sendHelpMessage(sender, helpTrackerOther);
+                    }
+                break;
+            case 8:
+                // admin
+                sendHelpMessage(sender, helpAdmin);
+                break;
+        }
+
+        sendPageLine(sender, page);
+    }
+
+    public static void sendPageLine(CommandSender sender, int currentPage) {
+        int previousPage = currentPage-1;
+        int calculatedPrevPage = getAdjustedPage(sender, previousPage);
+        while (previousPage > 0 && calculatedPrevPage >= currentPage) {
+            previousPage--;
+            calculatedPrevPage = getAdjustedPage(sender, previousPage);
+        }
+        int nextPage = getAdjustedPage(sender, currentPage + 1);
+        // end points are 0 and 9 (no next page or previous page)
+        TextComponent space = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "     ");
+        TextComponent back = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋘⋘⋘");
+        TextComponent middle = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "             " + ChatColor.GRAY + "[" + currentPage + "]" + ChatColor.STRIKETHROUGH + "              ");
+        TextComponent next = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋙⋙⋙");
+        back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.previousPage, null))));
+        next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.nextPage, null))));
+        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties help " + previousPage));
+        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties help " + nextPage));
+        BaseComponent[] baseComponents = new BaseComponent[]{space, space, back, middle, next, space, space};
+        if (previousPage == 0)
+            baseComponents[2] = space;
+        if (nextPage == 9)
+            baseComponents[4] = space;
+        sender.spigot().sendMessage(baseComponents);
     }
 
     public static void sendHelpMessage(CommandSender sender, List<String> message) {

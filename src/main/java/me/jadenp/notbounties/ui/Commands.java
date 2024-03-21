@@ -54,7 +54,17 @@ public class Commands implements CommandExecutor, TabCompleter {
             Player parser = getParser(sender);
             if (args.length > 0) {
                 if (args[0].equalsIgnoreCase("help") && sender.hasPermission("notbounties.basic")) {
-                    LanguageOptions.sendHelpMessage(sender);
+                    int page;
+                    if (args.length == 1) {
+                        page = 1;
+                    } else {
+                        try {
+                            page = Integer.parseInt(args[1]);
+                        } catch (IllegalArgumentException e) {
+                            page = 1;
+                        }
+                    }
+                    LanguageOptions.sendHelpMessage(sender, page);
                 } else if (args[0].equalsIgnoreCase("update-notification")) {
                     if (!sender.hasPermission("notbounties.admin")) {
                         sender.sendMessage(parse(prefix + unknownCommand, parser));

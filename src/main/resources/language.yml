@@ -128,7 +128,9 @@ bounty-stat:
     long: '&eYou have spent &2{amount}&e on immunity.'
     short: '&6Bounty immunity: &e{amount}'
 help:
-  title: '&7&m               &9&l Not&d&lBounties &7&m               '
+  next-page: '&7Next Page'
+  previous-page: '&7Previous Page'
+  title: '&7&m                     &9&l Not&d&lBounties &7&m                     '
   basic:
     - '&1Bounty tax is currently: &5{tax}%'
     - '&1Whitelist cost is currently: {whitelist} per player.'
