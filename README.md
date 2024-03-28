@@ -38,9 +38,9 @@ Run /bounty currency in-game to change your currency type. The currency can be a
 ## Commands and Permissions
 <details>
   <summary>All Commands and Permissions</summary>
-- /bounty help - Shows available commands. no permission.
-- /bounty bdc - Toggles the bounty broadcast message. no permission.
-- /bounty check (player) - Checks a bounty.notbounties.view
+* /bounty help - Shows available commands. no permission.
+* /bounty bdc - Toggles the bounty broadcast message. no permission.
+* /bounty check (player) - Checks a bounty.notbounties.view
 - /bounty list - Lists all bounties. notbounties.view
 - /bounty top (all/kills/claimed/deaths/set/immunity) <list> - Lists the top 10 players with the respective stats. notbounties.view
 - /bounty stat (all/kills/claimed/deaths/set/immunity) - View your bounty stats. notbounties.view
