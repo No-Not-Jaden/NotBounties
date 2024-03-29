@@ -38,38 +38,41 @@ Run /bounty currency in-game to change your currency type. The currency can be a
 ## Commands and Permissions
 <details>
   <summary>All Commands and Permissions</summary>
-- /bounty help - Shows available commands. no permission.
-- /bounty bdc - Toggles the bounty broadcast message. no permission.
-- /bounty check (player) - Checks a bounty.notbounties.view
-- /bounty list - Lists all bounties. notbounties.view
-- /bounty top (all/kills/claimed/deaths/set/immunity) <list> - Lists the top 10 players with the respective stats. notbounties.view
-- /bounty stat (all/kills/claimed/deaths/set/immunity) - View your bounty stats. notbounties.view
-- /bounty - Opens bounty GUI. notbounties.view
-- /bounty (player) (amount) - Adds a bounty to a player. notbounties.set
-- /bounty set - Opens bounty-set GUI. notbounties.set
-- /bounty buy - Buy your own bounty. notbounties.buyown
-- /bounty immunity (price) - Buy immunity to bounties under a certain price. Do not need (price) if permanent immunity is enabled. notbounties.buyimmunity
-- /bounty immunity remove - Removes purchased immunity from yourself. notbounties.removeimmunity
-- /bounty immunity remove (player) - Removes purchased immunity from a player. notbounties.admin
-- /bounty remove (player) - Removes all bounties from a player. notbounties.admin
-- /bounty remove (player) from (setter) - Removes a specific bounty put on a player. notbounties.admin
-- /bounty edit (player) (amount) - Edits a player's total bounty. notbounties.admin
-- /bounty edit (player) from (setter) (amount) - Edits a specific bounty put on a player. notbounties.admin
-- /bounty tracker (player) - Gives you a compass that tracks a player with a bounty. notbounties.admin
-- /bounty tracker (player) (receiver) - Gives receiver a compass that tracks a player with a bounty. notbounties.admin
-- /bounty reload - Reloads the config and language. notbounties.admin
-- /bounty currency - Starts setup for the currency - notbounties.admin
-- /bounty whitelist (add/remove/set) (whitelisted players) - Change the players that can claim the bounties you set. notbounties.whitelist
-- /bounty whitelist <offline> - Opens the set whitelist GUI. notbounties.whitelist
-- /bounty whitelist reset - Resets your whitelisted players. notbounties.whitelist
-- /bounty whitelist view - Displays your whitelisted players in chat. notbounties.whitelist
-- /bounty poster (player) - Gives you a poster of a player's bounty. notbounties.admin
-- /bounty poster (player) (receiver) - Gives receiver a poster of a player's bounty. notbounties.admin
-
-notbounties.immune - is immune from having bounties placed on them
-notbounties.tracker - allows players to use the bounty tracker (default true)
-notbounties.player - all of the basic player permissions
-notbounties.basic - use help, tutorial, and broadcast commands
+<ul>/bounty help - Shows available commands. no permission.</ul>
+<ul>/bounty bdc - Toggles the bounty broadcast message. no permission.</ul>
+<ul>/bounty check (player) - Checks a bounty.notbounties.view</ul>
+<ul>/bounty list - Lists all bounties. notbounties.view</ul>
+<ul>/bounty top (all/kills/claimed/deaths/set/immunity) <list> - Lists the top 10 players with the respective stats. notbounties.view</ul>
+<ul>/bounty stat (all/kills/claimed/deaths/set/immunity) - View your bounty stats. notbounties.view</ul>
+<ul>/bounty - Opens bounty GUI. notbounties.view</ul>
+<ul>/bounty (player) (amount) - Adds a bounty to a player. notbounties.set</ul>
+<ul>/bounty set - Opens bounty-set GUI. notbounties.set</ul>
+<ul>/bounty buy - Buy your own bounty. notbounties.buyown</ul>
+<ul>/bounty immunity (price) - Buy immunity to bounties under a certain price. Do not need (price) if permanent immunity is enabled. notbounties.buyimmunity</ul>
+<ul>/bounty immunity remove - Removes purchased immunity from yourself. notbounties.removeimmunity</ul>
+<ul>/bounty immunity remove (player) - Removes purchased immunity from a player. notbounties.admin</ul>
+<ul>/bounty remove (player) - Removes all bounties from a player. notbounties.admin or notbounties.removeset</ul>
+<ul>/bounty remove (player) from (setter) - Removes a specific bounty put on a player. notbounties.admin</ul>
+<ul>/bounty edit (player) (amount) - Edits a player's total bounty. notbounties.admin</ul>
+<ul>/bounty edit (player) from (setter) (amount) - Edits a specific bounty put on a player. notbounties.admin</ul>
+<ul>/bounty tracker (player) - Gives you a compass that tracks a player with a bounty. notbounties.admin</ul>
+<ul>/bounty tracker (player) (receiver) - Gives receiver a compass that tracks a player with a bounty. notbounties.admin</ul>
+<ul>/bounty reload - Reloads the config and language. notbounties.admin</ul>
+<ul>/bounty currency - Starts setup for the currency - notbounties.admin</ul>
+<ul>/bounty whitelist (add/remove/set) (whitelisted players) - Change the players that can claim the bounties you set. notbounties.whitelist</ul>
+<ul>/bounty whitelist <offline> - Opens the set whitelist GUI. notbounties.whitelist</ul>
+<ul>/bounty whitelist reset - Resets your whitelisted players. notbounties.whitelist</ul>
+<ul>/bounty whitelist view - Displays your whitelisted players in chat. notbounties.whitelist</ul>
+<ul>/bounty poster (player) - Gives you a poster of a player's bounty. notbounties.admin</ul>
+<ul>/bounty poster (player) (receiver) - Gives receiver a poster of a player's bounty. notbounties.admin</ul>
+<ul>*</ul>
+<ul>notbounties.immune - is immune from having bounties placed on them</ul>
+<ul>notbounties.tracker - allows players to use the bounty tracker (default true)</ul>
+<ul>notbounties.player - all of the basic player permissions</ul>
+<ul>notbounties.basic - use help, tutorial, and broadcast commands</ul>
+<ul>notbounties.immunity.murder - immune to the murder auto bounty</ul>
+<ul>notbounties.immunity.random - immune to the random auto bounty</ul>
+<ul>notbounties.immunity.timed - immune to the timed auto bounty</ul>
 </details>
 
 ## Hex in [Language.yml](src/main/resources/language.yml)
@@ -79,6 +82,10 @@ notbounties.basic - use help, tutorial, and broadcast commands
 - Add "_formatted" to the end to add the currency prefix and suffix.
 - Add "_full" to the end of top to add what the stat is about.
 
-%notbounties_bounty%
-%notbounties_(all/kills/claimed/deaths/set/immunity)%
-%notbounties_top\_[x]\_(all/kills/claimed/deaths/set/immunity)%
+* %notbounties_bounty% - Current bounty amount
+* %notbounties_(all/kills/claimed/deaths/set/immunity)% - Statistic for player
+* %notbounties_top\_[x]\_(all/kills/claimed/deaths/set/immunity)% - Leaderboard message for rank
+* %notbounties_wanted% - Wanted tag for player
+* %notbounties_notification% - True or false if the player has the bounty broadcast enabled
+* %notbounties_mode% - Whitelist or blacklist
+* %notbounties_timed_bounty% - Time until next timed auto bounty
