@@ -493,6 +493,8 @@ public class LanguageOptions {
     public static String parse(String str, OfflinePlayer receiver) {
         str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
         str = str.replaceAll("\\{min_bounty}", Matcher.quoteReplacement(NumberFormatting.getValue(ConfigOptions.minBounty)));
+        str = str.replaceAll("\\{c_prefix}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix));
+        str = str.replaceAll("\\{c_suffix}", Matcher.quoteReplacement(NumberFormatting.currencySuffix));
 
         if (receiver != null) {
             Bounty bounty = BountyManager.getBounty(receiver);

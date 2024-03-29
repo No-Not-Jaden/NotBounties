@@ -14,3 +14,99 @@
 # Buy your own bounty
 #
 
+# The time limit that players have to complete the challenges before new ones appear
+time-limit-days: 7
+# Messages to be added to the description when the reward needs to be claimed
+gui-claim: '&5&lClick to claim your reward'
+chat-claim: '&5&lDo &d/bounty challenges claim &5&lto claim your reward.'
+
+challenge-types:
+  # Claim a certain number of bounties
+  claim:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lClaim &f&l{x} &e&lBounties'
+      - '&7<&m                            &7>'
+      - '&6&oKill {x} players with any bounty'
+      - '&6&oReward: {reward}'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mClaim {x} Bounties'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    # different variations of the challenge
+    # {x} is replaced in the description with the variation
+    # in this case, the variations are the number of bounties to be claimed
+    variations:
+      - 1 # This challenge could be 1 to 3 bounties
+      - 2
+      - 3
+    # the reward of the challenge
+    # If the reward option is a single number, then it is a multiplier on the variation
+    reward: 3
+    # If the reward is a list like below, each line is a reward for each variation
+    # reward:
+    #  - 3
+    #  - 6
+    #  - 9
+    # This command could replace the reward
+    #commands:
+    #  - 'minecraft:give {player} DIAMOND <math:{x}*3>'
+    # Which could also be written as a command per variation
+    #commands:
+    #  - 'minecraft:give {player} DIAMOND 3'
+    #  - 'minecraft:give {player} DIAMOND 6'
+    #  - 'minecraft:give {player} DIAMOND 9'
+
+    # Commands to be run on reward claim
+    commands: []
+  # Spend money on setting bounties
+  amount-set:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lSpend {c_prefix}{x}{c_suffix} &e&lon Bounties'
+      - '&7<&m                            &7>'
+      - '&6&oSet bounties using {c_prefix}{x}{c_suffix} or more.'
+      - '&6&oReward: {reward}'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mSpend {c_prefix}{x}{c_suffix} &e&lon Bounties'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    # The amount of currency that needs to be used
+    variations:
+      - 5
+      - 10
+      - 15
+      - 20
+      - 25
+    reward: 1.5
+    commands: []
+    # Have x of your set bounties be claimed
+    successful-bounty:
+      # display of challenge before it has been completed
+      in-progress:
+        - '&e&lHave {x} Successful Bounties'
+        - '&7<&m                            &7>'
+        - '&6&oSet bounties that are claimed {x}'
+        - '&6&otimes or more.'
+        - '&6&oReward: {reward}'
+        - '&7<&m                            &7>'
+      # display of challenge after it has been completed
+      completed:
+        - '&a&l&mHave {x} Successful Bounties'
+        - '&7<&m                            &7>'
+        - '&2&oChallenge Completed'
+        - '&7<&m                            &7>'
+      # The amount of currency that needs to be used
+      variations:
+        - 1
+        - 2
+        - 3
+      reward: 4
+      commands: [ ]
+
