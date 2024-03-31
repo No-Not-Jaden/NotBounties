@@ -105,6 +105,8 @@ reward-head-lore:
 update-stat: '&6{player}''s &f{leaderboard} &evalue has now been set to {amount}.'
 self-set-deny: '&4You can''t set a bounty on yourself.'
 entity-remove: '&a{amount} entities were removed.'
+prompt-cancel: '&eYou have canceled the prompt.'
+prompt-expire: '&cPrompt has expired.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

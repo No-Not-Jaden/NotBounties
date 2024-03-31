@@ -17,14 +17,11 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -37,7 +34,6 @@ public class GUI implements Listener {
 
     public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
-    private static final Map<UUID, CommandPrompt> commandPrompts = new HashMap<>();
     public static void addGUI(GUIOptions gui, String name){
         customGuis.put(name, gui);
     }
@@ -47,9 +43,6 @@ public class GUI implements Listener {
         return null;
     }
 
-    public static void addCommandPrompt(UUID uuid, CommandPrompt commandPrompt) {
-        commandPrompts.put(uuid, commandPrompt);
-    }
 
     public GUI(){}
 
@@ -257,28 +250,6 @@ public class GUI implements Listener {
             if (customItem == null)
                 return;
             ActionCommands.executeGUI((Player) event.getWhoClicked(), customItem.getCommands());
-        }
-    }
-
-
-    @EventHandler(priority = EventPriority.LOWEST)
-    public void asyncChatEvent(AsyncPlayerChatEvent event) {
-        if (commandPrompts.containsKey(event.getPlayer().getUniqueId())) {
-            CommandPrompt commandPrompt = commandPrompts.get(event.getPlayer().getUniqueId());
-            commandPrompts.remove(event.getPlayer().getUniqueId());
-            String command = commandPrompt.getCommand().replace("<~placeholder~>", ChatColor.stripColor(event.getMessage()));
-            event.setCancelled(true);
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (commandPrompt.isPlayerPrompt()) {
-                        Bukkit.dispatchCommand(event.getPlayer(), command);
-                    } else {
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-                    }
-                }
-            }.runTaskLater(NotBounties.getInstance(), 1);
-
         }
     }
 

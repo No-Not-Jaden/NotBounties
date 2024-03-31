@@ -279,6 +279,7 @@ public class ConfigOptions {
         BountyExpire.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-expire")));
         BigBounty.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("big-bounties")));
         BountyClaimRequirements.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("teams")));
+        Prompt.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("prompts")));
 
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");

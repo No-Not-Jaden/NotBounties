@@ -188,37 +188,19 @@ wanted-tag:
     2500: '&c☠☠ '
     5000: '&4☠☠☠ '
 # commands to be executed when a bounty is claimed
-  # {player} is replaced with the person whose bounty was claimed
-  # {killer} is replaced with the person who claimed the bounty
-  # {amount} is replaced with the bounty value
-  # {bounty} is replaced with the formatted bounty value
-  # {cost} is replaced with the formatted bounty value wrapped with the currency suffix and prefix
-  # starting with [player] will run the command for the person whose bounty was claimed
-  # starting with [killer] will run the command for the person who claimed the bounty
-  # starting with [message_player] will message the player with the NotBounties prefix
-  # starting with [message_killer] will message the killer with the NotBounties prefix
-  # starting with [broadcast] will message the whole server (except players with bounty broadcast disabled) with the NotBounties prefix
-  # starting with nothing will run the command as console
-  # using [sound_player] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the player
-  # using [sound_killer] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the killer
-  # using [sound] (SOUND_ID) <VOLUME> <PITCH> will play a sound for everyone near the death
-  # The volume and pitch are optional. Sound IDs can be found here: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
-  # adding >(amount) or <(amount) at the beginning will only run the following command if the claimed bounty was greater or equal to the amount
-  #  This tempbans the player if they had a bounty claimed greater than or equal to 2500 currency
-  #  ex: >(2499.99) tempban {player} 1h
-  # adding ~{player/killer({placeholder/material} {<|>|>=|<=|=|!=} {value}) will check a placeholder or material value before executing - The squiggly brackets are just to show the possible values
-  #  checking a material value of the player will not work unless they have respawned
-  #  This will message the killer if they have the bounty notification enabled
-  #  ex: ~killer(%notbounties_notification% = true) [message_killer] &eYou have claimed &6%notbounties_kills% &ebounties.
-  # adding @(player/killer)permission or !@(player/killer)permission before everything with check for a permission of the player or killer to run the command
-  #   This will check if the killer has the permission and will message the person they killed
-  #   ex: @(killer)notbounties.view [killer] msg {player} It wasn't personal.
-  # you can combine these too
-  #   This will auto-respawn the player if the bounty is between 10 and 100, and they have the permission plugin.quick-respawn
-  #   ex: >(10) <(100) @(player)plugin.quick-respawn <respawn>
-  # a command that is just <respawn> will force the player to respawn. This is useful if you want to tp them somewhere after they die
-  # You can use placeholders, but they will always be parsed for the player who died
+# see https://github.com/No-Not-Jaden/NotBounties/wiki/Action-Commands for a description of the special actions you can use here
 bounty-claim-commands: []
+# prompt feature settings for action commands
+prompts:
+  # how many attempts the player gets before the prompt is canceled
+  attempts: 5
+  # typing these words in chat will exit the prompt
+  cancel-words:
+    - 'cancel'
+    - 'exit'
+  # the time the player has to type in an answer to the prompt before it times out
+  # in seconds
+  time-limit: 30
 auto-bounties:
   # number of days until auto bounties expire
   # overrides the bounty-expire value unless it is set to -1

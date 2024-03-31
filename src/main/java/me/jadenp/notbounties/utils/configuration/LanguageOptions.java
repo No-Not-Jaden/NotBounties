@@ -105,6 +105,8 @@ public class LanguageOptions {
     public static String updateStat;
     public static String selfSetDeny;
     public static String entityRemove;
+    public static String promptCancel;
+    public static String promptExpire;
 
     public static List<String> trackerLore;
     public static List<String> voucherLore;
@@ -256,6 +258,8 @@ public class LanguageOptions {
         updateStat = configuration.getString("update-stat");
         selfSetDeny = configuration.getString("self-set-deny");
         entityRemove = configuration.getString("entity-remove");
+        promptCancel = configuration.getString("prompt-cancel");
+        promptExpire = configuration.getString("prompt-expire");
 
         voucherLore = configuration.getStringList("bounty-voucher-lore");
         trackerLore = configuration.getStringList("bounty-tracker-lore");

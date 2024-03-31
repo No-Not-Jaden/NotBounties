@@ -14,24 +14,7 @@ custom-items:
     enchanted: false
     hide-nbt: true
     # Commands to run when the item is clicked
-    # use {player} to replace with the player's name
-    # [close] to close GUI
-    # [p] (command) to send as the player
-    # [next] <x> goes to the next x amount of pages or next page if x is empty
-    # [back] <x> goes to the last x amount of pages or last page if x is empty
-    # [gui] (gui name) (page) (leaderboard/offline) opens a new gui - only gui name is required, ex: [gui] bounty-gui | [gui] leaderboard 1 kills | [gui] set-bounty 1 offline
-    # [offline] toggles offline players to the set-bounty GUI and the set-whitelist GUI
-    # [pprompt] (command) <what value> - closes the GUI and prompts the player for a value - player executes the finished command - closes the GUI and prompts the player for a value - player executes the finished command
-    # [cprompt] (command) <what value> - console executes the finished command
-    #   ex: '[pprompt] bounty {slot13} <&eWhat amount?>'
-    # using [sound] (SOUND_ID) <VOLUME> <PITCH> will play a sound for the player
-    # The volume and pitch are optional. Sound IDs can be found here: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
-    # adding @{permission} at the beginning will check for a permission before executing the command. !@ will check if they don't have permission
-    #   ex: '@notbounties.admin [next]' will only go to the next page if the player clicking the item has notbounties.admin
-    #   '!@essentials.fly [p] top' will run the command /top as the player if the player doesn't have essentials.fly
-    # {player} will be replaced with the name of the player who clicked
-    # {player<x>} will be replaced with the name of the x player in the GUI. If there are 3 players in the GUI, {player2} will be the second player in the GUI (with respect to how player-slots are ordered)
-    # {slot<x>} will be replaced with the name of the owner of the skull in that slot, or if there is no skull, it will be replaced with the item name
+    # see https://github.com/No-Not-Jaden/NotBounties/wiki/Action-Commands for a description of the special actions you can use here
     commands: []
   custom-head:
     material: player_head eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWRjZjJjMTk4ZjYxZGY1YTZkMGJhOTdkYmY5MGMzMzc5OTU0MDVjMTczOTZjMDE2Yzg1ZjZmM2ZlYTUyYzkwNiJ9fX0=
@@ -47,7 +30,7 @@ custom-items:
       - '&6enter bounty amount'
       - ''
     commands:
-      - '[pprompt] bounty {slot13} <&eEnter in chat the bounty amount.>'
+      - '[pprompt] bounty {slot13} <&eEnter in chat the bounty amount or type "cancel" to cancel.>'
   exit:
     material: BARRIER
     amount: 1

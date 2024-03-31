@@ -3,11 +3,11 @@ package me.jadenp.notbounties.utils.configuration;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.ui.gui.CommandPrompt;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.CommandPrompt;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -28,7 +28,6 @@ import java.util.regex.Matcher;
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.playerInfo;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.papiEnabled;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.parse;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.prefix;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.checkAmount;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.tryParse;
@@ -387,15 +386,8 @@ public class ActionCommands {
         } else if (command.startsWith("[cprompt] ") || command.startsWith("[pprompt] ")) {
             boolean playerPrompt = command.startsWith("[pprompt] ");
             command = command.substring(10);
-            String prompt = "&eEnter anything in chat.";
-            if (command.contains("<") && command.substring(command.indexOf("<")).contains(">")) {
-                prompt = command.substring(command.indexOf("<") + 1, command.substring(0, command.indexOf("<")).length() + command.substring(command.indexOf("<")).indexOf(">"));
-            }
             player.closeInventory();
-            player.sendMessage(parse(prompt, player));
-            if (command.contains(prompt))
-                command = command.replace(prompt, "~placeholder~");
-            GUI.addCommandPrompt(player.getUniqueId(), new CommandPrompt(command, playerPrompt));
+            Prompt.addCommandPrompt(player.getUniqueId(), new CommandPrompt(player, command, playerPrompt));
         } else if (command.startsWith("[close]")) {
             player.getOpenInventory().close();
             playerInfo.remove(player.getUniqueId());  // would only do something for bedrock players

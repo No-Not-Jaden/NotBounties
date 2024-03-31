@@ -104,6 +104,7 @@ public final class NotBounties extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(new BountyMap(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new PVPRestrictions(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new WebhookOptions(), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new Prompt(), this);
 
         this.saveDefaultConfig();
 
