@@ -48,8 +48,9 @@ public class Commands implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, Command command, @NotNull String label, String[] args) {
         if (command.getName().equalsIgnoreCase("notbounties")) {
+            boolean commandResult = executeCommand(sender, args);
             if (sender instanceof Player)
-                if (executeCommand(sender, args)) {
+                if (commandResult) {
                     Prompt.successfulExecute(((Player) sender).getUniqueId());
                 } else {
                     Prompt.failExecute(((Player) sender).getUniqueId());
@@ -420,7 +421,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         } else {
                             leaderboard = Leaderboard.ALL;
                         }
-                        if (args.length > 2 && args[2].equalsIgnoreCase("list")) {
+                        if (args.length > 2 && args[2].equalsIgnoreCase("list") || !(sender instanceof Player)) {
                             leaderboard.displayTopStat(sender, 10);
                         } else {
                             openGUI(parser, "leaderboard", 1, leaderboard);
