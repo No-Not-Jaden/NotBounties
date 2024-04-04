@@ -205,13 +205,7 @@ selection-gui:
 # main GUI to display bounties
 bounty-gui:
   enabled: true
-  # how the bounty menu is sorted
-  # 0 : newer bounties at top
-  # 1 : older bounties at top
-  # 2 : more expensive bounties at top
-  # 3 : less expensive bounties at top
-  sort-type: 2
-  # name of the gui - does not accept placeholders
+  # name of the gui
   gui-name: '&d&lBounties &9&lPage'
   # this will add the page number at the end of the gui name
   add-page: true
@@ -305,7 +299,7 @@ select-price:
   components:
     1: price-select-info
     2: price-select-slider
-    3: price-select-input
+    4: price-select-input
 confirm:
   enabled: true
   gui-name: '&6&lAre you sure?'

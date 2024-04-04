@@ -4,6 +4,7 @@ import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -495,7 +496,8 @@ public class LanguageOptions {
     }
 
     public static String parse(String str, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(new Date())));
+        String timeString = receiver != null && receiver.isOnline() ? LocalTime.formatTime(System.currentTimeMillis(), receiver.getPlayer()) : LocalTime.formatTime(System.currentTimeMillis());
+        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
         str = str.replaceAll("\\{min_bounty}", Matcher.quoteReplacement(NumberFormatting.getValue(ConfigOptions.minBounty)));
         str = str.replaceAll("\\{c_prefix}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix));
         str = str.replaceAll("\\{c_suffix}", Matcher.quoteReplacement(NumberFormatting.currencySuffix));
@@ -543,7 +545,8 @@ public class LanguageOptions {
     }
 
     public static String parse(String str, long time, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{time}", ConfigOptions.dateFormat.format(time));
+        String timeString = receiver != null && receiver.isOnline() ? LocalTime.formatTime(time, receiver.getPlayer()) : LocalTime.formatTime(time);
+        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(time + ""));
         return parse(str, receiver);
     }
@@ -559,7 +562,8 @@ public class LanguageOptions {
     }
 
     public static String parse(String str, String player, double amount, long time, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(time)));
+        String timeString = receiver != null && receiver.isOnline() ? LocalTime.formatTime(time, receiver.getPlayer()) : LocalTime.formatTime(time);
+        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
         return parse(str, player, amount, receiver);
     }
 
@@ -569,7 +573,8 @@ public class LanguageOptions {
     }
 
     public static String parse(String str, String player, double amount, double bounty, long time, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(ConfigOptions.dateFormat.format(time)));
+        String timeString = receiver != null && receiver.isOnline() ? LocalTime.formatTime(time, receiver.getPlayer()) : LocalTime.formatTime(time);
+        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
         return parse(str, player, amount, bounty, receiver);
     }
 
@@ -625,4 +630,5 @@ public class LanguageOptions {
             return "0s";
         return time;
     }
+
 }

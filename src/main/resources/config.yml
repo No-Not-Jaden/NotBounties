@@ -84,6 +84,8 @@ self-setting: true
 # BEFORE, REGULAR, or AFTER can be used
 # do not change this unless you know what you are doing
 claim-order: REGULAR
+# automatically display times in the timezone of each player
+auto-timezone: true
 # this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
 redeem-reward-later:
   enabled: false
@@ -91,7 +93,7 @@ redeem-reward-later:
   voucher-per-setter: false
   # additional line or lines at the end of bounty-voucher-lore in language.yml
   # leave blank for no line addition
-  # if you decide to not use this and are using voucher-per-setter, you can get the specific setter amount in bounty-voucher-name and bounty-voucher-lore with {amount}
+  # if you decide to not use this and are using voucher-per-setter, you can get the specific setter amount in bounty-voucher-name and bounty-voucher-lore with {amount} in the language.yml file
   setter-lore-addition: '&8{player} set a bounty of {amount}'
 # restrict PVP
 pvp-restrictions:

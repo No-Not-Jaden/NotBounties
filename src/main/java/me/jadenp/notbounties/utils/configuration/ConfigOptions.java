@@ -60,7 +60,7 @@ public class ConfigOptions {
     public static boolean HDBEnabled;
     public static int maxSetters;
 
-    static DateFormat dateFormat;
+    public static DateFormat dateFormat;
     public static boolean giveOwnMap;
     public static boolean displayReward;
     public static String rewardText;
@@ -108,6 +108,7 @@ public class ConfigOptions {
     public static double autoBountyExpireTime;
     public static boolean autoBountyOverrideImmunity;
     public static boolean selfSetting;
+    public static boolean autoTimezone;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -348,7 +349,8 @@ public class ConfigOptions {
         }
         sendBStats = bounties.getConfig().getBoolean("send-bstats");
         autoBountyExpireTime = bounties.getConfig().getDouble("auto-bounties.expire-time");
-        autoBountyOverrideImmunity =  bounties.getConfig().getBoolean("auto-bounties.override-immunity");
+        autoBountyOverrideImmunity = bounties.getConfig().getBoolean("auto-bounties.override-immunity");
+        autoTimezone = bounties.getConfig().getBoolean("auto-timezone");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
