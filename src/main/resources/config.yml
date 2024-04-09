@@ -110,8 +110,9 @@ pvp-restrictions:
   rule: 2
   # if rule is set to 2 - the time in seconds that players with bounties can fight back after taking damage from another player
   pvp-time: 60
+  # claim bounties if players combat-log
   combat-logging:
-    # time in seconds that a player must be without combat to log out without loosing their bounty - 0 to disable
+    # time in seconds that a player must be without combat to log out without losing their bounty - 0 to disable
     time: 0
     # send the combat-tag and combat-safe messages when they are tagged
     send-message: false
