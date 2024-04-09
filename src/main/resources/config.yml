@@ -98,15 +98,23 @@ redeem-reward-later:
 # restrict PVP
 pvp-restrictions:
   # worlds to restrict PVP
+  # set to the following if you want it to apply to all worlds
+  #worlds: []
   worlds:
     - pvp_restriction_world
   # pvp rules
+  # 0 - only combat logging is used
   # 1 - players can only damage other players with bounties
   # 2 - players can damage other players with bounties and those players can fight back
   # 3 - players can damage other players with bounties and players with bounties can damage anyone
   rule: 2
   # if rule is set to 2 - the time in seconds that players with bounties can fight back after taking damage from another player
   pvp-time: 60
+  combat-logging:
+    # time in seconds that a player must be without combat to log out without loosing their bounty - 0 to disable
+    time: 0
+    # send the combat-tag and combat-safe messages when they are tagged
+    send-message: false
 # allow players on the same team claim each-other's bounties
 teams:
   # claim if on the same scoreboard team

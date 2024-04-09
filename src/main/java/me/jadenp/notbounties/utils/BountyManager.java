@@ -1,7 +1,10 @@
 package me.jadenp.notbounties.utils;
 
 import me.jadenp.notbounties.*;
+import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
+import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.utils.configuration.*;
+import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.bountyEvents.BountySetEvent;
@@ -14,21 +17,25 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.*;
@@ -618,6 +625,246 @@ public class BountyManager {
         } else {
             bountyList.removeIf(bounty -> bounty.getUUID().equals(uuid));
         }
+    }
+
+
+    public static void claimBounty(@NotNull Player player, Player killer, List<ItemStack> drops, boolean forceEditDrops) {
+        // possible remove this later when the other functions allow null killers
+        if (killer == null)
+            return;
+        TimedBounties.onDeath(player);
+        // check if a bounty can be claimed
+        if (!BountyClaimRequirements.canClaim(player, killer))
+            return;
+
+        MurderBounties.killPlayer(player, killer);
+
+        if (!hasBounty(player) || player == killer)
+            return;
+
+        // check if it is a npc
+        if (!npcClaim && killer.hasMetadata("NPC"))
+            return;
+        Bounty bounty = getBounty(player);
+        assert bounty != null;
+        // check if killer can claim it
+        if (bounty.getTotalBounty(killer) < 0.01)
+            return;
+        BountyClaimEvent event1 = new BountyClaimEvent(killer, new Bounty(bounty));
+        Bukkit.getPluginManager().callEvent(event1);
+        if (event1.isCancelled())
+            return;
+        double totalBounty = bounty.getTotalBounty(killer);
+
+        List<Setter> claimedBounties = new ArrayList<>(bounty.getSetters());
+        claimedBounties.removeIf(setter -> !setter.canClaim(killer));
+
+        displayParticle.remove(player);
+
+        // broadcast message
+        String message = parse(prefix + claimBountyBroadcast, player.getName(), killer.getName(), bounty.getTotalBounty(killer), player);
+        Bukkit.getConsoleSender().sendMessage(message);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if ((!NotBounties.disableBroadcast.contains(p.getUniqueId()) && bounty.getTotalBounty(killer) >= minBroadcast) || p.getUniqueId().equals(player.getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(killer).getUniqueId())) {
+                p.sendMessage(message);
+            }
+        }
+
+        // reward head
+        RewardHead rewardHead = new RewardHead(player.getName(), player.getUniqueId(), bounty.getTotalBounty(killer));
+
+        if (rewardHeadSetter) {
+            for (Setter setter : claimedBounties) {
+                if (!setter.getUuid().equals(new UUID(0, 0))) {
+                    Player p = Bukkit.getPlayer(setter.getUuid());
+                    if (p != null) {
+                        if (!rewardHeadClaimed || !Objects.requireNonNull(killer).getUniqueId().equals(setter.getUuid())) {
+                            NumberFormatting.givePlayer(p, rewardHead.getItem(), 1);
+                        }
+                    } else {
+                        if (headRewards.containsKey(setter.getUuid())) {
+                            // I think this could be replaced with headRewards.get(setter.getUuid()).add(rewardHead)
+                            List<RewardHead> heads = new ArrayList<>(headRewards.get(setter.getUuid()));
+                            heads.add(rewardHead);
+                            headRewards.replace(setter.getUuid(), heads);
+                        } else {
+                            headRewards.put(setter.getUuid(), Collections.singletonList(rewardHead));
+                        }
+                    }
+                }
+            }
+        }
+        if (rewardHeadClaimed) {
+            NumberFormatting.givePlayer(killer, rewardHead.getItem(), 1);
+        }
+        // do commands
+        if (ConfigOptions.deathTax > 0 && NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL) {
+            Map<Material, Long> removedItems = NumberFormatting.doRemoveCommands(player, bounty.getTotalBounty(killer) * ConfigOptions.deathTax, drops);
+            if (!removedItems.isEmpty()) {
+                // send message
+                long totalLoss = 0;
+                StringBuilder builder = new StringBuilder();
+                for (Map.Entry<Material, Long> entry : removedItems.entrySet()) {
+                    builder.append(entry.getValue()).append("x").append(entry.getKey().toString()).append(", ");
+                    totalLoss += entry.getValue();
+                }
+                builder.replace(builder.length() - 2, builder.length(), "");
+                if (totalLoss > 0) {
+                    player.sendMessage(parse(prefix + LanguageOptions.deathTax.replaceAll("\\{items}", Matcher.quoteReplacement(builder.toString())), player));
+                    // modify drops
+                    if (forceEditDrops)
+                        for (Map.Entry<Material, Long> entry : removedItems.entrySet())
+                            NumberFormatting.removeItem(player, entry.getKey(), entry.getValue(), -1);
+                    ListIterator<ItemStack> dropsIterator = drops.listIterator();
+                    while (dropsIterator.hasNext()) {
+                        ItemStack drop = dropsIterator.next();
+                        if (removedItems.containsKey(drop.getType())) {
+                            if (removedItems.get(drop.getType()) > drop.getAmount()) {
+                                removedItems.replace(drop.getType(), removedItems.get(drop.getType()) - drop.getAmount());
+                                dropsIterator.remove();
+                            } else if (removedItems.get(drop.getType()) == drop.getAmount()) {
+                                removedItems.remove(drop.getType());
+                                dropsIterator.remove();
+                            } else {
+                                drop.setAmount((int) (drop.getAmount() - removedItems.get(drop.getType())));
+                                dropsIterator.set(drop);
+                                removedItems.remove(drop.getType());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!redeemRewardLater) {
+            if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
+                NumberFormatting.doAddCommands(killer, bounty.getBounty(new UUID(0,0)).getTotalBounty(killer));
+            } else {
+                NumberFormatting.doAddCommands(killer, bounty.getTotalBounty(killer));
+            }
+        } else {
+            // give voucher
+            if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
+                NumberFormatting.doAddCommands(killer, bounty.getBounty(new UUID(0,0)).getTotalBounty(killer));
+            }
+            if (RRLVoucherPerSetter) {
+                // multiple vouchers
+                for (Setter setter : bounty.getSetters()) {
+                    if (!setter.canClaim(killer))
+                        continue;
+                    if (setter.getUuid().equals(new UUID(0,0)) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL)
+                        continue;
+                    ItemStack item = new ItemStack(Material.PAPER);
+                    ItemMeta meta = item.getItemMeta();
+                    assert meta != null;
+                    ArrayList<String> lore = new ArrayList<>();
+                    for (String str : voucherLore) {
+                        lore.add(parse(str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), player.getName(), Objects.requireNonNull(player).getName(),setter.getAmount(), player));
+                    }
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                    meta.setDisplayName(parse(bountyVoucherName.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), player.getName(), Objects.requireNonNull(killer).getName(), setter.getAmount(), player));
+                    ArrayList<String> setterLore = new ArrayList<>(lore);
+                    if (!RRLSetterLoreAddition.isEmpty()) {
+                        setterLore.add(parse(RRLSetterLoreAddition, setter.getName(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
+                    }
+                    setterLore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + setter.getAmount());
+                    meta.setLore(setterLore);
+                    item.setItemMeta(meta);
+                    item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
+                    NumberFormatting.givePlayer(killer, item, 1);
+                }
+            } else {
+                // one voucher
+                ItemStack item = new ItemStack(Material.PAPER);
+                ItemMeta meta = item.getItemMeta();
+                assert meta != null;
+                ArrayList<String> lore = new ArrayList<>();
+                for (String str : voucherLore) {
+                    lore.add(parse(str, player.getName(), Objects.requireNonNull(player.getKiller()).getName(), bounty.getTotalBounty(killer), player));
+                }
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                meta.setDisplayName(parse(bountyVoucherName, player.getName(), Objects.requireNonNull(killer).getName(), bounty.getTotalBounty(killer), player));
+                if (!RRLSetterLoreAddition.isEmpty()) {
+                    for (Setter setter : bounty.getSetters()) {
+                        if (!setter.canClaim(killer))
+                            continue;
+                        if (setter.getUuid().equals(new UUID(0,0)) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL)
+                            continue;
+                        lore.add(parse(RRLSetterLoreAddition, setter.getName(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
+                    }
+                }
+                lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));
+                meta.setLore(lore);
+                item.setItemMeta(meta);
+                item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
+                NumberFormatting.givePlayer(killer, item, 1);
+            }
+        }
+        if (SQL.isConnected()) {
+            data.addData(player.getUniqueId().toString(), 0, 0, 1, bounty.getTotalBounty(killer), 0, 0);
+            data.addData(killer.getUniqueId().toString(), 1, 0, 0, 0, 0, bounty.getTotalBounty(killer));
+        } else {
+            allTimeBounties.put(player.getUniqueId(), Leaderboard.ALL.getStat(player.getUniqueId()) + bounty.getTotalBounty(killer));
+            killBounties.put(killer.getUniqueId(), Leaderboard.KILLS.getStat(killer.getUniqueId()) + 1);
+            deathBounties.put(player.getUniqueId(), Leaderboard.DEATHS.getStat(player.getUniqueId()) + 1);
+            allClaimedBounties.put(killer.getUniqueId(), Leaderboard.CLAIMED.getStat(killer.getUniqueId()) + bounty.getTotalBounty(killer));
+        }
+        bounty.claimBounty(killer);
+        updateBounty(bounty);
+
+        if (bounty.getTotalBounty() < minWanted) {
+            // remove bounty tag
+            NotBounties.removeWantedTag(bounty.getUUID());
+        }
+
+        for (Setter setter : claimedBounties) {
+            if (!setter.getUuid().equals(new UUID(0, 0))) {
+                if (SQL.isConnected()) {
+                    data.addData(setter.getUuid().toString(), 0, 1, 0, 0, 0, 0);
+                } else {
+                    setBounties.put(setter.getUuid(), Leaderboard.SET.getStat(setter.getUuid()) + 1);
+                }
+                Player p = Bukkit.getPlayer(setter.getUuid());
+                if (p != null) {
+                    p.playSound(p.getEyeLocation(), Sound.BLOCK_BEEHIVE_SHEAR, 1, 1);
+                }
+            }
+        }
+        Immunity.startGracePeriod(player);
+
+        if (trackerRemove > 0)
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                ItemStack[] contents = p.getInventory().getContents();
+                boolean change = false;
+                for (int x = 0; x < contents.length; x++) {
+                    if (contents[x] != null)
+                        if (contents[x].getItemMeta() != null) {
+                            if (Objects.requireNonNull(contents[x].getItemMeta()).getLore() != null) {
+                                if (!Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).isEmpty()) {
+                                    String lastLine = Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).get(Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).size() - 1);
+                                    if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
+                                        int number;
+                                        try {
+                                            number = Integer.parseInt(ChatColor.stripColor(lastLine).substring(1));
+                                        } catch (NumberFormatException ignored) {
+                                            continue;
+                                        }
+                                        if (trackedBounties.containsKey(number)) {
+                                            if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
+                                                contents[x] = null;
+                                                change = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                }
+                if (change) {
+                    p.getInventory().setContents(contents);
+                }
+            }
+        Commands.reopenBountiesGUI();
+        ActionCommands.executeBountyClaim(player, killer, totalBounty);
     }
 
 }

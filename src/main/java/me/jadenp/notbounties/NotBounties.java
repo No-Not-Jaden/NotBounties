@@ -328,6 +328,8 @@ public final class NotBounties extends JavaPlugin {
                 RandomBounties.update();
                 TimedBounties.update();
 
+                PVPRestrictions.checkCombatExpiry();
+
                 if (lastBountyBoardUpdate + boardUpdate * 1000 < System.currentTimeMillis()) {
                     // update bounty board
                     if (queuedBoards.isEmpty()) {

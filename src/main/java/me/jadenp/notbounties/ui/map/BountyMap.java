@@ -116,7 +116,9 @@ public class BountyMap implements Listener {
             try {
                 playerFont = Font.createFont(Font.TRUETYPE_FONT, new File(BountyMap.posterDirectory + File.separator + "playerfont.ttf"));
             } catch (Throwable throwable) {
-                Bukkit.getLogger().warning("[NotBounties] Detected a custom font, but the java font configuration file is missing! If you have access to the machine hosting the server, try reinstalling java.\nReverting to default font.");
+                Bukkit.getLogger().warning("[NotBounties] Detected a custom font, but an error occurred when reading it! This may be because of a corrupted font file or an invalid java font configuration file.");
+                Bukkit.getLogger().warning("Error: " + throwable.getMessage());
+                Bukkit.getLogger().warning("Reverting to default font.");
                 playerFont = new Font("Serif", Font.PLAIN, 20);
             }
         } else {

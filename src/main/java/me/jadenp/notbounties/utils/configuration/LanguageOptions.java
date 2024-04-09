@@ -11,6 +11,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -108,6 +109,8 @@ public class LanguageOptions {
     public static String entityRemove;
     public static String promptCancel;
     public static String promptExpire;
+    public static String combatTag;
+    public static String combatSafe;
 
     public static List<String> trackerLore;
     public static List<String> voucherLore;
@@ -153,6 +156,11 @@ public class LanguageOptions {
         }
 
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(language);
+        boolean saveChanges = true;
+        if (configuration.getKeys(true).size() <= 2) {
+            saveChanges = false;
+            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the language.yml file. Fix the YAML formatting errors, or the messages may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+        }
         if (configuration.isSet("bounty-stat-all")) {
             configuration.set("bounty-stat.all.long", configuration.getString("bounty-stat-all"));
             configuration.set("bounty-stat.kills.long", configuration.getString("bounty-stat-kills"));
@@ -171,6 +179,7 @@ public class LanguageOptions {
             }
             configuration.set("buy-back-lore", bbLore);
             bounties.getConfig().set("buy-own-bounties.lore-addition", null);
+            bounties.saveConfig();
         }
 
         // fill in any default options that aren't present
@@ -180,9 +189,10 @@ public class LanguageOptions {
                 if (!configuration.isSet(key))
                     configuration.set(key, configuration.getDefaults().get(key));
             }
-            configuration.save(language);
+            if (saveChanges)
+                configuration.save(language);
         }
-        bounties.saveConfig();
+
 
         prefix = configuration.getString("prefix");
         unknownNumber = configuration.getString("unknown-number");
@@ -261,6 +271,8 @@ public class LanguageOptions {
         entityRemove = configuration.getString("entity-remove");
         promptCancel = configuration.getString("prompt-cancel");
         promptExpire = configuration.getString("prompt-expire");
+        combatTag = configuration.getString("combat-tag");
+        combatSafe = configuration.getString("combat-safe");
 
         voucherLore = configuration.getStringList("bounty-voucher-lore");
         trackerLore = configuration.getStringList("bounty-tracker-lore");

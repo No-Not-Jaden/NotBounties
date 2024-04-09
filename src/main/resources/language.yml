@@ -107,6 +107,8 @@ self-set-deny: '&4You can''t set a bounty on yourself.'
 entity-remove: '&a{amount} entities were removed.'
 prompt-cancel: '&eYou have canceled the prompt.'
 prompt-expire: '&cPrompt has expired.'
+combat-tag: '&eYou have been combat-tagged! Do not log out for &f{time}&e.'
+combat-safe: '&aYou are safe to log out.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

@@ -12,7 +12,6 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.PVPRestrictions;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
 import org.bukkit.Bukkit;
@@ -98,9 +97,11 @@ public class ConfigOptions {
     public static int updateName;
     public static boolean RRLVoucherPerSetter;
     public static String RRLSetterLoreAddition;
+
     public enum ClaimOrder {
         BEFORE, REGULAR, AFTER
     }
+
     public static ClaimOrder claimOrder;
     public static boolean geyserEnabled;
     public static boolean floodgateEnabled;
@@ -195,8 +196,10 @@ public class ConfigOptions {
                 bounties.getConfig().set("currency.manual-economy", "AUTOMATIC");
         }
         if (bounties.getConfig().isSet("immunity.buy-immunity")) {
-            if (bounties.getConfig().getBoolean("immunity.buy-immunity")) bounties.getConfig().set("immunity.type", "DISABLE");
-            else if (bounties.getConfig().getBoolean("immunity.permanent-immunity.enabled")) bounties.getConfig().set("immunity.type", "PERMANENT");
+            if (bounties.getConfig().getBoolean("immunity.buy-immunity"))
+                bounties.getConfig().set("immunity.type", "DISABLE");
+            else if (bounties.getConfig().getBoolean("immunity.permanent-immunity.enabled"))
+                bounties.getConfig().set("immunity.type", "PERMANENT");
             else bounties.getConfig().set("immunity.type", "SCALING");
             bounties.getConfig().set("immunity.buy-immunity", null);
             bounties.getConfig().set("immunity.permanent-immunity.enabled", null);
@@ -259,6 +262,12 @@ public class ConfigOptions {
             bounties.getConfig().set("teams.towny-town", null);
             bounties.getConfig().set("teams.towny-allies", null);
 
+        }
+
+        boolean saveChanges = true;
+        if (bounties.getConfig().getKeys(true).size() <= 2) {
+            saveChanges = false;
+            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the config.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
         }
 
         // fill in any default options that aren't present
@@ -369,161 +378,172 @@ public class ConfigOptions {
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
 
 
-
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
         if (!guiFile.exists()) {
             bounties.saveResource("gui.yml", false);
         }
         YamlConfiguration guiConfig = YamlConfiguration.loadConfiguration(guiFile);
-        if (guiConfig.getKeys(true).size() > 2) {
-            boolean guiChanges = false;
-            if (bounties.getConfig().isConfigurationSection("advanced-gui")) {
-                // migrate everything to gui.yml
-                guiConfig.set("bounty-gui", null);
-                ConfigurationSection section = bounties.getConfig().getConfigurationSection("advanced-gui");
-                assert section != null;
-                guiConfig.set("bounty-gui.sort-type", section.get("sort-type"));
-                guiConfig.set("bounty-gui.size", section.get("size"));
-                for (String key : Objects.requireNonNull(section.getConfigurationSection("custom-items")).getKeys(false)) {
-                    guiConfig.set("custom-items." + key, section.get("custom-items." + key));
-                }
-                guiConfig.set("bounty-gui.player-slots", section.get("bounty-slots"));
-                guiConfig.set("bounty-gui.remove-page-items", true);
-                guiConfig.set("bounty-gui.head-lore", Arrays.asList("&7<&m                        &7>", "&4Bounty: &6%notbounties_bounty_formatted%", "&4&oKill this player to", "&4&oreceive this reward", "&7<&m                        &7>"));
-                guiConfig.set("bounty-gui.head-name", "&4☠ &c&l{player} &4☠");
-
-                guiConfig.set("bounty-gui.gui-name", "&d&lBounties &9&lPage");
-                guiConfig.set("bounty-gui.add-page", true);
-
-                if (LanguageOptions.getLanguageFile().exists()) {
-                    YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(LanguageOptions.getLanguageFile());
-                    if (languageConfig.isString("bounty-item-name") && languageConfig.isList("bounty-item-lore")) {
-                        // convert {amount} to %notbounties_bounty_formatted%
-                        String unformatted = languageConfig.getString("bounty-item-name");
-                        assert unformatted != null;
-                        unformatted = unformatted.replaceAll("\\{amount}", "%notbounties_bounty_formatted%");
-                        guiConfig.set("bounty-gui.head-name", unformatted);
-
-                        List<String> unformattedList = languageConfig.getStringList("bounty-item-lore");
-                        unformattedList.replaceAll(s -> s.replaceAll("\\{amount}", "%notbounties_bounty_formatted%"));
-                        guiConfig.set("bounty-gui.head-lore", unformattedList);
-                        guiConfig.set("bounty-gui.gui-name", languageConfig.getString("gui-name"));
-                        languageConfig.set("gui-name", null);
-                        languageConfig.set("bounty-item-name", null);
-                        languageConfig.set("bounty-item-lore", null);
-                        languageConfig.save(LanguageOptions.getLanguageFile());
-                    }
-                }
-
-                for (String key : Objects.requireNonNull(section.getConfigurationSection("layout")).getKeys(false)) {
-                    guiConfig.set("bounty-gui.layout." + key, section.get("layout." + key));
-                }
-
-                bounties.getConfig().set("advanced-gui", null);
-                guiChanges = true;
-            }
-
-            customItems.clear();
-
-
-            if (!guiConfig.isSet("set-whitelist")) {
-                guiConfig.set("set-whitelist.sort-type", 3);
-                guiConfig.set("set-whitelist.size", 54);
-                guiConfig.set("set-whitelist.gui-name", "&d&lSelect &7&lWhitelisted &9&lPlayers");
-                guiConfig.set("set-whitelist.add-page", false);
-                guiConfig.set("set-whitelist.remove-page-items", true);
-                guiConfig.set("set-whitelist.player-slots", Collections.singletonList("0-44"));
-                guiConfig.set("set-whitelist.head-name", "&e&l{player}");
-                guiConfig.set("set-whitelist.head-lore", Arrays.asList("", "&6Immunity: {amount}", "&7Click to toggle whitelist", ""));
-                guiConfig.set("set-whitelist.layout.1.item", "fill");
-                guiConfig.set("set-whitelist.layout.1.slot", "45-53");
-                guiConfig.set("set-whitelist.layout.2.item", "return");
-                guiConfig.set("set-whitelist.layout.2.slot", "49");
-                guiConfig.set("set-whitelist.layout.3.item", "next");
-                guiConfig.set("set-whitelist.layout.3.slot", "53");
-                guiConfig.set("set-whitelist.layout.4.item", "back");
-                guiConfig.set("set-whitelist.layout.4.slot", "45");
-                guiConfig.set("set-whitelist.layout.5.item", "add-offline-whitelist");
-                guiConfig.set("set-whitelist.layout.5.slot", "51");
-                guiConfig.set("set-whitelist.layout.6.item", "reset-whitelist");
-                guiConfig.set("set-whitelist.layout.6.slot", "47");
-                guiConfig.set("custom-items.add-offline-whitelist.material", "LEVER");
-                guiConfig.set("custom-items.add-offline-whitelist.amount", 1);
-                guiConfig.set("custom-items.add-offline-whitelist.name", "&7See all players");
-                guiConfig.set("custom-items.add-offline-whitelist.commands", Collections.singletonList("[gui] set-whitelist 1 offline"));
-                guiConfig.set("custom-items.reset-whitelist.material", "MILK_BUCKET");
-                guiConfig.set("custom-items.reset-whitelist.amount", 1);
-                guiConfig.set("custom-items.reset-whitelist.name", "&fReset whitelist");
-                guiConfig.set("custom-items.reset-whitelist.commands", Arrays.asList("[p] bounty whitelist reset", "[gui] set-whitelist 1"));
-                guiChanges = true;
-            }
-            if (!guiConfig.isSet("confirm-bounty.layout")) {
-                guiConfig.set("confirm-bounty.sort-type", 1);
-                guiConfig.set("confirm-bounty.size", 54);
-                guiConfig.set("confirm-bounty.gui-name", "&6&lBounty Cost: &2{amount_tax}");
-                guiConfig.set("confirm-bounty.add-page", false);
-                guiConfig.set("confirm-bounty.remove-page-items", true);
-                guiConfig.set("confirm-bounty.player-slots", Collections.singletonList("13"));
-                guiConfig.set("confirm-bounty.head-name", "&e&lSet bounty of {amount}");
-                guiConfig.set("confirm-bounty.head-lore", Arrays.asList("", "&7{player}", ""));
-                guiConfig.set("confirm-bounty.layout.1.item", "fill");
-                guiConfig.set("confirm-bounty.layout.1.slot", "0-53");
-                guiConfig.set("confirm-bounty.layout.2.item", "return-select-price");
-                guiConfig.set("confirm-bounty.layout.2.slot", "49");
-                guiConfig.set("confirm-bounty.layout.3.item", "false");
-                guiConfig.set("confirm-bounty.layout.3.slot", "19-21");
-                guiConfig.set("confirm-bounty.layout.4.item", "false");
-                guiConfig.set("confirm-bounty.layout.4.slot", "37-39");
-                guiConfig.set("confirm-bounty.layout.5.item", "false");
-                guiConfig.set("confirm-bounty.layout.5.slot", "28-30");
-                guiConfig.set("confirm-bounty.layout.6.item", "yes-bounty");
-                guiConfig.set("confirm-bounty.layout.6.slot", "23-25");
-                guiConfig.set("confirm-bounty.layout.7.item", "yes-bounty");
-                guiConfig.set("confirm-bounty.layout.7.slot", "32-34");
-                guiConfig.set("confirm-bounty.layout.8.item", "yes-bounty");
-                guiConfig.set("confirm-bounty.layout.8.slot", "41-43");
-                guiConfig.set("custom-items.yes-bounty.material", "LIME_STAINED_GLASS_PANE");
-                guiConfig.set("custom-items.yes-bounty.amount", 1);
-                guiConfig.set("custom-items.yes-bounty.name", "&a&lYes");
-                guiConfig.set("custom-items.yes-bounty.commands", Arrays.asList("[p] bounty {slot13} {page} --confirm", "[close]"));
-                guiConfig.set("custom-items.return-set-bounty.material", "WHITE_BED");
-                guiConfig.set("custom-items.return-set-bounty.amount", 1);
-                guiConfig.set("custom-items.return-set-bounty.name", "&6&lReturn");
-                guiConfig.set("custom-items.return-set-bounty.lore", Collections.singletonList("&7Return to player selection"));
-                guiConfig.set("custom-items.return-set-bounty.commands", Collections.singletonList("[gui] set-bounty 1"));
-                guiConfig.set("custom-items.return-select-price.material", "WHITE_BED");
-                guiConfig.set("custom-items.return-select-price.amount", 1);
-                guiConfig.set("custom-items.return-select-price.name", "&6&lReturn");
-                guiConfig.set("custom-items.return-select-price.lore", Collections.singletonList("&7Return to price selection"));
-                guiConfig.set("custom-items.return-select-price.commands", Collections.singletonList("[gui] select-price {page}"));
-                guiChanges = true;
-            }
-            if (guiChanges) {
-                guiConfig.save(guiFile);
-            }
-            for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)) {
-                CustomItem customItem = new CustomItem(Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items." + key)));
-                customItems.put(key, customItem);
-            }
-
-            for (String key : guiConfig.getKeys(false)) {
-                if (key.equals("custom-items"))
-                    continue;
-                try {
-                    GUI.addGUI(new GUIOptions(Objects.requireNonNull(guiConfig.getConfigurationSection(key))), key);
-                } catch (IllegalArgumentException e) {
-                    Bukkit.getLogger().warning("Unknown GUI in gui.yml: \"" + key + "\"");
-                }
+        if (guiConfig.getKeys(true).size() <= 2) {
+            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the gui.yml file. Fix the YAML formatting errors, or the GUI may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+            if (NotBounties.getInstance().getResource("gui.yml") != null) {
+                guiConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("gui.yml"))));
+                loadGUI(guiConfig);
             }
         } else {
-            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the gui.yml file. Fix the error or GUIs wont work!");
+            loadGUI(guiConfig);
         }
 
-        bounties.saveConfig();
+
+        for (String key : guiConfig.getKeys(false)) {
+            if (key.equals("custom-items"))
+                continue;
+            try {
+                GUI.addGUI(new GUIOptions(Objects.requireNonNull(guiConfig.getConfigurationSection(key))), key);
+            } catch (IllegalArgumentException e) {
+                Bukkit.getLogger().warning("Unknown GUI in gui.yml: \"" + key + "\"");
+            }
+        }
+
+        if (saveChanges)
+            bounties.saveConfig();
         LanguageOptions.reloadOptions();
         WebhookOptions.reloadOptions();
         if (geyserEnabled && floodgateEnabled)
             BedrockGUI.reloadOptions();
+    }
+
+    private static void loadGUI(YamlConfiguration guiConfig) throws IOException {
+        NotBounties bounties = NotBounties.getInstance();
+        boolean guiChanges = false;
+        if (bounties.getConfig().isConfigurationSection("advanced-gui")) {
+            // migrate everything to gui.yml
+            guiConfig.set("bounty-gui", null);
+            ConfigurationSection section = bounties.getConfig().getConfigurationSection("advanced-gui");
+            assert section != null;
+            guiConfig.set("bounty-gui.sort-type", section.get("sort-type"));
+            guiConfig.set("bounty-gui.size", section.get("size"));
+            for (String key : Objects.requireNonNull(section.getConfigurationSection("custom-items")).getKeys(false)) {
+                guiConfig.set("custom-items." + key, section.get("custom-items." + key));
+            }
+            guiConfig.set("bounty-gui.player-slots", section.get("bounty-slots"));
+            guiConfig.set("bounty-gui.remove-page-items", true);
+            guiConfig.set("bounty-gui.head-lore", Arrays.asList("&7<&m                        &7>", "&4Bounty: &6%notbounties_bounty_formatted%", "&4&oKill this player to", "&4&oreceive this reward", "&7<&m                        &7>"));
+            guiConfig.set("bounty-gui.head-name", "&4☠ &c&l{player} &4☠");
+
+            guiConfig.set("bounty-gui.gui-name", "&d&lBounties &9&lPage");
+            guiConfig.set("bounty-gui.add-page", true);
+
+            if (LanguageOptions.getLanguageFile().exists()) {
+                YamlConfiguration languageConfig = YamlConfiguration.loadConfiguration(LanguageOptions.getLanguageFile());
+                if (languageConfig.isString("bounty-item-name") && languageConfig.isList("bounty-item-lore")) {
+                    // convert {amount} to %notbounties_bounty_formatted%
+                    String unformatted = languageConfig.getString("bounty-item-name");
+                    assert unformatted != null;
+                    unformatted = unformatted.replaceAll("\\{amount}", "%notbounties_bounty_formatted%");
+                    guiConfig.set("bounty-gui.head-name", unformatted);
+
+                    List<String> unformattedList = languageConfig.getStringList("bounty-item-lore");
+                    unformattedList.replaceAll(s -> s.replaceAll("\\{amount}", "%notbounties_bounty_formatted%"));
+                    guiConfig.set("bounty-gui.head-lore", unformattedList);
+                    guiConfig.set("bounty-gui.gui-name", languageConfig.getString("gui-name"));
+                    languageConfig.set("gui-name", null);
+                    languageConfig.set("bounty-item-name", null);
+                    languageConfig.set("bounty-item-lore", null);
+                    languageConfig.save(LanguageOptions.getLanguageFile());
+                }
+            }
+
+            for (String key : Objects.requireNonNull(section.getConfigurationSection("layout")).getKeys(false)) {
+                guiConfig.set("bounty-gui.layout." + key, section.get("layout." + key));
+            }
+
+            bounties.getConfig().set("advanced-gui", null);
+            guiChanges = true;
+        }
+
+        customItems.clear();
+
+
+        if (!guiConfig.isSet("set-whitelist")) {
+            guiConfig.set("set-whitelist.sort-type", 3);
+            guiConfig.set("set-whitelist.size", 54);
+            guiConfig.set("set-whitelist.gui-name", "&d&lSelect &7&lWhitelisted &9&lPlayers");
+            guiConfig.set("set-whitelist.add-page", false);
+            guiConfig.set("set-whitelist.remove-page-items", true);
+            guiConfig.set("set-whitelist.player-slots", Collections.singletonList("0-44"));
+            guiConfig.set("set-whitelist.head-name", "&e&l{player}");
+            guiConfig.set("set-whitelist.head-lore", Arrays.asList("", "&6Immunity: {amount}", "&7Click to toggle whitelist", ""));
+            guiConfig.set("set-whitelist.layout.1.item", "fill");
+            guiConfig.set("set-whitelist.layout.1.slot", "45-53");
+            guiConfig.set("set-whitelist.layout.2.item", "return");
+            guiConfig.set("set-whitelist.layout.2.slot", "49");
+            guiConfig.set("set-whitelist.layout.3.item", "next");
+            guiConfig.set("set-whitelist.layout.3.slot", "53");
+            guiConfig.set("set-whitelist.layout.4.item", "back");
+            guiConfig.set("set-whitelist.layout.4.slot", "45");
+            guiConfig.set("set-whitelist.layout.5.item", "add-offline-whitelist");
+            guiConfig.set("set-whitelist.layout.5.slot", "51");
+            guiConfig.set("set-whitelist.layout.6.item", "reset-whitelist");
+            guiConfig.set("set-whitelist.layout.6.slot", "47");
+            guiConfig.set("custom-items.add-offline-whitelist.material", "LEVER");
+            guiConfig.set("custom-items.add-offline-whitelist.amount", 1);
+            guiConfig.set("custom-items.add-offline-whitelist.name", "&7See all players");
+            guiConfig.set("custom-items.add-offline-whitelist.commands", Collections.singletonList("[gui] set-whitelist 1 offline"));
+            guiConfig.set("custom-items.reset-whitelist.material", "MILK_BUCKET");
+            guiConfig.set("custom-items.reset-whitelist.amount", 1);
+            guiConfig.set("custom-items.reset-whitelist.name", "&fReset whitelist");
+            guiConfig.set("custom-items.reset-whitelist.commands", Arrays.asList("[p] bounty whitelist reset", "[gui] set-whitelist 1"));
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("confirm-bounty.layout")) {
+            guiConfig.set("confirm-bounty.sort-type", 1);
+            guiConfig.set("confirm-bounty.size", 54);
+            guiConfig.set("confirm-bounty.gui-name", "&6&lBounty Cost: &2{amount_tax}");
+            guiConfig.set("confirm-bounty.add-page", false);
+            guiConfig.set("confirm-bounty.remove-page-items", true);
+            guiConfig.set("confirm-bounty.player-slots", Collections.singletonList("13"));
+            guiConfig.set("confirm-bounty.head-name", "&e&lSet bounty of {amount}");
+            guiConfig.set("confirm-bounty.head-lore", Arrays.asList("", "&7{player}", ""));
+            guiConfig.set("confirm-bounty.layout.1.item", "fill");
+            guiConfig.set("confirm-bounty.layout.1.slot", "0-53");
+            guiConfig.set("confirm-bounty.layout.2.item", "return-select-price");
+            guiConfig.set("confirm-bounty.layout.2.slot", "49");
+            guiConfig.set("confirm-bounty.layout.3.item", "false");
+            guiConfig.set("confirm-bounty.layout.3.slot", "19-21");
+            guiConfig.set("confirm-bounty.layout.4.item", "false");
+            guiConfig.set("confirm-bounty.layout.4.slot", "37-39");
+            guiConfig.set("confirm-bounty.layout.5.item", "false");
+            guiConfig.set("confirm-bounty.layout.5.slot", "28-30");
+            guiConfig.set("confirm-bounty.layout.6.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.6.slot", "23-25");
+            guiConfig.set("confirm-bounty.layout.7.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.7.slot", "32-34");
+            guiConfig.set("confirm-bounty.layout.8.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.8.slot", "41-43");
+            guiConfig.set("custom-items.yes-bounty.material", "LIME_STAINED_GLASS_PANE");
+            guiConfig.set("custom-items.yes-bounty.amount", 1);
+            guiConfig.set("custom-items.yes-bounty.name", "&a&lYes");
+            guiConfig.set("custom-items.yes-bounty.commands", Arrays.asList("[p] bounty {slot13} {page} --confirm", "[close]"));
+            guiConfig.set("custom-items.return-set-bounty.material", "WHITE_BED");
+            guiConfig.set("custom-items.return-set-bounty.amount", 1);
+            guiConfig.set("custom-items.return-set-bounty.name", "&6&lReturn");
+            guiConfig.set("custom-items.return-set-bounty.lore", Collections.singletonList("&7Return to player selection"));
+            guiConfig.set("custom-items.return-set-bounty.commands", Collections.singletonList("[gui] set-bounty 1"));
+            guiConfig.set("custom-items.return-select-price.material", "WHITE_BED");
+            guiConfig.set("custom-items.return-select-price.amount", 1);
+            guiConfig.set("custom-items.return-select-price.name", "&6&lReturn");
+            guiConfig.set("custom-items.return-select-price.lore", Collections.singletonList("&7Return to price selection"));
+            guiConfig.set("custom-items.return-select-price.commands", Collections.singletonList("[gui] select-price {page}"));
+            guiChanges = true;
+        }
+        File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
+        if (guiChanges) {
+            guiConfig.save(guiFile);
+        }
+        for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)) {
+            CustomItem customItem = new CustomItem(Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items." + key)));
+            customItems.put(key, customItem);
+        }
     }
 
 
@@ -543,7 +563,7 @@ public class ConfigOptions {
         return temp;
     }
 
-    public static String getWantedDisplayText(OfflinePlayer player){
+    public static String getWantedDisplayText(OfflinePlayer player) {
         if (!BountyManager.hasBounty(player))
             return "";
         Bounty bounty = BountyManager.getBounty(player);

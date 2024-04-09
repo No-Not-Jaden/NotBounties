@@ -65,13 +65,6 @@ public class Renderer extends MapRenderer {
                     image = BountyMap.deepCopy(BountyMap.bountyPoster);
                 Graphics2D graphics = image.createGraphics();
                 BufferedImage head = new HeadFetcher().getPlayerFace(uuid);
-                /*if (head == null) {
-                    try {
-                        head = ImageIO.read(new URL("https://cravatar.eu/helmavatar/" + uuid + "/64.png"));
-                    } catch (IOException e) {
-                        Bukkit.getLogger().warning(e.toString());
-                    }
-                }*/
                 graphics.drawImage(head, 32, 32, null);
 
                 // center of text is y112
@@ -179,6 +172,8 @@ public class Renderer extends MapRenderer {
                         } catch (Throwable throwable) {
                             Bukkit.getLogger().warning("[NotBounties] Unable to access font configuration on this system. Reverting to backup font!");
                             BackupFontManager.loadBackupFonts();
+                            int x = 64 - BackupFontManager.getRewardLine().getWidth(rewardText) / 2;
+                            BackupFontManager.getRewardLine().drawText(reward, x, y, rewardText);
                         }
                     } else {
                         int x = 64 - BackupFontManager.getRewardLine().getWidth(rewardText) / 2;
