@@ -2,6 +2,7 @@ package me.jadenp.notbounties.utils.configuration;
 
 import me.jadenp.notbounties.PVPHistory;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -66,7 +67,7 @@ public class PVPRestrictions implements Listener {
             } else {
                 historyMap.put(player.getUniqueId(), new PVPHistory(damager.getUniqueId()));
                 if (combatLoggingTime > 0 && combatLoggingSendMessage) {
-                    event.getEntity().sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatTag.replaceAll("\\{time}", Matcher.quoteReplacement(LanguageOptions.formatTime(combatLoggingTime * 1000L))), (OfflinePlayer) event.getEntity()));
+                    event.getEntity().sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatTag.replaceAll("\\{time}", Matcher.quoteReplacement(LocalTime.formatTime(combatLoggingTime * 1000L, LocalTime.TimeFormat.RELATIVE))), (OfflinePlayer) event.getEntity()));
                 }
             }
         }

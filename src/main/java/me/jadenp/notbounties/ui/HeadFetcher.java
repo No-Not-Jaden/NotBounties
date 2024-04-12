@@ -28,8 +28,11 @@ import java.util.UUID;
 
 public class HeadFetcher {
     private static final Map<UUID, ItemStack> savedHeads = new HashMap<>();
+    private static final Map<UUID, BufferedImage> savedFaces = new HashMap<>();
 
-    public HeadFetcher(){}
+    public HeadFetcher() {
+    }
+
     public void loadHeads(Player player, PlayerGUInfo guInfo, LinkedHashMap<OfflinePlayer, ItemStack> heads) {
         ItemStack[] fetchedHeads = new ItemStack[heads.size()];
         new BukkitRunnable() {
@@ -46,17 +49,16 @@ public class HeadFetcher {
                     }
                     i++;
                 }
-
-                if (player.isOnline() && player.getOpenInventory().getType() == InventoryType.CHEST && GUI.playerInfo.containsKey(player.getUniqueId())) {
-                    PlayerGUInfo currentInfo = GUI.playerInfo.get(player.getUniqueId());
-                    if (!currentInfo.getGuiType().equals(guInfo.getGuiType()) || currentInfo.getPage() != guInfo.getPage())
-                        return;
-                    GUIOptions guiOptions = GUI.getGUI(guInfo.getGuiType());
-                    if (guiOptions == null)
-                        return;
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (player.isOnline() && player.getOpenInventory().getType() == InventoryType.CHEST && GUI.playerInfo.containsKey(player.getUniqueId())) {
+                            PlayerGUInfo currentInfo = GUI.playerInfo.get(player.getUniqueId());
+                            if (!currentInfo.getGuiType().equals(guInfo.getGuiType()) || currentInfo.getPage() != guInfo.getPage())
+                                return;
+                            GUIOptions guiOptions = GUI.getGUI(guInfo.getGuiType());
+                            if (guiOptions == null)
+                                return;
                             Inventory inventory = player.getOpenInventory().getTopInventory();
                             ItemStack[] contents = inventory.getContents();
                             for (int j = 0; j < Math.min(guiOptions.getPlayerSlots().size(), fetchedHeads.length); j++) {
@@ -65,16 +67,17 @@ public class HeadFetcher {
                             }
                             inventory.setContents(contents);
                         }
-                    }.runTask(NotBounties.getInstance());
-
-                }
+                        //Bukkit.getLogger().info("Took: " + (System.currentTimeMillis() - start) + "ms to load heads");
+                    }
+                }.runTask(NotBounties.getInstance());
 
             }
         }.runTaskLaterAsynchronously(NotBounties.getInstance(), 1);
     }
 
     public BufferedImage getPlayerFace(UUID uuid) {
-
+        if (savedFaces.containsKey(uuid))
+            return savedFaces.get(uuid);
         String name = NotBounties.getPlayerName(uuid);
         try {
             URL textureUrl = null;
@@ -89,13 +92,14 @@ public class HeadFetcher {
             BufferedImage head = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
             try {
                 // base head
-                copySquare(skin, head, 8,8);
+                copySquare(skin, head, 8, 8);
                 // mask
                 copySquare(skin, head, 40, 8);
             } catch (IndexOutOfBoundsException e) {
                 Bukkit.getLogger().warning(e.toString());
                 return null;
             }
+            savedFaces.put(uuid, head);
             return head;
 
         } catch (IOException e) {
@@ -108,7 +112,7 @@ public class HeadFetcher {
         for (int x1 = 0; x1 < 8; x1++) {
             for (int y1 = 0; y1 < 8; y1++) {
                 int color = from.getRGB(x + x1, y + y1);
-                int a = (color>>24)&0xFF;
+                int a = (color >> 24) & 0xFF;
                 if (a == 0)
                     continue;
                 for (int x2 = 0; x2 < 8; x2++) {

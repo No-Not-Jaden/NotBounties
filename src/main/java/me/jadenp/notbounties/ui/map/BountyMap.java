@@ -7,6 +7,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -150,7 +151,7 @@ public class BountyMap implements Listener {
         meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, bounty.getName(), bounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
         ArrayList<String> lore = new ArrayList<>();
         for (String str : LanguageOptions.mapLore) {
-            lore.add(LanguageOptions.parse(str, bounty.getName(), bounty.getTotalBounty(), bounty.getLatestSetter(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+            lore.add(LanguageOptions.parse(str, bounty.getName(), bounty.getTotalBounty(), bounty.getLatestSetter(), LocalTime.TimeFormat.SERVER, Bukkit.getOfflinePlayer(bounty.getUUID())));
         }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

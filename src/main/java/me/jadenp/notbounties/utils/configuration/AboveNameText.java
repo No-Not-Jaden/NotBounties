@@ -15,7 +15,8 @@ import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 public class AboveNameText {
     private final Player player;
     private ArmorStand armorStand = null;
-    private long nextUpdateTime = 0;
+    private long nextTextUpdateTime = 0;
+    private long nextVisibilityUpdateTime = 0;
     public AboveNameText(Player player) {
         this.player = player;
         if (!BountyManager.hasBounty(player))
@@ -25,26 +26,31 @@ public class AboveNameText {
 
     public void updateArmorStand(){
         if (player != null && player.isOnline() && BountyManager.hasBounty(player)) {
-            // conditions if the tag should be removed/invisible
-            if ((hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible() || isVanished()) {
-                if (armorStand != null)
-                    removeStand();
-                return;
+            if (nextVisibilityUpdateTime < System.currentTimeMillis()) {
+                // conditions if the tag should be removed/invisible
+                if ((hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible() || isVanished()) {
+                    if (armorStand != null)
+                        removeStand();
+                    return;
+                }
+                if (armorStand == null) {
+                    spawnWantedTag();
+                }
+                nextVisibilityUpdateTime = System.currentTimeMillis() + wantedVisibilityUpdateInterval;
             }
-            if (armorStand == null) {
-                spawnWantedTag();
-            }
-            if (nextUpdateTime < System.currentTimeMillis()) {
+
+            if (nextTextUpdateTime < System.currentTimeMillis()) {
+                // check if the name should be changed
                 String text = getWantedDisplayText(player);
                 if (!text.equalsIgnoreCase(armorStand.getCustomName())) {
                     armorStand.setCustomName(text);
                 }
-                nextUpdateTime = System.currentTimeMillis() + 2000; // update every second
+                nextTextUpdateTime = System.currentTimeMillis() + wantedTextUpdateInterval;
             }
             if (NotBounties.serverVersion >= 17 && player.canSee(armorStand))
                 player.hideEntity(NotBounties.getInstance(), armorStand);
             // a fix for 1.16, the random is to help with performance
-            if (NotBounties.serverVersion <= 16 && Math.random() <= 0.2) {
+            if (NotBounties.serverVersion <= 16 && Math.random() <= 0.5) {
                 armorStand.setVisible(true);
                 armorStand.setVisible(false);
                 armorStand.setMarker(false);

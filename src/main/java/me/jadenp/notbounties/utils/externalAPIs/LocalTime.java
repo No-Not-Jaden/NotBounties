@@ -17,6 +17,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -25,13 +26,21 @@ import java.text.DateFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class LocalTime {
-
-    // these codes will only be saved in RAM and will be deleted after the plugin is disabled
+    public enum TimeFormat {
+        SERVER, PLAYER, RELATIVE
+    }
     private static final Map<UUID, TimeZone> savedTimeZones = new HashMap<>();
     private static int account;
     private static String license = null;
+    private static long lastException = 0;
+
+    public static void addTimeZone(UUID uuid, String timeZone) {
+        savedTimeZones.put(uuid, TimeZone.getTimeZone(timeZone));
+    }
 
     private static void readAuthentication() throws IOException {
         // checks if secret file is present
@@ -43,8 +52,10 @@ public class LocalTime {
         license = configuration.getString("geoip2.license");
     }
 
-    public static String formatTime(long time, Player player) {
+    private static String formatTime(long time, Player player) {
         if (!ConfigOptions.autoTimezone)
+            return formatTime(time);
+        if (lastException + 10 * 60 * 1000 > System.currentTimeMillis())
             return formatTime(time);
         if (license == null) {
             try {
@@ -54,19 +65,26 @@ public class LocalTime {
             }
         }
         if (savedTimeZones.containsKey(player.getUniqueId()))
-            return formatTime(time, savedTimeZones.get(player.getUniqueId()));
+            return formatTime(time, savedTimeZones.get(player.getUniqueId())) + " " + savedTimeZones.get(player.getUniqueId()).getDisplayName(false, TimeZone.SHORT);
         InetSocketAddress address = player.getAddress();
         if (address == null)
             return formatTime(time);
 
 
-        CompletableFuture<TimeZone> timezone = getTimezone(address);
-        try {
-            savedTimeZones.put(player.getUniqueId(), timezone.get());
-            return formatTime(time, timezone.get());
-        } catch (ExecutionException | InterruptedException e) {
-            return formatTime(time);
-        }
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                CompletableFuture<TimeZone> timezone = getTimezone(address);
+                try {
+                    savedTimeZones.put(player.getUniqueId(), timezone.get(2, TimeUnit.SECONDS));
+                } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                    lastException = System.currentTimeMillis();
+                }
+            }
+        }.runTaskAsynchronously(NotBounties.getInstance());
+
+
+        return formatTime(time);
     }
 
     private static CompletableFuture<TimeZone> getTimezone(InetSocketAddress address) {
@@ -94,6 +112,7 @@ public class LocalTime {
                 if (entity != null) {
                     // return it as a String
                     String result = EntityUtils.toString(entity);
+                    //Bukkit.getLogger().info(result);
                     JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseString(result).getAsJsonObject() : new JsonParser().parse(result).getAsJsonObject();
                     JsonObject location = input.getAsJsonObject("location");
 
@@ -114,7 +133,43 @@ public class LocalTime {
         return dateFormat.format(time);
     }
 
-    public static String formatTime(long time) {
-        return ConfigOptions.dateFormat.format(time);
+    private static String formatTime(long time) {
+        return ConfigOptions.dateFormat.format(time) + " " + ConfigOptions.dateFormat.getTimeZone().getDisplayName(false, TimeZone.SHORT);
+    }
+
+    private static String formatRelativeTime(long ms) {
+        long days = (long) (ms / (8.64 * Math.pow(10,7)));
+        ms = (long) (ms % (8.64 * Math.pow(10,7)));
+        long hours = ms / 3600000L;
+        ms = ms % 3600000L;
+        long minutes = ms / 60000L;
+        ms = ms % 60000L;
+        long seconds = ms / 1000L;
+        String time = "";
+        if (days > 0) time += days + "d ";
+        if (hours > 0) time += hours + "h ";
+        if (minutes > 0) time += minutes + "m ";
+        if (seconds > 0) time += seconds + "s";
+        if (time.isEmpty())
+            return "0s";
+        return time;
+    }
+
+    public static String formatTime(long time, TimeFormat format, Player... players) {
+        switch (format) {
+            case PLAYER:
+                if (players.length > 0 && players[0] != null)
+                    return formatTime(time, players[0]);
+                return formatTime(time);
+            case SERVER:
+                return formatTime(time);
+            case RELATIVE:
+                return formatRelativeTime(time);
+        }
+        return formatTime(time);
+    }
+
+     public static Map<UUID, TimeZone> getSavedTimeZones() {
+        return savedTimeZones;
     }
 }

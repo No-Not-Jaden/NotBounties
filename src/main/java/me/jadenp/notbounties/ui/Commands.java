@@ -11,6 +11,7 @@ import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.*;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
+import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -606,7 +607,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                     if (Immunity.immunityType == Immunity.ImmunityType.SCALING) {
                                                         sender.sendMessage(parse(prefix + buyScalingImmunity, Immunity.getImmunity(parser.getUniqueId()) * Immunity.getScalingRatio(), parser));
                                                     } else {
-                                                        sender.sendMessage(parse(prefix + buyTimeImmunity.replaceAll("\\{time}", Matcher.quoteReplacement(formatTime(Immunity.getTimeImmunity(parser)))), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getTime(), parser));
+                                                        sender.sendMessage(parse(prefix + buyTimeImmunity.replaceAll("\\{time}", Matcher.quoteReplacement(LocalTime.formatTime(Immunity.getTimeImmunity(parser), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getTime(), parser));
                                                     }
                                                     return true;
                                                 } else {
@@ -713,10 +714,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 return false;
                             }
 
-                            sender.sendMessage(parse(prefix + checkBounty, p.getName(), bounty.getTotalBounty(parser), bounty.getLatestSetter(), p));
+                            sender.sendMessage(parse(prefix + checkBounty, p.getName(), bounty.getTotalBounty(parser), bounty.getLatestSetter(), LocalTime.TimeFormat.PLAYER, parser));
                             for (Setter setters : bounty.getSetters()) {
                                 if (showWhitelistedBounties || sender.hasPermission("notbounties.admin") || !(sender instanceof Player) || setters.canClaim(parser)) {
-                                    sender.sendMessage(parse(prefix + listSetter, setters.getName(), setters.getAmount(), setters.getTimeCreated(), parser));
+                                    sender.sendMessage(parse(prefix + listSetter, setters.getName(), setters.getAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, parser));
                                     if (!setters.canClaim(parser))
                                         notWhitelistedLore.stream().filter(s -> !s.isEmpty()).map(s -> parse(s, p)).forEach(sender::sendMessage);
                                 }
@@ -1233,7 +1234,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             // check for immunity
                             switch (Immunity.getAppliedImmunity(player, amount)) {
                                 case GRACE_PERIOD:
-                                    sender.sendMessage(parse(prefix + LanguageOptions.gracePeriod.replaceAll("\\{time}", Matcher.quoteReplacement(formatTime(Immunity.getGracePeriod(player.getUniqueId())))), player.getName(), player));
+                                    sender.sendMessage(parse(prefix + LanguageOptions.gracePeriod.replaceAll("\\{time}", Matcher.quoteReplacement(LocalTime.formatTime(Immunity.getGracePeriod(player.getUniqueId()), LocalTime.TimeFormat.RELATIVE))), player.getName(), player));
                                     return false;
                                 case PERMANENT:
                                     sender.sendMessage(parse(prefix + permanentImmunity, player.getName(), Immunity.getImmunity(player.getUniqueId()), player));
@@ -1242,7 +1243,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(prefix + scalingImmunity, player.getName(), Immunity.getImmunity(player.getUniqueId()), player));
                                     return false;
                                 case TIME:
-                                    sender.sendMessage(parse(prefix + LanguageOptions.timeImmunity.replaceAll("\\{time}", Matcher.quoteReplacement(formatTime(Immunity.getTimeImmunity(player)))), player.getName(), Immunity.getImmunity(player.getUniqueId()), player));
+                                    sender.sendMessage(parse(prefix + LanguageOptions.timeImmunity.replaceAll("\\{time}", Matcher.quoteReplacement(LocalTime.formatTime(Immunity.getTimeImmunity(player), LocalTime.TimeFormat.RELATIVE))), player.getName(), Immunity.getImmunity(player.getUniqueId()), player));
                                     return false;
 
                             }

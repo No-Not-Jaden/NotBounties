@@ -21,7 +21,7 @@ public class Bounty implements Comparable<Bounty>{
     public Bounty(Player setter, OfflinePlayer receiver, double amount, Whitelist whitelist){
         // save player
         this.uuid = receiver.getUniqueId();
-        name = receiver.getName();
+        name = NotBounties.getPlayerName(receiver.getUniqueId());
         // add to the total bounty
         setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
     }
@@ -29,7 +29,7 @@ public class Bounty implements Comparable<Bounty>{
     public Bounty(OfflinePlayer receiver, double amount, Whitelist whitelist){
         // save player
         this.uuid = receiver.getUniqueId();
-        name = receiver.getName();
+        name = NotBounties.getPlayerName(receiver.getUniqueId());
         // add to the total bounty
         setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
     }

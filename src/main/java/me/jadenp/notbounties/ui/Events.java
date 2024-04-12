@@ -8,6 +8,7 @@ import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.UpdateChecker;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
+import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -452,6 +453,9 @@ public class Events implements Listener {
         // remove persistent bounty entities in chunk
         if (wanted || !bountyBoards.isEmpty())
             RemovePersistentEntitiesEvent.cleanChunk(event.getPlayer().getLocation());
+
+        // log timezone
+        LocalTime.formatTime(0, LocalTime.TimeFormat.PLAYER, event.getPlayer());
     }
 
 

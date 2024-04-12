@@ -77,7 +77,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             long next = TimedBounties.getUntilNextBounty(player.getUniqueId());
             if (next == -1)
                 return "";
-            return LanguageOptions.formatTime(next);
+            return LocalTime.formatTime(next, LocalTime.TimeFormat.RELATIVE);
         }
         if (params.equalsIgnoreCase("wanted")) {
             Bounty bounty = BountyManager.getBounty(player);

@@ -82,6 +82,8 @@ public class ConfigOptions {
     public static boolean wanted;
     public static double wantedOffset;
     public static String wantedText;
+    public static long wantedTextUpdateInterval;
+    public static long wantedVisibilityUpdateInterval;
     public static double minWanted;
     public static boolean hideWantedWhenSneaking;
     public static LinkedHashMap<Integer, String> wantedLevels = new LinkedHashMap<>();
@@ -360,6 +362,8 @@ public class ConfigOptions {
         autoBountyExpireTime = bounties.getConfig().getDouble("auto-bounties.expire-time");
         autoBountyOverrideImmunity = bounties.getConfig().getBoolean("auto-bounties.override-immunity");
         autoTimezone = bounties.getConfig().getBoolean("auto-timezone");
+        wantedTextUpdateInterval = bounties.getConfig().getLong("wanted-tag.text-update-interval");
+        wantedVisibilityUpdateInterval = bounties.getConfig().getLong("wanted-tag.visibility-update-interval");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {

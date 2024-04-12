@@ -11,10 +11,7 @@ import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
-import me.jadenp.notbounties.utils.externalAPIs.BountyExpansion;
-import me.jadenp.notbounties.utils.externalAPIs.LandsClass;
-import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
-import me.jadenp.notbounties.utils.externalAPIs.WorldGuardClass;
+import me.jadenp.notbounties.utils.externalAPIs.*;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -30,6 +27,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.Color;
 import java.io.File;
@@ -534,6 +532,9 @@ public final class NotBounties extends JavaPlugin {
             for (Map.Entry<UUID, Long> entry : TimedBounties.getNextBounties().entrySet()) {
                 configuration.set("data." + entry.getKey() + ".next-bounty", entry.getValue());
             }
+            for (Map.Entry<UUID, TimeZone> entry : LocalTime.getSavedTimeZones().entrySet()) {
+                configuration.set("data." + entry.getKey() + ".time-zone", entry.getValue().getID());
+            }
 
         }
         if (variableWhitelist) {
@@ -685,7 +686,7 @@ public final class NotBounties extends JavaPlugin {
         return loggedPlayers.get(viableNames.get(0));
     }
 
-    public static String getPlayerName(UUID uuid) {
+    public static @NotNull String getPlayerName(UUID uuid) {
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         String name = player.getName();
         if (name != null)

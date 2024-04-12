@@ -1,18 +1,22 @@
 package me.jadenp.notbounties.utils;
 
-import me.jadenp.notbounties.*;
+import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.Leaderboard;
+import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
+import me.jadenp.notbounties.bountyEvents.BountySetEvent;
+import me.jadenp.notbounties.sql.MySQL;
+import me.jadenp.notbounties.sql.SQLGetter;
 import me.jadenp.notbounties.ui.Commands;
+import me.jadenp.notbounties.ui.gui.GUI;
+import me.jadenp.notbounties.ui.gui.GUIOptions;
+import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
-import me.jadenp.notbounties.bountyEvents.BountySetEvent;
-import me.jadenp.notbounties.ui.gui.GUI;
-import me.jadenp.notbounties.ui.gui.GUIOptions;
-import me.jadenp.notbounties.ui.map.BountyBoard;
-import me.jadenp.notbounties.sql.MySQL;
-import me.jadenp.notbounties.sql.SQLGetter;
+import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -28,7 +32,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
@@ -169,7 +172,8 @@ public class BountyManager {
                             }
                         if (configuration.isSet("data." + uuid + ".refund"))
                             refundedBounties.put(uuid, configuration.getDouble("data." + uuid + ".refund"));
-
+                        if (configuration.isSet("data." + uuid + "time-zone"))
+                            LocalTime.addTimeZone(uuid, configuration.getString("data." + uuid + ".time-zone"));
                     }
                 if (!timedBounties.isEmpty())
                     TimedBounties.setNextBounties(timedBounties);

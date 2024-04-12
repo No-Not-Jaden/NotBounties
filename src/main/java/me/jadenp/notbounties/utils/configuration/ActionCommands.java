@@ -94,14 +94,24 @@ public class ActionCommands {
                         SkullMeta meta = (SkullMeta) item.getItemMeta();
                         assert meta != null;
                         OfflinePlayer p = meta.getOwningPlayer();
-                        if (p != null && p.getName() != null) {
-                            replacement = p.getName();
+                        if (p != null) {
+                            replacement = NotBounties.getPlayerName(p.getUniqueId());
                         } else {
-                            Bukkit.getLogger().warning("Invalid player for slot " + slot);
+                            if (!info.getGuiType().isEmpty()) {
+                               GUIOptions guiOptions = GUI.getGUI(info.getGuiType());
+                               if (guiOptions != null) {
+                                   if (guiOptions.getPlayerSlots().contains(slot)) {
+                                        replacement = NotBounties.getPlayerName(info.getPlayers()[guiOptions.getPlayerSlots().indexOf(slot)]);
+                                   }
+                               } else {
+                                   Bukkit.getLogger().warning("Invalid player for slot " + slot);
+                               }
+                            } else {
+                                Bukkit.getLogger().warning("Invalid player for slot " + slot);
+                            }
+
                         }
                     }
-                    if (replacement == null)
-                        replacement = "";
                     if (replacement.isEmpty()) {
                         ItemMeta meta = item.getItemMeta();
                         if (meta != null)

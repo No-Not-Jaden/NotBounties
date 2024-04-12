@@ -196,23 +196,23 @@ public class GUIOptions {
             Bounty bounty = getBounty(p);
             if (type.equals("bounty-gui")) {
                 amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
-                if (bounty != null) {
-                    time = bounty.getLatestSetter();
-                }
+
             } else {
                 amount[i] = formatNumber(amount[i]);
             }
-
+            if (bounty != null) {
+                time = bounty.getLatestSetter();
+            }
             final String finalAmount = amount[i];
+            long finalTime = time;
             final long rank = i + 1;
             String[] finalReplacements = replacements;
             String playerName = NotBounties.getPlayerName(p.getUniqueId());
             List<String> lore = new ArrayList<>(headLore);
             double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
             try {
-                meta.setDisplayName(parse(color(headName.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), time, p));
-                long finalTime = time;
-                lore.replaceAll(s -> parse(color(s.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix))), finalTime, p));
+                meta.setDisplayName(parse(headName, finalAmount, rank, finalReplacements[0], playerName, total,  finalTime, p));
+                lore.replaceAll(s -> parse(s, finalAmount, rank, finalReplacements[0], playerName, total,  finalTime, p));
             } catch (IllegalArgumentException e) {
                 Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             }
@@ -262,7 +262,7 @@ public class GUIOptions {
         }
         new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, new Object[0], values.keySet().toArray(new UUID[0]), name), unloadedHeads);
         inventory.setContents(contents);
-        //GUI.playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, type, null, playerItems));
+        //Bukkit.getLogger().info("Took: " + (System.currentTimeMillis() - start) + "ms to load the inventory.");
         return inventory;
 
     }

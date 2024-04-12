@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutionException;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class Head {
-    private static Map<UUID, String> savedTextureIDs = new HashMap<>();
+    private static final Map<UUID, String> savedTextureIDs = new HashMap<>();
     public static ItemStack createPlayerSkull(String data){
 
         ItemStack item = null;
@@ -68,7 +68,7 @@ public class Head {
                 profile.setTextures(Bukkit.getOfflinePlayer(uuid).getPlayerProfile().getTextures());
                 meta.setOwnerProfile(profile);
             } else {
-               Bukkit.getLogger().warning("[NotBounties] No supported way to get player texture!");
+               Bukkit.getLogger().warning("[NotBounties] No supported way to get some player textures!");
             }
         }
         head.setItemMeta(meta);
@@ -83,7 +83,8 @@ public class Head {
             JsonElement skinURL = urlInput.get("textures").getAsJsonObject().get("SKIN").getAsJsonObject().get("url");
             return new URL(skinURL.getAsString());
         } catch (IOException | ExecutionException | InterruptedException e) {
-            Bukkit.getLogger().warning(e.toString());
+            //Bukkit.getLogger().warning(e.toString());
+            // too many requests
             return null;
         }
     }

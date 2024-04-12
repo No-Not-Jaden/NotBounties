@@ -22,16 +22,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+import static me.jadenp.notbounties.utils.externalAPIs.LocalTime.formatTime;
 import static net.md_5.bungee.api.ChatColor.COLOR_CHAR;
 
 public class LanguageOptions {
+
     public static String prefix;
     public static String unknownNumber;
     public static String bountySuccess;
@@ -496,7 +497,7 @@ public class LanguageOptions {
             str = str.replaceAll("\\{buy_back_interest}", Matcher.quoteReplacement(NumberFormatting.formatNumber(ConfigOptions.buyBackInterest)));
             str = str.replaceAll("\\{permanent_cost}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
             str = str.replaceAll("\\{scaling_ratio}", Matcher.quoteReplacement(NumberFormatting.formatNumber(Immunity.getScalingRatio())));
-            str = str.replaceAll("\\{time_immunity}", Matcher.quoteReplacement(formatTime((long) (Immunity.getTime() * 1000L))));
+            str = str.replaceAll("\\{time_immunity}", Matcher.quoteReplacement(formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
             sender.sendMessage(parse(str, parser));
         }
     }
@@ -508,8 +509,10 @@ public class LanguageOptions {
     }
 
     public static String parse(String str, OfflinePlayer receiver) {
-        String timeString = receiver != null && receiver.isOnline() ? LocalTime.formatTime(System.currentTimeMillis(), receiver.getPlayer()) : LocalTime.formatTime(System.currentTimeMillis());
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+        if (str.contains("{time}")) {
+            String timeString = formatTime(System.currentTimeMillis(), LocalTime.TimeFormat.PLAYER, receiver.getPlayer());
+            str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+        }
         str = str.replaceAll("\\{min_bounty}", Matcher.quoteReplacement(NumberFormatting.getValue(ConfigOptions.minBounty)));
         str = str.replaceAll("\\{c_prefix}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix));
         str = str.replaceAll("\\{c_suffix}", Matcher.quoteReplacement(NumberFormatting.currencySuffix));
@@ -517,8 +520,8 @@ public class LanguageOptions {
         if (receiver != null) {
             Bounty bounty = BountyManager.getBounty(receiver);
             if (bounty != null) {
-                str = str.replaceAll("\\{min_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getLowestExpireTime(bounty))));
-                str = str.replaceAll("\\{max_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getHighestExpireTime(bounty))));
+                str = str.replaceAll("\\{min_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getLowestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
+                str = str.replaceAll("\\{max_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getHighestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
             } else {
                 str = str.replaceAll("\\{min_expire}", "");
                 str = str.replaceAll("\\{max_expire}", "");
@@ -556,9 +559,11 @@ public class LanguageOptions {
         return color(str);
     }
 
-    public static String parse(String str, long time, OfflinePlayer receiver) {
-        String timeString = receiver != null && receiver.isOnline() ? LocalTime.formatTime(time, receiver.getPlayer()) : LocalTime.formatTime(time);
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+    public static String parse(String str, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
+        if (str.contains("{time}")) {
+            String timeString = formatTime(time, format, receiver.getPlayer());
+            str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+        }
         str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(time + ""));
         return parse(str, receiver);
     }
@@ -573,9 +578,11 @@ public class LanguageOptions {
         return parse(str,amount,receiver);
     }
 
-    public static String parse(String str, String player, double amount, long time, OfflinePlayer receiver) {
-        String timeString = receiver != null && receiver.isOnline() ? LocalTime.formatTime(time, receiver.getPlayer()) : LocalTime.formatTime(time);
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+    public static String parse(String str, String player, double amount, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
+        if (str.contains("{time}")) {
+            String timeString = formatTime(time, format, receiver.getPlayer());
+            str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+        }
         return parse(str, player, amount, receiver);
     }
 
@@ -584,14 +591,17 @@ public class LanguageOptions {
         return parse(str, player, amount, receiver);
     }
 
-    public static String parse(String str, String player, double amount, double bounty, long time, OfflinePlayer receiver) {
-        String timeString = receiver != null && receiver.isOnline() ? LocalTime.formatTime(time, receiver.getPlayer()) : LocalTime.formatTime(time);
-        str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+    public static String parse(String str, String player, double amount, double bounty, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
+        if (str.contains("{time}")) {
+            String timeString = formatTime(time, format, receiver.getPlayer());
+            str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+        }
         return parse(str, player, amount, bounty, receiver);
     }
 
     public static String parse(String str, String sender, String player, double amount, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
+        if (sender != null)
+            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
         return parse(str, player, amount, receiver);
     }
 
@@ -603,6 +613,11 @@ public class LanguageOptions {
     public static String parse(String str, String sender, String player, double amount, double totalBounty, OfflinePlayer receiver) {
         str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
         return parse(str, sender, player, amount, receiver);
+    }
+
+    public static String parse(String str, String amount, long rank, String leaderboard, String playerName, double amountTax, long time, OfflinePlayer player) {
+        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(amount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(leaderboard)).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amountTax) + NumberFormatting.currencySuffix));
+        return parse(str, time, player);
     }
 
     public static String color(String str) {
@@ -625,22 +640,6 @@ public class LanguageOptions {
         return matcher.appendTail(buffer).toString();
     }
 
-    public static String formatTime(long ms) {
-        long days = (long) (ms / (8.64 * Math.pow(10,7)));
-        ms = (long) (ms % (8.64 * Math.pow(10,7)));
-        long hours = ms / 3600000L;
-        ms = ms % 3600000L;
-        long minutes = ms / 60000L;
-        ms = ms % 60000L;
-        long seconds = ms / 1000L;
-        String time = "";
-        if (days > 0) time += days + "d ";
-        if (hours > 0) time += hours + "h ";
-        if (minutes > 0) time += minutes + "m ";
-        if (seconds > 0) time += seconds + "s";
-        if (time.isEmpty())
-            return "0s";
-        return time;
-    }
+
 
 }

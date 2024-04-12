@@ -62,6 +62,8 @@ public class GUI implements Listener {
                     double bountyAmount = showWhitelistedBounties || player.hasPermission("notbounties.admin") ? bounty.getTotalBounty() : bounty.getTotalBounty(player);
                     if (bountyAmount > 0)
                         values.put(bounty.getUUID(), String.format("%f", bountyAmount));
+                    if (values.size() > gui.getPlayerSlots().size() * page)
+                        break;
                 }
                 break;
             case "leaderboard":
@@ -70,9 +72,12 @@ public class GUI implements Listener {
                 break;
             case "set-bounty":
                 values = Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType());
-                for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet())
+                for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet()) {
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
+                    if (values.size() > gui.getPlayerSlots().size() * page)
+                        break;
+                }
                 if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
                     // remove offline players
                     values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(e.getKey()).isOnline());
@@ -82,12 +87,18 @@ public class GUI implements Listener {
                 List<UUID> whitelist = NotBounties.getPlayerWhitelist(player.getUniqueId()).getList();
                 for (UUID uuid : whitelist)
                     values.put(uuid, NumberFormatting.currencyPrefix + Leaderboard.IMMUNITY.getStat(uuid) + NumberFormatting.currencySuffix);
-                for (Map.Entry<UUID, String> entry : Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet())
+                for (Map.Entry<UUID, String> entry : Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
                     if (!values.containsKey(entry.getKey()))
                         values.put(entry.getKey(), entry.getValue());
-                for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet())
+                    if (values.size() > gui.getPlayerSlots().size() * page)
+                        break;
+                }
+                for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet()) {
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
+                    if (values.size() > gui.getPlayerSlots().size() * page)
+                        break;
+                }
                 if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
                     // remove offline players
                     values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(e.getKey()).isOnline() && !whitelist.contains(e.getKey()));
@@ -134,6 +145,7 @@ public class GUI implements Listener {
             player.openInventory(inventory);
         }
         playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, name, data, values.keySet().toArray(new UUID[0]), player.getOpenInventory().getTitle()));
+        //Bukkit.getLogger().info("Took: " + (System.currentTimeMillis() - start) + "ms to open GUI");
     }
 
 

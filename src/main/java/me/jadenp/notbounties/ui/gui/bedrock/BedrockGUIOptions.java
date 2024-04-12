@@ -116,9 +116,6 @@ public class BedrockGUIOptions {
         Bounty bounty = getBounty(p);
         if (type.equals("bounty-gui")) {
             amount = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount)) + currencySuffix;
-            if (bounty != null) {
-                time = bounty.getLatestSetter();
-            }
         } else {
             Leaderboard leaderboard = null;
             try {
@@ -128,6 +125,9 @@ public class BedrockGUIOptions {
             if (leaderboard == null)
                 amount = formatNumber(amount);
         }
+        if (bounty != null) {
+            time = bounty.getLatestSetter();
+        }
 
         final String finalAmount = amount;
         final long rank = index + 1;
@@ -135,7 +135,7 @@ public class BedrockGUIOptions {
         double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
         String text;
         try {
-            text = playerText.replaceAll("\\{amount}", Matcher.quoteReplacement(finalAmount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix));
+            text = parse(playerText, finalAmount, rank, replacements[0], playerName, total, time, p);
         } catch (IllegalArgumentException e) {
             Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             text = playerText;
