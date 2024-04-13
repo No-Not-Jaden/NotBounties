@@ -362,12 +362,10 @@ public class NumberFormatting {
             float[] currencyValuesCopy = Floats.toArray(currencyValues.values());
 
             double[] balancedRemove = balanceRemoveCurrency(amount, currencyWeightsCopy, getSortedBalance(p, additionalItems), currencyValuesCopy);
-            if (modifiedRemoveCommands.size() < balancedRemove.length) {
+            if (modifiedRemoveCommands.size() < balancedRemove.length - 1) {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough remove commands for your currency! Currency will not be removed properly!");
             }
             for (int i = 0; i < Math.min(balancedRemove.length-1, modifiedRemoveCommands.size()); i++) {
-                if (modifiedRemoveCommands.get(i).isEmpty())
-                    continue;
                 if (currency.get(i).contains("%")) {
                     String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(balancedRemove[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
@@ -403,6 +401,14 @@ public class NumberFormatting {
         return removedItems;
     }
 
+    /**
+     * Calculate what combination of items should be removed from a player's inventory
+     * @param amount Currency amount to be removed
+     * @param currencyWeights Array of currency weights - The weight of each currency, higher weights are removed more
+     * @param currentBalance Array of currency balance - How much of each currency the player has
+     * @param currencyValues Array of currency values - How much each currency is worth compared to the amount value
+     * @return An array of doubles sized (currency.size() + 1). Each double relates to the amount of currency that should be removed, the last double represents the amount of currency that should be refunded.
+     */
     public static double @NotNull [] balanceRemoveCurrency(double amount, float[] currencyWeights, double[] currentBalance, float[] currencyValues){
         float totalWeight = addUp(currencyWeights);
         if (totalWeight == 0){
@@ -673,8 +679,6 @@ public class NumberFormatting {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
             }
             for (int i = 0; i < Math.min(balancedAdd.length, modifiedAddCommands.size()); i++) {
-                if (modifiedAddCommands.get(i).isEmpty())
-                    continue;
                 if (currency.get(i).contains("%")) {
                     String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(balancedAdd[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
@@ -748,8 +752,6 @@ public class NumberFormatting {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
             }
             for (int i = 0; i < Math.min(descendingAdd.length, modifiedAddCommands.size()); i++) {
-                if (modifiedAddCommands.get(i).isEmpty())
-                    continue;
                 if (currency.get(i).contains("%")) {
                     String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(descendingAdd[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
