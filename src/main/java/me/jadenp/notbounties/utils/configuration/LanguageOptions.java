@@ -529,8 +529,12 @@ public class LanguageOptions {
             if (receiver.getName() != null) {
                 str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
                 str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
+            } else {
+                str = str.replaceAll("\\{player}", Matcher.quoteReplacement(NotBounties.getPlayerName(receiver.getUniqueId())));
+                str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(NotBounties.getPlayerName(receiver.getUniqueId())));
             }
-            str = str.replaceAll("\\{balance}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
+            if (str.contains("{balance}"))
+                str = str.replaceAll("\\{balance}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
             Whitelist whitelist = NotBounties.getPlayerWhitelist(receiver.getUniqueId());
             str = str.replaceAll("\\{whitelist}", Matcher.quoteReplacement(whitelist.toString()));
             String mode = whitelist.isBlacklist() ? "Blacklist" : "Whitelist";
@@ -575,6 +579,7 @@ public class LanguageOptions {
 
     public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
         str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
+        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
         return parse(str,amount,receiver);
     }
 

@@ -33,6 +33,7 @@ public class VaultClass {
             Bukkit.getLogger().warning("Could not get registered service provider from Vault");
         } else {
             working = true;
+            economy = rsp.getProvider();
         }
         return !working;
     }
@@ -54,13 +55,16 @@ public class VaultClass {
     public boolean checkBalance(OfflinePlayer player, double amount) {
         if (!working && tryRegister())
             return false;
-        //Bukkit.getLogger().info(economy.getBalance(player) + " >= " + amount);
-        return economy.getBalance(player) >= amount;
+        if (economy.hasAccount(player))
+            return economy.has(player, amount);
+        return false;
     }
 
     public double getBalance(OfflinePlayer player) {
         if (!working && tryRegister())
             return 0;
-        return economy.getBalance(player);
+        if (economy.hasAccount(player))
+            return economy.getBalance(player);
+        return 0;
     }
 }
