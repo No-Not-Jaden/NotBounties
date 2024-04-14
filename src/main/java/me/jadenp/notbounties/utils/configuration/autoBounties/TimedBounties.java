@@ -13,6 +13,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
+import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.liteBansEnabled;
 
@@ -75,6 +76,8 @@ public class TimedBounties {
             if (!offlineTracking && !player.isOnline())
                 continue;
             if (System.currentTimeMillis() > entry.getValue()) {
+                if (player.isOnline() && isVanished(Objects.requireNonNull(player.getPlayer())))
+                    continue;
                 // set bounty
                 new BukkitRunnable() {
                     @Override

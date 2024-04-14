@@ -7,6 +7,7 @@ import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -26,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
+import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
@@ -53,7 +55,7 @@ public class GUI implements Listener {
         if (page < 1)
             page = 1;
 
-
+        boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
         LinkedHashMap<UUID, String> values = new LinkedHashMap<>();
         switch (name){
             case "bounty-gui":
@@ -75,12 +77,34 @@ public class GUI implements Listener {
                 for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet()) {
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
-                    if (values.size() > gui.getPlayerSlots().size() * page)
-                        break;
                 }
-                if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
-                    // remove offline players
-                    values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(e.getKey()).isOnline());
+                // iterate through to remove specific players
+                Iterator<Map.Entry<UUID, String>> iterator = values.entrySet().iterator();
+                int addedPlayers = 0;
+                while (iterator.hasNext()) {
+                    Map.Entry<UUID, String> entry = iterator.next();
+                    if (reducePageCalculations) {
+                        // remove added players we don't need
+                        if (addedPlayers > gui.getPlayerSlots().size() * page) {
+                            iterator.remove();
+                            continue;
+                        }
+                    }
+                    OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
+                    if (online) {
+                        // remove if offline or vanished
+                        if (!player1.isOnline() || isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && !player.canSee(player1.getPlayer()))) {
+                            iterator.remove();
+                            continue;
+                        }
+                    }
+                    // remove if they are immune
+                    Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(player1, 69);
+                    if (immunityType == Immunity.ImmunityType.PERMANENT || immunityType == Immunity.ImmunityType.GRACE_PERIOD) {
+                        iterator.remove();
+                        continue;
+                    }
+                    addedPlayers++;
                 }
                 break;
             case "set-whitelist":
@@ -90,8 +114,6 @@ public class GUI implements Listener {
                 for (Map.Entry<UUID, String> entry : Leaderboard.IMMUNITY.getFormattedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
                     if (!values.containsKey(entry.getKey()))
                         values.put(entry.getKey(), entry.getValue());
-                    if (values.size() > gui.getPlayerSlots().size() * page)
-                        break;
                 }
                 for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet()) {
                     if (!values.containsKey(entry.getValue()))
@@ -99,9 +121,27 @@ public class GUI implements Listener {
                     if (values.size() > gui.getPlayerSlots().size() * page)
                         break;
                 }
-                if (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline")) {
-                    // remove offline players
-                    values.entrySet().removeIf(e -> !Bukkit.getOfflinePlayer(e.getKey()).isOnline() && !whitelist.contains(e.getKey()));
+                // iterate through to remove specific players
+                Iterator<Map.Entry<UUID, String>> iterator1 = values.entrySet().iterator();
+                int addedPlayers1 = 0;
+                while (iterator1.hasNext()) {
+                    Map.Entry<UUID, String> entry = iterator1.next();
+                    if (reducePageCalculations) {
+                        // remove extra players we don't need
+                        if (addedPlayers1 > gui.getPlayerSlots().size() * page) {
+                            iterator1.remove();
+                            continue;
+                        }
+                    }
+                    OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
+                    if (online) {
+                        // remove if offline or vanished
+                        if (!player1.isOnline() || isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && !player.canSee(player1.getPlayer()))) {
+                            iterator1.remove();
+                            continue;
+                        }
+                    }
+                    addedPlayers1++;
                 }
                 break;
             case "select-price":
@@ -193,7 +233,8 @@ public class GUI implements Listener {
             SkullMeta meta = (SkullMeta) event.getCurrentItem().getItemMeta();
             assert meta != null;
             //OfflinePlayer player = meta.getOwningPlayer();
-            OfflinePlayer player = Bukkit.getOfflinePlayer(info.getPlayers()[gui.getPlayerSlots().indexOf(event.getSlot())]);
+            int pageAddition = guiType.equals("select-price") ? 0 : (int) ((info.getPage() - 1) * gui.getPlayerSlots().size());
+            OfflinePlayer player = Bukkit.getOfflinePlayer(info.getPlayers()[gui.getPlayerSlots().indexOf(event.getSlot()) + pageAddition]);
             String playerName = NotBounties.getPlayerName(player.getUniqueId());
             switch (guiType) {
                 case "bounty-gui":

@@ -95,13 +95,8 @@ public class WebhookOptions implements Listener {
             @Override
             public void run() {
                 if (webhook.isEnabled()) {
-                    DiscordWebhook.EmbedObject embed = new DiscordWebhook.EmbedObject()
-                            .setTitle(ChatColor.stripColor(LanguageOptions.parse(webhook.getTitle(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))))
-                            .setDescription(ChatColor.stripColor(LanguageOptions.parse(webhook.getDescription(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))))
-                            .setColor(webhook.getColor())
-                            .setFooter(ChatColor.stripColor(LanguageOptions.parse(webhook.getFooterText(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))), webhook.getFooterURL());
-                    for (WebhookField field : webhook.getContent())
-                        embed.addField(ChatColor.stripColor(LanguageOptions.parse(field.getName(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))), ChatColor.stripColor(LanguageOptions.parse(field.getValue(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(playerUUID))), field.isInline());
+                    boolean sendEmbed = !webhook.getTitle().isEmpty() || !webhook.getDescription().isEmpty() || !webhook.getFooterText().isEmpty() || webhook.isSendImage();
+                    DiscordWebhook.EmbedObject embed = null;
                     UUID avatarUUID = webhook.isSwitchImages() ? playerUUID : receiverUUID;
                     UUID imageUUID = webhook.isSwitchImages() ? receiverUUID : playerUUID;
                     String avatarTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
@@ -114,7 +109,16 @@ public class WebhookOptions implements Listener {
                         imageTextureID = tempId;
                     String avatarURL = "https://mc-heads.net/head/" + avatarTextureID + ".png";
                     String imageURL = "https://mc-heads.net/avatar/" + imageTextureID + "/128.png";
-                    embed.setImage(imageURL);
+                    if (sendEmbed) {
+                        embed = new DiscordWebhook.EmbedObject()
+                                .setTitle(ChatColor.stripColor(LanguageOptions.parse(webhook.getTitle(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))))
+                                .setDescription(ChatColor.stripColor(LanguageOptions.parse(webhook.getDescription(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))))
+                                .setColor(webhook.getColor())
+                                .setFooter(ChatColor.stripColor(LanguageOptions.parse(webhook.getFooterText(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))), webhook.getFooterURL());
+                        for (WebhookField field : webhook.getContent())
+                            embed.addField(ChatColor.stripColor(LanguageOptions.parse(field.getName(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))), ChatColor.stripColor(LanguageOptions.parse(field.getValue(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(playerUUID))), field.isInline());
+                        embed.setImage(imageURL);
+                    }
                     String username = ChatColor.stripColor(LanguageOptions.parse(webhook.getUsername(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID)));
                     String content = ChatColor.stripColor(LanguageOptions.parse(webhook.getMessage(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID)));
                     try {
@@ -137,7 +141,9 @@ public class WebhookOptions implements Listener {
         webhook.setContent(content);
         webhook.setAvatarUrl(avatarURL);
         webhook.setUsername(username);
-        webhook.addEmbed(embed);
+        if (embed != null)
+            webhook.addEmbed(embed);
         webhook.execute();
     }
+
 }

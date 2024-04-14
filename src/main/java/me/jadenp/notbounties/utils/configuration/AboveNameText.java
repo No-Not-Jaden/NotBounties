@@ -6,10 +6,10 @@ import org.bukkit.GameMode;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.metadata.MetadataValue;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 
+import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class AboveNameText {
@@ -28,7 +28,7 @@ public class AboveNameText {
         if (player != null && player.isOnline() && BountyManager.hasBounty(player)) {
             if (nextVisibilityUpdateTime < System.currentTimeMillis()) {
                 // conditions if the tag should be removed/invisible
-                if ((hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible() || isVanished()) {
+                if ((hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible() || isVanished(player)) {
                     if (armorStand != null)
                         removeStand();
                     return;
@@ -101,12 +101,7 @@ public class AboveNameText {
 
     }
 
-    private boolean isVanished() {
-        for (MetadataValue meta : player.getMetadata("vanished")) {
-            if (meta.asBoolean()) return true;
-        }
-        return false;
-    }
+
 
 
 

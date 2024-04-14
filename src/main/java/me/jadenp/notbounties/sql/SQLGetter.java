@@ -14,6 +14,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.BountyManager.SQL;
 import static me.jadenp.notbounties.utils.BountyManager.tryToConnect;
 
@@ -119,7 +122,7 @@ public class SQLGetter {
     public List<OfflinePlayer> getOnlinePlayers() {
         if (lastPlayerListRequest + 5000 > System.currentTimeMillis()) {
             if (onlinePlayers.isEmpty())
-                onlinePlayers.addAll(Bukkit.getOnlinePlayers());
+                onlinePlayers.addAll(Bukkit.getOnlinePlayers().stream().filter(player -> !isVanished(player)).collect(Collectors.toList()));
             return onlinePlayers;
         }
         lastPlayerListRequest = System.currentTimeMillis();
@@ -165,7 +168,8 @@ public class SQLGetter {
                 Bukkit.getLogger().warning(e.toString());
         }
         for (Player player : Bukkit.getOnlinePlayers())
-            login(player);
+            if (!isVanished(player))
+                login(player);
     }
     public void logout(Player player) {
         try {

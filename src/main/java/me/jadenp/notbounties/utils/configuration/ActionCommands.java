@@ -21,7 +21,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Matcher;
 
@@ -414,7 +413,7 @@ public class ActionCommands {
                     uuid = (String) info.getData()[0];
                 } else {
                     if (gui != null)
-                        uuid = Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
+                        uuid = info.getPlayers()[0].toString(); //Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
                     else
                         // select-price GUI hasn't been set up
                         uuid = new UUID(0,0).toString();
@@ -434,7 +433,17 @@ public class ActionCommands {
             } catch (IndexOutOfBoundsException | NumberFormatException ignored) {
             }
             if (info.getGuiType().equals("select-price")) {
-                String uuid = (String) info.getData()[0]; //((SkullMeta) event.getInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta()).getOwningPlayer().getUniqueId().toString();
+                GUIOptions gui = GUI.getGUI("select-price");
+                String uuid;
+                if (info.getData().length > 0) {
+                    uuid = (String) info.getData()[0];
+                } else {
+                    if (gui != null)
+                        uuid = info.getPlayers()[0].toString(); //Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
+                    else
+                        // select-price GUI hasn't been set up
+                        uuid = new UUID(0,0).toString();
+                }
                 openGUI(player, info.getGuiType(), info.getPage() - amount, uuid);
             } else if (info.getGuiType().equals("leaderboard")) {
                 Leaderboard leaderboard = (Leaderboard) info.getData()[0];

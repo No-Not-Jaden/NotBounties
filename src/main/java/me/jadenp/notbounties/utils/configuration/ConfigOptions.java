@@ -112,6 +112,7 @@ public class ConfigOptions {
     public static boolean autoBountyOverrideImmunity;
     public static boolean selfSetting;
     public static boolean autoTimezone;
+    public static boolean reducePageCalculations;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -364,6 +365,7 @@ public class ConfigOptions {
         autoTimezone = bounties.getConfig().getBoolean("auto-timezone");
         wantedTextUpdateInterval = bounties.getConfig().getLong("wanted-tag.text-update-interval");
         wantedVisibilityUpdateInterval = bounties.getConfig().getLong("wanted-tag.visibility-update-interval");
+        reducePageCalculations = bounties.getConfig().getBoolean("reduce-page-calculations");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {

@@ -22,6 +22,7 @@ import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
+import org.bukkit.metadata.MetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -225,7 +226,7 @@ public final class NotBounties extends JavaPlugin {
                                                         assert bounty != null;
                                                         OfflinePlayer p1 = Bukkit.getOfflinePlayer(bounty.getUUID());
 
-                                                        if (p1.isOnline() && player.canSee(Objects.requireNonNull(p1.getPlayer()))) {
+                                                        if (p1.isOnline() && (NotBounties.serverVersion >= 17 && player.canSee(Objects.requireNonNull(p1.getPlayer()))) && !isVanished(p1.getPlayer())) {
                                                             Player p = p1.getPlayer();
                                                             assert p != null;
                                                             if (compassMeta.getLodestone() == null) {
@@ -315,7 +316,7 @@ public final class NotBounties extends JavaPlugin {
                         for (Player player : displayParticle) {
                             if (player.isOnline()) {
                                 for (Player viewer : Bukkit.getOnlinePlayers()) {
-                                    if (viewer.canSee(player) && viewer.getWorld().equals(player.getWorld()) && viewer.getLocation().distance(player.getLocation()) < 256)
+                                    if ((NotBounties.serverVersion >= 17 && viewer.canSee(player)) && viewer.getWorld().equals(player.getWorld()) && viewer.getLocation().distance(player.getLocation()) < 256 && !isVanished(player))
                                         viewer.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
                                 }
                             }
@@ -807,7 +808,14 @@ public final class NotBounties extends JavaPlugin {
     public static List<OfflinePlayer> getNetworkPlayers() {
         if (SQL.isConnected())
             return data.getOnlinePlayers();
-        return new ArrayList<>(Bukkit.getOnlinePlayers());
+        return Bukkit.getOnlinePlayers().stream().filter(player -> !isVanished(player)).collect(Collectors.toList());
+    }
+
+    public static boolean isVanished(Player player) {
+        for (MetadataValue meta : player.getMetadata("vanished")) {
+            if (meta.asBoolean()) return true;
+        }
+        return false;
     }
 
 }

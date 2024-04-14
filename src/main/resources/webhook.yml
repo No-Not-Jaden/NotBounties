@@ -10,6 +10,8 @@ bounty-set:
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false
+  # whether to send the image in the embed
+  send-image: true
   # title of the embed
   title: '{player} has set a bounty on {receiver}!'
   # description of the embed
@@ -41,6 +43,8 @@ bounty-claim:
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false
+  # whether to send the image in the embed
+  send-image: true
   title: '{player} has claimed the bounty on {receiver}!'
   description: ''
   color: '#d1a221'
@@ -64,6 +68,8 @@ bounty-remove:
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false
+  # whether to send the image in the embed
+  send-image: true
   title: '{player} has removed part of {receiver}''s bounty'
   description: ''
   color: '255, 0, 0'
@@ -87,6 +93,8 @@ bounty-edit:
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false
+  # whether to send the image in the embed
+  send-image: true
   title: '{player} has edited {receiver}''s bounty'
   description: ''
   color: BLUE

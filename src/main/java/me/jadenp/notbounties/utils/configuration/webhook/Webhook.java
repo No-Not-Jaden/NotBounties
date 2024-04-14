@@ -21,6 +21,7 @@ public class Webhook {
     private final String footerURL;
     private final List<WebhookField> content = new ArrayList<>();
     private final String message;
+    private final boolean sendImage;
     public Webhook(ConfigurationSection configuration) {
         enabled = configuration.isSet("enabled") && configuration.getBoolean("enabled"); // false default
         username = configuration.isSet("username") ? configuration.getString("username") : "";
@@ -30,10 +31,13 @@ public class Webhook {
         footerText = configuration.isSet("footer.text") ? configuration.getString("footer.text") : "";
         footerURL = configuration.isSet("footer.image-url") ? configuration.getString("footer.image-url") : "";
         message = configuration.isSet("message") ? configuration.getString("message") : "";
+        sendImage = !configuration.isSet("send-image") || configuration.getBoolean("send-image"); // true default
         content.clear();
-        for (String key : Objects.requireNonNull(configuration.getConfigurationSection("content")).getKeys(false)) {
-            content.add(new WebhookField(Objects.requireNonNull(configuration.getConfigurationSection("content." + key))));
-        }
+        if (configuration.isConfigurationSection("content"))
+            for (String key : Objects.requireNonNull(configuration.getConfigurationSection("content")).getKeys(false)) {
+                if (configuration.isConfigurationSection("content." + key))
+                    content.add(new WebhookField(Objects.requireNonNull(configuration.getConfigurationSection("content." + key))));
+            }
 
         String colorString = configuration.getString("color");
         if (colorString == null)
@@ -73,6 +77,10 @@ public class Webhook {
 
     public String getMessage() {
         return message;
+    }
+
+    public boolean isSendImage() {
+        return sendImage;
     }
 
     public boolean isEnabled() {

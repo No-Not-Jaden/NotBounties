@@ -86,6 +86,9 @@ self-setting: true
 claim-order: REGULAR
 # automatically display times in the timezone of each player
 auto-timezone: true
+# reduce the number of players that are stored when using the GUI
+# this will mess up the {max_page} placeholder
+reduce-page-calculations: false
 # this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
 redeem-reward-later:
   enabled: false
