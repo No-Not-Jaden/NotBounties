@@ -233,7 +233,7 @@ public class GUI implements Listener {
             SkullMeta meta = (SkullMeta) event.getCurrentItem().getItemMeta();
             assert meta != null;
             //OfflinePlayer player = meta.getOwningPlayer();
-            int pageAddition = guiType.equals("select-price") ? 0 : (int) ((info.getPage() - 1) * gui.getPlayerSlots().size());
+            int pageAddition = guiType.equals("select-price") || guiType.equals("confirm-bounty") ? 0 : (int) ((info.getPage() - 1) * gui.getPlayerSlots().size());
             OfflinePlayer player = Bukkit.getOfflinePlayer(info.getPlayers()[gui.getPlayerSlots().indexOf(event.getSlot()) + pageAddition]);
             String playerName = NotBounties.getPlayerName(player.getUniqueId());
             switch (guiType) {

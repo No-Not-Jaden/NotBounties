@@ -239,10 +239,11 @@ public enum Leaderboard {
             if (amount == 0)
                 break;
             if (skip == 0) {
-                amount--;
                 OfflinePlayer player = Bukkit.getOfflinePlayer(entry.getKey());
-                if (player.getName() != null && !hiddenNames.contains(player.getName()))
+                if (player.getName() != null && !hiddenNames.contains(player.getName())) {
                     top.put(entry.getKey(), entry.getValue());
+                    amount--;
+                }
             } else {
                 skip--;
             }
