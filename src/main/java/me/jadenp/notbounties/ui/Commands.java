@@ -120,10 +120,28 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(prefix + noPermission, parser));
                         return false;
                     }
-                    try {
-                        NotBounties.getInstance().sendDebug(sender);
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
+                    if (args.length == 1) {
+                        try {
+                            NotBounties.getInstance().sendDebug(sender);
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        boolean newValue;
+                        if (args[1].equalsIgnoreCase("enable")) {
+                            newValue = true;
+                        } else {
+                            newValue = false;
+                        }
+                        if (newValue != debug) {
+                            debug = newValue;
+                            if (debug)
+                                sender.sendMessage(parse(prefix + ChatColor.GREEN + "Debug messages will now be sent in console.", parser));
+                            else
+                                sender.sendMessage(parse(prefix + ChatColor.RED + "Debug messages will no longer be sent in console.", parser));
+                        } else {
+                            sender.sendMessage(parse(prefix + ChatColor.YELLOW + "Debug mode is already set this way.", parser));
+                        }
                     }
                     return true;
                 } else if (args[0].equalsIgnoreCase("board") && sender.hasPermission("notbounties.admin")) {
@@ -1413,6 +1431,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else if (args[0].equalsIgnoreCase("board") && sender.hasPermission("notbounties.admin")) {
                     tab.add("clear");
                     tab.add("remove");
+                } else if (args[0].equalsIgnoreCase("debug") && sender.hasPermission("notbounties.admin")) {
+                    if (debug)
+                        tab.add("disable");
+                    else
+                        tab.add("enable");
                 }
             } else if (args.length == 3) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission("notbounties.admin")) {

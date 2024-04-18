@@ -2,7 +2,7 @@
 # Set bounties for a certain amount
 # Have one of your set bounties be claimed
 # Multiple of your bounty
-# Total current bounty
+# Total bounty increase
 # Purchase immunity
 # Be near a claimed bounty
 # Set a whitelisted bounty
@@ -27,8 +27,8 @@ challenge-types:
     in-progress:
       - '&e&lClaim &f&l{x} &e&lBounties'
       - '&7<&m                            &7>'
-      - '&6&oKill {x} players with any bounty'
-      - '&6&oReward: {reward}'
+      - '&6&oKill {x} players with any bounty.'
+      - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
     completed:
@@ -51,17 +51,15 @@ challenge-types:
     #  - 3
     #  - 6
     #  - 9
-    # This command could replace the reward
-    #commands:
-    #  - 'minecraft:give {player} DIAMOND <math:{x}*3>'
+    # This command hands out the reward
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'
     # Which could also be written as a command per variation
     #commands:
     #  - 'minecraft:give {player} DIAMOND 3'
     #  - 'minecraft:give {player} DIAMOND 6'
     #  - 'minecraft:give {player} DIAMOND 9'
 
-    # Commands to be run on reward claim
-    commands: []
   # Spend money on setting bounties
   amount-set:
     # display of challenge before it has been completed
@@ -69,7 +67,7 @@ challenge-types:
       - '&e&lSpend {c_prefix}{x}{c_suffix} &e&lon Bounties'
       - '&7<&m                            &7>'
       - '&6&oSet bounties using {c_prefix}{x}{c_suffix} or more.'
-      - '&6&oReward: {reward}'
+      - '&6&oReward: {reward} Ancient Debris.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
     completed:
@@ -84,29 +82,298 @@ challenge-types:
       - 15
       - 20
       - 25
-    reward: 1.5
-    commands: []
-    # Have x of your set bounties be claimed
-    successful-bounty:
-      # display of challenge before it has been completed
-      in-progress:
-        - '&e&lHave {x} Successful Bounties'
-        - '&7<&m                            &7>'
-        - '&6&oSet bounties that are claimed {x}'
-        - '&6&otimes or more.'
-        - '&6&oReward: {reward}'
-        - '&7<&m                            &7>'
-      # display of challenge after it has been completed
-      completed:
-        - '&a&l&mHave {x} Successful Bounties'
-        - '&7<&m                            &7>'
-        - '&2&oChallenge Completed'
-        - '&7<&m                            &7>'
-      # The amount of currency that needs to be used
-      variations:
-        - 1
-        - 2
-        - 3
-      reward: 4
-      commands: [ ]
+    reward: 0.2
+    commands:
+      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
 
+  # Have x of your set bounties be claimed
+  successful-bounty:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lHave {x} Successful Bounties'
+      - '&7<&m                            &7>'
+      - '&6&oSet bounties that are claimed {x}'
+      - '&6&otimes or more.'
+      - '&6&oReward: {reward} Diamonds.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mHave {x} Successful Bounties'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 1
+      - 2
+      - 3
+    reward: 4
+    commands:
+      -  'minecraft:give {player} DIAMOND {reward}'
+
+  # have your bounty increase by a multiple
+  multiple-bounty:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lIncrease your Bounty by {x}x'
+      - '&7<&m                            &7>'
+      - '&6&oHave your bounty increase by'
+      - '&6&o{x}times your original bounty at'
+      - '&6&othe start of this challenge.'
+      - '&6&oReward: {reward} Diamonds.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mIncrease your Bounty by {x}x'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 1.2
+      - 2
+      - 3
+    reward: 5
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'
+
+  # have your bounty increase by a fixed amount
+  bounty-increase:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lIncrease your Bounty by {c_prefix}{x}{c_suffix}'
+      - '&7<&m                            &7>'
+      - '&6&oHave your bounty increase by'
+      - '&6&o{c_prefix}{x}{c_suffix} by'
+      - '&6&othe end of this challenge.'
+      - '&6&oReward: {reward} Diamonds.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mIncrease your Bounty by {c_prefix}{x}{c_suffix}'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 6
+      - 10
+      - 20
+      - 50
+    reward: 0.5
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'
+
+  # spend money on immunity
+  purchase-immunity:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lSpend {c_prefix}{x}{c_suffix} on Immunity'
+      - '&7<&m                            &7>'
+      - '&6&oPurchase immunity for {c_prefix}{x}{c_suffix}'
+      - '&6&oor more.'
+      - '&6&oReward: {reward} Ancient Debris.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mSpend {c_prefix}{x}{c_suffix} on Immunity'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 5
+      - 10
+      - 15
+      - 20
+    reward: 0.2
+    commands:
+      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+
+  # be within 15 blocks of a bounty claim or be looking at it
+  witness-bounty-claim:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lWitness {x} Bounty Claims'
+      - '&7<&m                            &7>'
+      - '&6&oBe within 15 blocks of a bounty'
+      - '&6&oclaim, or be looking at it.'
+      - '&6&oReward: {reward} Diamonds.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mWitness {x} Bounty Claims'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 1
+      - 2
+      - 3
+      - 5
+    reward: 3
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'
+
+  # have players on your whitelisted bounty
+  whitelist-bounty-set:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lSet a Bounty with {x} Whitelisted Players'
+      - '&7<&m                            &7>'
+      - '&6&oUse the &f/bounty whitelist &6&o feature'
+      - '&6&oto change your whitelisted players,'
+      - '&6&oand set a bounty with at last {x}'
+      - '&6&oplayers selected.'
+      - '&6&oReward: {reward} Ancient Debris.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mSet a Bounty with {x} Whitelisted Players'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 1
+      - 2
+      - 3
+    reward: 1
+    commands:
+      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+
+  # hold your own bounty poster
+  hold-poster:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lHold your own Bounty Poster'
+      - '&7<&m                            &7>'
+      - '&6&oObtain a bounty poster of yourself.'
+      - '&6&oReward: {reward} Diamonds.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mHold your own Bounty Poster'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 1
+    reward: 1
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'
+
+  # hold your own bounty poster
+  auto-bounty:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lObtain {c_prefix}{x}{c_suffix} of an Auto Bounty'
+      - '&7<&m                            &7>'
+      - '&6&oHave an auto bounty set on you for'
+      - '&6&o{c_prefix}{x}{c_suffix} or more.'
+      - '&6&oReward: {reward} Ancient Debris.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mObtain {c_prefix}{x}{c_suffix} of an Auto Bounty'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 4
+      - 8
+      - 16
+      - 20
+    reward: 0.25
+    commands:
+      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+
+  # have x number of people set a bounty on you
+  receive-bounty:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lObtain {x} New Bounties'
+      - '&7<&m                            &7>'
+      - '&6&oHave {x} new people set a '
+      - '&6&obounty on you.'
+      - '&6&oReward: {reward} Diamonds.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mObtain {x} New Bounties'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 1
+      - 2
+      - 3
+    reward: 3
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'
+
+  # claim a bounty without any armor on
+  naked-bounty-claim:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lClaim a Bounty while Naked'
+      - '&7<&m                            &7>'
+      - '&6&oClaim a bounty without any'
+      - '&6&oarmor on.'
+      - '&6&oReward: {reward} Diamonds.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mClaim a Bounty while Naked'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 1
+    reward: 10
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'
+
+  # claim a bounty with certain amount of health left
+  close-bounty:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lClaim a Bounty with {x} Health'
+      - '&7<&m                            &7>'
+      - '&6&oClaim a bounty with {x} health'
+      - '&6&oleft. (1 heart = 2 health)'
+      - '&6&oReward: {reward} Diamonds.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mClaim a Bounty with {x} Health'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 2
+      - 4
+      - 6
+    reward:
+      - 10
+      - 8
+      - 6
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'
+
+  # buy your own bounty
+  buy-own:
+    # display of challenge before it has been completed
+    in-progress:
+      - '&e&lBuy your own Bounty'
+      - '&7<&m                            &7>'
+      - '&6&oBuy your own bounty with'
+      - '&6&o/bounty buy'
+      - '&6&oReward: {reward} Ancient Debris.'
+      - '&7<&m                            &7>'
+    # display of challenge after it has been completed
+    completed:
+      - '&a&l&mBuy your own Bounty'
+      - '&7<&m                            &7>'
+      - '&2&oChallenge Completed'
+      - '&7<&m                            &7>'
+    variations:
+      - 1
+    reward: 1
+    commands:
+      - 'minecraft:give {player} DIAMOND {reward}'

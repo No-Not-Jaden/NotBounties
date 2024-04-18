@@ -81,6 +81,7 @@ public final class NotBounties extends JavaPlugin {
     public static final String sessionKey = UUID.randomUUID().toString();
     public static NamespacedKey namespacedKey;
     public static int serverVersion = 20;
+    public static boolean debug = false;
 
     @Override
     public void onLoad() {

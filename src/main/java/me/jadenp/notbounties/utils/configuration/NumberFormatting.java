@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.stream.IntStream;
 
+import static me.jadenp.notbounties.NotBounties.debug;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class NumberFormatting {
@@ -644,18 +645,27 @@ public class NumberFormatting {
     }
 
     public static void doAddCommands(Player p, double amount) {
+        if (debug)
+            Bukkit.getLogger().info("[NotBounties-Debug] Doing add commands for " + p.getName() + ". Amount: " + amount);
         if (manualEconomy == ManualEconomy.MANUAL) {
             for (String addCommand : addCommands) {
                 if (addCommand.isEmpty())
                     continue;
                 String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
+                if (debug)
+                    Bukkit.getLogger().info("[NotBounties-Debug] Executing command: '" + command + "'");
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+
             }
+            if (debug)
+                Bukkit.getLogger().info("[NotBounties-Debug] Manual economy is enabled, no more actions will be performed.");
             return;
         }
 
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.deposit(p, amount)) {
+                if (debug)
+                    Bukkit.getLogger().info("[NotBounties-Debug] Deposited money with vault!");
                 return;
             } else {
                 Bukkit.getLogger().warning("Error depositing currency with vault!");
@@ -667,9 +677,17 @@ public class NumberFormatting {
         }
         List<String> modifiedAddCommands = new ArrayList<>(addCommands);
         // add empty spaces in list for item currencies
+        if (debug)
+            Bukkit.getLogger().info("[NotBounties-Debug] Currency: ");
         for (int i = 0; i < currency.size(); i++) {
-            if (!currency.get(i).contains("%"))
+            if (!currency.get(i).contains("%")) {
                 modifiedAddCommands.add(i, "");
+                if (debug)
+                    Bukkit.getLogger().info("(item) " + currency.get(i));
+            } else {
+                if (debug)
+                    Bukkit.getLogger().info(currency.get(i));
+            }
         }
         if (addSingleCurrency == CurrencyAddType.RATIO && currency.size() > 1) {
             float[] currencyWeightsCopy = Floats.toArray(currencyWeights);
@@ -747,13 +765,20 @@ public class NumberFormatting {
             // descending
             float[] currencyWeightsCopy = Floats.toArray(currencyWeights);
             float[] currencyValuesCopy = Floats.toArray(currencyValues.values());
+            if (debug)
+                Bukkit.getLogger().info("[NotBounties-Debug] Input Calculations: " + amount + " | " + Arrays.toString(currencyWeightsCopy) + " | " + Arrays.toString(currencyValuesCopy));
             double[] descendingAdd = descendingAddCurrency(amount, currencyWeightsCopy, currencyValuesCopy);
+            if (debug)
+                Bukkit.getLogger().info("[NotBounties-Debug] Output: " + Arrays.toString(descendingAdd));
+
             if (modifiedAddCommands.size() < descendingAdd.length) {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
             }
             for (int i = 0; i < Math.min(descendingAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
                     String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(descendingAdd[i])));
+                    if (debug)
+                        Bukkit.getLogger().info("[NotBounties-Debug] Executing command for " + currency.get(i) + ": '" + command + "'");
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
@@ -764,6 +789,8 @@ public class NumberFormatting {
                             item.setItemMeta(meta);
                         }
                     }
+                    if (debug)
+                        Bukkit.getLogger().info("[NotBounties-Debug] Giving item: " + currency.get(i) + " to " + p.getName() + ". Amount: " + (long) descendingAdd[i]);
                     givePlayer(p, item, (long) descendingAdd[i]);
                 }
             }
