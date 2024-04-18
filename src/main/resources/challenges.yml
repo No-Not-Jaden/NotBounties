@@ -376,4 +376,29 @@ challenge-types:
       - 1
     reward: 1
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
+      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+
+  custom-challenges:
+    set-bounty:
+      # player must increase this stat by {x}
+      requirement: '%notbounties_set% >= {x}'
+      # display of challenge before it has been completed
+      in-progress:
+        - '&e&lSet {x} Bounties'
+        - '&7<&m                            &7>'
+        - '&6&oSet {x} Bounties'
+        - '&6&oReward: {reward} Ancient Debris.'
+        - '&7<&m                            &7>'
+      # display of challenge after it has been completed
+      completed:
+        - '&a&l&mBuy your own Bounty'
+        - '&7<&m                            &7>'
+        - '&2&oChallenge Completed'
+        - '&7<&m                            &7>'
+      variations:
+        - 1
+        - 2
+        - 3
+      reward: 1
+      commands:
+        - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
