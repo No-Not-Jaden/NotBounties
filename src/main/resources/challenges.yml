@@ -13,9 +13,14 @@
 # Claim a bounty with 2 hearts or fewer left
 # Buy your own bounty
 #
-
+# whether challenges will be enabled
+enabled: true
 # The time limit that players have to complete the challenges before new ones appear
 time-limit-days: 7
+# number of challenges that will be active
+concurrent-challenges: 3
+# whether everyone has the same
+global-challenges: true
 # Messages to be added to the description when the reward needs to be claimed
 gui-claim: '&5&lClick to claim your reward'
 chat-claim: '&5&lDo &d/bounty challenges claim &5&lto claim your reward.'
@@ -23,9 +28,19 @@ chat-claim: '&5&lDo &d/bounty challenges claim &5&lto claim your reward.'
 challenge-types:
   # Claim a certain number of bounties
   claim:
+    # info about the item displayed in the GUI
+    item:
+      # material from https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+      # can also be a custom head like in the gui
+      material: DIAMOND_SWORD
+      amount: 1
+      # for resource packs. Not required to use this
+      custom-model-data: 5
+      enchanted: false
+      hide-nbt: true
     # display of challenge before it has been completed
     in-progress:
-      - '&e&lClaim &f&l{x} &e&lBounties'
+      - '&e&lClaim &f&l{x} &e&lBounties' # this first line is the name of the item in the GUI
       - '&7<&m                            &7>'
       - '&6&oKill {x} players with any bounty.'
       - '&6&oReward: {reward} Diamonds.'
@@ -62,6 +77,8 @@ challenge-types:
 
   # Spend money on setting bounties
   amount-set:
+    item:
+      material: DIAMOND
     # display of challenge before it has been completed
     in-progress:
       - '&e&lSpend {c_prefix}{x}{c_suffix} &e&lon Bounties'

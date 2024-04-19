@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui.gui;
 import me.jadenp.notbounties.ui.Head;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -58,9 +59,21 @@ public class CustomItem {
         this.commands = configurationSection.isList("commands") ? configurationSection.getStringList("commands") : new ArrayList<>();
     }
 
+    public CustomItem() {
+        material = Material.STONE;
+        amount = 1;
+        customModelData = -1;
+        name = null;
+        lore = new ArrayList<>();
+        enchanted = false;
+        hideNBT = false;
+        commands = new ArrayList<>();
+    }
 
 
-    public ItemStack getFormattedItem(Player player, String[] replacements){
+    public ItemStack getFormattedItem(OfflinePlayer player, String[] replacements){
+        if (replacements == null)
+            replacements = new String[]{""};
         ItemStack itemStack = headID != null && material == Material.PLAYER_HEAD ? Head.createPlayerSkull(headID) : new ItemStack(material, amount);
         if (itemStack == null)
             return null;
@@ -70,7 +83,8 @@ public class CustomItem {
             meta.setDisplayName(parse(color(name.replaceAll("\\{leaderboard}", replacements[0])), player));
         if (!lore.isEmpty()) {
             List<String> lore = new ArrayList<>(this.lore);
-            lore.replaceAll(s -> parse(color(s.replaceAll("\\{leaderboard}", replacements[0])), player));
+            String[] finalReplacements = replacements;
+            lore.replaceAll(s -> parse(color(s.replaceAll("\\{leaderboard}", finalReplacements[0])), player));
             meta.setLore(lore);
         }
         if (customModelData != -1)

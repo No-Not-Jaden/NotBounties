@@ -26,7 +26,9 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
+import static me.jadenp.notbounties.NotBounties.getNetworkPlayers;
 import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
@@ -56,6 +58,7 @@ public class GUI implements Listener {
             page = 1;
 
         boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
+        List<UUID> onlinePlayers = getNetworkPlayers().stream().map(OfflinePlayer::getUniqueId).collect(Collectors.toList());
         LinkedHashMap<UUID, String> values = new LinkedHashMap<>();
         switch (name){
             case "bounty-gui":
@@ -64,8 +67,10 @@ public class GUI implements Listener {
                     double bountyAmount = showWhitelistedBounties || player.hasPermission("notbounties.admin") ? bounty.getTotalBounty() : bounty.getTotalBounty(player);
                     if (bountyAmount > 0)
                         values.put(bounty.getUUID(), String.format("%f", bountyAmount));
-                    if (values.size() > gui.getPlayerSlots().size() * page)
-                        break;
+                    if (reducePageCalculations) {
+                        if (values.size() > gui.getPlayerSlots().size() * page)
+                            break;
+                    }
                 }
                 break;
             case "leaderboard":
@@ -93,14 +98,14 @@ public class GUI implements Listener {
                     OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
                     if (online) {
                         // remove if offline or vanished
-                        if (!player1.isOnline() || isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && !player.canSee(player1.getPlayer()))) {
+                        if (!onlinePlayers.contains(entry.getKey()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && !player.canSee(player1.getPlayer()))))) {
                             iterator.remove();
                             continue;
                         }
                     }
                     // remove if they are immune
                     Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(player1, 69);
-                    if (immunityType == Immunity.ImmunityType.PERMANENT || immunityType == Immunity.ImmunityType.GRACE_PERIOD) {
+                    if (immunityType == Immunity.ImmunityType.PERMANENT || immunityType == Immunity.ImmunityType.GRACE_PERIOD || immunityType == Immunity.ImmunityType.TIME) {
                         iterator.remove();
                         continue;
                     }
@@ -118,8 +123,10 @@ public class GUI implements Listener {
                 for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet()) {
                     if (!values.containsKey(entry.getValue()))
                         values.put(entry.getValue(), NumberFormatting.currencyPrefix + "0" + NumberFormatting.currencySuffix);
-                    if (values.size() > gui.getPlayerSlots().size() * page)
-                        break;
+                    if (reducePageCalculations) {
+                        if (values.size() > gui.getPlayerSlots().size() * page)
+                            break;
+                    }
                 }
                 // iterate through to remove specific players
                 Iterator<Map.Entry<UUID, String>> iterator1 = values.entrySet().iterator();
@@ -136,7 +143,7 @@ public class GUI implements Listener {
                     OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
                     if (online) {
                         // remove if offline or vanished
-                        if (!player1.isOnline() || isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && !player.canSee(player1.getPlayer()))) {
+                        if (!onlinePlayers.contains(entry.getKey()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && !player.canSee(player1.getPlayer()))))) {
                             iterator1.remove();
                             continue;
                         }

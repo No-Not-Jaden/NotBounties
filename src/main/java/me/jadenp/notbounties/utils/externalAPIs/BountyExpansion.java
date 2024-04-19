@@ -4,6 +4,7 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
@@ -59,6 +60,7 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_notification%</p>
      * <p>%notbounties_mode%</p>
      * <p>%notbounties_timed_bounty%</p>
+     * <p>%notbounties_challenge_[x/time]%</p>
      * @Depricated <p>%notbounties_bounties_claimed%</p>
      * <p>%notbounties_bounties_set%</p>
      * <p>%notbounties_bounties_received%</p>
@@ -93,6 +95,19 @@ public class BountyExpansion extends PlaceholderExpansion {
                 return NumberFormatting.getValue(bounty.getTotalBounty());
             }
             return "0";
+        }
+        if (params.startsWith("challenge")) {
+            if (params.length() < 11)
+                return ChallengeManager.getTimeLeft();
+            params = params.substring(10);
+            if (params.equalsIgnoreCase("time"))
+                return ChallengeManager.getTimeLeft();
+            try {
+                int index = (int) NumberFormatting.tryParse(params);
+                return ChallengeManager.getChallengeTitle(player, index);
+            } catch (NumberFormatException e) {
+                return "Placeholder Error";
+            }
         }
 
         if (params.equalsIgnoreCase("bounties_claimed")){
