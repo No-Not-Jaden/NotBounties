@@ -98,7 +98,7 @@ public class GUI implements Listener {
                     OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
                     if (online) {
                         // remove if offline or vanished
-                        if (!onlinePlayers.contains(entry.getKey()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && !player.canSee(player1.getPlayer()))))) {
+                        if (!onlinePlayers.contains(entry.getKey()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && seePlayerList && !player.canSee(player1.getPlayer()))))) {
                             iterator.remove();
                             continue;
                         }
@@ -143,7 +143,7 @@ public class GUI implements Listener {
                     OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
                     if (online) {
                         // remove if offline or vanished
-                        if (!onlinePlayers.contains(entry.getKey()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && !player.canSee(player1.getPlayer()))))) {
+                        if (!onlinePlayers.contains(entry.getKey()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && seePlayerList && !player.canSee(player1.getPlayer()))))) {
                             iterator1.remove();
                             continue;
                         }

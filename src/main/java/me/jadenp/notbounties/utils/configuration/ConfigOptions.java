@@ -113,6 +113,7 @@ public class ConfigOptions {
     public static boolean selfSetting;
     public static boolean autoTimezone;
     public static boolean reducePageCalculations;
+    public static boolean seePlayerList;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -366,6 +367,7 @@ public class ConfigOptions {
         wantedTextUpdateInterval = bounties.getConfig().getLong("wanted-tag.text-update-interval");
         wantedVisibilityUpdateInterval = bounties.getConfig().getLong("wanted-tag.visibility-update-interval");
         reducePageCalculations = bounties.getConfig().getBoolean("reduce-page-calculations");
+        seePlayerList = bounties.getConfig().getBoolean("see-player-list");
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
