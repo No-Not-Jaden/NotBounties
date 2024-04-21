@@ -221,10 +221,13 @@ public class GUIOptions {
                 if (player.hasPermission("notbounties.admin")) {
                     adminEditLore.stream().map(bbLore -> parse(bbLore, player)).forEach(lore::add);
                 } else {
-                    if (buyBack) {
-                        if (p.getUniqueId().equals(player.getUniqueId())) {
-                            buyBackLore.stream().map(bbLore -> parse(bbLore, (parseCurrency(finalAmount) * buyBackInterest), player)).forEach(lore::add);
-                        }
+                    if (tracker && giveOwnTracker && player.hasPermission("notbounties.tracker")) {
+                        giveTrackerLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+                    }
+                    if (buyBack && p.getUniqueId().equals(player.getUniqueId())) {
+                        buyBackLore.stream().map(bbLore -> parse(bbLore, (parseCurrency(finalAmount) * buyBackInterest), player)).forEach(lore::add);
+                    } else if (giveOwnMap) {
+                        givePosterLore.stream().map(str -> parse(str, player)).forEach(lore::add);
                     }
                 }
                 // whitelist

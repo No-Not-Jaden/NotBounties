@@ -109,6 +109,11 @@ prompt-cancel: '&eYou have canceled the prompt.'
 prompt-expire: '&cPrompt has expired.'
 combat-tag: '&eYou have been combat-tagged! Do not log out for &f{time}&e.'
 combat-safe: '&aYou are safe to log out.'
+wait-command: '&cPlease wait {time} before you use this command again.'
+give-tracker-lore:
+  - '&fLeft Click &7to get a tracker'
+give-poster-lore:
+  - '&fRight Click &7to get a poster'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

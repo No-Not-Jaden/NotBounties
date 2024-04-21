@@ -112,7 +112,10 @@ public class LanguageOptions {
     public static String promptExpire;
     public static String combatTag;
     public static String combatSafe;
+    public static String waitCommand;
 
+    public static List<String> giveTrackerLore;
+    public static List<String> givePosterLore;
     public static List<String> trackerLore;
     public static List<String> voucherLore;
     public static List<String> notWhitelistedLore;
@@ -274,7 +277,10 @@ public class LanguageOptions {
         promptExpire = configuration.getString("prompt-expire");
         combatTag = configuration.getString("combat-tag");
         combatSafe = configuration.getString("combat-safe");
+        waitCommand = configuration.getString("wait-command");
 
+        giveTrackerLore = configuration.getStringList("give-tracker-lore");
+        givePosterLore = configuration.getStringList("give-poster-lore");
         voucherLore = configuration.getStringList("bounty-voucher-lore");
         trackerLore = configuration.getStringList("bounty-tracker-lore");
         notWhitelistedLore = configuration.getStringList("not-whitelisted");

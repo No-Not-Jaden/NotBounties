@@ -43,6 +43,9 @@ import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class Commands implements CommandExecutor, TabCompleter {
 
+    private static final Map<UUID, Long> giveOwnCooldown = new HashMap<>();
+    private static final long cooldownTime = 3000;
+
     public Commands() {
     }
 
@@ -128,11 +131,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     } else {
                         boolean newValue;
-                        if (args[1].equalsIgnoreCase("enable")) {
-                            newValue = true;
-                        } else {
-                            newValue = false;
-                        }
+                        newValue = args[1].equalsIgnoreCase("enable");
                         if (newValue != debug) {
                             debug = newValue;
                             if (debug)
@@ -1049,6 +1048,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(prefix + noPermission, parser));
                         return false;
                     }
+                    if (!sender.hasPermission("notbounties.admin") && sender instanceof Player) {
+                        if (giveOwnCooldown.containsKey(parser.getUniqueId()) && giveOwnCooldown.get(parser.getUniqueId()) > System.currentTimeMillis()) {
+                            // cooldown
+                            sender.sendMessage(parse(prefix + waitCommand, giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
+                            return false;
+                        }
+                        giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + cooldownTime);
+                    }
                     if (args.length == 1) {
                         // usage
                         sender.sendMessage(parse(prefix + unknownCommand, parser));
@@ -1089,6 +1096,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // give a tracker that points toward a certain player with a bounty
                     if (tracker)
                         if (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker"))) {
+                            if (!sender.hasPermission("notbounties.admin") && sender instanceof Player) {
+                                if (giveOwnCooldown.containsKey(parser.getUniqueId()) && giveOwnCooldown.get(parser.getUniqueId()) > System.currentTimeMillis()) {
+                                    // cooldown
+                                    sender.sendMessage(parse(prefix + waitCommand, giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
+                                    return false;
+                                }
+                                giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + cooldownTime);
+                            }
                             if (args.length > 1) {
                                 Bounty tracking = null;
                                 List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;

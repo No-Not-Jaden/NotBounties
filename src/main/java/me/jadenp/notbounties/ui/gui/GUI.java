@@ -38,17 +38,20 @@ public class GUI implements Listener {
 
     public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
-    public static void addGUI(GUIOptions gui, String name){
+
+    public static void addGUI(GUIOptions gui, String name) {
         customGuis.put(name, gui);
     }
-    public static GUIOptions getGUI(String guiName){
+
+    public static GUIOptions getGUI(String guiName) {
         if (customGuis.containsKey(guiName))
             return customGuis.get(guiName);
         return null;
     }
 
 
-    public GUI(){}
+    public GUI() {
+    }
 
     public static LinkedHashMap<UUID, String> getGUIValues(Player player, String name, long page, Object[] data) {
         if (!customGuis.containsKey(name))
@@ -60,7 +63,7 @@ public class GUI implements Listener {
         boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
         List<UUID> onlinePlayers = getNetworkPlayers().stream().map(OfflinePlayer::getUniqueId).collect(Collectors.toList());
         LinkedHashMap<UUID, String> values = new LinkedHashMap<>();
-        switch (name){
+        switch (name) {
             case "bounty-gui":
                 List<Bounty> sortedList = SQL.isConnected() ? BountyManager.data.getTopBounties(gui.getSortType()) : sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList) {
@@ -198,20 +201,21 @@ public class GUI implements Listener {
 
     // is this called when server forces the inventory to be closed?
     @EventHandler
-    public void onGUIClose(InventoryCloseEvent event){
+    public void onGUIClose(InventoryCloseEvent event) {
         if (playerInfo.containsKey(event.getPlayer().getUniqueId()) && playerInfo.get(event.getPlayer().getUniqueId()).getTitle().equals(event.getView().getTitle()))
             playerInfo.remove(event.getPlayer().getUniqueId());
     }
 
     /**
      * Get a gui from the title
+     *
      * @param title Title of the GUI
      * @return the GUIOptions if the title matches a NotBounties GUI, or null if the title does not match any GUI
      */
-    public static @Nullable GUIOptions getGUIByTitle(String title){
+    public static @Nullable GUIOptions getGUIByTitle(String title) {
         GUIOptions gui = null;
-        for (Map.Entry<String, GUIOptions> entry : customGuis.entrySet()){
-            if (title.startsWith(entry.getValue().getName())){
+        for (Map.Entry<String, GUIOptions> entry : customGuis.entrySet()) {
+            if (title.startsWith(entry.getValue().getName())) {
                 gui = entry.getValue();
                 break;
             }
@@ -236,7 +240,7 @@ public class GUI implements Listener {
         if (event.getCurrentItem() == null)
             return;
         // check if it is a player slot
-        if (gui.getPlayerSlots().contains(event.getSlot()) && gui.getPlayerSlots().indexOf(event.getSlot()) < info.getPlayers().length && event.getCurrentItem().getType() == Material.PLAYER_HEAD){
+        if (gui.getPlayerSlots().contains(event.getSlot()) && gui.getPlayerSlots().indexOf(event.getSlot()) < info.getPlayers().length && event.getCurrentItem().getType() == Material.PLAYER_HEAD) {
             SkullMeta meta = (SkullMeta) event.getCurrentItem().getItemMeta();
             assert meta != null;
             //OfflinePlayer player = meta.getOwningPlayer();
@@ -246,7 +250,7 @@ public class GUI implements Listener {
             switch (guiType) {
                 case "bounty-gui":
                     // remove, edit, and buy back
-                    Bounty bounty = getBounty(meta.getOwningPlayer());
+                    Bounty bounty = getBounty(player);
                     if (bounty != null) {
                         if (event.isRightClick()) {
                             if (event.getWhoClicked().hasPermission("notbounties.admin")) {
@@ -259,23 +263,25 @@ public class GUI implements Listener {
                                 first.addExtra(click);
                                 first.addExtra(last);
                                 event.getWhoClicked().spigot().sendMessage(first);
+                            } else if (tracker && giveOwnTracker && event.getWhoClicked().hasPermission("notbounties.tracker")) {
+                                event.getView().close();
+                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), "notbounties tracker " + playerName);
                             }
                         } else if (event.isLeftClick()) {
                             if (event.getWhoClicked().hasPermission("notbounties.admin")) {
                                 // remove
                                 openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), 0);
 
-                            } else {
-                                if (bounty.getUUID().equals(event.getWhoClicked().getUniqueId())) {
-                                    if (buyBack) {
-                                        double balance = NumberFormatting.getBalance((Player) event.getWhoClicked());
-                                        if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
-                                            openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), (buyBackInterest * bounty.getTotalBounty()));
-                                        } else {
-                                            event.getWhoClicked().sendMessage(parse(prefix + broke, (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
-                                        }
-                                    }
+                            } else if (bounty.getUUID().equals(event.getWhoClicked().getUniqueId()) && buyBack) {
+                                double balance = NumberFormatting.getBalance((Player) event.getWhoClicked());
+                                if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
+                                    openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), (buyBackInterest * bounty.getTotalBounty()));
+                                } else {
+                                    event.getWhoClicked().sendMessage(parse(prefix + broke, (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
                                 }
+                            } else if (giveOwnMap) {
+                                event.getView().close();
+                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), "notbounties poster " + playerName);
                             }
                         }
                     } else {

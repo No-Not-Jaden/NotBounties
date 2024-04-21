@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.authlib.exceptions.MinecraftClientException;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.externalAPIs.HeadDataBaseClass;
 import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
@@ -140,7 +141,7 @@ public class Head {
                 JsonObject textureProperty = input.get("properties").getAsJsonArray().get(0).getAsJsonObject();
                 reader.close();
                 return textureProperty.get("value").getAsString();
-            } catch (IOException e) {
+            } catch (IOException | MinecraftClientException e) {
                 throw new RuntimeException(e);
             }
         });
@@ -155,7 +156,7 @@ public class Head {
                 JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseReader(reader).getAsJsonObject() : new JsonParser().parse(reader).getAsJsonObject();
                 reader.close();
                 return input.get("id").getAsString();
-            } catch (IOException e) {
+            } catch (IOException | MinecraftClientException e) {
                 throw new RuntimeException(e);
             }
         });
