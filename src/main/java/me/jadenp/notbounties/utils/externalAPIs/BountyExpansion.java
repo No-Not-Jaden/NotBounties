@@ -4,6 +4,7 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -14,12 +15,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 
+import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class BountyExpansion extends PlaceholderExpansion {
@@ -54,6 +53,7 @@ public class BountyExpansion extends PlaceholderExpansion {
      * Add "_full" to the end of leaderboard to add what the stat is about
      * Add "_value" to the e nd of leaderboard to get the raw value
      * <p>%notbounties_bounty%</p>
+     * <p>%notbounties_total%</p>
      * <p>%notbounties_(all/kills/claimed/deaths/set/immunity/current)%</p>
      * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity/current)%</p>
      * <p>%notbounties_wanted%</p>
@@ -107,6 +107,22 @@ public class BountyExpansion extends PlaceholderExpansion {
                 return ChallengeManager.getChallengeTitle(player, index);
             } catch (NumberFormatException e) {
                 return "Placeholder Error";
+            }
+        }
+        if (params.startsWith("total")) {
+            if (params.equalsIgnoreCase("total")) {
+                int bounties = SQL.isConnected() ? data.getTopBounties(2).size() : bountyList.size();
+                return NumberFormatting.formatNumber(bounties);
+            } else if (params.equalsIgnoreCase("total_unique")) {
+                List<Bounty> bounties = SQL.isConnected() ? data.getTopBounties(2) : bountyList;
+                List<UUID> counted = new ArrayList<>();
+                for (Bounty bounty : bounties) {
+                    for (Setter setter : bounty.getSetters()) {
+                        if (!counted.contains(setter.getUuid()))
+                            counted.add(setter.getUuid());
+                    }
+                }
+                return NumberFormatting.formatNumber(counted.size());
             }
         }
 

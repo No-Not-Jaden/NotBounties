@@ -263,9 +263,9 @@ public class GUI implements Listener {
                                 first.addExtra(click);
                                 first.addExtra(last);
                                 event.getWhoClicked().spigot().sendMessage(first);
-                            } else if (tracker && giveOwnTracker && event.getWhoClicked().hasPermission("notbounties.tracker")) {
+                            } else  if (giveOwnMap) {
                                 event.getView().close();
-                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), "notbounties tracker " + playerName);
+                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), "notbounties poster " + playerName);
                             }
                         } else if (event.isLeftClick()) {
                             if (event.getWhoClicked().hasPermission("notbounties.admin")) {
@@ -279,9 +279,9 @@ public class GUI implements Listener {
                                 } else {
                                     event.getWhoClicked().sendMessage(parse(prefix + broke, (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
                                 }
-                            } else if (giveOwnMap) {
+                            } else if (tracker && giveOwnTracker && event.getWhoClicked().hasPermission("notbounties.tracker")) {
                                 event.getView().close();
-                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), "notbounties poster " + playerName);
+                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), "notbounties tracker " + playerName);
                             }
                         }
                     } else {
