@@ -10,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.checkerframework.checker.units.qual.C;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 
@@ -67,6 +68,70 @@ public class ChallengeManager implements Listener {
                     allChallenges.add(challenge);
                 }
             } catch (IllegalArgumentException ignored) {}
+        }
+    }
+
+    /**
+     * Reads the challenge data from the saved file. This should only be used when the plugin starts.
+     * @throws IOException If there is a problem reading the challenge-data.yml file
+     */
+    public static void readChallengeData() throws IOException {
+        // load in challenge data
+        File challengeDataFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "challenge-data.yml");
+        if (challengeDataFile.createNewFile()) {
+            Bukkit.getLogger().info("[NotBounties] Created new challenge data file.");
+        }
+        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(challengeDataFile);
+        // check if a console uuid exists - all challenges are the same for everyone
+        String consoleUUID = new UUID(0,0).toString();
+        boolean globalChallenges = configuration.isConfigurationSection(consoleUUID);
+        if (globalChallenges) {
+            LinkedList<Challenge> challenges = new LinkedList<>();
+            LinkedList<Integer> variations = new LinkedList<>();
+            // iterate through every challenge index under the console uuid
+            for (String key : configuration.getConfigurationSection(consoleUUID).getKeys(false)) {
+                // the keys should be an integer index for all challenges
+                int challengeIndex;
+                try {
+                    challengeIndex = Integer.parseInt(key);
+                } catch (NumberFormatException e) {
+                    Bukkit.getLogger().warning("[NotBounties] Could not get challenge index from one of the global challenges.");
+                    continue;
+                }
+                int variationIndex = configuration.getInt(consoleUUID + "." + key);
+                if (challengeIndex >= allChallenges.size()) {
+                    Bukkit.getLogger().warning("[NotBounties] Saved global challenge no longer exists!");
+                    continue;
+                }
+                Challenge challenge =  allChallenges.get(challengeIndex);
+                if (variationIndex >= challenge.getVariations().size()) {
+                    Bukkit.getLogger().warning("[NotBounties] Saved global challenge variation no longer exists!");
+                    continue;
+                }
+                challenges.add(challenge);
+                variations.add(variationIndex);
+            }
+            activeChallenges.put(new UUID(0,0), challenges);
+            variation.put(new UUID(0,0), variations);
+        }
+        // iterate through every top level key
+        for (String key : configuration.getKeys(false)) {
+            UUID uuid;
+            // the key should be a uuid
+            try {
+                uuid = UUID.fromString(key);
+            } catch (IllegalArgumentException e) {
+                Bukkit.getLogger().warning("[NotBounties] Could not convert string to uuid in challenge-data.yml: " + key);
+                continue;
+            }
+            // make sure it isn't the console uuid
+            if (!uuid.equals(new UUID(0,0))) {
+              if (!globalChallenges) {
+                  // read challenge and variation like above global challenges
+              }
+              // read progress and goal
+              // add both to the map
+            }
         }
     }
 

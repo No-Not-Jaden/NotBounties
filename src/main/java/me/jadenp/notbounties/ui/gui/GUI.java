@@ -315,7 +315,7 @@ public class GUI implements Listener {
             CustomItem customItem = gui.getCustomItem(event.getSlot(), info.getPage(), getGUIValues((Player) event.getWhoClicked(), guiType, info.getPage(), info.getData()).size());
             if (customItem == null)
                 return;
-            ActionCommands.executeGUI((Player) event.getWhoClicked(), customItem.getCommands());
+            ActionCommands.executeCommands((Player) event.getWhoClicked(), customItem.getCommands());
         }
     }
 

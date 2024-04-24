@@ -1,12 +1,14 @@
 package me.jadenp.notbounties.utils.challenges;
 
 import me.jadenp.notbounties.ui.gui.CustomItem;
+import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -31,7 +33,7 @@ public class Challenge {
         inProgress = configuration.isSet("in-progress") ? configuration.getStringList("in-progress") : new ArrayList<>();
         completed = configuration.isSet("completed") ? configuration.getStringList("completed") : new ArrayList<>();
         variations = configuration.isList("variations") ? configuration.getDoubleList("variations") : configuration.isDouble("variations") ? new ArrayList<>(Collections.singletonList(configuration.getDouble("variations"))) : new ArrayList<>();
-        rewards = configuration.isList("rewards") ? configuration.getDoubleList("rewards") : configuration.isDouble("rewards") ? new ArrayList<>(Collections.singletonList(configuration.getDouble("rewards"))) : new ArrayList<>();
+        List<Double> tempRewards = configuration.isList("rewards") ? configuration.getDoubleList("rewards") : configuration.isDouble("rewards") ? new ArrayList<>(Collections.singletonList(configuration.getDouble("rewards"))) : new ArrayList<>();
         commands = configuration.isList("commands") ? configuration.getStringList("commands") : configuration.isString("commands") ? new ArrayList<>(Collections.singletonList(configuration.getString("commands"))) : new ArrayList<>();
         requirement = configuration.isSet("requirement") ? configuration.getString("requirement") : "";
 
@@ -39,6 +41,29 @@ public class Challenge {
             guiItem = new CustomItem(Objects.requireNonNull(configuration.getConfigurationSection("item")));
         else
             guiItem = new CustomItem();
+
+        // format rewards to match variations
+        if (tempRewards.size() < variations.size()) {
+            double rewardCopy = !tempRewards.isEmpty() ? tempRewards.get(0) : 1; // the reward that will be copied to match the length of variations
+            // fill up the tempRewards array
+            for (int i = tempRewards.size(); i < variations.size(); i++) {
+                tempRewards.add(rewardCopy * variations.get(i));
+            }
+        }
+        // copy tempRewards to rewards
+        rewards = tempRewards;
+    }
+
+    /**
+     * Execute the commands for this challenge. This function will be called when the player completes the challenge
+     * @param player Player to call the commands for
+     * @param variationIndex The index of the variation that the player completed
+     */
+    public void executeCommands(Player player, int variationIndex) {
+        List<String> parsedCommands = new ArrayList<>(commands);
+        // replace {rewards} and {x}
+        parsedCommands.forEach(str -> str.replaceAll("\\{reward}", Matcher.quoteReplacement(NumberFormatting.getValue(rewards.get(variationIndex)))).replaceAll("\\{x}", Matcher.quoteReplacement(NumberFormatting.getValue(variations.get(variationIndex)))));
+        ActionCommands.executeCommands(player, parsedCommands);
     }
 
 

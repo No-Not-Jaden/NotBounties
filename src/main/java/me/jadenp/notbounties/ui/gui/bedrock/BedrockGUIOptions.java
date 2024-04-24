@@ -367,7 +367,7 @@ public class BedrockGUIOptions {
             quantity = NumberFormatting.tryParse(component.getButtonComponent().text());
         } catch (NumberFormatException ignored) {}
         actions.addAll(parseCompletionCommands(component.getButtonComponent().text(), quantity, new ArrayList<>()));
-        ActionCommands.executeGUI(player, actions);
+        ActionCommands.executeCommands(player, actions);
     }
 
     // modal
@@ -384,7 +384,7 @@ public class BedrockGUIOptions {
             quantity = NumberFormatting.tryParse(component.getButtonComponent().text());
         } catch (NumberFormatException ignored) {}
         actions.addAll(parseCompletionCommands(component.getButtonComponent().text(), quantity, new ArrayList<>()));
-        ActionCommands.executeGUI(player, actions);
+        ActionCommands.executeCommands(player, actions);
     }
 
     // custom
@@ -410,11 +410,11 @@ public class BedrockGUIOptions {
                         inputs.add(dropdownText);
                         if (component.getCommands().size() == component.getListOptions().size()) {
                             // 1 command
-                            ActionCommands.executeGUI(player, Collections.singletonList(component.getCommands().get(selectedDropdown).replaceAll("\\{dropdown}", Matcher.quoteReplacement(dropdownText))));
+                            ActionCommands.executeCommands(player, Collections.singletonList(component.getCommands().get(selectedDropdown).replaceAll("\\{dropdown}", Matcher.quoteReplacement(dropdownText))));
                         } else {
                             // all commands
                             List<String> commands = component.getCommands().stream().map(command -> command.replaceAll("\\{dropdown}", Matcher.quoteReplacement(dropdownText))).collect(Collectors.toList());
-                            ActionCommands.executeGUI(player, commands);
+                            ActionCommands.executeCommands(player, commands);
                         }
 
                         try {
@@ -452,20 +452,20 @@ public class BedrockGUIOptions {
                                 commands.add(command);
                             }
                         }
-                        ActionCommands.executeGUI(player, commands);
+                        ActionCommands.executeCommands(player, commands);
                         break;
                     case SLIDER:
                         float sliderValue = customFormResponse.asSlider();
                         inputs.add(NumberFormatting.getValue(sliderValue));
                         quantity.put(component, (double) sliderValue); // possible to be used as quantity
-                        ActionCommands.executeGUI(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(NumberFormatting.getValue(sliderValue)))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(NumberFormatting.getValue(sliderValue)))).collect(Collectors.toList()));
                         break;
                     case STEP_SLIDER:
                         int stepSliderIndex = customFormResponse.asStepSlider();
                         String stepValue = component.getListOptions().get(stepSliderIndex);
                         inputs.add(stepValue);
                         value.put(component, stepValue);
-                        ActionCommands.executeGUI(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(stepValue))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(stepValue))).collect(Collectors.toList()));
                         break;
                     case INPUT:
                         String input = customFormResponse.asInput();
@@ -479,7 +479,7 @@ public class BedrockGUIOptions {
                         } catch (NumberFormatException e) {
                             value.put(component, input);
                         }
-                        ActionCommands.executeGUI(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(input))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(input))).collect(Collectors.toList()));
                         break;
                 }
             } catch (IllegalStateException e) {
@@ -513,7 +513,7 @@ public class BedrockGUIOptions {
             }
         }
         List<String> cmds = parseCompletionCommands(valueValue, quantityValue, inputs);
-        ActionCommands.executeGUI(player, cmds);
+        ActionCommands.executeCommands(player, cmds);
     }
 
     /**

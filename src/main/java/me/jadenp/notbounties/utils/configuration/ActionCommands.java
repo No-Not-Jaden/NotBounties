@@ -51,7 +51,7 @@ public class ActionCommands {
         }.runTaskLater(NotBounties.getInstance(), 10);
     }
 
-    public static void executeGUI(Player player, List<String> commands) {
+    public static void executeCommands(Player player, List<String> commands) {
         Bounty bounty = BountyManager.getBounty(player);
         double totalBounty = bounty != null ? bounty.getTotalBounty() : 0;
         for (String command : commands) {
