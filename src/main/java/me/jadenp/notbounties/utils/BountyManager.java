@@ -811,7 +811,7 @@ public class BountyManager {
                     setterLore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + setter.getAmount());
                     meta.setLore(setterLore);
                     item.setItemMeta(meta);
-                    item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
+                    item.addUnsafeEnchantment(Enchantment.CHANNELING, 0);
                     NumberFormatting.givePlayer(killer, item, 1);
                 }
             } else {
@@ -839,7 +839,7 @@ public class BountyManager {
                 lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
-                item.addUnsafeEnchantment(Enchantment.DURABILITY, 0);
+                item.addUnsafeEnchantment(Enchantment.CHANNELING, 0);
                 NumberFormatting.givePlayer(killer, item, 1);
             }
         }

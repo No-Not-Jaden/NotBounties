@@ -14,6 +14,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.server.MapInitializeEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -103,7 +104,29 @@ public class BountyMap implements Listener {
     public void onMapInitialize(MapInitializeEvent event) {
         MapView mapView = event.getMap();
         if (mapIDs.containsKey(mapView.getId())) {
-            if (!event.getMap().isVirtual()) {
+            if (!mapView.isVirtual()) {
+                UUID uuid = mapIDs.get(mapView.getId());
+                mapView.setLocked(ConfigOptions.lockMap);
+                mapView.getRenderers().forEach(mapView::removeRenderer);
+                mapView.addRenderer(new Renderer(uuid));
+            }
+        }
+    }
+
+    // method to initialize maps for 1.20.5
+    @EventHandler
+    public void onMapHold(PlayerItemHeldEvent event) {
+        if (!NotBounties.isAboveVersion(20,4))
+            return;
+        ItemStack newItem = event.getPlayer().getInventory().getItem(event.getNewSlot());
+        if (newItem == null || newItem.getType() != Material.FILLED_MAP)
+            return;
+        MapMeta mapMeta = (MapMeta) newItem.getItemMeta();
+        if (mapMeta == null || mapMeta.getMapView() == null)
+            return;
+        MapView mapView = mapMeta.getMapView();
+        if (mapIDs.containsKey(mapView.getId())) {
+            if (!mapView.isVirtual()) {
                 UUID uuid = mapIDs.get(mapView.getId());
                 mapView.setLocked(ConfigOptions.lockMap);
                 mapView.getRenderers().forEach(mapView::removeRenderer);
@@ -155,7 +178,7 @@ public class BountyMap implements Listener {
         }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-        meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
+        meta.addItemFlags(ItemFlag.values()[5]);
         mapItem.setItemMeta(meta);
         return mapItem;
     }
@@ -181,6 +204,7 @@ public class BountyMap implements Listener {
         mapView.addRenderer(new Renderer(uuid));
         return mapView;
     }
+
     public static BufferedImage deepCopy(BufferedImage bi) {
         ColorModel cm = bi.getColorModel();
         boolean isAlphaPreMultiplied = cm.isAlphaPremultiplied();

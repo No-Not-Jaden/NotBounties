@@ -13,6 +13,8 @@ custom-items:
     lore: []
     enchanted: false
     hide-nbt: true
+    # this will cause the item to not have anything displayed when hovered over (Minecraft version 1.20.5 and higher)
+    hide-tooltip: true
     # Commands to run when the item is clicked
     # see https://github.com/No-Not-Jaden/NotBounties/wiki/Action-Commands for a description of the special actions you can use here
     commands: []

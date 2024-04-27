@@ -1,12 +1,16 @@
 package me.jadenp.notbounties.ui.gui;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.Head;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -26,6 +30,7 @@ public class CustomItem {
     private final List<String> lore;
     private final boolean enchanted;
     private final boolean hideNBT;
+    private final boolean hideTooltip;
     private final List<String> commands;
     private String headID = null;
 
@@ -55,6 +60,7 @@ public class CustomItem {
         lore = configurationSection.getStringList("lore");
         enchanted = configurationSection.getBoolean("enchanted");
         hideNBT = configurationSection.getBoolean("hide-nbt");
+        hideTooltip = configurationSection.getBoolean("hide-tooltip");
 
         this.commands = configurationSection.isList("commands") ? configurationSection.getStringList("commands") : new ArrayList<>();
     }
@@ -67,6 +73,7 @@ public class CustomItem {
         lore = new ArrayList<>();
         enchanted = false;
         hideNBT = false;
+        hideTooltip = false;
         commands = new ArrayList<>();
     }
 
@@ -90,12 +97,30 @@ public class CustomItem {
         if (customModelData != -1)
             meta.setCustomModelData(customModelData);
         if (enchanted) {
-            itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            if (NotBounties.isAboveVersion(20, 4)) {
+                if (!meta.hasEnchantmentGlintOverride())
+                    meta.setEnchantmentGlintOverride(true);
+            } else {
+                if (!hideNBT) {
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
+                itemStack.addUnsafeEnchantment(Enchantment.CHANNELING, 1);
+            }
         }
         if (hideNBT) {
+            meta.getItemFlags().clear();
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            meta.addItemFlags(ItemFlag.HIDE_DESTROYS);
+            meta.addItemFlags(ItemFlag.HIDE_DYE);
+            meta.addItemFlags(ItemFlag.HIDE_PLACED_ON);
+            meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
+            meta.addItemFlags(ItemFlag.values()[5]);
+            Multimap<Attribute, AttributeModifier> attributes = HashMultimap.create();
+            meta.setAttributeModifiers(attributes);
+        }
+        if (hideTooltip && NotBounties.isAboveVersion(20, 4)) {
+            meta.setHideTooltip(true);
         }
         itemStack.setItemMeta(meta);
         return itemStack;

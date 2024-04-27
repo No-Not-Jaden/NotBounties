@@ -81,6 +81,7 @@ public final class NotBounties extends JavaPlugin {
     public static final String sessionKey = UUID.randomUUID().toString();
     public static NamespacedKey namespacedKey;
     public static int serverVersion = 20;
+    public static int serverSubVersion = 0;
     public static boolean debug = false;
 
     @Override
@@ -116,11 +117,16 @@ public final class NotBounties extends JavaPlugin {
             // get the text version - ex: 1.20.3
             String fullServerVersion = Bukkit.getBukkitVersion().substring(0, Bukkit.getBukkitVersion().indexOf("-"));
             fullServerVersion = fullServerVersion.substring(2); // remove the '1.' in the version
-            if (fullServerVersion.contains("."))
-                fullServerVersion = fullServerVersion.substring(0, fullServerVersion.indexOf(".")); // remove the last digits if any - ex .3
+            if (fullServerVersion.contains(".")) {
+                // get the subversion - ex: 3
+                serverSubVersion = Integer.parseInt(fullServerVersion.substring(fullServerVersion.indexOf(".") + 1));
+                fullServerVersion = fullServerVersion.substring(0, fullServerVersion.indexOf(".")); // remove the subversion
+            }
             serverVersion = Integer.parseInt(fullServerVersion);
         } catch (NumberFormatException | IndexOutOfBoundsException e) {
             Bukkit.getLogger().warning("[NotBounties] Could not get the server version. Some features may not function properly.");
+            serverVersion = 20;
+            serverSubVersion = 0;
         }
 
         if (serverVersion >= 17)
@@ -717,7 +723,7 @@ public final class NotBounties extends JavaPlugin {
         sender.sendMessage(parse(prefix + ChatColor.WHITE + "NotBounties debug info:", null));
         String connected = SQL.isConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
         sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + SQL.getDatabaseType() + ChatColor.YELLOW + " ID: " + ChatColor.WHITE + SQL.getServerID() + ChatColor.YELLOW + " Local Bounties: " + ChatColor.WHITE + bountyList.size());
-        sender.sendMessage(ChatColor.GOLD + "General > " + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Version: " + ChatColor.WHITE + getDescription().getVersion());
+        sender.sendMessage(ChatColor.GOLD + "General > " + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion() + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + "1." + serverVersion + "." + serverSubVersion);
         int bounties = SQL.isConnected() ? data.getTopBounties(2).size() : bountyList.size();
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + trackedBounties.size() + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + bountyBoards.size());
         String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
@@ -732,9 +738,7 @@ public final class NotBounties extends JavaPlugin {
         String kingdoms = BountyClaimRequirements.kingdomsXEnabled ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
         String lands = BountyClaimRequirements.landsEnabled ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
         String worldGuard = BountyClaimRequirements.worldGuardEnabled ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans);
-        sender.sendMessage("                  " + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser);
-        sender.sendMessage("                  " + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "|" + lands + ChatColor.GRAY + "|" + worldGuard + ChatColor.GRAY + "]");
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser + ChatColor.GRAY + "|" + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "|" + lands + ChatColor.GRAY + "|" + worldGuard + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));
@@ -817,6 +821,16 @@ public final class NotBounties extends JavaPlugin {
             if (meta.asBoolean()) return true;
         }
         return false;
+    }
+
+    /**
+     * Returns if the server version is above the specified version
+     * @param majorVersion Major version of the server. In 1.20.4, the major version is 20
+     * @param subVersion Sub version of the server. In 1.20.4, the sub version is 4
+     * @return True if the current server version is higher than the specified one
+     */
+    public static boolean isAboveVersion(int majorVersion, int subVersion) {
+        return serverVersion > majorVersion || (majorVersion == serverVersion && subVersion < serverSubVersion);
     }
 
 }

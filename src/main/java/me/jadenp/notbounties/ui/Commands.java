@@ -1145,7 +1145,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     meta.setLore(lore);
                                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                                     compass.setItemMeta(meta);
-                                    compass.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
+                                    compass.addUnsafeEnchantment(Enchantment.CHANNELING, 1);
                                     if (args.length > 2) {
                                         // /bounty tracker (player) (receiver)
                                         if (!sender.hasPermission("notbounties.admin")) {

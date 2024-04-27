@@ -250,8 +250,13 @@ public class GUIOptions {
             }
             if (type.equalsIgnoreCase("set-whitelist"))
                 if (NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().contains(p.getUniqueId())) {
-                    skull.addUnsafeEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
-                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                    if (NotBounties.isAboveVersion(20, 4)) {
+                        if (!meta.hasEnchantmentGlintOverride())
+                            meta.setEnchantmentGlintOverride(true);
+                    } else {
+                        skull.addUnsafeEnchantment(Enchantment.CHANNELING, 1);
+                        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                    }
                     if (NotBounties.getPlayerWhitelist(player.getUniqueId()).isBlacklist())
                         blacklistLore.stream().map(str -> parse(str, player)).forEach(lore::add);
                     else
