@@ -5,16 +5,15 @@ import com.google.gson.JsonParser;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import org.apache.hc.client5.http.auth.AuthScope;
-import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.core5.http.HttpEntity;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -105,7 +104,7 @@ public class LocalTime {
             HttpGet request = new HttpGet("https://geolite.info/geoip/v2.1/city/" + address.getAddress() + "?pretty");
 
             BasicCredentialsProvider provider = new BasicCredentialsProvider();
-            provider.setCredentials(new AuthScope("geolite.info", 443), new UsernamePasswordCredentials( account + "", license.toCharArray()));
+            provider.setCredentials(new AuthScope("geolite.info", 443), new UsernamePasswordCredentials( account + "", license));
 
             try (CloseableHttpClient httpClient = HttpClientBuilder.create()
                     .setDefaultCredentialsProvider(provider)
@@ -137,7 +136,7 @@ public class LocalTime {
                     throw new RuntimeException("Did not get a result from request.");
                 }
 
-            } catch (IOException | ParseException e) {
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
