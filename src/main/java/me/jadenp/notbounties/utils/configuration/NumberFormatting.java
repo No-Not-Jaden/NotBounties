@@ -83,6 +83,8 @@ public class NumberFormatting {
                 // has custom model data
                 customModelData = currencyName.substring(currencyName.indexOf("<") + 1, currencyName.indexOf(">"));
                 currencyName = currencyName.substring(0, currencyName.indexOf("<")) + currencyName.substring(currencyName.indexOf(">") + 1);
+                if (!currencyName.contains(" "))
+                    currencyIterator.set(currencyName);
             }
             try {
                 customModelDatas.add(Integer.parseInt(customModelData));

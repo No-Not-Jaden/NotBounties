@@ -4,6 +4,7 @@ package me.jadenp.notbounties.utils.configuration;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.utils.BountyClaimRequirements;
+import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
@@ -416,6 +417,7 @@ public class ConfigOptions {
             bounties.saveConfig();
         LanguageOptions.reloadOptions();
         WebhookOptions.reloadOptions();
+        //ChallengeManager.reloadOptions();
         if (geyserEnabled && floodgateEnabled)
             BedrockGUI.reloadOptions();
     }

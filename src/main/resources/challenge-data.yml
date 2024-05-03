@@ -1,5 +1,37 @@
 0000-console-uuid-for-global-challenges:
-  # challenge index : variation index
-  2: 3
-  4: 6
-  0: 1
+    # challenge index
+    2:
+      variation: 3
+    4:
+      variation: 6
+    0:
+      variation: 1
+1234-player-uuid-for-global-challenges:
+  2:
+    progress: 10
+    goal: 15
+    rewarded: false
+  4:
+    progress: 1.5
+    goal: 1.5
+    rewarded: true
+  0:
+    progress: 0
+    goal: 3
+    rewarded: false
+5678-player-uuid-non-global:
+  2:
+    variation: 3
+    progress: 10
+    goal: 15
+    rewarded: false
+  4:
+    variation: 6
+    progress: 1.5
+    goal: 1.5
+    rewarded: true
+  0:
+    variation: 1
+    progress: 0
+    goal: 3
+    rewarded: false

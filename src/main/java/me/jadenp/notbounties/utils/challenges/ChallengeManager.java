@@ -4,21 +4,22 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
+import org.checkerframework.checker.units.qual.A;
 import org.checkerframework.checker.units.qual.C;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ChallengeManager implements Listener {
-    private static Map<UUID, LinkedList<Double>> progress = new HashMap<>(); // progress towards the challenge
-    private static Map<UUID, LinkedList<Double>> goal = new HashMap<>(); // number that the player's progress needs to reach to complete the challenge
-    private static Map<UUID, LinkedList<Integer>> variation = new HashMap<>(); // what variation the players are on
-    private static Map<UUID, LinkedList<Challenge>> activeChallenges = new HashMap<>(); // active challenges
+    private static Map<UUID, LinkedList<ChallengeData>> challengeDataMap = new HashMap<>();
+    private static Map<UUID, LinkedList<ActiveChallenge>> activeChallenges = new HashMap<>();
     private static List<Challenge> allChallenges = new ArrayList<>(); // all challenges in the challenges.yml file
 
     private static long nextChallengeChange = 0; // the time of the next challenge - this should be set from the bounties.yml file when it is read from
@@ -36,6 +37,7 @@ public class ChallengeManager implements Listener {
             NotBounties.getInstance().saveResource("challenges.yml", false);
         }
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(challengeFile);
+        // load configuration options
         enabled = configuration.isSet("enabled") && configuration.getBoolean("enabled"); // default false
         timeLimitDays = configuration.isSet("time-limit-days") ? configuration.getDouble("time-limit-days") : 7;
         concurrentChallenges = configuration.isSet("concurrent-challenges") ? configuration.getInt("concurrent-challenges") : 3;
@@ -45,6 +47,7 @@ public class ChallengeManager implements Listener {
 
         if (!configuration.isConfigurationSection("challenge-types"))
             return;
+        // load saved challenges
         allChallenges.clear();
         for (String key : Objects.requireNonNull(configuration.getConfigurationSection("challenge-types")).getKeys(false)) {
             // safety check if the value is a configuration section
@@ -84,55 +87,150 @@ public class ChallengeManager implements Listener {
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(challengeDataFile);
         // check if a console uuid exists - all challenges are the same for everyone
         String consoleUUID = new UUID(0,0).toString();
-        boolean globalChallenges = configuration.isConfigurationSection(consoleUUID);
-        if (globalChallenges) {
-            LinkedList<Challenge> challenges = new LinkedList<>();
-            LinkedList<Integer> variations = new LinkedList<>();
-            // iterate through every challenge index under the console uuid
-            for (String key : configuration.getConfigurationSection(consoleUUID).getKeys(false)) {
-                // the keys should be an integer index for all challenges
-                int challengeIndex;
-                try {
-                    challengeIndex = Integer.parseInt(key);
-                } catch (NumberFormatException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Could not get challenge index from one of the global challenges.");
-                    continue;
-                }
-                int variationIndex = configuration.getInt(consoleUUID + "." + key);
-                if (challengeIndex >= allChallenges.size()) {
-                    Bukkit.getLogger().warning("[NotBounties] Saved global challenge no longer exists!");
-                    continue;
-                }
-                Challenge challenge =  allChallenges.get(challengeIndex);
-                if (variationIndex >= challenge.getVariations().size()) {
-                    Bukkit.getLogger().warning("[NotBounties] Saved global challenge variation no longer exists!");
-                    continue;
-                }
-                challenges.add(challenge);
-                variations.add(variationIndex);
-            }
-            activeChallenges.put(new UUID(0,0), challenges);
-            variation.put(new UUID(0,0), variations);
-        }
+
         // iterate through every top level key
         for (String key : configuration.getKeys(false)) {
             UUID uuid;
-            // the key should be a uuid
+            // the key should be a UUID
             try {
                 uuid = UUID.fromString(key);
             } catch (IllegalArgumentException e) {
                 Bukkit.getLogger().warning("[NotBounties] Could not convert string to uuid in challenge-data.yml: " + key);
                 continue;
             }
-            // make sure it isn't the console uuid
-            if (!uuid.equals(new UUID(0,0))) {
-              if (!globalChallenges) {
-                  // read challenge and variation like above global challenges
-              }
-              // read progress and goal
-              // add both to the map
+            // should be configuration section
+            if (!configuration.isConfigurationSection(key))
+                continue;
+            LinkedList<ChallengeData> challengeDataList = new LinkedList<>();
+            LinkedList<ActiveChallenge> activeChallengeList = new LinkedList<>();
+            for (String challengeIndexString : Objects.requireNonNull(configuration.getConfigurationSection(key)).getKeys(false)) {
+                int challengeIndex;
+                try {
+                    challengeIndex = Integer.parseInt(challengeIndexString);
+                } catch (NumberFormatException e) {
+                    Bukkit.getLogger().warning("[NotBounties] Could not get challenge index for UUID: " + key);
+                    continue;
+                }
+                // check for a valid challenge
+                if (challengeIndex >= allChallenges.size()) {
+                    Bukkit.getLogger().warning("[NotBounties] Saved challenge no longer exists! (" + challengeIndex + ")");
+                    continue;
+                }
+                Challenge challenge =  allChallenges.get(challengeIndex);
+
+                // variation
+                if (configuration.isSet(key + "." + challengeIndexString + ".variation")) {
+                    int variationIndex = configuration.getInt(key + "." + challengeIndexString + ".variation");
+                    // check for a valid variation
+                    if (variationIndex >= challenge.getVariations().size()) {
+                        Bukkit.getLogger().warning("[NotBounties] Saved challenge variation no longer exists! (" + challengeIndex + ":" + variationIndex + ")");
+                        variationIndex = 0;
+                    }
+                    activeChallengeList.add(new ActiveChallenge(challenge, variationIndex));
+                }
+
+                // console won't have anything else
+                if (key.equals(consoleUUID))
+                    continue;
+
+                // player specific data
+                if (configuration.isSet(key + "." + challengeIndexString + ".progress")) {
+                    challengeDataList.add(new ChallengeData(configuration.getDouble(key + "." + challengeIndexString + ".progress"), configuration.getDouble(key + "." + challengeIndexString + ".goal"), configuration.getBoolean(key + "." + challengeIndexString + ".rewarded")));
+                }
+
+            }
+
+            // activeChallengeList will be empty if global challenges is enabled and the current uuid is of a player
+            if (!activeChallengeList.isEmpty()) {
+                activeChallenges.put(uuid, activeChallengeList);
+            }
+            // challengeDataList will be empty if the uuid is from the console
+            if (!challengeDataList.isEmpty()) {
+                challengeDataMap.put(uuid, challengeDataList);
             }
         }
+    }
+
+    public void saveChallengeData() throws IOException {
+        // make sure the file exists
+        File challengeDataFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "challenge-data.yml");
+        if (challengeDataFile.createNewFile()) {
+            Bukkit.getLogger().info("[NotBounties] Created new challenge data file.");
+        }
+        YamlConfiguration configuration = new YamlConfiguration();
+        UUID consoleUUID = new UUID(0,0);
+        if (globalChallenges) {
+            // active challenges are only stored for the console uuid
+            if (!activeChallenges.containsKey(consoleUUID))
+                // no active challenges
+                return;
+            LinkedList<ActiveChallenge> challenges = activeChallenges.get(consoleUUID);
+            for (int i = 0; i < challenges.size(); i++) {
+                Challenge challenge = challenges.get(i).getChallenge();
+                // get challenge index
+                int challengeIndex = allChallenges.indexOf(challenge);
+                if (challengeIndex == -1) {
+                    // debug only because this may happen when a challenge is removed while the server is running
+                    if (NotBounties.debug)
+                        Bukkit.getLogger().warning("[NotBounties] Error getting index of challenge: " + challenge.getChallengeType());
+                    continue;
+                }
+                // get variation index - already stored as indices in the list
+                int variationIndex = challenges.get(i).getVariationIndex();
+                if (challenge.getVariations().size() <= variationIndex) {
+                    // debug only because this may happen when a variation is removed while the server is running
+                    if (NotBounties.debug)
+                        Bukkit.getLogger().warning("[NotBounties] Error getting variation: " + challenge.getChallengeType() + ":" + i);
+                    variationIndex = 0;
+                }
+                // save variation to configuration
+                configuration.set(consoleUUID + "." + challengeIndex + ".variation", variationIndex);
+                // get player progress and goal for this challenge
+                for (Map.Entry<UUID, LinkedList<ChallengeData>> entry : challengeDataMap.entrySet()) {
+                    ChallengeData challengeData = entry.getValue().get(challengeIndex);
+                    configuration.set(entry.getKey() + "." + challengeIndex + ".progress", challengeData.getProgress());
+                    configuration.set(entry.getKey() + "." + challengeIndex + ".goal", challengeData.getGoal());
+                    configuration.set(entry.getKey() + "." + challengeIndex + ".rewarded", challengeData.isRewarded());
+                }
+
+            }
+        } else {
+            // active challenges are different for everyone
+            for (Map.Entry<UUID, LinkedList<ActiveChallenge>> entry : activeChallenges.entrySet()) {
+                // these should both be valid and of the same size
+                LinkedList<ActiveChallenge> activeChallengeList = entry.getValue();
+                LinkedList<ChallengeData> challengeDataList = challengeDataMap.get(entry.getKey());
+                for (int i = 0; i < activeChallengeList.size(); i++) {
+                    Challenge challenge = activeChallengeList.get(i).getChallenge();
+                    int challengeIndex = allChallenges.indexOf(challenge);
+                    if (challengeIndex == -1) {
+                        // debug only because this may happen when a challenge is removed while the server is running
+                        if (NotBounties.debug)
+                            Bukkit.getLogger().warning("[NotBounties] Error getting index of challenge: " + challenge.getChallengeType());
+                        continue;
+                    }
+
+                    // get variation index - already stored as indices in the list
+                    int variationIndex = activeChallengeList.get(i).getVariationIndex();
+                    if (challenge.getVariations().size() <= variationIndex) {
+                        // debug only because this may happen when a variation is removed while the server is running
+                        if (NotBounties.debug)
+                            Bukkit.getLogger().warning("[NotBounties] Error getting variation: " + challenge.getChallengeType() + ":" + i);
+                        variationIndex = 0;
+                    }
+
+                    // save variation to configuration
+                    configuration.set(entry.getKey() + "." + challengeIndex + ".variation", variationIndex);
+                    configuration.set(entry.getKey() + "." + challengeIndex + ".progress", challengeDataList.get(i).getProgress());
+                    configuration.set(entry.getKey() + "." + challengeIndex + ".goal", challengeDataList.get(i).getGoal());
+                    configuration.set(entry.getKey() + "." + challengeIndex + ".rewarded", challengeDataList.get(i).isRewarded());
+                }
+
+            }
+        }
+
+        configuration.save(challengeDataFile);
+
     }
 
     /**
@@ -142,8 +240,10 @@ public class ChallengeManager implements Listener {
      * @return a double from 0-1
      */
     public static double getProgress(int challengeIndex, UUID uuid) {
-        if (progress.containsKey(uuid) && goal.containsKey(uuid))
-            return goal.get(uuid).get(challengeIndex) / progress.get(uuid).get(challengeIndex);
+        if (challengeDataMap.containsKey(uuid) && challengeDataMap.get(uuid).size() > challengeIndex) {
+            ChallengeData challengeData = challengeDataMap.get(uuid).get(challengeIndex);
+            return challengeData.getProgress() / challengeData.getGoal();
+        }
         return 0;
     }
 
@@ -152,7 +252,7 @@ public class ChallengeManager implements Listener {
         if (!enabled)
             return;
         // check if progress needs to be generated for this player
-        if (!progress.containsKey(player.getUniqueId()))
+        if (!challengeDataMap.containsKey(player.getUniqueId()))
             generateProgress(player);
     }
 
@@ -160,20 +260,18 @@ public class ChallengeManager implements Listener {
         if (!globalChallenges)
             generateChallenges(player.getUniqueId()); // generate new challenges
         // create progress and goal list
-        LinkedList<Double> progressList = new LinkedList<>();
-        LinkedList<Double> goalList = new LinkedList<>();
+        LinkedList<ChallengeData> challengeDataList = new LinkedList<>();
 
         // get created challenges
-        LinkedList<Challenge> createdChallenges = globalChallenges ? activeChallenges.get(new UUID(0,0)) : activeChallenges.get(player.getUniqueId());
+        LinkedList<ActiveChallenge> createdChallenges = globalChallenges ? activeChallenges.get(new UUID(0,0)) : activeChallenges.get(player.getUniqueId());
         // get the progress and goal for each challenge
-        for (int i = 0; i < createdChallenges.size(); i++) {
-            Challenge challenge = createdChallenges.get(i);
+        for (ActiveChallenge createdChallenge : createdChallenges) {
+            Challenge challenge = createdChallenge.getChallenge();
             double progressValue = challenge.getDefaultProgress(player); // get default progress value
-            progressList.add(progressValue); // add to progress list
-            goalList.add(progressValue + challenge.getVariations().get(variation.get(player.getUniqueId()).get(i))); // set the goal to the default progress + the variation set for this player and challenge
+            // add default value and goal (default value + variation amount)
+            challengeDataList.add(new ChallengeData(progressValue, progressValue + challenge.getVariations().get(createdChallenge.getVariationIndex()), false));
         }
-        progress.put(player.getUniqueId(), progressList);
-        goal.put(player.getUniqueId(), goalList);
+        challengeDataMap.put(player.getUniqueId(), challengeDataList);
     }
 
 
@@ -194,9 +292,7 @@ public class ChallengeManager implements Listener {
 
     private static void changeChallenges() {
         activeChallenges.clear();
-        progress.clear();
-        variation.clear();
-        goal.clear();
+        challengeDataMap.clear();
         if (globalChallenges) {
             generateChallenges(new UUID(0,0));
         } else {
@@ -211,15 +307,15 @@ public class ChallengeManager implements Listener {
      * @param uuid UUID of the player to generate the challenges for
      */
     private static void generateChallenges(UUID uuid) {
-        LinkedList<Challenge> challenges = new LinkedList<>();
-        LinkedList<Integer> variations = new LinkedList<>();
+        LinkedList<ActiveChallenge> activeChallengeList = new LinkedList<>();
+
         for (int i = 0; i < concurrentChallenges; i++) {
             Challenge challenge = getRandomChallenge(); // get random challenge
-            challenges.add(challenge); // add random challenge to list
-            variations.add((int) (Math.random() * challenge.getVariations().size())); // add random index of variation
+            int randomVariationIndex = (int) (Math.random() * challenge.getVariations().size()); // get random variation
+            // add to list
+            activeChallengeList.add(new ActiveChallenge(challenge, randomVariationIndex));
         }
-        activeChallenges.put(uuid, challenges);
-        variation.put(uuid, variations);
+        activeChallenges.put(uuid, activeChallengeList);
     }
 
     private static Challenge getRandomChallenge() {
@@ -238,19 +334,21 @@ public class ChallengeManager implements Listener {
 
     private static double getVariation(UUID uuid, int challengeIndex) {
         if (globalChallenges) {
-            // return the active challenge variation
-            return activeChallenges.get(new UUID(0,0)).get(challengeIndex).getVariations().get(variation.get(new UUID(0,0)).get(challengeIndex));
+            // return the active challenge variation for console uuid
+            return activeChallenges.get(new UUID(0,0)).get(challengeIndex).getChallenge().getVariations().get(activeChallenges.get(new UUID(0,0)).get(challengeIndex).getVariationIndex());
         } else {
             if (!activeChallenges.containsKey(uuid))
                 return 0;
-            return activeChallenges.get(uuid).get(challengeIndex).getVariations().get(variation.get(uuid).get(challengeIndex));
+            // return the active challenge variation for uuid argument
+            return activeChallenges.get(uuid).get(challengeIndex).getChallenge().getVariations().get(activeChallenges.get(uuid).get(challengeIndex).getVariationIndex());
         }
     }
 
     private static double getAdjustedProgress(UUID uuid, int challengeIndex) {
-        if (!progress.containsKey(uuid) || !goal.containsKey(uuid))
+        if (!challengeDataMap.containsKey(uuid))
             return 0;
-        return progress.get(uuid).get(challengeIndex) - (goal.get(uuid).get(challengeIndex) - getVariation(uuid, challengeIndex));
+        ChallengeData challengeData = challengeDataMap.get(uuid).get(challengeIndex);
+        return challengeData.getProgress() - (challengeData.getGoal() - getVariation(uuid, challengeIndex));
     }
 
     public static String getChallengeTitle(OfflinePlayer player, int challengeIndex) {
@@ -258,7 +356,7 @@ public class ChallengeManager implements Listener {
             return "";
         if (challengeIndex >= concurrentChallenges)
             return ""; // out of bounds
-        Challenge challenge = globalChallenges ? activeChallenges.get(new UUID(0,0)).get(challengeIndex) : activeChallenges.get(player.getUniqueId()).get(challengeIndex);
+        Challenge challenge = globalChallenges ? activeChallenges.get(new UUID(0,0)).get(challengeIndex).getChallenge() : activeChallenges.get(player.getUniqueId()).get(challengeIndex).getChallenge();
         return challenge.getChallengeTitle(player, getAdjustedProgress(player.getUniqueId(), challengeIndex), getVariation(player.getUniqueId(), challengeIndex));
     }
 
@@ -269,4 +367,9 @@ public class ChallengeManager implements Listener {
     public static String getChatClaim() {
         return chatClaim;
     }
+
+    public static boolean isEnabled() {
+        return enabled;
+    }
+
 }

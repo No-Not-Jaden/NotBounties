@@ -6,6 +6,7 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.*;
+import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
@@ -135,8 +136,15 @@ public final class NotBounties extends JavaPlugin {
         try {
             loadConfig();
         } catch (IOException e) {
-            Bukkit.getLogger().warning("NotBounties is having trouble loading saved bounties.");
-            Bukkit.getLogger().warning(e.toString());
+            throw new RuntimeException(e);
+        }
+
+        if (ChallengeManager.isEnabled()) {
+            try {
+                ChallengeManager.readChallengeData();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         if (sendBStats) {
@@ -473,7 +481,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public void save() {
+    private void save() {
         YamlConfiguration configuration = new YamlConfiguration();
         configuration.set("immune-permissions", immunePerms);
         configuration.set("immunity-murder", autoImmuneMurderPerms);
@@ -537,13 +545,12 @@ public final class NotBounties extends JavaPlugin {
                     configuration.set("data." + mapElement.getKey() + ".immunity", mapElement.getValue());
                 }
             }
-            for (Map.Entry<UUID, Long> entry : TimedBounties.getNextBounties().entrySet()) {
-                configuration.set("data." + entry.getKey() + ".next-bounty", entry.getValue());
-            }
-            for (Map.Entry<UUID, TimeZone> entry : LocalTime.getSavedTimeZones().entrySet()) {
-                configuration.set("data." + entry.getKey() + ".time-zone", entry.getValue().getID());
-            }
-
+        }
+        for (Map.Entry<UUID, Long> entry : TimedBounties.getNextBounties().entrySet()) {
+            configuration.set("data." + entry.getKey() + ".next-bounty", entry.getValue());
+        }
+        for (Map.Entry<UUID, TimeZone> entry : LocalTime.getSavedTimeZones().entrySet()) {
+            configuration.set("data." + entry.getKey() + ".time-zone", entry.getValue().getID());
         }
         if (variableWhitelist) {
             for (Map.Entry<UUID, Whitelist> mapElement : playerWhitelist.entrySet()) {

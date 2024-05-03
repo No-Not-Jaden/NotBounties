@@ -23,6 +23,7 @@ import java.util.UUID;
 
 public class SkinsRestorerClass {
     private SkinsRestorer skinsRestorer;
+    private long lastHookError = 0;
 
     public SkinsRestorerClass() {
         connect();
@@ -33,7 +34,10 @@ public class SkinsRestorerClass {
             skinsRestorer = SkinsRestorerProvider.get();
             return true;
         } catch (IllegalStateException e) {
-            Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
+            if (lastHookError < System.currentTimeMillis()) {
+                Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
+                lastHookError = System.currentTimeMillis() + 60000 * 5;
+            }
             return false;
         }
     }

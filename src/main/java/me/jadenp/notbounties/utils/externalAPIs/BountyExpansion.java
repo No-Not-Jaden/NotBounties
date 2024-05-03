@@ -197,9 +197,11 @@ public class BountyExpansion extends PlaceholderExpansion {
             ending = 3;
             params = params.substring(0,params.lastIndexOf("_"));
         }
+        if (params.endsWith("_name")) {
+            ending = 4;
+            params = params.substring(0,params.lastIndexOf("_"));
+        }
         if (params.startsWith("top_")) {
-
-
             params = params.substring(4);
             int rank = 0;
             try {
@@ -237,6 +239,9 @@ public class BountyExpansion extends PlaceholderExpansion {
                 return LanguageOptions.parse(leaderboard.getFormattedStat(uuid1),p);
             if (ending == 3)
                 return NumberFormatting.getValue(leaderboard.getStat(uuid1));
+            if (ending == 4) {
+                return name;
+            }
             return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
         }
 
