@@ -47,7 +47,7 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
 /**
  * Proxy Messaging
  * Challenges
- * Paged help commands
+ * Get skins in offline mode (get uuid from name and then skin)
  */
 
 public final class NotBounties extends JavaPlugin {
@@ -166,6 +166,12 @@ public final class NotBounties extends JavaPlugin {
         if (!tryToConnect()) {
             Bukkit.getLogger().info("[NotBounties] Database not connected, using internal storage");
         }
+
+        // register plugin messaging to a proxy
+        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "bungeecord:main");
+        this.getServer().getMessenger().registerIncomingPluginChannel(this, "bungeecord:main", new ProxyMessaging());
+        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "notbounties:main");
+        this.getServer().getMessenger().registerIncomingPluginChannel(this, "notbounties:main", new ProxyMessaging());
 
         // update checker
         if (updateNotification) {
@@ -730,7 +736,7 @@ public final class NotBounties extends JavaPlugin {
         sender.sendMessage(parse(prefix + ChatColor.WHITE + "NotBounties debug info:", null));
         String connected = SQL.isConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
         sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + SQL.getDatabaseType() + ChatColor.YELLOW + " ID: " + ChatColor.WHITE + SQL.getServerID() + ChatColor.YELLOW + " Local Bounties: " + ChatColor.WHITE + bountyList.size());
-        sender.sendMessage(ChatColor.GOLD + "General > " + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion() + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + "1." + serverVersion + "." + serverSubVersion);
+        sender.sendMessage(ChatColor.GOLD + "General > " + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion() + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + "1." + serverVersion + "." + serverSubVersion + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug);
         int bounties = SQL.isConnected() ? data.getTopBounties(2).size() : bountyList.size();
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + trackedBounties.size() + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + bountyBoards.size());
         String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";

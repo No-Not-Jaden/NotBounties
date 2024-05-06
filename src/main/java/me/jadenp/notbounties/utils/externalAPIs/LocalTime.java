@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils.externalAPIs;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.ProxyMessaging;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.apache.http.HttpEntity;
@@ -57,6 +58,8 @@ public class LocalTime {
             return formatTime(time);
         if (lastException + 10 * 60 * 1000 > System.currentTimeMillis())
             return formatTime(time);
+        if (ProxyMessaging.hasConnectedBefore())
+            return formatTime(time);
         if (license == null) {
             try {
                 readAuthentication();
@@ -83,7 +86,7 @@ public class LocalTime {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                Bukkit.getLogger().info("[NotBounties Debug] ->");
+                                Bukkit.getLogger().info("[NotBountiesDebug] ->");
                                 Bukkit.getLogger().info(e.toString());
                             }
                         }.runTask(NotBounties.getInstance());
@@ -122,7 +125,7 @@ public class LocalTime {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                Bukkit.getLogger().info("[NotBounties Debug] ->");
+                                Bukkit.getLogger().info("[NotBountiesDebug] ->");
                                 Bukkit.getLogger().info(result);
                             }
                         }.runTask(NotBounties.getInstance());

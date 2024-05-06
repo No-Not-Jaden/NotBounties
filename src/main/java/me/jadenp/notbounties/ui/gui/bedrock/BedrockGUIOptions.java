@@ -3,7 +3,7 @@ package me.jadenp.notbounties.ui.gui.bedrock;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.ui.Head;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -13,6 +13,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.cumulus.form.ModalForm;
 import org.geysermc.cumulus.form.SimpleForm;
@@ -161,9 +162,9 @@ public class BedrockGUIOptions {
             String finalAmount = amount[i];
             // default texture id (question mark head)
             String imageTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
-            String tempId = Head.getTextureID(p.getUniqueId());
-            if (tempId != null)
-                imageTextureID = tempId;
+
+            if (SkinManager.isSkinLoaded(p.getUniqueId()))
+                imageTextureID = SkinManager.getSkin(p.getUniqueId()).getId();
             // perspective head url
             String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png";
             // get the player text (will be parsed already)
@@ -187,139 +188,171 @@ public class BedrockGUIOptions {
     }
 
     public void openInventory(Player player, long page, LinkedHashMap<UUID, String> values, String... replacements) {
-        OfflinePlayer[] playerItems = new OfflinePlayer[values.size()];
-        String[] amount = new String[values.size()];
-        int index = 0;
-        for (Map.Entry<UUID, String> entry : values.entrySet()) {
-            playerItems[index] = Bukkit.getOfflinePlayer(entry.getKey());
-            amount[index] = entry.getValue();
-            index++;
-        }
-        // this is for adding more replacements in the future
-        int desiredLength = 1;
-        if (replacements.length < desiredLength)
-            replacements = new String[desiredLength];
-        for (int i = 0; i < replacements.length; i++) {
-            if (replacements[i] == null)
-                replacements[i] = "";
-        }
+        final String thisName = this.name;
+                new BukkitRunnable() {
+            String[] finalReplacements = replacements;
+            long finalPage = page;
 
-        if (page < 1) {
-            page = 1;
-        }
-        String name = addPage ? this.name + " " + page : this.name;
-        if (amount.length > 0) {
-            double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
-            String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
-            name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", playerName);
-        }
-        name = name.replaceAll("\\{page}", Matcher.quoteReplacement(page + ""));
-        int maxPage = type.equals("select-price") ? (int) NumberFormatting.getBalance(player) : (playerItems.length / maxPlayers) + 1;
-        name = name.replaceAll("\\{page_max}", Matcher.quoteReplacement(maxPage + ""));
-        name = parse(name, player);
-        List<GUIComponent> usedGUIComponents = new ArrayList<>();
+            @Override
+            public void run() {
+                OfflinePlayer[] playerItems = new OfflinePlayer[values.size()];
+                String[] amount = new String[values.size()];
+                int index = 0;
+                for (Map.Entry<UUID, String> entry : values.entrySet()) {
+                    if (!SkinManager.isSkinLoaded(entry.getKey())) {
+                        return;
+                    }
+                    playerItems[index] = Bukkit.getOfflinePlayer(entry.getKey());
+                    amount[index] = entry.getValue();
+                    index++;
+                }
+                this.cancel();
+                // this is for adding more replacements in the future
+                int desiredLength = 1;
+                if (finalReplacements.length < desiredLength)
+                    finalReplacements = new String[desiredLength];
+                for (int i = 0; i < finalReplacements.length; i++) {
+                    if (finalReplacements[i] == null)
+                        finalReplacements[i] = "";
+                }
 
-        switch (guiType) {
-            case SIMPLE:
-                SimpleForm.Builder simpleBuilder = SimpleForm.builder().title(name);
-                StringBuilder content = new StringBuilder();
-                // before player values
-                for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                    if (entry.getKey() > 0)
+                if (finalPage < 1) {
+                    finalPage = 1;
+                }
+                String name = addPage ? thisName + " " + page : thisName;
+                if (amount.length > 0) {
+                    double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
+                    String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
+                    name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", playerName);
+                }
+                name = name.replaceAll("\\{page}", Matcher.quoteReplacement(page + ""));
+                int maxPage = type.equals("select-price") ? (int) NumberFormatting.getBalance(player) : (playerItems.length / maxPlayers) + 1;
+                name = name.replaceAll("\\{page_max}", Matcher.quoteReplacement(maxPage + ""));
+                name = parse(name, player);
+                List<GUIComponent> usedGUIComponents = new ArrayList<>();
+
+                switch (guiType) {
+                    case SIMPLE:
+                        SimpleForm.Builder simpleBuilder = SimpleForm.builder().title(name);
+                        StringBuilder content = new StringBuilder();
+                        // before player values
+                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
+                            if (entry.getKey() > 0)
+                                break;
+                            GUIComponent component = entry.getValue().buildComponent(player);
+                            if (skipItem(component.getCommands(), page, playerItems.length))
+                                continue;
+
+                            if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON) {
+                                simpleBuilder.button(component.getButtonComponent());
+                                usedGUIComponents.add(component.copy());
+                            } else {
+                                content.append(component.getComponent().text()).append("\n");
+                            }
+                        }
+                        // player values
+                        List<GUIComponent> addedComponents = addPlayerComponents(simpleBuilder, player, page, playerItems, amount, finalReplacements);
+                        // add all components because they will all be buttons from this method
+                        usedGUIComponents.addAll(addedComponents);
+                        // after player values
+                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
+                            if (entry.getKey() < 1)
+                                continue;
+                            GUIComponent component = entry.getValue().buildComponent(player);
+                            if (skipItem(component.getCommands(), page, playerItems.length))
+                                continue;
+                            if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON) {
+                                simpleBuilder.button(component.getButtonComponent());
+                                usedGUIComponents.add(component.copy());
+                            } else {
+                                content.append(component.getComponent().text()).append("\n");
+                            }
+                        }
+                        simpleBuilder.content(content.toString());
+                        simpleBuilder.validResultHandler((simpleFormResponse) -> doClickActions(player, simpleFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                new FloodGateClass().sendForm(player.getUniqueId(), simpleBuilder);
+                            }
+                        }.runTask(NotBounties.getInstance());
+
                         break;
-                    GUIComponent component = entry.getValue().buildComponent(player);
-                    if (skipItem(component.getCommands(), page, playerItems.length))
-                        continue;
+                    case MODAL:
+                        ModalForm.Builder modalBuilder = ModalForm.builder().title(name);
+                        StringBuilder modalContent = new StringBuilder();
+                        int buttons = 0;
+                        // before player values
+                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
+                            GUIComponent component = entry.getValue().buildComponent(player);
+                            if (skipItem(component.getCommands(), page, playerItems.length))
+                                continue;
+                            if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON && buttons < 2) {
+                                if (buttons == 0)
+                                    modalBuilder.button1(component.getButtonComponent().text());
+                                else if (buttons == 1)
+                                    modalBuilder.button2(component.getButtonComponent().text());
+                                buttons++;
+                                usedGUIComponents.add(component.copy());
+                            } else {
+                                modalContent.append(component.getComponent().text()).append("\n");
+                            }
+                        }
+                        // add player values to content
+                        for (String text : getPlayerText(player, page, playerItems, amount, finalReplacements)) {
+                            modalContent.append(text).append("\n");
+                        }
+                        modalBuilder.content(modalContent.toString());
+                        modalBuilder.validResultHandler(modalFormResponse -> doClickActions(player, modalFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                new FloodGateClass().sendForm(player.getUniqueId(), modalBuilder);
+                            }
+                        }.runTask(NotBounties.getInstance());
 
-                    if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON) {
-                        simpleBuilder.button(component.getButtonComponent());
-                        usedGUIComponents.add(component.copy());
-                    } else {
-                        content.append(component.getComponent().text()).append("\n");
-                    }
-                }
-                // player values
-                List<GUIComponent> addedComponents = addPlayerComponents(simpleBuilder, player, page, playerItems, amount, replacements);
-                // add all components because they will all be buttons from this method
-                usedGUIComponents.addAll(addedComponents);
-                // after player values
-                for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                    if (entry.getKey() < 1)
-                        continue;
-                    GUIComponent component = entry.getValue().buildComponent(player);
-                    if (skipItem(component.getCommands(), page, playerItems.length))
-                        continue;
-                    if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON) {
-                        simpleBuilder.button(component.getButtonComponent());
-                        usedGUIComponents.add(component.copy());
-                    } else {
-                        content.append(component.getComponent().text()).append("\n");
-                    }
-                }
-                simpleBuilder.content(content.toString());
-                simpleBuilder.validResultHandler((simpleFormResponse) -> doClickActions(player, simpleFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                new FloodGateClass().sendForm(player.getUniqueId(), simpleBuilder);
-                break;
-            case MODAL:
-                ModalForm.Builder modalBuilder = ModalForm.builder().title(name);
-                StringBuilder modalContent = new StringBuilder();
-                int buttons = 0;
-                // before player values
-                for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                    GUIComponent component = entry.getValue().buildComponent(player);
-                    if (skipItem(component.getCommands(), page, playerItems.length))
-                        continue;
-                    if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON && buttons < 2) {
-                        if (buttons == 0)
-                            modalBuilder.button1(component.getButtonComponent().text());
-                        else if (buttons == 1)
-                            modalBuilder.button2(component.getButtonComponent().text());
-                        buttons++;
-                        usedGUIComponents.add(component.copy());
-                    } else {
-                        modalContent.append(component.getComponent().text()).append("\n");
-                    }
-                }
-                // add player values to content
-                for (String text : getPlayerText(player, page, playerItems, amount, replacements)) {
-                    modalContent.append(text).append("\n");
-                }
-                modalBuilder.content(modalContent.toString());
-                modalBuilder.validResultHandler(modalFormResponse -> doClickActions(player, modalFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                new FloodGateClass().sendForm(player.getUniqueId(), modalBuilder);
-                break;
-            case CUSTOM:
-                CustomForm.Builder customBuilder = CustomForm.builder().title(name);
-                // before player items
-                for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                    if (entry.getKey() > 0)
                         break;
-                    GUIComponent component = entry.getValue().buildComponent(player);
-                    if (skipItem(component.getCommands(), page, playerItems.length))
-                        continue;
-                    usedGUIComponents.add(component.copy());
+                    case CUSTOM:
+                        CustomForm.Builder customBuilder = CustomForm.builder().title(name);
+                        // before player items
+                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
+                            if (entry.getKey() > 0)
+                                break;
+                            GUIComponent component = entry.getValue().buildComponent(player);
+                            if (skipItem(component.getCommands(), page, playerItems.length))
+                                continue;
+                            usedGUIComponents.add(component.copy());
 
-                    customBuilder.component(component.getComponent());
-                }
-                // player items
-                for (String text : getPlayerText(player, page, playerItems, amount, replacements)) {
-                    customBuilder.label(text);
-                }
-                // after player items
-                for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                    if (entry.getKey() < 1)
-                        continue;
-                    GUIComponent component = entry.getValue().buildComponent(player);
-                    if (skipItem(component.getCommands(), page, playerItems.length))
-                        continue;
-                    usedGUIComponents.add(component.copy());
+                            customBuilder.component(component.getComponent());
+                        }
+                        // player items
+                        for (String text : getPlayerText(player, page, playerItems, amount, finalReplacements)) {
+                            customBuilder.label(text);
+                        }
+                        // after player items
+                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
+                            if (entry.getKey() < 1)
+                                continue;
+                            GUIComponent component = entry.getValue().buildComponent(player);
+                            if (skipItem(component.getCommands(), page, playerItems.length))
+                                continue;
+                            usedGUIComponents.add(component.copy());
 
-                    customBuilder.component(component.getComponent());
+                            customBuilder.component(component.getComponent());
+                        }
+                        customBuilder.validResultHandler(customFormResponse -> doClickActions(player, customFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                new FloodGateClass().sendForm(player.getUniqueId(), customBuilder);
+                            }
+                        }.runTask(NotBounties.getInstance());
+
+                        break;
                 }
-                customBuilder.validResultHandler(customFormResponse -> doClickActions(player, customFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                new FloodGateClass().sendForm(player.getUniqueId(), customBuilder);
-                break;
-        }
+            }
+        }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 4);
+
 
 
     }

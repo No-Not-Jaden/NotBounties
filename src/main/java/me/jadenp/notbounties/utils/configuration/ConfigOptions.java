@@ -1,18 +1,19 @@
 package me.jadenp.notbounties.utils.configuration;
 
 
-import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
-import me.jadenp.notbounties.utils.BountyClaimRequirements;
-import me.jadenp.notbounties.utils.challenges.ChallengeManager;
-import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
-import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
-import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
+import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
+import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.map.BountyMap;
+import me.jadenp.notbounties.utils.BountyClaimRequirements;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
 import org.bukkit.Bukkit;
@@ -417,6 +418,7 @@ public class ConfigOptions {
             bounties.saveConfig();
         LanguageOptions.reloadOptions();
         WebhookOptions.reloadOptions();
+        SkinManager.refreshSkinRequests();
         //ChallengeManager.reloadOptions();
         if (geyserEnabled && floodgateEnabled)
             BedrockGUI.reloadOptions();

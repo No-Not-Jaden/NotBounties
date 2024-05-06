@@ -55,7 +55,7 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_bounty%</p>
      * <p>%notbounties_total%</p>
      * <p>%notbounties_(all/kills/claimed/deaths/set/immunity/current)%</p>
-     * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity/current)%</p>
+     * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity/current)[_name]%</p>
      * <p>%notbounties_wanted%</p>
      * <p>%notbounties_notification%</p>
      * <p>%notbounties_mode%</p>

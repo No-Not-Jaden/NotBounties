@@ -6,7 +6,7 @@ import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
 import me.jadenp.notbounties.bountyEvents.BountyEditEvent;
 import me.jadenp.notbounties.bountyEvents.BountyRemoveEvent;
 import me.jadenp.notbounties.bountyEvents.BountySetEvent;
-import me.jadenp.notbounties.ui.Head;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import org.bukkit.Bukkit;
@@ -99,14 +99,11 @@ public class WebhookOptions implements Listener {
                     DiscordWebhook.EmbedObject embed = null;
                     UUID avatarUUID = webhook.isSwitchImages() ? playerUUID : receiverUUID;
                     UUID imageUUID = webhook.isSwitchImages() ? receiverUUID : playerUUID;
-                    String avatarTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
-                    String imageTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
-                    String tempId = Head.getTextureID(avatarUUID);
-                    if (tempId != null)
-                        avatarTextureID = tempId;
-                    tempId = Head.getTextureID(imageUUID);
-                    if (tempId != null)
-                        imageTextureID = tempId;
+
+                    if (!SkinManager.isSkinLoaded(avatarUUID) || !SkinManager.isSkinLoaded(imageUUID))
+                        return;
+                    String avatarTextureID = SkinManager.getSkin(avatarUUID).getId();
+                    String imageTextureID = SkinManager.getSkin(imageUUID).getId();
                     String avatarURL = "https://mc-heads.net/head/" + avatarTextureID + ".png";
                     String imageURL = "https://mc-heads.net/avatar/" + imageTextureID + "/128.png";
                     if (sendEmbed) {
@@ -128,8 +125,9 @@ public class WebhookOptions implements Listener {
                         Bukkit.getLogger().warning(e.toString());
                     }
                 }
+                this.cancel();
             }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 4);
 
     }
 

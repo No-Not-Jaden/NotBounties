@@ -4,7 +4,6 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -17,18 +16,11 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class HeadFetcher {
     private static final Map<UUID, ItemStack> savedHeads = new HashMap<>();
-    private static final Map<UUID, BufferedImage> savedFaces = new HashMap<>();
+
 
     public HeadFetcher() {
     }
@@ -38,23 +30,39 @@ public class HeadFetcher {
         new BukkitRunnable() {
             @Override
             public void run() {
+                boolean[] headsToUpdate = new boolean[heads.size()];
+
                 int i = 0;
                 for (Map.Entry<OfflinePlayer, ItemStack> entry : heads.entrySet()) {
+                    if (fetchedHeads[i] != null)
+                        continue;
                     if (savedHeads.containsKey(entry.getKey().getUniqueId())) {
                         fetchedHeads[i] = savedHeads.get(entry.getKey().getUniqueId());
+                        headsToUpdate[i] = true;
                     } else {
-                        ItemStack head = copyItemText(entry.getValue(), Head.createPlayerSkull(entry.getKey().getUniqueId()));
-                        fetchedHeads[i] = head;
-                        savedHeads.put(entry.getKey().getUniqueId(), head);
+                        if (SkinManager.isSkinLoaded(entry.getKey().getUniqueId())) {
+                            PlayerSkin playerSkin = SkinManager.getSkin(entry.getKey().getUniqueId());
+                            ItemStack head = copyItemText(entry.getValue(), Head.createPlayerSkull(entry.getKey().getUniqueId(), playerSkin.getUrl()));
+                            fetchedHeads[i] = head;
+                            if (!SkinManager.isMissingSkin(playerSkin)) {
+                                // do not update head if the skin is missing.
+                                headsToUpdate[i] = true;
+                                savedHeads.put(entry.getKey().getUniqueId(), head);
+                            }
+                        } else {
+                            fetchedHeads[i] = null;
+                        }
                     }
                     i++;
                 }
+
+                // update inventory
                 new BukkitRunnable() {
                     @Override
                     public void run() {
                         if (player.isOnline() && player.getOpenInventory().getType() == InventoryType.CHEST && GUI.playerInfo.containsKey(player.getUniqueId())) {
                             PlayerGUInfo currentInfo = GUI.playerInfo.get(player.getUniqueId());
-                            if (!currentInfo.getGuiType().equals(guInfo.getGuiType()) || currentInfo.getPage() != guInfo.getPage())
+                            if (!currentInfo.getGuiType().equals(guInfo.getGuiType()) || currentInfo.getPage() != guInfo.getPage() || !Arrays.equals(currentInfo.getData(), guInfo.getData()))
                                 return;
                             GUIOptions guiOptions = GUI.getGUI(guInfo.getGuiType());
                             if (guiOptions == null)
@@ -62,68 +70,27 @@ public class HeadFetcher {
                             Inventory inventory = player.getOpenInventory().getTopInventory();
                             ItemStack[] contents = inventory.getContents();
                             for (int j = 0; j < Math.min(guiOptions.getPlayerSlots().size(), fetchedHeads.length); j++) {
+                                if (!headsToUpdate[j])
+                                    return;
                                 int slot = guiOptions.getPlayerSlots().get(j);
                                 contents[slot] = fetchedHeads[j];
                             }
                             inventory.setContents(contents);
                         }
-                        //Bukkit.getLogger().info("Took: " + (System.currentTimeMillis() - start) + "ms to load heads");
+
                     }
                 }.runTask(NotBounties.getInstance());
-
+                // check if all heads are loaded
+                for (ItemStack itemStack : fetchedHeads)
+                    if (itemStack == null)
+                        return;
+                this.cancel();
+                //Bukkit.getLogger().info("Took: " + (System.currentTimeMillis() - start) + "ms to load heads");
             }
-        }.runTaskLaterAsynchronously(NotBounties.getInstance(), 1);
+        }.runTaskTimerAsynchronously(NotBounties.getInstance(), 1, 4);
     }
 
-    public BufferedImage getPlayerFace(UUID uuid) {
-        if (savedFaces.containsKey(uuid))
-            return savedFaces.get(uuid);
-        String name = NotBounties.getPlayerName(uuid);
-        try {
-            URL textureUrl = null;
-            if (ConfigOptions.skinsRestorerEnabled)
-                textureUrl = new URL(ConfigOptions.skinsRestorerClass.getSkinTextureURL(uuid, name));
-            if (textureUrl == null)
-                textureUrl = Head.getTextureURL(uuid);
-            //Bukkit.getLogger().info("URL: " + textureUrl);
-            if (textureUrl == null)
-                return null;
-            BufferedImage skin = ImageIO.read(textureUrl);
-            BufferedImage head = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
-            try {
-                // base head
-                copySquare(skin, head, 8, 8);
-                // mask
-                copySquare(skin, head, 40, 8);
-            } catch (IndexOutOfBoundsException e) {
-                Bukkit.getLogger().warning(e.toString());
-                return null;
-            }
-            savedFaces.put(uuid, head);
-            return head;
 
-        } catch (IOException e) {
-            Bukkit.getLogger().warning(e.toString());
-        }
-        return null;
-    }
-
-    private void copySquare(BufferedImage from, BufferedImage to, int x, int y) {
-        for (int x1 = 0; x1 < 8; x1++) {
-            for (int y1 = 0; y1 < 8; y1++) {
-                int color = from.getRGB(x + x1, y + y1);
-                int a = (color >> 24) & 0xFF;
-                if (a == 0)
-                    continue;
-                for (int x2 = 0; x2 < 8; x2++) {
-                    for (int y2 = 0; y2 < 8; y2++) {
-                        to.setRGB(x1 * 8 + x2, y1 * 8 + y2, color);
-                    }
-                }
-
-            }
-        }
-    }
 
     private ItemStack copyItemText(ItemStack from, ItemStack to) {
         ItemMeta fromMeta = from.getItemMeta();

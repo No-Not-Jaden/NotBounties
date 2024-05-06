@@ -2,7 +2,7 @@ package me.jadenp.notbounties.ui.map;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.ui.HeadFetcher;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -47,62 +47,79 @@ public class Renderer extends MapRenderer {
         } else {
             name = NotBounties.getPlayerName(uuid);
         }
+        File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
+        if (ConfigOptions.saveTemplates) {
+            if (imageFile.exists()) {
+                try {
+                    image = ImageIO.read(imageFile);
+                } catch (IOException e) {
+                    Bukkit.getLogger().warning(e.toString());
+                }
+                return;
+            }
+        }
         new BukkitRunnable() {
             @Override
             public void run() {
-                File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
-                if (ConfigOptions.saveTemplates) {
-                    if (imageFile.exists()) {
-                        try {
-                            image = ImageIO.read(imageFile);
-                        } catch (IOException e) {
-                            Bukkit.getLogger().warning(e.toString());
-                        }
-                        return;
+                if (Bukkit.getOnlinePlayers().isEmpty())
+                    return;
+                this.cancel();
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (!SkinManager.isSkinLoaded(uuid))
+                            return;
+                        renderPoster(SkinManager.getPlayerFace(uuid), name);
+                        this.cancel();
                     }
-                }
-                if (image == null)
-                    image = BountyMap.deepCopy(BountyMap.bountyPoster);
-                Graphics2D graphics = image.createGraphics();
-                BufferedImage head = new HeadFetcher().getPlayerFace(uuid);
-                graphics.drawImage(head, 32, 32, null);
-
-                // center of text is y112
-                // head display ends at y95
-                float fontSize = maxFont;
-                graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
-                String displayName = ConfigOptions.nameLine.replaceAll("\\{name}", Matcher.quoteReplacement(name));
-
-                if (ConfigOptions.papiEnabled)
-                    displayName = new PlaceholderAPIClass().parse(player, displayName);
-                displayName = ChatColor.translateAlternateColorCodes('&', displayName);
-                int y = ConfigOptions.displayReward ? 112 : 120;
-                if (BackupFontManager.isUsingTraditionalFont()) {
-                    try {
-                        int x = 64 - setBiggestFontSize(graphics, displayName, true, fontSize) / 2;
-                        drawColors(displayName, graphics, x, y);
-                    } catch (Throwable throwable) {
-                        Bukkit.getLogger().warning("[NotBounties] Unable to access font configuration on this system. Reverting to backup font!");
-                        BackupFontManager.loadBackupFonts();
-                        int x = 64 - BackupFontManager.getNameLine().getWidth(displayName) / 2;
-                        BackupFontManager.getNameLine().drawText(image, x, y, displayName);
-                    }
-                } else {
-                    int x = 64 - BackupFontManager.getNameLine().getWidth(displayName) / 2;
-                    BackupFontManager.getNameLine().drawText(image, x, y, displayName);
-                }
-
-                graphics.dispose();
-
-                if (ConfigOptions.saveTemplates) {
-                    try {
-                        ImageIO.write(image, "PNG", imageFile);
-                    } catch (IOException e) {
-                        Bukkit.getLogger().warning(e.toString());
-                    }
-                }
+                }.runTaskTimerAsynchronously(NotBounties.getInstance(),10,4);
             }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        }.runTaskTimer(NotBounties.getInstance(), 0, 40);
+
+    }
+
+    private void renderPoster(BufferedImage head, String name) {
+        if (image == null)
+            image = BountyMap.deepCopy(BountyMap.bountyPoster);
+        Graphics2D graphics = image.createGraphics();
+        graphics.drawImage(head, 32, 32, null);
+
+        // center of text is y112
+        // head display ends at y95
+        float fontSize = maxFont;
+        graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
+        String displayName = ConfigOptions.nameLine.replaceAll("\\{name}", Matcher.quoteReplacement(name));
+
+        if (ConfigOptions.papiEnabled)
+            displayName = new PlaceholderAPIClass().parse(player, displayName);
+        displayName = ChatColor.translateAlternateColorCodes('&', displayName);
+        int y = ConfigOptions.displayReward ? 112 : 120;
+        if (BackupFontManager.isUsingTraditionalFont()) {
+            try {
+                int x = 64 - setBiggestFontSize(graphics, displayName, true, fontSize) / 2;
+                drawColors(displayName, graphics, x, y);
+            } catch (Throwable throwable) {
+                Bukkit.getLogger().warning("[NotBounties] Unable to access font configuration on this system. Reverting to backup font!");
+                BackupFontManager.loadBackupFonts();
+                int x = 64 - BackupFontManager.getNameLine().getWidth(displayName) / 2;
+                BackupFontManager.getNameLine().drawText(image, x, y, displayName);
+            }
+        } else {
+            int x = 64 - BackupFontManager.getNameLine().getWidth(displayName) / 2;
+            BackupFontManager.getNameLine().drawText(image, x, y, displayName);
+        }
+
+        graphics.dispose();
+
+        File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
+
+        if (ConfigOptions.saveTemplates) {
+            try {
+                ImageIO.write(image, "PNG", imageFile);
+            } catch (IOException e) {
+                Bukkit.getLogger().warning(e.toString());
+            }
+        }
     }
 
     public double getBountyAmount() {
