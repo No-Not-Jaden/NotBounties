@@ -92,10 +92,10 @@ public class TimedBounties {
                                 if (player.isOnline() || offlineTracking)
                                     nextBounties.replace(entry.getKey(), System.currentTimeMillis() + time * 1000);
                                 else nextBounties.replace(entry.getKey(), time * 1000);
-                                if (!hasBounty(player) || !isMaxed(Objects.requireNonNull(getBounty(player)).getTotalBounty())) {
+                                if (!hasBounty(player.getUniqueId()) || !isMaxed(Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty())) {
                                     // check immunity
                                     if ((ConfigOptions.autoBountyOverrideImmunity || Immunity.getAppliedImmunity(player, bountyIncrease) == Immunity.ImmunityType.DISABLE) && !hasImmunity(player))
-                                        addBounty(player, bountyIncrease, new Whitelist(new ArrayList<>(), false));
+                                        addBounty(player, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
                                 }
                             }
                         }.runTask(NotBounties.getInstance());

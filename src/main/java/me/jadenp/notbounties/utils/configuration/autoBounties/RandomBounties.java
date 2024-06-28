@@ -72,7 +72,7 @@ public class RandomBounties {
                                     new BukkitRunnable() {
                                         @Override
                                         public void run() {
-                                            addBounty(player, finalPrice, new Whitelist(new ArrayList<>(), false));
+                                            addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
                                         }
                                     }.runTask(NotBounties.getInstance());
                                 }
@@ -83,7 +83,7 @@ public class RandomBounties {
                                 new BukkitRunnable() {
                                     @Override
                                     public void run() {
-                                        addBounty(player, finalPrice, new Whitelist(new ArrayList<>(), false));
+                                        addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
                                     }
                                 }.runTask(NotBounties.getInstance());
                             }

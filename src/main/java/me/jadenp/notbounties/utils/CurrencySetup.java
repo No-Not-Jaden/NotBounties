@@ -127,15 +127,15 @@ public class CurrencySetup implements Listener {
                 admin.sendMessage(LanguageOptions.parse(prefix + ChatColor.YELLOW + "Do you want to change the add and remove commands?" + ChatColor.GRAY + " (Click)", admin));
                 TextComponent start2 = new TextComponent(LanguageOptions.parse(prefix + ChatColor.GRAY + "If an item is set as the currency or you are hooked into vault, you do not need add or remove commands. Click", admin));
                 TextComponent here2 = new TextComponent(ChatColor.WHITE + "" + ChatColor.ITALIC + " here ");
-                here2.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 8"));
+                here2.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 8"));
                 here2.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GRAY + "Clear add and remove commands")));
                 TextComponent end2 = new TextComponent(ChatColor.GRAY + "to clear add and remove commands.");
                 BaseComponent[] addCommand = new BaseComponent[]{start2, here2, end2};
                 admin.spigot().sendMessage(addCommand);
                 TextComponent no = new TextComponent(ChatColor.RED + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "No");
-                no.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 4"));
+                no.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 4"));
                 TextComponent yes = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "Yes");
-                yes.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 2"));
+                yes.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 2"));
                 BaseComponent[] message = new BaseComponent[]{space, no, space, yes};
                 admin.spigot().sendMessage(message);
                 admin.sendMessage(" ");
@@ -143,7 +143,7 @@ public class CurrencySetup implements Listener {
             case 2:
                 TextComponent start = new TextComponent(LanguageOptions.parse(prefix + ChatColor.YELLOW + "Type in chat the " + ChatColor.BOLD + "add " + ChatColor.YELLOW + "command without the \"/\" or click", admin));
                 TextComponent here = new TextComponent(ChatColor.GOLD + "" + ChatColor.ITALIC + " here ");
-                here.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 7"));
+                here.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 7"));
                 here.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GRAY + "eco give/take {player} {amount}")));
                 TextComponent end = new TextComponent(ChatColor.YELLOW + "if you are using Essentials.");
                 BaseComponent[] addCommand2 = new BaseComponent[]{start, here, end};
@@ -159,9 +159,9 @@ public class CurrencySetup implements Listener {
             case 4:
                 admin.sendMessage(LanguageOptions.parse(prefix + ChatColor.YELLOW + "Do you want to change the prefix and suffix?" + ChatColor.GRAY + " (Click)", admin));
                 TextComponent noPS = new TextComponent(ChatColor.RED + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "No");
-                noPS.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency -1"));
+                noPS.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency -1"));
                 TextComponent yesPS = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "Yes");
-                yesPS.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 5"));
+                yesPS.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 5"));
                 BaseComponent[] messagePS = new BaseComponent[]{space, noPS, space, yesPS};
                 admin.spigot().sendMessage(messagePS);
                 admin.sendMessage(" ");
@@ -180,9 +180,9 @@ public class CurrencySetup implements Listener {
                 String isOverridden = NumberFormatting.overrideVault ? "IS" : "is NOT";
                 admin.sendMessage(LanguageOptions.parse(prefix + ChatColor.GREEN + "Vault " + ChatColor.YELLOW + "was detected! Do you want to override this connection and use a placeholder or item? Currently, Vault " + ChatColor.ITALIC + isOverridden + ChatColor.YELLOW + " overridden." + ChatColor.GRAY + " (Click)", admin));
                 TextComponent noVault = new TextComponent(ChatColor.RED + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "No");
-                noVault.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 11"));
+                noVault.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 11"));
                 TextComponent yesVault = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + ChatColor.UNDERLINE + "Yes");
-                yesVault.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties currency 10"));
+                yesVault.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 10"));
                 BaseComponent[] messageVault = new BaseComponent[]{space, noVault, space, yesVault};
                 admin.spigot().sendMessage(messageVault);
                 admin.sendMessage(" ");

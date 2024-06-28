@@ -51,10 +51,10 @@ public class MurderBounties {
                 if (!playerKills.containsKey(killer.getUniqueId()) ||
                         !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
                         playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) {
-                    if (!murderExcludeClaiming || !hasBounty(player) || Objects.requireNonNull(getBounty(player)).getTotalBounty(killer) < 0.01) {
+                    if (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01) {
                         // increase
-                        addBounty(killer, murderBountyIncrease, new Whitelist(new ArrayList<>(), false));
-                        killer.sendMessage(parse(prefix + murder, player.getName(), Objects.requireNonNull(getBounty(killer)).getTotalBounty(), killer));
+                        addBounty(killer, murderBountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                        killer.sendMessage(parse(prefix + murder, player.getName(), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), killer));
                         Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
                         kills.put(player.getUniqueId(), System.currentTimeMillis());
                         playerKills.put(killer.getUniqueId(), kills);

@@ -32,7 +32,7 @@ custom-items:
       - '&6enter bounty amount'
       - ''
     commands:
-      - '[pprompt] bounty {slot13} <&eEnter in chat the bounty amount or type "cancel" to cancel.>'
+      - '[pprompt] notbounties {player1} <&eEnter in chat the bounty amount or type "cancel" to cancel.>'
   exit:
     material: BARRIER
     amount: 1
@@ -56,13 +56,13 @@ custom-items:
     amount: 1
     name: '&c&lSet Bounty'
     commands:
-      - '[p] bounty set'
+      - '[p] notbounties set'
   set-whitelist:
     material: PAPER
     amount: 1
     name: '&f&lSet Whitelist'
     commands:
-      - '[p] bounty whitelist'
+      - '[p] notbounties whitelist'
   add1:
     material: LIME_STAINED_GLASS_PANE
     amount: 1
@@ -104,22 +104,34 @@ custom-items:
     amount: 1
     name: '&a&lYes'
     commands:
-      - '!@notbounties.admin [p] bounty buy --confirm'
-      - '@notbounties.admin [p] bounty remove {slot13}'
+      - '!@notbounties.admin [p] notbounties buy --confirm'
+      - '@notbounties.admin [p] notbounties remove {player1}'
       - '[close]'
   yes-bounty:
     material: LIME_STAINED_GLASS_PANE
     amount: 1
     name: '&a&lYes'
     commands:
-      - '[p] bounty {slot13} {page} --confirm'
+      - '[p] notbounties {player1} {page} --confirm'
       - '[close]'
+  yes-bounty-item:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 1
+    name: '&a&lSet Bounty'
+    commands:
+      - '[p] notbounties {data} --confirm' # {data} is a special placeholder for GUI data. In the case of the bounty-item-select GUI, it contains the uuid of the bountied player as well as the items in the GUI
+  cancel:
+    material: RED_STAINED_GLASS_PANE
+    amount: 1
+    name: '&c&lCancel'
+    commands:
+      - '[p] notbounties'
   no:
     material: RED_STAINED_GLASS_PANE
     amount: 1
     name: '&c&lNo'
     commands:
-      - '[p] bounty'
+      - '[p] notbounties'
   add-offline:
     material: LEVER
     amount: 1
@@ -131,7 +143,7 @@ custom-items:
     amount: 1
     name: '&fReset whitelist'
     commands:
-      - '[p] bounty whitelist reset'
+      - '[p] notbounties whitelist reset'
       - '[gui] set-whitelist 1'
   return:
     material: WHITE_BED
@@ -156,6 +168,59 @@ custom-items:
       - '&7Return to price selection'
     commands:
       - '[gui] select-price {page}'
+  toggle-whitelist:
+    material: PAPER
+    amount: 1
+    name: '&7Toggle &fWhitelist&7/&8Blacklist'
+    lore:
+      - ''
+      - '&7Current mode: &f{mode}'
+      - ''
+    commands:
+      - '[p] notbounties whitelist toggle'
+      - '[gui] settings-gui'
+  toggle-broadcast:
+    material: CRIMSON_SIGN
+    amount: 1
+    name: '&7Toggle &eBounty Broadcast'
+    lore:
+      - ''
+      - '&7Receive broadcasts: &f{notification}'
+      - ''
+    commands:
+      - '[p] notbounties bdc'
+      - '[gui] settings-gui'
+  settings:
+    material: compass
+    amount: 1
+    name: '&9&lSettings'
+    lore:
+      - '&7Open settings GUI.'
+    commands:
+      - '[gui] settings-gui'
+  set-item-bounty:
+    material: CHEST
+    amount: 1
+    name: '&b&lSet Item Bounty &7->'
+    lore:
+      - ''
+      - '&3Click to bounty'
+      - '&3items on the player.'
+      - ''
+    commands:
+      - '[gui] bounty-item-select 1 {data}'
+  set-currency-bounty:
+    material: SUNFLOWER
+    amount: 1
+    name: '&b&lSet Currency Bounty &7->'
+    lore:
+      - ''
+      - '&3Click to bounty a'
+      - '&3currency amount on'
+      - '&3the player.'
+      - ''
+    commands:
+      - '[p] notbounties {player1}'
 # for customizing the layout of the regular bounty GUI
 bounty-gui:
   # how the bounty menu is sorted
@@ -211,6 +276,9 @@ bounty-gui:
     6:
       item: set-whitelist
       slot: 47
+    7:
+      item: settings
+      slot: 46
 leaderboard:
   # 1 for highest value
   # 2 for lowest value
@@ -352,6 +420,42 @@ select-price:
     9:
       item: enter-value
       slot: 31
+bounty-item-select:
+  size: 54
+  gui-name: '&d&lSelect &9&lBounty Items &7[{page}/{page_max}]'
+  add-page: false
+  remove-page-items: true
+  # the first player slot is where the player's head will go
+  # the rest of the player slots are where the user can place items
+  player-slots:
+    - '40'
+    - '0-35'
+  head-name: '&eBounty Value: &a{amount}'
+  head-lore:
+    - '&7&oYou will be required to'
+    - '&7&opay &f&o{tax}&7&o in tax.'
+    - ''
+    - '&7{player}'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 36-53
+    2:
+      item: next
+      slot: 44
+    3:
+      item: back
+      slot: 36
+    4:
+      item: return-set-bounty
+      slot: 49
+    5:
+      item: yes-bounty-item
+      slot: 51-53
+    6:
+      item: cancel
+      slot: 45-47
 confirm:
   sort-type: 1
   size: 54
@@ -429,7 +533,22 @@ confirm-bounty:
     8:
       item: yes-bounty
       slot: 41-43
-
+settings-gui:
+  size: 27
+  gui-name: '&9&lSettings'
+  layout:
+    1:
+      item: fill
+      slot: 0-26
+    2:
+      item: return
+      slot: 13
+    3:
+      item: toggle-whitelist
+      slot: 10
+    4:
+      item: toggle-broadcast
+      slot: 16
 
 
 

@@ -8,18 +8,24 @@ import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.CommandPrompt;
+import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -28,8 +34,7 @@ import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.playerInfo;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.papiEnabled;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.prefix;
-import static me.jadenp.notbounties.utils.configuration.NumberFormatting.checkAmount;
-import static me.jadenp.notbounties.utils.configuration.NumberFormatting.tryParse;
+import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 
 public class ActionCommands {
     private static List<String> bountyClaimCommands;
@@ -40,47 +45,102 @@ public class ActionCommands {
         ActionCommands.bigBountyCommands = bigBountyCommands;
     }
 
-    public static void executeBountyClaim(Player player, Player killer, double totalBounty) {
+    public static void executeBountyClaim(Player player, Player killer, Bounty bounty) {
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (String command : bountyClaimCommands) {
-                    execute(player, killer, totalBounty, command);
+                    execute(player, killer, bounty, command);
                 }
             }
         }.runTaskLater(NotBounties.getInstance(), 10);
     }
 
     public static void executeCommands(Player player, List<String> commands) {
-        Bounty bounty = BountyManager.getBounty(player);
-        double totalBounty = bounty != null ? bounty.getTotalBounty() : 0;
+        Bounty bounty = BountyManager.getBounty(player.getUniqueId());
         for (String command : commands) {
-            execute(player, player, totalBounty, command);
+            execute(player, player, bounty, command);
         }
     }
 
-    public static void executeBigBounty(Player player, double totalBounty) {
+    public static void executeBigBounty(Player player, Bounty bounty) {
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (String command : bigBountyCommands) {
-                    execute(player, player, totalBounty, command);
+                    execute(player, player, bounty, command);
                 }
             }
         }.runTaskLater(NotBounties.getInstance(), 10);
     }
 
-    private static void execute(Player player, Player killer, double totalBounty, String command) {
+    private static void execute(Player player, Player killer, @Nullable Bounty bounty, String command) {
         if (command.isEmpty())
             return;
+        if (NotBounties.debug)
+            Bukkit.getLogger().info("[NotBountiesDebug] Executing Command for " + player.getName() + " : " + command);
         PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, "", new Object[0], new UUID[0], "");
+        double totalBounty = bounty != null ? bounty.getTotalDisplayBounty() : 0;
+        double bountyCurrency = bounty != null ? bounty.getTotalBounty() : 0;
+        double bountyItemValues = bounty != null ? NumberFormatting.getTotalValue(bounty.getTotalItemBounty()) : 0;
+        String bountyItems = bounty != null ? NumberFormatting.listItems(bounty.getTotalItemBounty(), ':') : "";
 
-        command = command.replaceAll("\\{player}", Matcher.quoteReplacement(player.getName()));
-        command = command.replaceAll("\\{killer}", Matcher.quoteReplacement(killer.getName()));
-        command = command.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.getValue(totalBounty)));
-        command = command.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.formatNumber(totalBounty)));
-        command = command.replaceAll("\\{cost}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
-        command = command.replaceAll("\\{page}", Matcher.quoteReplacement(info.getPage() + ""));
+        command = command.replace("{player}", (player.getName()));
+        command = command.replace("{killer}", (killer.getName()));
+        command = command.replace("{amount}", (NumberFormatting.getValue(totalBounty)));
+        command = command.replace("{bounty}", (NumberFormatting.formatNumber(totalBounty)));
+        command = command.replace("{bounty_currency}", (NumberFormatting.formatNumber(bountyCurrency)));
+        command = command.replace("{bounty_item_values}", (NumberFormatting.formatNumber(bountyItemValues)));
+        command = command.replace("{bounty_items}", (bountyItems));
+        command = command.replace("{cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
+        command = command.replace("{page}", (info.getPage() + ""));
+        command = command.replace("{min_bounty}", getValue(ConfigOptions.minBounty));
+        if (info.getData().length > 0) {
+            Object[] data = info.getData();
+            if (info.getGuiType().equals("bounty-item-select") && player.getOpenInventory().getTitle().equals(info.getTitle())) {
+                // update data with current item contentse
+                GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
+                ItemStack[] currentContents = new ItemStack[guiOptions.getPlayerSlots().size() - 1];
+                for (int i = 0; i < currentContents.length; i++) {
+                    currentContents[i] = player.getOpenInventory().getTopInventory().getContents()[guiOptions.getPlayerSlots().get(i+1)];
+                }
+                Object[] tempData = new Object[(int) Math.max(info.getPage() + 1, data.length)];
+                System.arraycopy(data, 0, tempData, 0, data.length);
+                tempData[(int) info.getPage()] = SerializeInventory.itemStackArrayToBase64(currentContents);
+                data = tempData;
+                playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(info.getPage(), info.getGuiType(), data, info.getPlayers(), info.getTitle()));
+            }
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < data.length; i++) {
+                if (data[i] == null)
+                    data[i] = "";
+                if (info.getGuiType().equals("bounty-item-select")) {
+                    if (i == 0)
+                        // player uuid to set bounty on
+                        builder.append(data[0].toString()).append(' ');
+                    else if (i > 1)
+                        builder.append(",");
+                    if (i > 0) {
+                        // items to set bounty but encoded in base64
+                        try {
+                            ItemStack[] contents = SerializeInventory.itemStackArrayFromBase64(data[i].toString()); // decode items
+                            builder.append(NumberFormatting.listItems(Arrays.asList(contents), ':'));
+                        } catch (IOException e) {
+                            Bukkit.getLogger().warning("[NotBounties] Could not deserialize string while preparing {data} replacement: " + data[i].toString());
+                            Bukkit.getLogger().warning(e.toString());
+                        }
+                    }
+                } else {
+                    if (i > 0)
+                        builder.append(' ');
+                    builder.append(data[i].toString());
+                }
+            }
+            command = command.replace("{data}", (builder.toString()));
+
+        }
+
+
 
         // check for {slot<x>}
         while (player.getOpenInventory().getType() != InventoryType.CRAFTING && command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")) {
@@ -135,8 +195,7 @@ public class ActionCommands {
             } catch (NumberFormatException e) {
                 Bukkit.getLogger().warning("Error getting player in command: \n" + command);
             }
-            command = command.replace(Matcher.quoteReplacement("{player" + slotString + "}"), Matcher.quoteReplacement(replacement));
-            //command = command.substring(0, command.indexOf("{player")) + replacement + command.substring(command.substring(command.indexOf("{player")).indexOf("}") + command.substring(0, command.indexOf("{player")).length() + 1);
+            command = command.replace(("{player" + slotString + "}"), (replacement));
         }
 
         boolean canceled = false;
@@ -222,7 +281,8 @@ public class ActionCommands {
         if (canceled)
             return;
 
-        //Bukkit.getLogger().info("Parsed Action: \"" + command + "\"");
+        if (NotBounties.debug)
+          Bukkit.getLogger().info("[NotBountiesDebug] Parsed Action: \"" + command + "\"");
 
         if (command.startsWith("[player] ") || command.startsWith("[p] ")) {
             if (papiEnabled)
@@ -344,21 +404,26 @@ public class ActionCommands {
             killer.getWorld().playSound(killer.getLocation(), realSound, (float) volume, (float) pitch);
         } else if (command.startsWith("[gui]")) {
             int amount = 1; // default page
-            String guiName = command.substring(6); // remove "[gui] "
+            command = command.substring(6); // remove "[gui] "
+            String guiName = command;
             if (guiName.contains(" ")) {
                 // has additional parameters
                 try {
-                    String number = guiName.substring(guiName.indexOf(" ") + 1); // get everything after the gui name
+                    String number = command.substring(command.indexOf(" ") + 1); // get everything after the gui name
+                    command = command.substring(command.indexOf(" ") + 1); // remove gui name from command
                     if (number.contains(" ")) {
                         // has more parameters than just page number
                         amount = Integer.parseInt(number.substring(0, number.indexOf(" "))); // parse number
+                        command = command.substring(command.indexOf(" ") + 1); // remove number from command
                     } else {
                         amount = Integer.parseInt(number); // parse number
+                        command = ""; // no more arguments after
                     }
                 } catch (IndexOutOfBoundsException | NumberFormatException ignored) {
                     // could not parse number or there was only a space and no number
                 }
-                guiName = guiName.substring(0, guiName.indexOf(" ")); // change gui name
+                guiName = guiName.substring(0, guiName.indexOf(" ")); // change gui name to remove number
+
             }
             if (guiName.equalsIgnoreCase("leaderboard")) {
                 // this GUI can have the leaderboard type parameter
@@ -366,7 +431,7 @@ public class ActionCommands {
                 Leaderboard l = Leaderboard.ALL; // default leaderboard
                 try {
                     // try to parse leaderboard type from last parameter
-                    l = Leaderboard.valueOf(command.substring(command.lastIndexOf(" ") + 1).toUpperCase());
+                    l = Leaderboard.valueOf(command.toUpperCase());
                 } catch (IllegalArgumentException ignored) {
                     // could not parse leaderboard type - default leaderboard is used
                 }
@@ -374,23 +439,22 @@ public class ActionCommands {
             } else if (guiName.equalsIgnoreCase("set-bounty") || guiName.equalsIgnoreCase("set-whitelist")) {
                 // these GUIs can have the offline parameter
                 // ex: [gui] set-bounty 1 offline
-                int length = 7 + guiName.length(); // length of [gui] and the gui name
-                if (command.length() > length && command.substring(length + 1).contains(" ")) {
+                if (!command.isEmpty()) {
                     // additional parameters present
-                    String afterName = command.substring(length + 1); // string after name
-                    // set last argument - remove the page number if there is one
-                    String lastArg = afterName.contains(" ") ? afterName.substring(afterName.indexOf(" ") + 1) : afterName;
                     // check if the current GUI already has the offline parameter
                     // if so, set the last argument to nothing to toggle it
-                    if (lastArg.equalsIgnoreCase("offline") && info.getData().length > 0 && info.getData()[0] instanceof String && ((String) info.getData()[0]).equalsIgnoreCase("offline")) {
-                        lastArg = "";
+                    if (command.equalsIgnoreCase("offline") && info.getData().length > 0 && info.getData()[0] instanceof String && ((String) info.getData()[0]).equalsIgnoreCase("offline")) {
+                        command = "";
                     }
-                    openGUI(player, guiName, amount, lastArg);
+                    openGUI(player, guiName, amount, command);
                 } else {
                     openGUI(player, guiName, amount);
                 }
             } else {
-                openGUI(player, guiName, amount);
+                if (!command.isEmpty())
+                    openGUI(player, guiName, amount, command);
+                else
+                    openGUI(player, guiName, amount);
             }
         } else if (command.startsWith("[cprompt] ") || command.startsWith("[pprompt] ")) {
             boolean playerPrompt = command.startsWith("[pprompt] ");
@@ -422,6 +486,27 @@ public class ActionCommands {
             } else if (info.getGuiType().equals("leaderboard")) {
                 Leaderboard leaderboard = (Leaderboard) info.getData()[0];
                 openGUI(player, info.getGuiType(), info.getPage() + amount, leaderboard);
+            } else if (info.getGuiType().equals("bounty-item-select")) {
+                // add current items to data
+                GUIOptions gui = GUI.getGUI("bounty-item-select");
+                if (gui == null) {
+                    // gui not set up
+                    Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not set up.");
+                    return;
+                }
+                // get all items in player slots except first one
+                List<ItemStack> items = new ArrayList<>();
+                for (int i = 1; i < gui.getPlayerSlots().size(); i++) {
+                    ItemStack item = player.getOpenInventory().getItem(gui.getPlayerSlots().get(i));
+                    if (item != null)
+                        items.add(item);
+                }
+                // create new data object
+                Object[] data = new Object[(int) Math.max(info.getPage() + 1, info.getData().length)];
+                System.arraycopy(info.getData(),0,data,0,info.getData().length);
+                data[(int) (info.getPage())] = SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0]));
+                // open GUI
+                openGUI(player, info.getGuiType(), info.getPage() + amount, data);
             } else if (!info.getGuiType().isEmpty()){
                 openGUI(player, info.getGuiType(), info.getPage() + amount, info.getData());
             }
@@ -448,6 +533,27 @@ public class ActionCommands {
             } else if (info.getGuiType().equals("leaderboard")) {
                 Leaderboard leaderboard = (Leaderboard) info.getData()[0];
                 openGUI(player, info.getGuiType(), info.getPage() - amount, leaderboard);
+            } else if (info.getGuiType().equals("bounty-item-select")) {
+                // add current items to data
+                GUIOptions gui = GUI.getGUI("bounty-item-select");
+                if (gui == null) {
+                    // gui not set up
+                    Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not set up.");
+                    return;
+                }
+                // get all items in player slots except first one
+                List<ItemStack> items = new ArrayList<>();
+                for (int i = 1; i < gui.getPlayerSlots().size(); i++) {
+                    ItemStack item = player.getOpenInventory().getItem(gui.getPlayerSlots().get(i));
+                    if (item != null)
+                        items.add(item);
+                }
+                // create new data object
+                Object[] data = new Object[(int) Math.max(info.getPage()+1, info.getData().length)];
+                System.arraycopy(info.getData(),0,data,0,info.getData().length);
+                data[(int) (info.getPage())] = SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0]));
+                // open GUI
+                openGUI(player, info.getGuiType(), info.getPage() - amount, data);
             } else {
                 openGUI(player, info.getGuiType(), info.getPage() - amount, info.getData());
             }

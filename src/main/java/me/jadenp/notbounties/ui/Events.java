@@ -4,18 +4,20 @@ import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
 import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.UpdateChecker;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
-import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.*;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
@@ -25,16 +27,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -113,93 +111,7 @@ public class Events implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        if (tracker)
-            if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                if (event.getItem() != null) {
-                    ItemStack item = event.getItem();
-                    Player player = event.getPlayer();
-                    if (item.getType() == Material.COMPASS) {
-                        if (item.getItemMeta() != null) {
-                            if (item.getItemMeta().getLore() != null) {
-                                if (!item.getItemMeta().getLore().isEmpty()) {
-                                    String lastLine = item.getItemMeta().getLore().get(item.getItemMeta().getLore().size() - 1);
-                                    if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
-                                        if (event.getPlayer().hasPermission("notbounties.tracker")) {
-                                            int number;
-                                            try {
-                                                number = Integer.parseInt(ChatColor.stripColor(lastLine).substring(1));
-                                            } catch (NumberFormatException ignored) {
-                                                return;
-                                            }
-                                            if (trackedBounties.containsKey(number)) {
-                                                if (hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
-                                                    CompassMeta compassMeta = (CompassMeta) item.getItemMeta();
 
-                                                    String actionBar;
-                                                    Bounty bounty = getBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))));
-                                                    assert bounty != null;
-                                                    Player p = Bukkit.getPlayer(bounty.getUUID());
-                                                    if (p != null) {
-                                                        compassMeta.setLodestone(p.getLocation());
-                                                        compassMeta.setLodestoneTracked(false);
-                                                        if (trackerGlow > 0) {
-                                                            if (p.getWorld().equals(player.getWorld())) {
-                                                                if (player.getLocation().distance(p.getLocation()) < trackerGlow) {
-                                                                    p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 15, 0));
-                                                                }
-                                                            }
-                                                        }
-                                                        actionBar = ChatColor.DARK_GRAY + "|";
-                                                        if (TABPlayerName) {
-                                                            actionBar += " " + ChatColor.YELLOW + p.getName() + ChatColor.DARK_GRAY + " |";
-                                                        }
-                                                        if (TABDistance) {
-                                                            if (p.getWorld().equals(player.getWorld())) {
-                                                                actionBar += " " + ChatColor.GOLD + ((int) player.getLocation().distance(p.getLocation())) + "m" + ChatColor.DARK_GRAY + " |";
-                                                            } else {
-                                                                actionBar += " ?m |";
-                                                            }
-                                                        }
-                                                        if (TABPosition) {
-                                                            actionBar += " " + ChatColor.RED + p.getLocation().getBlockX() + "x " + p.getLocation().getBlockY() + "y " + p.getLocation().getBlockZ() + "z" + ChatColor.DARK_GRAY + " |";
-                                                        }
-                                                        if (TABWorld) {
-                                                            actionBar += " " + ChatColor.LIGHT_PURPLE + p.getWorld().getName() + ChatColor.DARK_GRAY + " |";
-                                                        }
-                                                    } else {
-                                                        actionBar = ChatColor.GRAY + "*offline*";
-                                                        if (compassMeta.getLodestone() != null)
-                                                            if (!Objects.equals(compassMeta.getLodestone().getWorld(), player.getWorld()))
-                                                                if (Bukkit.getWorlds().size() > 1) {
-                                                                    for (World world : Bukkit.getWorlds()) {
-                                                                        if (!world.equals(player.getWorld())) {
-                                                                            compassMeta.setLodestone(new Location(world, world.getSpawnLocation().getX(), world.getSpawnLocation().getY(), world.getSpawnLocation().getZ()));
-                                                                        }
-                                                                    }
-                                                                } else {
-                                                                    //compassMeta.setLodestone(null);
-                                                                    compassMeta.setLodestoneTracked(true);
-                                                                }
-                                                    }
-                                                    item.setItemMeta(compassMeta);
-                                                    // display action bar
-                                                    if (trackerActionBar) {
-                                                        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(actionBar));
-                                                    }
-                                                }
-                                            }
-                                        } else {
-                                            if (trackerActionBar) {
-                                                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "No Permission."));
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
         // redeem reward later
         if (event.getAction() == Action.RIGHT_CLICK_AIR && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC) {
@@ -256,111 +168,16 @@ public class Events implements Listener {
         }
     }
 
-    @EventHandler
-    public void onHold(PlayerItemHeldEvent event) {
-        if (trackerRemove > 0) {
-            ItemStack item = event.getPlayer().getInventory().getItem(event.getNewSlot());
-            if (item != null) {
-                if (item.getType() == Material.COMPASS) {
-                    if (item.getItemMeta() != null) {
-                        if (item.getItemMeta().getLore() != null) {
-                            if (!item.getItemMeta().getLore().isEmpty()) {
-                                String lastLine = item.getItemMeta().getLore().get(item.getItemMeta().getLore().size() - 1);
-                                if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
-                                    int number;
-                                    try {
-                                        number = Integer.parseInt(ChatColor.stripColor(lastLine).substring(1));
-                                    } catch (NumberFormatException ignored) {
-                                        return;
-                                    }
-                                    if (trackedBounties.containsKey(number)) {
-                                        if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
-                                            event.getPlayer().getInventory().setItem(event.getNewSlot(), null);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
-    @EventHandler
-    public void onOpenInv(InventoryOpenEvent event) {
-        if (tracker)
-            if (trackerRemove == 3)
-                if (event.getInventory().getType() != InventoryType.CRAFTING) {
-                    ItemStack[] contents = event.getInventory().getContents();
-                    boolean change = false;
-                    for (int x = 0; x < contents.length; x++) {
-                        if (contents[x] != null) {
-                            if (contents[x].getType() == Material.COMPASS) {
-                                if (contents[x].getItemMeta() != null) {
-                                    if (Objects.requireNonNull(contents[x].getItemMeta()).getLore() != null) {
-                                        if (!Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).isEmpty()) {
-                                            String lastLine = Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).get(Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).size() - 1);
-                                            if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
-                                                int number;
-                                                try {
-                                                    number = Integer.parseInt(ChatColor.stripColor(lastLine).substring(1));
-                                                } catch (NumberFormatException ignored) {
-                                                    return;
-                                                }
-                                                if (trackedBounties.containsKey(number)) {
-                                                    if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
-                                                        contents[x] = null;
-                                                        change = true;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (change) {
-                        event.getInventory().setContents(contents);
-                    }
-                    contents = event.getView().getPlayer().getInventory().getContents();
-                    change = false;
-                    for (int x = 0; x < contents.length; x++) {
-                        if (contents[x] != null) {
-                            if (contents[x].getType() == Material.COMPASS) {
-                                if (contents[x].getItemMeta() != null) {
-                                    if (Objects.requireNonNull(contents[x].getItemMeta()).getLore() != null) {
-                                        if (!Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).isEmpty()) {
-                                            String lastLine = Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).get(Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).size() - 1);
-                                            if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
-                                                int number;
-                                                try {
-                                                    number = Integer.parseInt(ChatColor.stripColor(lastLine).substring(1));
-                                                } catch (NumberFormatException ignored) {
-                                                    return;
-                                                }
-                                                if (trackedBounties.containsKey(number)) {
-                                                    if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
-                                                        contents[x] = null;
-                                                        change = true;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (change) {
-                        event.getPlayer().getInventory().setContents(contents);
-                    }
-                }
-    }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        TimedBounties.login(event.getPlayer());
+        Immunity.login(event.getPlayer());
+        BountyExpire.login(event.getPlayer());
+        if (SQL.isConnected())
+            data.login(event.getPlayer());
+
         // check if they are logged yet
         if (!loggedPlayers.containsValue(event.getPlayer().getUniqueId())) {
             // if not, add them
@@ -381,8 +198,8 @@ public class Events implements Listener {
             }
         }
 
-        if (hasBounty(event.getPlayer())) {
-            Bounty bounty = getBounty(event.getPlayer());
+        if (hasBounty(event.getPlayer().getUniqueId())) {
+            Bounty bounty = getBounty(event.getPlayer().getUniqueId());
             assert bounty != null;
             bounty.setDisplayName(event.getPlayer().getName());
             double addedAmount = 0;
@@ -396,10 +213,10 @@ public class Events implements Listener {
             bounty.combineSetters();
             updateBounty(bounty);
             BigBounty.setBounty(event.getPlayer(), bounty, addedAmount);
-            if (bounty.getTotalBounty() > BigBounty.getThreshold()) {
-                displayParticle.add(event.getPlayer());
+            if (bounty.getTotalDisplayBounty() > BigBounty.getThreshold()) {
+                displayParticle.add(event.getPlayer().getUniqueId());
             }
-            if (wanted && bounty.getTotalBounty() >= minWanted) {
+            if (wanted && bounty.getTotalDisplayBounty() >= minWanted) {
                 if (!NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
                     NotBounties.wantedText.put(event.getPlayer().getUniqueId(), new AboveNameText(event.getPlayer()));
                 }
@@ -413,7 +230,7 @@ public class Events implements Listener {
             headRewards.remove(event.getPlayer().getUniqueId());
         }
         if (BountyExpire.removeExpiredBounties()) {
-            Commands.reopenBountiesGUI();
+            GUI.reopenBountiesGUI();
         }
 
         // check for updates
@@ -443,19 +260,32 @@ public class Events implements Listener {
                 NumberFormatting.doAddCommands(event.getPlayer(), refundedBounties.get(event.getPlayer().getUniqueId()));
             refundedBounties.remove(event.getPlayer().getUniqueId());
         }
-
-        TimedBounties.login(event.getPlayer());
-        Immunity.login(event.getPlayer());
-        BountyExpire.login(event.getPlayer());
-        if (SQL.isConnected())
-            data.login(event.getPlayer());
+        if (refundedItems.containsKey(event.getPlayer().getUniqueId())) {
+            if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC)
+                NumberFormatting.givePlayer(event.getPlayer(), refundedItems.get(event.getPlayer().getUniqueId()), false);
+            refundedItems.remove(event.getPlayer().getUniqueId());
+        }
 
         // remove persistent bounty entities in chunk
         if (wanted || !bountyBoards.isEmpty())
             RemovePersistentEntitiesEvent.cleanChunk(event.getPlayer().getLocation());
 
-        // log timezone
-        LocalTime.formatTime(0, LocalTime.TimeFormat.PLAYER, event.getPlayer());
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // make sure they are online still
+                if (!event.getPlayer().isOnline())
+                    return;
+
+                // log timezone
+                LocalTime.formatTime(0, LocalTime.TimeFormat.PLAYER, event.getPlayer());
+
+                // get skin info
+                SkinManager.saveSkin(event.getPlayer().getUniqueId());
+            }
+        }.runTaskLater(NotBounties.getInstance(), 40L);
+
+
     }
 
 
@@ -501,16 +331,6 @@ public class Events implements Listener {
         if (killer != null)
             claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
 
-        /*if (player.getLastDamageCause() instanceof EntityDamageByEntityEvent) {
-            Bukkit.getLogger().info("1");
-            EntityDamageByEntityEvent event1 = (EntityDamageByEntityEvent) player.getLastDamageCause();
-            if (!(event1.getDamager() instanceof Player))
-                return;
-            Bukkit.getLogger().info("2");
-            Player killer1 = (Player) event1.getDamager();
-            //claimBounty(player, killer1, Arrays.asList(player.getInventory().getContents()), true);
-
-        }*/
     }
 
 }

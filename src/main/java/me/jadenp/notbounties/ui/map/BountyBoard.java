@@ -41,9 +41,9 @@ public class BountyBoard {
             remove();
             return;
         }
-        if (ConfigOptions.updateName == 2 || bounty.getUUID() != lastUUID || (ConfigOptions.updateName == 1 && lastBounty != bounty.getTotalBounty())) {
+        if (ConfigOptions.updateName == 2 || !bounty.getUUID().equals(lastUUID) || (ConfigOptions.updateName == 1 && lastBounty != bounty.getTotalDisplayBounty())) {
             lastUUID = bounty.getUUID();
-            lastBounty = bounty.getTotalBounty();
+            lastBounty = bounty.getTotalDisplayBounty();
             remove();
         }
         if (frame == null) {
@@ -56,7 +56,7 @@ public class BountyBoard {
                 ItemStack map = BountyMap.getMap(bounty);
                 ItemMeta mapMeta = map.getItemMeta();
                 assert mapMeta != null;
-                mapMeta.setDisplayName(LanguageOptions.parse(ConfigOptions.boardName, bounty.getName(), bounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+                mapMeta.setDisplayName(LanguageOptions.parse(ConfigOptions.boardName, bounty.getName(), bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
                 map.setItemMeta(mapMeta);
                 frame.setItem(map);
                 frame.setInvulnerable(true);

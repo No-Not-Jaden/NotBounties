@@ -2,16 +2,28 @@ package me.jadenp.notbounties.utils.configuration;
 
 import com.google.common.primitives.Floats;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.ItemValue;
+import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import me.jadenp.notbounties.utils.externalAPIs.VaultClass;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.ItemTag;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Item;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
@@ -43,10 +55,23 @@ public class NumberFormatting {
     private static VaultClass vaultClass = null;
     public static boolean vaultEnabled;
     public static boolean overrideVault;
+    public static boolean bountyItemsOverrideImmunity = false;
     public enum ManualEconomy {
         AUTOMATIC, PARTIAL, MANUAL
     }
     public static ManualEconomy manualEconomy;
+    public enum BountyItemMode {
+        ALLOW, DENY, EXCLUSIVE
+    }
+    public static BountyItemMode bountyItemMode;
+    private static Map<Material, ItemValue> itemValues = new HashMap<>();
+    private static Map<Enchantment, Double> enchantmentValues = new HashMap<>();
+    private static double defaultItemValue = 1;
+    private static double itemValueMultiplier = 1;
+    public static boolean bountyItemsBuyItem = true;
+    public static boolean tabCompleteItems = false;
+    public static boolean bountyItemsDefaultGUI = false;
+    public static boolean bountyItemsUseItemValues = true;
 
     public static void loadConfiguration(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
         vaultEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
@@ -229,10 +254,128 @@ public class NumberFormatting {
             }
         }
         NumberFormatting.nfDivisions = NumberFormatting.sortByValue(preDivisions);
+
+        // bounty items
+        try {
+            bountyItemMode = BountyItemMode.valueOf(Objects.requireNonNull(currencyOptions.getString("bounty-items.mode")).toUpperCase());
+        } catch (IllegalArgumentException e) {
+            bountyItemMode = BountyItemMode.DENY;
+            Bukkit.getLogger().warning("[NotBounties] Invalid bounty items mode!");
+        }
+        if (currencyOptions.isSet("bounty-items.override-immunity"))
+            bountyItemsOverrideImmunity = currencyOptions.getBoolean("bounty-items.override-immunity");
+
+        if (currencyOptions.isSet("bounty-items.buy-items"))
+            bountyItemsBuyItem = currencyOptions.getBoolean("bounty-items.buy-items");
+
+        if (currencyOptions.isSet("bounty-items.tab-complete"))
+            tabCompleteItems = currencyOptions.getBoolean("bounty-items.tab-complete");
+
+        if (currencyOptions.isSet("bounty-items.default-gui"))
+            bountyItemsDefaultGUI = currencyOptions.getBoolean("bounty-items.default-gui");
+
+        if (currencyOptions.isSet("bounty-items.use-item-values"))
+            bountyItemsUseItemValues = currencyOptions.getBoolean("bounty-items.use-item-values");
+
+        File itemValuesFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "item-values.yml");
+        if (!itemValuesFile.exists()) {
+            NotBounties.getInstance().saveResource("item-values.yml", false);
+            Bukkit.getLogger().info("[NotBounties] Created new item-values.yml file.");
+        }
+        itemValues.clear();
+        YamlConfiguration itemValuesConfig = YamlConfiguration.loadConfiguration(itemValuesFile);
+        if (itemValuesConfig.isSet("default"))
+            defaultItemValue = itemValuesConfig.getDouble("default");
+        if (itemValuesConfig.isSet("multiplier"))
+            itemValueMultiplier = itemValuesConfig.getDouble("multiplier");
+        if (itemValuesConfig.isConfigurationSection("item-values"))
+            for (String key : itemValuesConfig.getConfigurationSection("item-values").getKeys(false)) {
+                String materialName = key;
+                int customModelData = -1;
+                // check if materialName has two arrows <>
+                if (materialName.contains("<") && materialName.substring(materialName.indexOf("<")).contains(">")) {
+                    // has custom model data
+                    try {
+                        // parse custom model data for number between arrows
+                        customModelData = Integer.parseInt(materialName.substring(materialName.indexOf("<") + 1, materialName.indexOf(">")));
+                    } catch (NumberFormatException e) {
+                        Bukkit.getLogger().warning("[NotBounties] Couldn't get custom model data for item value: " + materialName);
+                    }
+                    materialName = materialName.substring(0, materialName.indexOf("<"));
+                }
+                Material material;
+                try {
+                    material = Material.valueOf(materialName);
+                } catch (IllegalArgumentException e) {
+                    Bukkit.getLogger().warning("[NotBounties] Invalid material in item-values.yml file: \"" + materialName + "\"");
+                    continue;
+                }
+                double value = itemValuesConfig.getDouble("item-values." + key);
+                if (itemValues.containsKey(material))
+                    itemValues.get(material).addValue(customModelData, value);
+                else
+                    itemValues.put(material, new ItemValue().addValue(customModelData, value));
+            }
+        if (itemValuesConfig.isConfigurationSection("enchantment-values"))
+            for (String key : itemValuesConfig.getConfigurationSection("enchantment-values").getKeys(false)) {
+                try {
+                    Enchantment enchantment = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(key.toLowerCase()));
+                    if (enchantment == null) {
+                        Bukkit.getLogger().warning("[NotBounties] Unknown enchantment for enchantment-values: " + key);
+                        continue;
+                    }
+                    enchantmentValues.put(enchantment, itemValuesConfig.getDouble("enchantment-values." + key));
+                } catch (IllegalArgumentException e) {
+                    Bukkit.getLogger().warning("[NotBounties] Unknown enchantment for enchantment-values: " + key);
+                    if (debug)
+                        Bukkit.getLogger().warning(e.toString());
+                }
+            }
+    }
+
+    public static double getItemValue(ItemStack item) {
+        if (item == null)
+            return 0;
+        if (!bountyItemsUseItemValues)
+            return defaultItemValue;
+        Material material = item.getType();
+        int customModelData = -1;
+        if (item.getItemMeta() != null && item.getItemMeta().hasCustomModelData())
+            customModelData = item.getItemMeta().getCustomModelData();
+        // check if material is a currency
+        for (String s : currency) {
+            if (material.toString().equalsIgnoreCase(s))
+                return currencyValues.get(s) + getEnchantmentValue(item);
+        }
+        // check if registered as an item value
+        if (itemValues.containsKey(material)) {
+            double value = itemValues.get(material).getValue(customModelData);
+            if (value != -1)
+                return value * itemValueMultiplier + getEnchantmentValue(item);
+        }
+        return defaultItemValue + getEnchantmentValue(item);
+    }
+
+    private static double getEnchantmentValue(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasEnchants())
+            return 0;
+        double value = 0;
+        for (Map.Entry<Enchantment, Integer> entry : meta.getEnchants().entrySet()) {
+            if (!enchantmentValues.containsKey(entry.getKey()))
+                continue;
+            value += enchantmentValues.get(entry.getKey()) * entry.getValue();
+        }
+        return value * itemValueMultiplier;
+    }
+
+
+    public static double getTotalValue(List<ItemStack> items) {
+        return items.stream().filter(Objects::nonNull).mapToDouble(item -> NumberFormatting.getItemValue(item) * item.getAmount()).sum();
     }
 
     public static String formatNumber(String number) {
-        if (number.isEmpty())
+        if (number == null || number.isEmpty())
             return "";
         if (number.startsWith(currencyPrefix) && !currencyPrefix.isEmpty())
             return currencyPrefix + formatNumber(number.substring(currencyPrefix.length()));
@@ -322,7 +465,7 @@ public class NumberFormatting {
             for (String removeCommand : removeCommands) {
                 if (removeCommand.isEmpty())
                     continue;
-                String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                String command = removeCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
             return new HashMap<>();
@@ -346,7 +489,7 @@ public class NumberFormatting {
                 for (String removeCommand : removeCommands) {
                     if (removeCommand.isEmpty())
                         continue;
-                    String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                    String command = removeCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 }
                 if (!currency.get(1).contains("%")) {
@@ -370,7 +513,7 @@ public class NumberFormatting {
             }
             for (int i = 0; i < Math.min(balancedRemove.length-1, modifiedRemoveCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(balancedRemove[i])));
+                    String command = modifiedRemoveCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(balancedRemove[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     removeItem(p, Material.valueOf(currency.get(i)), (long) (balancedRemove[i]), customModelDatas.get(i));
@@ -385,7 +528,7 @@ public class NumberFormatting {
             for (int i = balancedRemove.length-1; i < modifiedRemoveCommands.size(); i++) {
                 if (modifiedRemoveCommands.get(i).isEmpty())
                     continue;
-                String command = modifiedRemoveCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                String command = modifiedRemoveCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
         } else {
@@ -393,7 +536,7 @@ public class NumberFormatting {
             for (String removeCommand : removeCommands) {
                 if (removeCommand.isEmpty())
                     continue;
-                String command = removeCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                String command = removeCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
             if (!currency.get(0).contains("%")) {
@@ -524,6 +667,8 @@ public class NumberFormatting {
     }
 
     public static double parseCurrency(String amount){
+        if (amount == null)
+            return 0;
         amount = ChatColor.stripColor(amount);
         // remove currency prefix and suffix
         String blankPrefix = ChatColor.stripColor(NumberFormatting.currencyPrefix);
@@ -648,26 +793,26 @@ public class NumberFormatting {
 
     public static void doAddCommands(Player p, double amount) {
         if (debug)
-            Bukkit.getLogger().info("[NotBounties-Debug] Doing add commands for " + p.getName() + ". Amount: " + amount);
+            Bukkit.getLogger().info("[NotBountiesDebug] Doing add commands for " + p.getName() + ". Amount: " + amount);
         if (manualEconomy == ManualEconomy.MANUAL) {
             for (String addCommand : addCommands) {
                 if (addCommand.isEmpty())
                     continue;
-                String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
+                String command = addCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount / Floats.toArray(currencyValues.values())[0])));
                 if (debug)
-                    Bukkit.getLogger().info("[NotBounties-Debug] Executing command: '" + command + "'");
+                    Bukkit.getLogger().info("[NotBountiesDebug] Executing command: '" + command + "'");
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
 
             }
             if (debug)
-                Bukkit.getLogger().info("[NotBounties-Debug] Manual economy is enabled, no more actions will be performed.");
+                Bukkit.getLogger().info("[NotBountiesDebug] Manual economy is enabled, no more actions will be performed.");
             return;
         }
 
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.deposit(p, amount)) {
                 if (debug)
-                    Bukkit.getLogger().info("[NotBounties-Debug] Deposited money with vault!");
+                    Bukkit.getLogger().info("[NotBountiesDebug] Deposited money with vault!");
                 return;
             } else {
                 Bukkit.getLogger().warning("Error depositing currency with vault!");
@@ -680,7 +825,7 @@ public class NumberFormatting {
         List<String> modifiedAddCommands = new ArrayList<>(addCommands);
         // add empty spaces in list for item currencies
         if (debug)
-            Bukkit.getLogger().info("[NotBounties-Debug] Currency: ");
+            Bukkit.getLogger().info("[NotBountiesDebug] Currency: ");
         for (int i = 0; i < currency.size(); i++) {
             if (!currency.get(i).contains("%")) {
                 modifiedAddCommands.add(i, "");
@@ -700,7 +845,7 @@ public class NumberFormatting {
             }
             for (int i = 0; i < Math.min(balancedAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(balancedAdd[i])));
+                    String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(balancedAdd[i])));
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
@@ -718,7 +863,7 @@ public class NumberFormatting {
             for (int i = balancedAdd.length; i < modifiedAddCommands.size(); i++) {
                 if (modifiedAddCommands.get(i).isEmpty())
                     continue;
-                String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
         } else if (addSingleCurrency == CurrencyAddType.FIRST) {
@@ -728,7 +873,7 @@ public class NumberFormatting {
             for (String addCommand : modifiedAddCommands) {
                 if (addCommand.isEmpty())
                     continue;
-                String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
+                String command = addCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount / Floats.toArray(currencyValues.values())[0])));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
             // give item if using
@@ -748,7 +893,7 @@ public class NumberFormatting {
             for (String addCommand : addCommands) {
                 if (addCommand.isEmpty())
                     continue;
-                String command = addCommand.replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount / Floats.toArray(currencyValues.values())[0])));
+                String command = addCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount / Floats.toArray(currencyValues.values())[0])));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
             // give item if using
@@ -768,19 +913,19 @@ public class NumberFormatting {
             float[] currencyWeightsCopy = Floats.toArray(currencyWeights);
             float[] currencyValuesCopy = Floats.toArray(currencyValues.values());
             if (debug)
-                Bukkit.getLogger().info("[NotBounties-Debug] Input Calculations: " + amount + " | " + Arrays.toString(currencyWeightsCopy) + " | " + Arrays.toString(currencyValuesCopy));
+                Bukkit.getLogger().info("[NotBountiesDebug] Input Calculations: " + amount + " | " + Arrays.toString(currencyWeightsCopy) + " | " + Arrays.toString(currencyValuesCopy));
             double[] descendingAdd = descendingAddCurrency(amount, currencyWeightsCopy, currencyValuesCopy);
             if (debug)
-                Bukkit.getLogger().info("[NotBounties-Debug] Output: " + Arrays.toString(descendingAdd));
+                Bukkit.getLogger().info("[NotBountiesDebug] Output: " + Arrays.toString(descendingAdd));
 
             if (modifiedAddCommands.size() < descendingAdd.length) {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
             }
             for (int i = 0; i < Math.min(descendingAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(descendingAdd[i])));
+                    String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(descendingAdd[i])));
                     if (debug)
-                        Bukkit.getLogger().info("[NotBounties-Debug] Executing command for " + currency.get(i) + ": '" + command + "'");
+                        Bukkit.getLogger().info("[NotBountiesDebug] Executing command for " + currency.get(i) + ": '" + command + "'");
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
@@ -792,7 +937,7 @@ public class NumberFormatting {
                         }
                     }
                     if (debug)
-                        Bukkit.getLogger().info("[NotBounties-Debug] Giving item: " + currency.get(i) + " to " + p.getName() + ". Amount: " + (long) descendingAdd[i]);
+                        Bukkit.getLogger().info("[NotBountiesDebug] Giving item: " + currency.get(i) + " to " + p.getName() + ". Amount: " + (long) descendingAdd[i]);
                     givePlayer(p, item, (long) descendingAdd[i]);
                 }
             }
@@ -800,7 +945,7 @@ public class NumberFormatting {
             for (int i = descendingAdd.length; i < modifiedAddCommands.size(); i++) {
                 if (modifiedAddCommands.get(i).isEmpty())
                     continue;
-                String command = modifiedAddCommands.get(i).replaceAll("\\{player}", Matcher.quoteReplacement(p.getName())).replaceAll("\\{amount}", Matcher.quoteReplacement(getValue(amount)));
+                String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
         }
@@ -812,7 +957,7 @@ public class NumberFormatting {
             if (contents[i] != null) {
                 if (isCorrectMaterial(contents[i], material, customModelData)) {
                     if (contents[i].getAmount() > amount) {
-                        contents[i] = new ItemStack(contents[i].getType(), (int) (contents[i].getAmount() - amount));
+                        contents[i].setAmount((int) (contents[i].getAmount() - amount));
                         break;
                     } else if (contents[i].getAmount() < amount) {
                         amount -= contents[i].getAmount();
@@ -825,6 +970,94 @@ public class NumberFormatting {
             }
         }
         player.getInventory().setContents(contents);
+    }
+
+    /**
+     * Try to remove items from a player's inventory. If the player doesn't have all the items, or update is false, they won't be removed
+     * @param player Player to remove items from
+     * @param items Items to be removed
+     * @param update Whether the player's inventory should be updated
+     * @return A string of missing items, or an empty string if the items were removed
+     */
+    public static String removeItems(Player player, List<ItemStack> items, boolean update) {
+        ItemStack[] contents = player.getInventory().getContents().clone();
+        for (int i = 0; i < contents.length; i++) {
+            if (contents[i] != null) {
+                ListIterator<ItemStack> iIterator = items.listIterator();
+                while (iIterator.hasNext()) {
+                    ItemStack item = iIterator.next();
+                    if (contents[i].isSimilar(item)) {
+                        if (contents[i].getAmount() > item.getAmount()) {
+                            contents[i].setAmount(contents[i].getAmount() - item.getAmount());
+                            iIterator.remove();
+                        } else if (contents[i].getAmount() < item.getAmount()) {
+                            item.setAmount(item.getAmount() - contents[i].getAmount());
+                            contents[i] = null;
+                            break;
+                        } else {
+                            iIterator.remove();
+                            contents[i] = null;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (items.isEmpty() && update)
+            player.getInventory().setContents(contents);
+        else
+            return listItems(items, 'x');
+        return "";
+    }
+
+    /**
+     * Lists items in a string in the format: (material)x(amount),(material)x(amount),...
+     * @param items Items to be listed
+     * @param amountDenote The character you want to use between the material and amount
+     * @return A list of items
+     */
+    public static String listItems(List<ItemStack> items, char amountDenote) {
+        // iterate through requested items to get missing items and their amounts and add to string builder
+        StringBuilder itemString = new StringBuilder();
+        for (ItemStack itemStack : items) {
+            if (itemStack == null)
+                continue;
+            if (itemString.length() != 0)
+                itemString.append(",");
+            itemString.append(itemStack.getType()).append(amountDenote).append(itemStack.getAmount());
+        }
+        return itemString.toString();
+    }
+
+    /**
+     * Lists items in a string in the format: (material)x(amount),(material)x(amount),...
+     * @param items Items to be listed
+     * @param amountDenote The character you want to use between the material and amount
+     * @return A base component array with hover-able text
+     */
+    public static BaseComponent[] listHoverItems(List<ItemStack> items, char amountDenote) {
+        items.removeIf(Objects::isNull);
+        BaseComponent[] components = new BaseComponent[items.size()];
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack itemStack = items.get(i);
+            String nameString = "";
+            if (i > 0)
+                nameString = nameString + ",";
+            nameString = nameString + itemStack.getType().name() + amountDenote + itemStack.getAmount();
+            TextComponent name = new TextComponent(nameString);
+            name.setHoverEvent(getHoverEvent(itemStack));
+            components[i] = name;
+        }
+        return components;
+    }
+
+    private static HoverEvent getHoverEvent(ItemStack itemStack) {
+        String nbt = null;
+        if (itemStack.getItemMeta() != null)
+            nbt = NotBounties.serverVersion >= 18 ? itemStack.getItemMeta().getAsString() : itemStack.getItemMeta().toString();
+        ItemTag itemTag = ItemTag.ofNbt(nbt);
+        // item nbt doesn't work for 1.20.6 - could possibly be fixed manually by fixing the json
+        return new HoverEvent(HoverEvent.Action.SHOW_ITEM, new Item(itemStack.getType().getKey().toString(), itemStack.getAmount(), itemTag));
     }
 
     public static boolean checkBalance(Player player, double amount) {
@@ -851,26 +1084,118 @@ public class NumberFormatting {
         new BukkitRunnable() {
             long toGive = amount;
             @Override
+            public synchronized void cancel() {
+                super.cancel();
+                if (toGive > 0) {
+                    // refund the rest of the items
+                    itemStack.setAmount((int) toGive);
+                    BountyManager.refundPlayer(p.getUniqueId(), 0, new ArrayList<>(List.of(itemStack)));
+                }
+            }
+            @Override
             public void run() {
                 if (toGive <= 0) {
                     this.cancel();
                     return;
                 }
-                if (toGive > itemStack.getMaxStackSize()) {
-                    itemStack.setAmount(itemStack.getMaxStackSize());
-                    toGive -= itemStack.getMaxStackSize();
+                if (p.isOnline()) {
+                    if (toGive > itemStack.getMaxStackSize()) {
+                        itemStack.setAmount(itemStack.getMaxStackSize());
+                        toGive -= itemStack.getMaxStackSize();
+                    } else {
+                        itemStack.setAmount((int) toGive);
+                        toGive = 0;
+                    }
+                    p.playSound(p.getEyeLocation(), Sound.ENTITY_ITEM_PICKUP, 1, 1);
+                    givePlayerInstantly(p, itemStack, itemStack.getAmount());
                 } else {
-                    itemStack.setAmount((int) toGive);
-                    toGive = 0;
-                }
-                HashMap<Integer, ItemStack> leftOver = new HashMap<>((p.getInventory().addItem(itemStack)));
-                if (!leftOver.isEmpty()) {
-                    Location loc = p.getLocation();
-                    p.getWorld().dropItem(loc, leftOver.get(0));
+                    this.cancel();
                 }
 
             }
         }.runTaskTimer(NotBounties.getInstance(), 0, 5);
+    }
+
+    public static void givePlayerInstantly(Player p, ItemStack itemStack, long amount) {
+        while (amount > 0) {
+            if (amount > itemStack.getMaxStackSize()) {
+                itemStack.setAmount(itemStack.getMaxStackSize());
+                amount -= itemStack.getMaxStackSize();
+            } else {
+                itemStack.setAmount((int) amount);
+                amount = 0;
+            }
+            HashMap<Integer, ItemStack> leftOver = new HashMap<>((p.getInventory().addItem(itemStack)));
+            if (!leftOver.isEmpty()) {
+                Location loc = p.getLocation();
+                p.getWorld().dropItem(loc, leftOver.get(0));
+            }
+        }
+    }
+
+    public static void givePlayer(Player p, List<ItemStack> itemStacks, boolean instant) {
+        itemStacks = new ArrayList<>(itemStacks);
+        itemStacks.removeIf(Objects::isNull);
+        if (itemStacks.isEmpty())
+            return;
+        if (instant) {
+            p.playSound(p.getEyeLocation(), Sound.ENTITY_ITEM_PICKUP, 1, 1);
+            for (ItemStack itemStack : itemStacks) {
+                if (itemStack != null)
+                    givePlayerInstantly(p, itemStack, itemStack.getAmount());
+            }
+            return;
+        }
+        List<ItemStack> finalItemStacks = itemStacks;
+        new BukkitRunnable() {
+            int index = 0;
+            @Override
+            public synchronized void cancel() {
+                super.cancel();
+                if (index < finalItemStacks.size()) {
+                    // refund the rest of the items
+                    BountyManager.refundPlayer(p.getUniqueId(), 0, finalItemStacks.subList(index, finalItemStacks.size()));
+                }
+            }
+            @Override
+            public void run() {
+                if (p.isOnline()) {
+                    givePlayer(p, finalItemStacks.get(index), finalItemStacks.get(index).getAmount());
+                    index++;
+                    if (index >= finalItemStacks.size())
+                        this.cancel();
+                } else {
+                    // cancel -> will add to refund
+                    this.cancel();
+                }
+            }
+        }.runTaskTimer(NotBounties.getInstance(), 0, 5);
+    }
+
+
+    /**
+     * Serialized items after separating them based on how many slots they take up
+     * @param items Items to serialize
+     * @param maxSlotsPerPage Maximum slots per object in the returned array
+     * @return An array of strings with serialized items
+     */
+    public static String[] serializeItems(List<ItemStack> items, int maxSlotsPerPage) {
+        if (items.isEmpty())
+            return new String[0];
+        List<String> serialized = new ArrayList<>();
+        ItemStack[] contents = new ItemStack[maxSlotsPerPage];
+        int index = 0;
+        while (!items.isEmpty()) {
+            if (index == contents.length) {
+                serialized.add(SerializeInventory.itemStackArrayToBase64(contents));
+                contents = new ItemStack[maxSlotsPerPage];
+                index = 0;
+            }
+            contents[index] = items.remove(0);
+            index++;
+        }
+        serialized.add(SerializeInventory.itemStackArrayToBase64(contents));
+        return serialized.toArray(new String[0]);
     }
 
     /**

@@ -80,11 +80,11 @@ public enum Leaderboard {
                 return immunitySpent.get(uuid);
             case CURRENT:
                 if (SQL.isConnected())
-                    return data.getBounty(uuid).getTotalBounty();
-                Bounty bounty = getBounty(Bukkit.getOfflinePlayer(uuid));
+                    return data.getBounty(uuid).getTotalDisplayBounty();
+                Bounty bounty = getBounty(uuid);
                 if (bounty == null)
                     return 0;
-                return bounty.getTotalBounty();
+                return bounty.getTotalDisplayBounty();
             default:
                 return 0;
         }
@@ -193,7 +193,7 @@ public enum Leaderboard {
                 msg = shorten ? listTotal : checkBounty;
                 break;
         }
-        //msg = msg.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + "{amount}" + NumberFormatting.currencySuffix));
+        //msg = msg.replace("{amount}", (NumberFormatting.currencyPrefix + "{amount}" + NumberFormatting.currencySuffix));
         return msg;
     }
 
@@ -228,22 +228,23 @@ public enum Leaderboard {
             case CURRENT:
                 map = new LinkedHashMap<>();
                 for (Bounty bounty : bountyList)
-                    map.put(bounty.getUUID(), bounty.getTotalBounty());
+                    map.put(bounty.getUUID(), bounty.getTotalDisplayBounty());
                 map = sortByValue(map);
                 break;
             default:
                 map = new LinkedHashMap<>();
+                break;
         }
         LinkedHashMap<UUID, Double> top = new LinkedHashMap<>();
         for (Map.Entry<UUID, Double> entry : map.entrySet()){
+            String name = NotBounties.getPlayerName(entry.getKey());
+            if (hiddenNames.contains(name))
+                continue;
             if (amount == 0)
                 break;
             if (skip == 0) {
-                OfflinePlayer player = Bukkit.getOfflinePlayer(entry.getKey());
-                if (player.getName() != null && !hiddenNames.contains(player.getName())) {
-                    top.put(entry.getKey(), entry.getValue());
-                    amount--;
-                }
+                top.put(entry.getKey(), entry.getValue());
+                amount--;
             } else {
                 skip--;
             }
@@ -270,7 +271,7 @@ public enum Leaderboard {
 
 
     private String parseStats(String text, OfflinePlayer player){
-        text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(getFormattedStat(player.getUniqueId())));
+        text = text.replace("{amount}", (getFormattedStat(player.getUniqueId())));
 
         return parse(text, player);
     }
@@ -307,12 +308,12 @@ public enum Leaderboard {
 
     public static String parseBountyTopString(int rank, @NotNull String playerName, double amount, boolean useCurrency, OfflinePlayer player){
         String text = bountyTop;
-        text = text.replaceAll("\\{rank}", rank + "");
-        text = text.replaceAll("\\{player}", playerName);
+        text = text.replace("{rank}", rank + "");
+        text = text.replace("{player}", playerName);
         if (useCurrency)
-            text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
+            text = text.replace("{amount}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         else
-            text = text.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.formatNumber(amount)));
+            text = text.replace("{amount}", (NumberFormatting.formatNumber(amount)));
 
         return parse(text, player);
     }

@@ -1,16 +1,18 @@
 # a '#' after a line means only admins will see this message, if there is not a '#', then with all the other permissions, players can see this message
 prefix: '&7[&9Not&dBounties&7] &8» &r'
 unknown-number: '&cUnknown number!'
+unknown-player: '&cCould not find the player &4{receiver}&c!'
+unknown-command: '&dUse &9/bounty help &dfor a list of commands.'
+unknown-material: '&cUnknown material: &7{material}'
 bounty-success: '&aBounty placed on &e{receiver}&a for &e{amount}&a! Total Bounty: &e{bounty}'
 bounty-receiver: '&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}'
-unknown-player: '&cCould not find the player &4{receiver}&c!'
 bounty-broadcast: '&e{player}&6 has placed a bounty of &f{amount}&6 on &e{receiver}&6! Total Bounty: &f{bounty}'
 no-permission: '&cYou do not have permission to execute this command!'
 broke: '&cYou do not have enough currency for this! &8Required: &7{amount}'
 claim-bounty-broadcast: '&e{player}&6 has claimed the bounty of &f{amount}&6 on &e{receiver}&6!'
 no-bounty: '&4{receiver} &cdoes not have a bounty!'
 check-bounty: '&e{receiver}&a has a bounty of &e{amount}&a.'
-list-setter: '&e{player} &7> &a{amount} &8{time}'
+list-setter: '&e{player} &7> &a{amount} &7{items} &8{time}'
 list-total: '&e{player} &7> &a{amount}'
 offline-bounty: '&e{player}&6 has set a bounty of &e{amount}&6 on you while you were offline!'
 success-remove-bounty: '&aSuccessfully removed &2{receiver}''s &abounty.'  #
@@ -26,7 +28,6 @@ buy-scaling-immunity: '&aYou have bought immunity from bounties under the amount
 buy-time-immunity: '&aYou have bought immunity from bounties for &2{time}&a.'
 grace-period: '&cA bounty had just been claimed on &4{player}&c. Please wait &4{time}&c until you try again.'
 min-bounty: '&cThe bounty must be at least &4{amount}&c.'
-unknown-command: '&dUse &9/bounty help &dfor a list of commands.'
 already-bought-perm: '&cYou already have permanent immunity!'
 removed-immunity: '&aSuccessfully removed your immunity to bounties.'
 removed-other-immunity: '&aSuccessfully removed &2{receiver}''s &aimmunity to bounties.' #
@@ -41,8 +42,18 @@ bounty-tracker-lore:
   - '&7Follow this compass'
   - '&7to find {player}'
   - ''
+empty-tracker-name: '&fEmpty Bounty Tracker'
+empty-tracker-lore:
+  - ''
+  - '&7Click a bounty poster'
+  - '&7or craft with a player'
+  - '&7head to track a bounty.'
+  - ''
+tracker-offline: "&7*offline*"
+tracker-no-permission: "&cNo Permission."
 tracker-give: '&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.' #
 tracker-receive: '&eYou have been given a bounty tracker for &6{player}&e.'
+tracker-receive-empty: '&eYou have been given an empty bounty tracker. Click a bounty poster or craft with a player head to track a bounty.'
 tracked-notify: '&c&lYou are being tracked!'
 bounty-top: '&9&l{rank}. &d{player} &7> &a{amount}'
 bounty-top-title: '&7&m               &r &d&lBounties &9&lTop &7&m               '
@@ -114,6 +125,9 @@ give-tracker-lore:
   - '&fLeft Click &7to get a tracker'
 give-poster-lore:
   - '&fRight Click &7to get a poster'
+no-empty-tracker: '&cYou do not have an empty tracker in your hand.'
+stolen-bounty: '&aYou stole &2{player}''s&a bounty on you for {amount}&a!'
+stolen-bounty-broadcast: '&e{receiver}&6 has stolen &e{player}''s&6 bounty set on them for &f{amount}&6! New Bounty: &f{bounty}'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
@@ -155,6 +169,7 @@ help:
     - '&9/bounty &8- &dOpens bounty GUI.'
   set:
     - '&9/bounty (player) (amount) <whitelisted players> &8- &dAdds a bounty to a player.'
+    - '&9/bounty (player) (material):(amount),(material):(amount),... <whitelisted players> &8- &dAdds a bounty of items on a player.'
     - '&9/bounty set <offline> &8- &dOpens the set bounty GUI.'
   whitelist:
     - '&9/bounty whitelist (add/remove/set) (whitelisted players) &8- &dChange the players that can claim the bounties you set.'
@@ -179,7 +194,7 @@ help:
   poster-own:
     - '&9/bounty poster (player) &8- &dGives you a poster of a player''s bounty.'
   poster-other:
-    - '&9//bounty poster (player) (receiver) &8- &dGives receiver a poster of a player''s bounty.'
+    - '&9/bounty poster (player) (receiver) &8- &dGives receiver a poster of a player''s bounty.'
   tracker-own:
     - '&9/bounty tracker (player) &8- &dGives you a compass that tracks a player with a bounty.'
   tracker-other:

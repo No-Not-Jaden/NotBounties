@@ -11,6 +11,8 @@ custom-components:
     type: BUTTON
     # image URL for the button - not required
     image: ''
+    # whether the image option is a URL or a texture path
+    image-url: true
     # button will run these commands on click
     commands:
       - '[next]'
@@ -39,6 +41,11 @@ custom-components:
     type: BUTTON
     commands:
       - '[gui] bounty-gui'
+  settings:
+    text: '⎆ &eSettings'
+    type: BUTTON
+    commands:
+      - '[gui] settings-gui'
   set-bounty:
     text: '⎆ &eSet Bounty'
     type: BUTTON
@@ -67,7 +74,7 @@ custom-components:
     text: '&8Reset whitelist'
     type: BUTTON
     commands:
-      - '[p] bounty whitelist reset'
+      - '[p] notbounties whitelist reset'
       - '[gui] set-whitelist 1'
   # Dropdown example
   remove-whitelist-player:
@@ -103,16 +110,34 @@ custom-components:
       - '[p] whitelist remove {dropdown}'
       - '[p] whitelist remove {dropdown}'
       - '[p] whitelist remove {dropdown}'
+  dropdown-players:
+    text: 'Select Player'
+    type: DROPDOWN
+    options:
+      - 'Choose a player'
+      - '{players}' # this will fill in all the online players
+    commands:
+      - ''
+      - '[@ll] [p] notbounties {dropdown}' # this will fill in to match the amount of options
   # Toggle example
-  blacklist-mode:
-    text: '&0&8Blacklist Mode'
+  toggle-whitelist:
+    text: '&f&lWhitelist Mode'
     type: TOGGLE
+    # This can be either true/false or a placeholder
+    default: '{mode_raw}'
     # Can use any regular actions here
     # [on] only triggers the action if the toggle is on
     # [off] does the same thing but in reverse
     commands:
-      - '[on] bounty whitelist toggle blacklist'
-      - '[off] bounty whitelist toggle whitelist'
+      - '[on] [p] notbounties whitelist toggle whitelist'
+      - '[off] [p] notbounties whitelist toggle blacklist'
+  toggle-broadcast:
+    text: '&e&lBounty Broadcast'
+    type: TOGGLE
+    default: '{notification}'
+    commands:
+      - '[on] [p] notbounties bdc enable'
+      - '[off] [p] notbounties bdc disable'
   # Step_Slider example
   # this won't work for price select
   select-step:
@@ -171,7 +196,7 @@ custom-components:
     text: 'Player Name'
     type: INPUT
     commands:
-      - '[p] bounty {value}'
+      - '[p] notbounties {value}'
   fill:
     text: ''
     type: LABEL
@@ -179,15 +204,15 @@ custom-components:
     text: '&a&lYes'
     type: BUTTON
     commands:
-      - '!@notbounties.admin [p] bounty buy --confirm'
-      - '@notbounties.admin [p] bounty remove {slot13}'
+      - '!@notbounties.admin [p] notbounties buy --confirm'
+      - '@notbounties.admin [p] notbounties remove {slot13}'
       - '[close]'
   yes-bounty:
     text: '&a&lYes'
     type: BUTTON
     # {player} is the clicker, {player1} is the first player slot
     commands:
-      - '[p] bounty {player1} {page} --confirm'
+      - '[p] notbounties {player1} {page} --confirm'
       - '[close]'
   no:
     text: '&c&lNo'
@@ -202,6 +227,7 @@ selection-gui:
     1: view-bounties
     2: set-bounty
     3: set-whitelist
+    4: settings
 # main GUI to display bounties
 bounty-gui:
   enabled: true
@@ -211,11 +237,11 @@ bounty-gui:
   add-page: true
   # this will remove items with actions of [next] or [back] if there is no next page or previous page
   remove-page-items: true
-  # text next to the player
+  # text next to the player - only for a Simple Form
   player-text: '&c&l{player}&8: &4{amount}'
   # these commands are activated when a player button is clicked
   player-button-commands:
-    - '[p] bounty check {player}'
+    - '[p] notbounties check {player}'
   # max amount of players shown in one page
   max-players: 10
   # extra components in the GUI
@@ -250,7 +276,7 @@ set-bounty:
   player-text: '&e&l{player}&8 <=> &0Immunity: &8{amount}'
   # these commands are activated when a player button is clicked
   player-button-commands:
-    - '[p] bounty {player}'
+    - '[p] notbounties {player}'
   max-players: 25
   components:
     -3: return-selection
@@ -266,7 +292,7 @@ set-whitelist:
   # a chat color will be added in front depending on if they are whitelisted or not
   player-text: '&l{player}'
   player-button-commands:
-    - '[p] bounty whitelist toggle {player}'
+    - '[p] notbounties whitelist toggle {player}'
     - '[gui] set-whitelist'
   components:
     -4: return-selection
@@ -295,7 +321,7 @@ select-price:
   # to use specific values of inputs, use {value<x>} where x is the component number
   # ex: {value3} will be the value of the price-select-input component
   completion-commands:
-    - '[p] bounty {player1} {quantity}'
+    - '[p] notbounties {player1} {quantity}'
   components:
     1: price-select-info
     2: price-select-slider
@@ -313,3 +339,9 @@ confirm-bounty:
   components:
     1: yes-bounty
     2: no
+settings-gui:
+  enabled: true
+  gui-name: '&9&lSettings'
+  components:
+    1: toggle-whitelist
+    2: toggle-broadcast

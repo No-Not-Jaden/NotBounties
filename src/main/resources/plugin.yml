@@ -19,13 +19,7 @@ softdepend:
   - WorldGuard
 commands:
   notbounties:
-    aliases:
-      - notbounty
-      - nbounty
-      - bounty
-      - nbounties
-      - bounties
-    description: Set and check bounties.
+    description: Use all of the bounty commands.
 permissions:
   notbounties.admin:
     default: op

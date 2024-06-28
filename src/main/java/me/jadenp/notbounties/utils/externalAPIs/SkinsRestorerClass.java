@@ -11,7 +11,9 @@ import net.skinsrestorer.api.exception.DataRequestException;
 import net.skinsrestorer.api.property.SkinProperty;
 import net.skinsrestorer.api.storage.PlayerStorage;
 import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitRunnable;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Optional;
@@ -32,8 +34,7 @@ public class SkinsRestorerClass {
             skinsRestorer = SkinsRestorerProvider.get();
             return true;
         } catch (IllegalStateException e) {
-            if (!firstConnect) // it will be normal to get this error on the first connection if in proxy mode
-                if (lastHookError < System.currentTimeMillis()) {
+            if (!firstConnect && lastHookError < System.currentTimeMillis()) {
                     Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
                     lastHookError = System.currentTimeMillis() + 60000 * 5;
                 }
@@ -47,25 +48,52 @@ public class SkinsRestorerClass {
             ProxyMessaging.requestPlayerSkin(uuid);
             return;
         }
-        if (!connect())
-            return;
-        PlayerStorage playerStorage = skinsRestorer.getPlayerStorage();
         String name = NotBounties.getPlayerName(uuid);
+        if (!connect()) {
+            requestNamedSkin(uuid, name);
+            return;
+        }
+        PlayerStorage playerStorage = skinsRestorer.getPlayerStorage();
         try {
             Optional<SkinProperty> skinProperty = playerStorage.getSkinForPlayer(uuid, name);
             if (!skinProperty.isPresent()) {
                 if (NotBounties.debug)
-                    Bukkit.getLogger().warning("[NotBountiesDebug] Skin property not present from SkinsRestorer for " + name + ".");
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            Bukkit.getLogger().warning("[NotBountiesDebug] Skin property not present from SkinsRestorer for " + name + ".");
+                        }
+                    }.runTask(NotBounties.getInstance());
+                requestNamedSkin(uuid, name);
                 return;
             }
             String skinUrl = PropertyUtils.getSkinTextureUrl(skinProperty.get());
             String identifier = PropertyUtils.getSkinProfileData(skinProperty.get()).getProfileId();
             SkinManager.saveSkin(uuid, new PlayerSkin(new URL(skinUrl), identifier));
         } catch (MalformedURLException | DataRequestException e) {
-            if (NotBounties.debug) {
-                Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from SkinsRestorer.");
-                Bukkit.getLogger().warning(e.toString());
-            }
+            if (NotBounties.debug)
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from SkinsRestorer.");
+                        Bukkit.getLogger().warning(e.toString());
+                    }
+                }.runTask(NotBounties.getInstance());
+            requestNamedSkin(uuid, name);
+        }
+    }
+
+    private static void requestNamedSkin(UUID uuid, String name) {
+        try {
+            SkinManager.saveNamedSkin(uuid, name);
+        } catch (Exception e2) {
+            if (NotBounties.debug)
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        Bukkit.getLogger().warning("[NotBountiesDebug] Unable to obtain a skin for " + name + ".");
+                    }
+                }.runTask(NotBounties.getInstance());
         }
     }
 

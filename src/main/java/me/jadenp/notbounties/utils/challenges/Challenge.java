@@ -62,7 +62,7 @@ public class Challenge {
     public void executeCommands(Player player, int variationIndex) {
         List<String> parsedCommands = new ArrayList<>(commands);
         // replace {rewards} and {x}
-        parsedCommands.forEach(str -> str.replaceAll("\\{reward}", Matcher.quoteReplacement(NumberFormatting.getValue(rewards.get(variationIndex)))).replaceAll("\\{x}", Matcher.quoteReplacement(NumberFormatting.getValue(variations.get(variationIndex)))));
+        parsedCommands.forEach(str -> str.replace("{reward}", (NumberFormatting.getValue(rewards.get(variationIndex)))).replace("{x}", (NumberFormatting.getValue(variations.get(variationIndex)))));
         ActionCommands.executeCommands(player, parsedCommands);
     }
 
@@ -99,7 +99,7 @@ public class Challenge {
             title = inProgress.get(0);
         else
             title = "";
-        return LanguageOptions.parse(title.replaceAll("\\{progress}", Matcher.quoteReplacement(ChallengeType.getProgressString(progress, total))), player);
+        return LanguageOptions.parse(title.replace("{progress}", (ChallengeType.getProgressString(progress, total))), player);
     }
 
     public List<Double> getVariations() {
@@ -130,7 +130,7 @@ public class Challenge {
     private List<String> parseList(List<String> list, OfflinePlayer player, double progress, double total) {
         List<String> parsedList = new ArrayList<>();
         for (String str : list) {
-            parsedList.add(LanguageOptions.parse(str.replaceAll("\\{progress}", Matcher.quoteReplacement(ChallengeType.getProgressString(progress, total))), player));
+            parsedList.add(LanguageOptions.parse(str.replace("{progress}", (ChallengeType.getProgressString(progress, total))), player));
         }
         return parsedList;
     }

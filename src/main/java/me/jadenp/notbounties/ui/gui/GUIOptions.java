@@ -3,7 +3,9 @@ package me.jadenp.notbounties.ui.gui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.HeadFetcher;
+import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
@@ -16,6 +18,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 
@@ -45,8 +48,8 @@ public class GUIOptions {
         addPage = settings.isSet("add-page") && settings.getBoolean("add-page");
         sortType = settings.isSet("sort-type") ? settings.getInt("sort-type") : 1;
         removePageItems = settings.getBoolean("remove-page-items");
-        headName = settings.getString("head-name");
-        headLore = settings.getStringList("head-lore");
+        headName = settings.isSet("head-name") ? settings.getString("head-name") : "{player}";
+        headLore = settings.isSet("head-lore") ? settings.getStringList("head-lore") : new ArrayList<>();
         customItems = new CustomItem[size];
         if (settings.isConfigurationSection("layout"))
             for (String key : Objects.requireNonNull(settings.getConfigurationSection("layout")).getKeys(false)) {
@@ -100,7 +103,8 @@ public class GUIOptions {
     }
 
     public CustomItem getCustomItem(int slot, long page, int entryAmount) {
-        if (slot >= customItems.length)
+        // Check if slot is in bounds (-999 is a click outside the GUI)
+        if (slot >= customItems.length || slot == -999)
             return null;
         CustomItem item = customItems[slot];
         if (item == null)
@@ -120,6 +124,51 @@ public class GUIOptions {
             }
         }
         return item;
+    }
+
+    public String getTitle(Player player, long page, LinkedHashMap<UUID, String> values, String... replacements) {
+        OfflinePlayer[] playerItems = new OfflinePlayer[values.size()];
+        String[] amount = new String[values.size()];
+        int index = 0;
+        for (Map.Entry<UUID, String> entry : values.entrySet()) {
+            playerItems[index] = Bukkit.getOfflinePlayer(entry.getKey());
+            amount[index] = entry.getValue();
+            index++;
+        }
+        // this is for adding more replacements in the future
+        int desiredLength = 1;
+        if (replacements.length < desiredLength)
+            replacements = new String[desiredLength];
+        for (int i = 0; i < replacements.length; i++) {
+            if (replacements[i] == null)
+                replacements[i] = "";
+        }
+
+        if (page < 1) {
+            page = 1;
+        }
+        return getTitle(player, page, amount, playerItems, replacements);
+    }
+
+    private String getTitle(Player player, long page, String[] amount, OfflinePlayer[] playerItems, String[] replacements) {
+        String name = addPage ? this.name + " " + page : this.name;
+        if (amount.length > 0) {
+            double tax = parseCurrency(amount[0]) * (bountyTax) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
+            double totalCost = parseCurrency(amount[0]) + tax;
+            String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
+            name = name.replace("{amount}", (amount[0]))
+                    .replace("{amount_tax}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix))
+                    .replace("{player}", playerName)
+                    .replace("{tax}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(tax) + NumberFormatting.currencySuffix);
+            if (type.equals("leaderboard"))
+                name = name.replace("{leaderboard}", (replacements[0]));
+        }
+        name = name.replace("{page}", (page + ""));
+        int maxPage = type.equals("select-price") ? (int) NumberFormatting.getBalance(player) : (playerItems.length / Math.max(playerSlots.size(), 1)) + 1;
+        name = name.replace("{page_max}", (maxPage + ""));
+        name = parse(name, player);
+
+        return name;
     }
 
     /**
@@ -151,68 +200,61 @@ public class GUIOptions {
             page = 1;
         }
 
-        String name = addPage ? this.name + " " + page : this.name;
-        if (amount.length > 0) {
-            double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
-            String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
-            name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(replacements[0])).replaceAll("\\{player}", playerName);
-        }
-        name = name.replaceAll("\\{page}", Matcher.quoteReplacement(page + ""));
-        int maxPage = type.equals("select-price") ? (int) NumberFormatting.getBalance(player) : (playerItems.length / playerSlots.size()) + 1;
-        name = name.replaceAll("\\{page_max}", Matcher.quoteReplacement(maxPage + ""));
-        name = parse(name, player);
-        Inventory inventory = Bukkit.createInventory(player, size, name);
+
+        Inventory inventory = Bukkit.createInventory(player, size, getTitle(player, page, amount, playerItems, replacements));
         ItemStack[] contents = inventory.getContents();
         // set up regular items
         for (int i = 0; i < contents.length; i++) {
             if (customItems[i] == null)
                 continue;
             // check if item is a page item
+            String[] leaderboardReplacements = type.equals("leaderboard") ? replacements : new String[0];
             if (removePageItems) {
                 // next
                 if (getPageType(customItems[i].getCommands()) == 1 && page * playerSlots.size() >= amount.length) {
-                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, replacements) : null;
+                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, leaderboardReplacements) : null;
                     contents[i] = replacement;
                     continue;
                 }
                 // back
                 if (getPageType(customItems[i].getCommands()) == 2 && page == 1) {
-                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, replacements) : null;
+                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, leaderboardReplacements) : null;
                     contents[i] = replacement;
                     continue;
                 }
             }
-            contents[i] = customItems[i].getFormattedItem(player, replacements);
+            contents[i] = customItems[i].getFormattedItem(player, leaderboardReplacements);
         }
         // set up player slots
         LinkedHashMap<OfflinePlayer, ItemStack> unloadedHeads = new LinkedHashMap<>();
-        for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * playerSlots.size()); i < Math.min(playerSlots.size() * page, playerItems.length); i++) {
+        boolean isSinglePlayerSlot = type.equals("select-price") || type.equals("confirm-bounty") || type.equals("bounty-item-select");
+        for (int i = isSinglePlayerSlot ? 0 : (int) ((page - 1) * playerSlots.size()); i < Math.min(playerSlots.size() * page, playerItems.length); i++) {
             final OfflinePlayer p = playerItems[i];
             ItemStack skull = HeadFetcher.getUnloadedHead(p.getUniqueId());
             SkullMeta meta = (SkullMeta) skull.getItemMeta();
             assert meta != null;
 
             long time = System.currentTimeMillis();
-            Bounty bounty = getBounty(p);
+            Bounty bounty = getBounty(p.getUniqueId());
             if (type.equals("bounty-gui")) {
                 amount[i] = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount[i])) + currencySuffix;
-
             } else {
                 amount[i] = formatNumber(amount[i]);
             }
             if (bounty != null) {
                 time = bounty.getLatestSetter();
             }
-            final String finalAmount = amount[i];
+            final String finalAmount = type.equals("bounty-item-select") ? amount[0] : amount[i];
             long finalTime = time;
-            final long rank = i + 1;
+            final long rank = i + 1L;
             String[] finalReplacements = replacements;
             String playerName = NotBounties.getPlayerName(p.getUniqueId());
             List<String> lore = new ArrayList<>(headLore);
-            double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
+            double tax = parseCurrency(finalAmount) * (bountyTax) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
+            double total = parseCurrency(finalAmount) + tax;
             try {
-                meta.setDisplayName(parse(headName, finalAmount, rank, finalReplacements[0], playerName, total,  finalTime, p));
-                lore.replaceAll(s -> parse(s, finalAmount, rank, finalReplacements[0], playerName, total,  finalTime, p));
+                meta.setDisplayName(parse(headName.replace("{tax}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(tax) + NumberFormatting.currencySuffix), finalAmount, rank, finalReplacements[0], playerName, total,  finalTime, p));
+                lore.replaceAll(s -> parse(s.replace("{tax}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(tax) + NumberFormatting.currencySuffix), finalAmount, rank, finalReplacements[0], playerName, total,  finalTime, p));
             } catch (IllegalArgumentException e) {
                 Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
             }
@@ -226,7 +268,7 @@ public class GUIOptions {
                     }
                     if (buyBack && p.getUniqueId().equals(player.getUniqueId())) {
                         buyBackLore.stream().map(bbLore -> parse(bbLore, (parseCurrency(finalAmount) * buyBackInterest), player)).forEach(lore::add);
-                    } else if (tracker && giveOwnTracker && player.hasPermission("notbounties.tracker")) {
+                    } else if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers()) && player.hasPermission("notbounties.tracker")) {
                         giveTrackerLore.stream().map(str -> parse(str, player)).forEach(lore::add);
                     }
                 }
@@ -265,12 +307,25 @@ public class GUIOptions {
             meta.setLore(lore);
             skull.setItemMeta(meta);
             unloadedHeads.put(p, skull);
-            int slot = type.equals("select-price") || type.equals("confirm-bounty") ? playerSlots.get(i) : (playerSlots.get((int) (i - playerSlots.size() * (page-1))));
+            int slot = isSinglePlayerSlot ? playerSlots.get(i) : (playerSlots.get((int) (i - playerSlots.size() * (page-1))));
             contents[slot] = skull;
         }
         new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, new Object[0], values.keySet().toArray(new UUID[0]), name), unloadedHeads);
+        if  (type.equals("bounty-item-select") && !replacements[0].isEmpty()) {
+            // load in saved items
+            ItemStack[] savedContents = new ItemStack[0];
+            try {
+                savedContents = SerializeInventory.itemStackArrayFromBase64(replacements[0]);
+            } catch (IOException e) {
+                Bukkit.getLogger().warning("[NotBounties] Couldn't read saved inventory contents: " + replacements[0]);
+                Bukkit.getLogger().warning(e.toString());
+            }
+            for (int i = 0; i < savedContents.length; i++) {
+                contents[playerSlots.get(i+1)] = savedContents[i];
+            }
+        }
+
         inventory.setContents(contents);
-        //Bukkit.getLogger().info("Took: " + (System.currentTimeMillis() - start) + "ms to load the inventory.");
         return inventory;
 
     }

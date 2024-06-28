@@ -5,8 +5,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.*;
 
 public class BedrockGUI {
@@ -15,19 +13,10 @@ public class BedrockGUI {
     public static boolean enabled;
     private static final Map<String, BedrockGUIOptions> customGuis = new HashMap<>();
 
-    public static void reloadOptions() throws IOException {
+    public static void reloadOptions(){
         if (!getFile().exists())
             NotBounties.getInstance().saveResource("bedrock-gui.yml", false);
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(getFile());
-        // fill in any default options that aren't present
-        if (NotBounties.getInstance().getResource("bedrock-gui.yml") != null) {
-            configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("bedrock-gui.yml")))));
-            for (String key : Objects.requireNonNull(configuration.getDefaults()).getKeys(true)) {
-                if (!configuration.isSet(key))
-                    configuration.set(key, configuration.getDefaults().get(key));
-            }
-            configuration.save(getFile());
-        }
         enabled = configuration.getBoolean("enabled");
         // register GUIs
         customGuis.clear();
@@ -38,7 +27,7 @@ public class BedrockGUI {
         }
     }
 
-    public static void openGUI(Player player, String guiName, long page, LinkedHashMap<UUID, String> values, String[] replacements) {
+    public static void openGUI(Player player, String guiName, long page, Map<UUID, String> values, String[] replacements) {
         if (!customGuis.containsKey(guiName))
             return;
         BedrockGUIOptions gui = customGuis.get(guiName);

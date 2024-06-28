@@ -6,29 +6,28 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.ProxyMessaging;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import org.apache.http.HttpEntity;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.text.DateFormat;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class LocalTime {
     public enum TimeFormat {
@@ -45,9 +44,16 @@ public class LocalTime {
 
     private static void readAuthentication() throws IOException {
         // checks if secret file is present
-        if (NotBounties.getInstance().getResource("secret.yml") == null)
+        File secretFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "secret.yml");
+        YamlConfiguration configuration;
+        if (secretFile.exists()) {
+            configuration = YamlConfiguration.loadConfiguration(secretFile);
+        } else if (NotBounties.getInstance().getResource("secret.yml") != null) {
+            configuration = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("secret.yml"))));
+        } else {
             throw new IOException("No Secret File Found!");
-        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("secret.yml"))));
+        }
+
         // load account id and license key from secret file
         account = configuration.getInt("geoip2.account");
         license = configuration.getString("geoip2.license");
@@ -77,21 +83,7 @@ public class LocalTime {
         new BukkitRunnable() {
             @Override
             public void run() {
-                CompletableFuture<TimeZone> timezone = getTimezone(address);
-                try {
-                    savedTimeZones.put(player.getUniqueId(), timezone.get(2, TimeUnit.SECONDS));
-                } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                    lastException = System.currentTimeMillis();
-                    if (NotBounties.debug) {
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                Bukkit.getLogger().info("[NotBountiesDebug] ->");
-                                Bukkit.getLogger().info(e.toString());
-                            }
-                        }.runTask(NotBounties.getInstance());
-                    }
-                }
+                registerTimeZone(player);
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
 
@@ -99,50 +91,31 @@ public class LocalTime {
         return formatTime(time);
     }
 
-    private static CompletableFuture<TimeZone> getTimezone(InetSocketAddress address) {
+    private static void registerTimeZone(Player player) {
         if (license == null)
-            return CompletableFuture.failedFuture(new RuntimeException("No Authentication Credentials!"));
-        return CompletableFuture.supplyAsync(() -> {
+            return;
+        InetSocketAddress address = player.getAddress();
+        if (address == null)
+            return;
 
-            HttpGet request = new HttpGet("https://geolite.info/geoip/v2.1/city/" + address.getAddress() + "?pretty");
+        HttpGet request = new HttpGet("https://geolite.info/geoip/v2.1/city/" + address.getAddress() + "?pretty");
 
-            BasicCredentialsProvider provider = new BasicCredentialsProvider();
-            provider.setCredentials(new AuthScope("geolite.info", 443), new UsernamePasswordCredentials( account + "", license));
+        BasicCredentialsProvider provider = new BasicCredentialsProvider();
+        provider.setCredentials(new AuthScope("geolite.info", 443), new UsernamePasswordCredentials( account + "", license.toCharArray()));
 
-            try (CloseableHttpClient httpClient = HttpClientBuilder.create()
-                    .setDefaultCredentialsProvider(provider)
-                    .build();
-                 CloseableHttpResponse response = httpClient.execute(request)) {
+        try (CloseableHttpClient httpClient = HttpClientBuilder.create()
+                .setDefaultCredentialsProvider(provider)
+                .build();
+        ) {
 
-                // 401 if wrong user/password
-                //System.out.println(response.getCode());
+            // 401 if wrong user/password
+            TimeZone timeZone = httpClient.execute(request, new ResponseHandler());
+            savedTimeZones.put(player.getUniqueId(), timeZone);
 
-                HttpEntity entity = response.getEntity();
-                if (entity != null) {
-                    // return it as a String
-                    String result = EntityUtils.toString(entity);
-                    if (NotBounties.debug) {
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                Bukkit.getLogger().info("[NotBountiesDebug] ->");
-                                Bukkit.getLogger().info(result);
-                            }
-                        }.runTask(NotBounties.getInstance());
-                    }
-
-                    JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseString(result).getAsJsonObject() : new JsonParser().parse(result).getAsJsonObject();
-                    JsonObject location = input.getAsJsonObject("location");
-
-                    return TimeZone.getTimeZone(location.get("time_zone").getAsString());
-                } else {
-                    throw new RuntimeException("Did not get a result from request.");
-                }
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        } catch (IOException ignored) {
+            // cant get timezone
+            lastException = System.currentTimeMillis();
+        }
     }
 
     private static String formatTime(long time, TimeZone timeZone) {
@@ -189,5 +162,37 @@ public class LocalTime {
 
      public static Map<UUID, TimeZone> getSavedTimeZones() {
         return savedTimeZones;
+    }
+}
+
+class ResponseHandler implements HttpClientResponseHandler<TimeZone> {
+
+    @Override
+    public TimeZone handleResponse(ClassicHttpResponse classicHttpResponse) throws HttpException, IOException {
+        HttpEntity entity = classicHttpResponse.getEntity();
+        if (entity != null) {
+            // return it as a String
+            String result = EntityUtils.toString(entity);
+            classicHttpResponse.close();
+            if (NotBounties.debug) {
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        Bukkit.getLogger().info("[NotBountiesDebug] ->");
+                        Bukkit.getLogger().info(result);
+                    }
+                }.runTask(NotBounties.getInstance());
+            }
+
+            JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseString(result).getAsJsonObject() : new JsonParser().parse(result).getAsJsonObject();
+            if (input.has("location")) {
+                JsonObject location = input.getAsJsonObject("location");
+                return TimeZone.getTimeZone(location.get("time_zone").getAsString());
+            } else {
+                throw new IOException("Ran out of credits.");
+            }
+        } else {
+            throw new IOException("Did not get a result from request.");
+        }
     }
 }

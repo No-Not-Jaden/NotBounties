@@ -3,8 +3,10 @@ package me.jadenp.notbounties.ui.gui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.Immunity;
@@ -21,10 +23,15 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,11 +56,7 @@ public class GUI implements Listener {
         return null;
     }
 
-
-    public GUI() {
-    }
-
-    public static LinkedHashMap<UUID, String> getGUIValues(Player player, String name, long page, Object[] data) {
+    public static Map<UUID, String> getGUIValues(Player player, String name, long page, Object[] data) {
         if (!customGuis.containsKey(name))
             return new LinkedHashMap<>();
         GUIOptions gui = customGuis.get(name);
@@ -67,7 +70,7 @@ public class GUI implements Listener {
             case "bounty-gui":
                 List<Bounty> sortedList = SQL.isConnected() ? BountyManager.data.getTopBounties(gui.getSortType()) : sortBounties(gui.getSortType());
                 for (Bounty bounty : sortedList) {
-                    double bountyAmount = showWhitelistedBounties || player.hasPermission("notbounties.admin") ? bounty.getTotalBounty() : bounty.getTotalBounty(player);
+                    double bountyAmount = showWhitelistedBounties || player.hasPermission("notbounties.admin") ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
                     if (bountyAmount > 0)
                         values.put(bounty.getUUID(), String.format("%f", bountyAmount));
                     if (reducePageCalculations) {
@@ -158,10 +161,24 @@ public class GUI implements Listener {
                 String uuid = data.length > 0 && data[0] instanceof String ? (String) data[0] : player.getUniqueId().toString();
                 values.put(UUID.fromString(uuid), page + "");
                 break;
+            case "bounty-item-select":
+                UUID uuid3 = data.length > 0 && data[0] instanceof UUID ? (UUID) data[0] : player.getUniqueId();
+                double total = 0;
+                try {
+                    for (int i = 1; i < data.length; i++) {
+                        ItemStack[] contents = SerializeInventory.itemStackArrayFromBase64((String) data[i]);
+                        total+= NumberFormatting.getTotalValue(Arrays.asList(contents));
+                    }
+                } catch (IOException | ClassCastException e) {
+                    Bukkit.getLogger().warning("[NotBounties] Error trying to open the bounty-item-select GUI.");
+                    Bukkit.getLogger().warning(e.toString());
+                }
+                values.put(uuid3, NumberFormatting.getValue(total));
+                break;
             case "confirm":
-                String uuid1 = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
+                UUID uuid1 = data.length > 0 && data[0] instanceof UUID ? (UUID) data[0] : player.getUniqueId();
                 double price = data.length > 1 && data[1] instanceof Double ? (double) data[1] : 0;
-                values.put(UUID.fromString(uuid1), NumberFormatting.getValue(price));
+                values.put(uuid1, NumberFormatting.getValue(price));
                 break;
             case "confirm-bounty":
                 String uuid2 = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
@@ -177,13 +194,28 @@ public class GUI implements Listener {
         if (page < 1)
             page = 1;
 
-        LinkedHashMap<UUID, String> values = getGUIValues(player, name, page, data);
         String[] replacements = new String[0];
         if ("leaderboard".equals(name)) {
             Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard ? (Leaderboard) data[0] : Leaderboard.ALL;
             replacements = new String[]{leaderboard.toString()};
         }
-        if (geyserEnabled && floodgateEnabled && BedrockGUI.enabled && new FloodGateClass().isBedrockPlayer(player.getUniqueId()) && BedrockGUI.isGUIEnabled(name)) {
+        if (name.equals("bounty-item-select")) {
+            if (data.length > 1 && data[1] instanceof String[]) {
+                // spread out array of serialized arrays
+                String[] items = (String[]) data[1];
+                Object first = data[0]; // record first obj
+                data = new Object[items.length + 1]; // refactor array for new length
+                data[0] = first; // rewrite first obj
+                System.arraycopy(items, 0, data, 1, items.length); // copy items over
+            }
+            if (data.length > page) {
+                // set to current items
+                replacements = new String[]{data[(int) page].toString()};
+            }
+        }
+        LinkedHashMap<UUID, String> values = (LinkedHashMap<UUID, String>) getGUIValues(player, name, page, data);
+
+        if (floodgateEnabled && BedrockGUI.enabled && new FloodGateClass().isBedrockPlayer(player.getUniqueId()) && BedrockGUI.isGUIEnabled(name)) {
             // open bedrock gui
             BedrockGUI.openGUI(player, name, page, values, replacements);
         } else {
@@ -192,18 +224,104 @@ public class GUI implements Listener {
                 return;
             GUIOptions gui = customGuis.get(name);
             Inventory inventory = gui.createInventory(player, page, values, replacements);
-            player.openInventory(inventory);
+            if (playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).getGuiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).getTitle())) {
+                // already has the gui type open - update contents
+                player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
+                if (NotBounties.serverVersion >= 19)
+                    player.getOpenInventory().setTitle(gui.getTitle(player, page, values, replacements));
+            } else {
+                player.openInventory(inventory);
+            }
+
         }
         playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, name, data, values.keySet().toArray(new UUID[0]), player.getOpenInventory().getTitle()));
-        //Bukkit.getLogger().info("Took: " + (System.currentTimeMillis() - start) + "ms to open GUI");
     }
 
 
-    // is this called when server forces the inventory to be closed?
     @EventHandler
     public void onGUIClose(InventoryCloseEvent event) {
-        if (playerInfo.containsKey(event.getPlayer().getUniqueId()) && playerInfo.get(event.getPlayer().getUniqueId()).getTitle().equals(event.getView().getTitle()))
-            playerInfo.remove(event.getPlayer().getUniqueId());
+        if (playerInfo.containsKey(event.getPlayer().getUniqueId()) && playerInfo.get(event.getPlayer().getUniqueId()).getTitle().equals(event.getView().getTitle())) {
+                // titles match
+                // return items they have place in the inventory
+                // (only works for bounty-item-select
+                returnGUIItems((Player) event.getPlayer(), event.getInventory(), false);
+                playerInfo.remove(event.getPlayer().getUniqueId());
+            }
+
+    }
+
+    public static void reopenBountiesGUI() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getOpenInventory().getType() != InventoryType.CRAFTING) {
+                if (!playerInfo.containsKey(player.getUniqueId()))
+                    continue;
+                PlayerGUInfo info = playerInfo.get(player.getUniqueId());
+                if (!info.getGuiType().equals("bounty-item-select")) {
+                    safeCloseGUI(player, false); // close GUI
+                    // reopen GUI
+                    openGUI(player, info.getGuiType(), info.getPage(), info.getData());
+                }
+            }
+        }
+    }
+
+    /**
+     * Closes a player's inventory if they are in a NotBounties GUI.
+     * Any items placed in the GUI will be returned
+     * @param player Player who may have a GUI open
+     */
+    public static void safeCloseGUI(Player player, boolean shutdown) {
+        if (playerInfo.containsKey(player.getUniqueId())) {
+            // return any items placed in the inventory
+            returnGUIItems(player, player.getOpenInventory().getTopInventory(), shutdown);
+            playerInfo.remove(player.getUniqueId());
+            player.closeInventory();
+        }
+    }
+
+    private static void returnGUIItems(Player player, Inventory inventory, boolean shutdown) {
+        if (!((Plugin) NotBounties.getInstance()).isEnabled())
+            shutdown = true;
+        PlayerGUInfo guInfo = playerInfo.get(player.getUniqueId());
+        if (guInfo.getGuiType().equals("bounty-item-select")){
+            GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
+            // give back items
+            Object[] data = guInfo.getData();
+            List<ItemStack[]> deserializedItems = new ArrayList<>();
+            for (int i = 1; i < data.length; i++) {
+                String serializedItems = data[i].toString();
+                try {
+                    ItemStack[] items = SerializeInventory.itemStackArrayFromBase64(serializedItems);
+                    deserializedItems.add(items);
+                } catch (IOException e) {
+                    Bukkit.getLogger().warning("[NotBounties] Couldn't deserialize items: " + serializedItems);
+                    Bukkit.getLogger().warning(e.toString());
+                }
+            }
+            // the data doesn't currently hold the correct items for the opened page
+            // update current contents
+            ItemStack[] currentContents = new ItemStack[guiOptions.getPlayerSlots().size() - 1];
+            for (int i = 0; i < currentContents.length; i++) {
+                currentContents[i] = inventory.getContents()[guiOptions.getPlayerSlots().get(i + 1)];
+            }
+            if (deserializedItems.size() >= guInfo.getPage()) {
+                deserializedItems.set((int) (guInfo.getPage()-1), currentContents);
+            } else {
+                deserializedItems.add(currentContents);
+            }
+
+
+            // give items back
+            if (shutdown) {
+                // plugin is shutting down, add to refund
+                for (ItemStack[] items : deserializedItems)
+                    BountyManager.refundPlayer(player.getUniqueId(), 0, Arrays.asList(items));
+            } else {
+                // can give items
+                for (ItemStack[] items : deserializedItems)
+                    NumberFormatting.givePlayer(player, Arrays.asList(items), true);
+            }
+        }
     }
 
     /**
@@ -235,22 +353,20 @@ public class GUI implements Listener {
             return;
         String guiType = gui.getType();
         event.setCancelled(true);
-        if (event.getRawSlot() >= event.getView().getTopInventory().getSize()) // make sure it is in the top inventory
-            return;
-        if (event.getCurrentItem() == null)
+        boolean bottomInventory = event.getRawSlot() >= event.getView().getTopInventory().getSize();
+        if (bottomInventory && !guiType.equals("bounty-item-select")) // make sure it is in the top inventory
             return;
         // check if it is a player slot
-        if (gui.getPlayerSlots().contains(event.getSlot()) && gui.getPlayerSlots().indexOf(event.getSlot()) < info.getPlayers().length && event.getCurrentItem().getType() == Material.PLAYER_HEAD) {
+        int pageAddition = guiType.equals("select-price") || guiType.equals("confirm-bounty") ? 0 : (int) ((info.getPage() - 1) * gui.getPlayerSlots().size());
+        if (gui.getPlayerSlots().contains(event.getRawSlot()) && (event.getCurrentItem() != null && gui.getPlayerSlots().indexOf(event.getRawSlot()) + pageAddition < info.getPlayers().length && event.getCurrentItem().getType() == Material.PLAYER_HEAD)) {
             SkullMeta meta = (SkullMeta) event.getCurrentItem().getItemMeta();
             assert meta != null;
-            //OfflinePlayer player = meta.getOwningPlayer();
-            int pageAddition = guiType.equals("select-price") || guiType.equals("confirm-bounty") ? 0 : (int) ((info.getPage() - 1) * gui.getPlayerSlots().size());
-            OfflinePlayer player = Bukkit.getOfflinePlayer(info.getPlayers()[gui.getPlayerSlots().indexOf(event.getSlot()) + pageAddition]);
+            OfflinePlayer player = Bukkit.getOfflinePlayer(info.getPlayers()[gui.getPlayerSlots().indexOf(event.getRawSlot()) + pageAddition]);
             String playerName = NotBounties.getPlayerName(player.getUniqueId());
             switch (guiType) {
                 case "bounty-gui":
                     // remove, edit, and buy back
-                    Bounty bounty = getBounty(player);
+                    Bounty bounty = getBounty(player.getUniqueId());
                     if (bounty != null) {
                         if (event.isRightClick()) {
                             if (event.getWhoClicked().hasPermission("notbounties.admin")) {
@@ -265,7 +381,7 @@ public class GUI implements Listener {
                                 event.getWhoClicked().spigot().sendMessage(first);
                             } else  if (giveOwnMap) {
                                 event.getView().close();
-                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), "notbounties poster " + playerName);
+                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), pluginBountyCommands.get(0) + " poster " + playerName);
                             }
                         } else if (event.isLeftClick()) {
                             if (event.getWhoClicked().hasPermission("notbounties.admin")) {
@@ -274,14 +390,14 @@ public class GUI implements Listener {
 
                             } else if (bounty.getUUID().equals(event.getWhoClicked().getUniqueId()) && buyBack) {
                                 double balance = NumberFormatting.getBalance((Player) event.getWhoClicked());
-                                if (balance >= (int) (bounty.getTotalBounty() * buyBackInterest)) {
-                                    openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), (buyBackInterest * bounty.getTotalBounty()));
+                                if (balance >= (int) (bounty.getTotalDisplayBounty() * buyBackInterest)) {
+                                    openGUI((Player) event.getWhoClicked(), "confirm", 1, player.getUniqueId(), (buyBackInterest * bounty.getTotalDisplayBounty()));
                                 } else {
-                                    event.getWhoClicked().sendMessage(parse(prefix + broke, (bounty.getTotalBounty() * buyBackInterest), (Player) event.getWhoClicked()));
+                                    event.getWhoClicked().sendMessage(parse(prefix + broke, (bounty.getTotalDisplayBounty() * buyBackInterest), (Player) event.getWhoClicked()));
                                 }
-                            } else if (tracker && giveOwnTracker && event.getWhoClicked().hasPermission("notbounties.tracker")) {
+                            } else if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers()) && event.getWhoClicked().hasPermission("notbounties.tracker")) {
                                 event.getView().close();
-                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), "notbounties tracker " + playerName);
+                                Bukkit.getServer().dispatchCommand(event.getWhoClicked(), pluginBountyCommands.get(0) + " tracker " + playerName);
                             }
                         }
                     } else {
@@ -292,7 +408,11 @@ public class GUI implements Listener {
                     }
                     break;
                 case "set-bounty":
-                    openGUI((Player) event.getWhoClicked(), "select-price", ConfigOptions.minBounty, player.getUniqueId().toString());
+                    if (NumberFormatting.bountyItemsDefaultGUI) {
+                        openGUI((Player) event.getWhoClicked(), "bounty-item-select", ConfigOptions.minBounty, player.getUniqueId().toString());
+                    } else {
+                        openGUI((Player) event.getWhoClicked(), "select-price", ConfigOptions.minBounty, player.getUniqueId().toString());
+                    }
                     break;
                 case "set-whitelist":
                     List<UUID> whitelist = NotBounties.getPlayerWhitelist(event.getWhoClicked().getUniqueId()).getList();
@@ -305,16 +425,63 @@ public class GUI implements Listener {
                     openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, info.getData());
                     break;
                 case "select-price":
-                    Bukkit.dispatchCommand(event.getWhoClicked(), "bounty " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
+                    Bukkit.dispatchCommand(event.getWhoClicked(),   pluginBountyCommands.get(0) + " " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).getPage());
                     if (!confirmation)
                         event.getView().close();
                     break;
+                case "bounty-item-select":
+
+                    if (!gui.getPlayerSlots().isEmpty())
+                        if (event.getRawSlot() ==  gui.getPlayerSlots().get(0)) {
+                            // set bounty
+                            ActionCommands.executeCommands((Player) event.getWhoClicked(),  new ArrayList<>(Collections.singletonList("[p] " + pluginBountyCommands.get(0) + " {data} --confirm")));
+                        }
+
+                    break;
+                default:
+                    // no action for the player slots in the custom GUI
+                    break;
             }
         } else {
-            // custom item
-            CustomItem customItem = gui.getCustomItem(event.getSlot(), info.getPage(), getGUIValues((Player) event.getWhoClicked(), guiType, info.getPage(), info.getData()).size());
-            if (customItem == null)
+            // not a player slot - custom item or inventory
+            // current item may be null
+            CustomItem customItem = gui.getCustomItem(event.getRawSlot(), info.getPage(), getGUIValues((Player) event.getWhoClicked(), guiType, info.getPage(), info.getData()).size());
+            if (customItem == null) {
+                // If in the bounty item select inventory, allow user to move non-custom items around and not the first player slot
+                if (guiType.equals("bounty-item-select") && (bottomInventory || (!gui.getPlayerSlots().isEmpty() && event.getRawSlot() !=  gui.getPlayerSlots().get(0)))) {
+                    event.setCancelled(false);
+
+                    if (!bottomInventory)
+                        // reopen gui to update tax
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                // check to make sure the gui is still open
+                                if (!((Player) event.getWhoClicked()).isOnline())
+                                    return;
+                                if (playerInfo.containsKey(event.getWhoClicked().getUniqueId())) {
+                                    PlayerGUInfo newOptions = playerInfo.get(event.getWhoClicked().getUniqueId());
+                                    if (info.getPage() == newOptions.getPage() && newOptions.getGuiType().equals(info.getGuiType())) {
+                                        // page hasn't changed
+                                        GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
+                                        // read current inventory
+                                        ItemStack[] currentContents = new ItemStack[guiOptions.getPlayerSlots().size() - 1];
+                                        for (int i = 0; i < currentContents.length; i++) {
+                                            currentContents[i] = event.getInventory().getContents()[guiOptions.getPlayerSlots().get(i + 1)];
+                                        }
+                                        // create new data
+                                        Object[] data = new Object[(int) Math.max(newOptions.getData().length, newOptions.getPage() + 1)];
+                                        System.arraycopy(newOptions.getData(), 0, data, 0, newOptions.getData().length);
+                                        data[(int) (newOptions.getPage())] = SerializeInventory.itemStackArrayToBase64(currentContents);
+                                        // open gui
+                                        openGUI((Player) event.getWhoClicked(), "bounty-item-select", newOptions.getPage(), data);
+                                    }
+                                }
+                            }
+                        }.runTaskLater(NotBounties.getInstance(), 1);
+                }
                 return;
+            }
             ActionCommands.executeCommands((Player) event.getWhoClicked(), customItem.getCommands());
         }
     }

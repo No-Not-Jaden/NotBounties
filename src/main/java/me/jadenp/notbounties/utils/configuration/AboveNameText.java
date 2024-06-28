@@ -19,16 +19,16 @@ public class AboveNameText {
     private long nextVisibilityUpdateTime = 0;
     public AboveNameText(Player player) {
         this.player = player;
-        if (!BountyManager.hasBounty(player))
+        if (!BountyManager.hasBounty(player.getUniqueId()))
             return;
         spawnWantedTag();
     }
 
     public void updateArmorStand(){
-        if (player != null && player.isOnline() && BountyManager.hasBounty(player)) {
+        if (player != null && player.isOnline()) {
             if (nextVisibilityUpdateTime < System.currentTimeMillis()) {
                 // conditions if the tag should be removed/invisible
-                if ((hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible() || isVanished(player)) {
+                if (!BountyManager.hasBounty(player.getUniqueId()) || (hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible() || isVanished(player)) {
                     if (armorStand != null)
                         removeStand();
                     return;

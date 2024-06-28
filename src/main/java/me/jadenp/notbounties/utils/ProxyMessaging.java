@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -186,8 +187,10 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                     //Bukkit.getLogger().info("Reached End");
                     break;
                 } catch (IOException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Error receiving message from proxy!");
-                    Bukkit.getLogger().warning(e.toString());
+                    if (NotBounties.debug) {
+                        Bukkit.getLogger().warning("[NotBounties] Error receiving message from proxy!");
+                        Bukkit.getLogger().warning(e.toString());
+                    }
                 }
                 break;
             }
@@ -365,24 +368,31 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param uuid UUID of the player
      */
     public static void requestPlayerSkin(UUID uuid) {
-        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.writeUTF("PlayerSkin");
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                out.writeUTF("PlayerSkin");
 
-        String playerName = NotBounties.getPlayerName(uuid);
-        ByteArrayOutputStream msgbytes = new ByteArrayOutputStream();
-        DataOutputStream msgout = new DataOutputStream(msgbytes);
-        try {
-            msgout.writeUTF(playerName);
-            msgout.writeUTF(uuid.toString());
-        } catch (IOException e) {
-            Bukkit.getLogger().warning(e.toString());
-            return;
-        }
-        out.writeShort(msgbytes.toByteArray().length); // This is the length.
-        out.write(msgbytes.toByteArray()); // This is the message.
-        sendMessage("notbounties:main", out.toByteArray());
-        if (NotBounties.debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Sent player skin request.");
+                String playerName = NotBounties.getPlayerName(uuid);
+                ByteArrayOutputStream msgbytes = new ByteArrayOutputStream();
+                DataOutputStream msgout = new DataOutputStream(msgbytes);
+                try {
+                    msgout.writeUTF(playerName);
+                    msgout.writeUTF(uuid.toString());
+                } catch (IOException e) {
+                    if (NotBounties.debug)
+                        Bukkit.getLogger().warning(e.toString());
+                    return;
+                }
+                out.writeShort(msgbytes.toByteArray().length); // This is the length.
+                out.write(msgbytes.toByteArray()); // This is the message.
+                sendMessage("notbounties:main", out.toByteArray());
+                if (NotBounties.debug)
+                    Bukkit.getLogger().info("[NotBountiesDebug] Sent player skin request.");
+            }
+        }.runTask(NotBounties.getInstance());
+
     }
 
 }

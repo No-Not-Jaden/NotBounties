@@ -32,12 +32,18 @@ public class BountyExpire {
     }
 
     public static void logout(Player player) {
+        if (!logonTimes.containsKey(player.getUniqueId())) {
+            if (NotBounties.debug)
+                Bukkit.getLogger().warning("[NotBounties] No recorded logon time for " + player.getName());
+            return;
+        }
         long timePlayed = System.currentTimeMillis() - logonTimes.get(player.getUniqueId());
         if (playTimes.containsKey(player.getUniqueId())) {
             playTimes.replace(player.getUniqueId(), playTimes.get(player.getUniqueId()) + timePlayed);
         } else {
             playTimes.put(player.getUniqueId(), timePlayed);
         }
+        logonTimes.remove(player.getUniqueId());
     }
 
     public static long getTimePlayed(UUID uuid) {
@@ -64,6 +70,8 @@ public class BountyExpire {
     }
 
     public static long getLowestExpireTime(Bounty bounty) {
+        if (bounty.getSetters().isEmpty())
+            return System.currentTimeMillis();
         long lowestTime = getExpireTime(bounty.getUUID(), bounty.getSetters().get(0));
         for (int i = 1; i < bounty.getSetters().size(); i++) {
             long expireTime = getExpireTime(bounty.getUUID(), bounty.getSetters().get(i));
@@ -121,7 +129,7 @@ public class BountyExpire {
             for (Map.Entry<UUID, List<Setter>> entry : setters.entrySet()) {
                 for (Setter setter : entry.getValue()) {
                     if (rewardReceiver) {
-                        refundPlayer(entry.getKey(), setter.getAmount());
+                        refundPlayer(entry.getKey(), setter.getAmount(), setter.getItems());
                     } else {
                         refundSetter(setter);
                     }
@@ -143,7 +151,7 @@ public class BountyExpire {
                                 player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getAmount(), player));
                             }
                             if (rewardReceiver) {
-                                refundPlayer(bounty.getUUID(), setter.getAmount());
+                                refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems());
                             } else {
                                 refundSetter(setter);
                             }

@@ -32,20 +32,20 @@ public class BigBounty {
     public static void setBounty(Player receiver, Bounty newBounty, double amountAdded) {
         switch (trigger) {
             case SET:
-                if (newBounty.getTotalBounty() > threshold)
-                    ActionCommands.executeBigBounty(receiver, newBounty.getTotalBounty());
+                if (newBounty.getTotalDisplayBounty() >= threshold)
+                    ActionCommands.executeBigBounty(receiver, newBounty);
                 break;
             case ONCE:
-                if (newBounty.getTotalBounty() > threshold && newBounty.getTotalBounty() - amountAdded < threshold)
-                    ActionCommands.executeBigBounty(receiver, newBounty.getTotalBounty());
+                if (newBounty.getTotalDisplayBounty() >= threshold && newBounty.getTotalDisplayBounty() - amountAdded < threshold)
+                    ActionCommands.executeBigBounty(receiver, newBounty);
                 break;
             case AMOUNT:
                 if (amountAdded > threshold)
-                    ActionCommands.executeBigBounty(receiver, newBounty.getTotalBounty());
+                    ActionCommands.executeBigBounty(receiver, newBounty);
                 break;
         }
-        if (newBounty.getTotalBounty() > threshold && newBounty.getTotalBounty() - amountAdded < threshold) {
-            displayParticle.add(receiver);
+        if (newBounty.getTotalDisplayBounty() >= threshold && newBounty.getTotalDisplayBounty() - amountAdded < threshold) {
+            displayParticle.add(receiver.getUniqueId());
             receiver.sendMessage(parse(prefix + bigBounty, receiver));
         }
     }

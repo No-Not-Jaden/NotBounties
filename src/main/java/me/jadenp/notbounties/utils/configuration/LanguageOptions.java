@@ -2,6 +2,7 @@ package me.jadenp.notbounties.utils.configuration;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
@@ -113,7 +114,16 @@ public class LanguageOptions {
     public static String combatTag;
     public static String combatSafe;
     public static String waitCommand;
+    public static String emptyTrackerName;
+    public static String trackerOffline;
+    public static String trackerNoPermission;
+    public static String trackerReceiveEmpty;
+    public static String unknownMaterial;
+    public static String noEmptyTracker;
+    public static String stolenBounty;
+    public static String stolenBountyBroadcast;
 
+    public static List<String> emptyTrackerLore;
     public static List<String> giveTrackerLore;
     public static List<String> givePosterLore;
     public static List<String> trackerLore;
@@ -278,7 +288,16 @@ public class LanguageOptions {
         combatTag = configuration.getString("combat-tag");
         combatSafe = configuration.getString("combat-safe");
         waitCommand = configuration.getString("wait-command");
+        emptyTrackerName = configuration.getString("empty-tracker-name");
+        trackerOffline = configuration.getString("tracker-offline");
+        trackerNoPermission = configuration.getString("tracker-no-permission");
+        trackerReceiveEmpty = configuration.getString("tracker-receive-empty");
+        unknownMaterial = configuration.getString("unknown-material");
+        noEmptyTracker = configuration.getString("no-empty-tracker");
+        stolenBounty = configuration.getString("stolen-bounty");
+        stolenBountyBroadcast = configuration.getString("stolen-bounty-broadcast");
 
+        emptyTrackerLore = configuration.getStringList("empty-tracker-lore");
         giveTrackerLore = configuration.getStringList("give-tracker-lore");
         givePosterLore = configuration.getStringList("give-poster-lore");
         voucherLore = configuration.getStringList("bounty-voucher-lore");
@@ -290,7 +309,7 @@ public class LanguageOptions {
         whitelistNotify = configuration.getStringList("whitelist-notify");
         whitelistLore = configuration.getStringList("whitelist-lore");
         blacklistLore = configuration.getStringList("blacklist-lore");
-        rewardHeadLore = configuration.getStringList("blacklist-lore");
+        rewardHeadLore = configuration.getStringList("reward-head-lore");
         helpBasic = configuration.getStringList("help.basic");
         helpSet = configuration.getStringList("help.set");
         helpView = configuration.getStringList("help.view");
@@ -313,6 +332,8 @@ public class LanguageOptions {
     }
 
     private static int getAdjustedPage(CommandSender sender, int page) {
+        if (page < 1)
+            page = 1;
         if (page == 2 && !sender.hasPermission("notbounties.view"))
             page++;
         if (page == 3 && !sender.hasPermission("notbounties.set"))
@@ -323,10 +344,12 @@ public class LanguageOptions {
             page++;
         if (page == 6 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission("notbounties.admin")))
             page++;
-        if (page == 7 && !(sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission("notbounties.admin") || giveOwnMap))
+        if (page == 7 && !(sender.hasPermission("notbounties.admin") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission("notbounties.admin") || giveOwnMap))
             page++;
         if (page == 8 && !sender.hasPermission("notbounties.admin"))
             page++;
+        if (page >= 9)
+            page = 1;
         return page;
     }
 
@@ -373,8 +396,8 @@ public class LanguageOptions {
             if (sender.hasPermission("notbounties.admin"))
                 sendHelpMessage(sender, helpPosterOther);
         }
-        if (tracker)
-            if (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker"))) {
+        if (BountyTracker.isEnabled())
+            if (sender.hasPermission("notbounties.admin") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
                 sendHelpMessage(sender, helpTrackerOwn);
                 if (sender.hasPermission("notbounties.admin"))
                     sendHelpMessage(sender, helpTrackerOther);
@@ -454,8 +477,8 @@ public class LanguageOptions {
                     if (sender.hasPermission("notbounties.admin"))
                         sendHelpMessage(sender, helpPosterOther);
                 }
-                if (tracker)
-                    if (sender.hasPermission("notbounties.admin") || (giveOwnTracker && sender.hasPermission("notbounties.tracker"))) {
+                if (BountyTracker.isEnabled())
+                    if (sender.hasPermission("notbounties.admin") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
                         sendHelpMessage(sender, helpTrackerOwn);
                         if (sender.hasPermission("notbounties.admin"))
                             sendHelpMessage(sender, helpTrackerOther);
@@ -485,12 +508,12 @@ public class LanguageOptions {
         TextComponent next = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋙⋙⋙");
         back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.previousPage, null))));
         next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.nextPage, null))));
-        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties help " + previousPage));
-        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/notbounties help " + nextPage));
+        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + previousPage));
+        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + nextPage));
         BaseComponent[] baseComponents = new BaseComponent[]{space, space, back, middle, next, space, space};
-        if (previousPage == 0)
+        if (previousPage <= 0)
             baseComponents[2] = space;
-        if (nextPage == 9)
+        if (nextPage >= 9 || nextPage <= previousPage)
             baseComponents[4] = space;
         sender.spigot().sendMessage(baseComponents);
     }
@@ -498,53 +521,59 @@ public class LanguageOptions {
     public static void sendHelpMessage(CommandSender sender, List<String> message) {
         Player parser = sender instanceof Player ? (Player) sender : null;
         for (String str : message) {
-            str = str.replaceAll("\\{whitelist}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix));
-            str = str.replaceAll("\\{tax}", Matcher.quoteReplacement(NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)));
-            str = str.replaceAll("\\{buy_back_interest}", Matcher.quoteReplacement(NumberFormatting.formatNumber(ConfigOptions.buyBackInterest)));
-            str = str.replaceAll("\\{permanent_cost}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
-            str = str.replaceAll("\\{scaling_ratio}", Matcher.quoteReplacement(NumberFormatting.formatNumber(Immunity.getScalingRatio())));
-            str = str.replaceAll("\\{time_immunity}", Matcher.quoteReplacement(formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
+            str = str.replace("{whitelist}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix));
+            str = str.replace("{tax}", (NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)));
+            str = str.replace("{buy_back_interest}", (NumberFormatting.formatNumber(ConfigOptions.buyBackInterest)));
+            str = str.replace("{permanent_cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
+            str = str.replace("{scaling_ratio}", (NumberFormatting.formatNumber(Immunity.getScalingRatio())));
+            str = str.replace("{time_immunity}", (formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
             sender.sendMessage(parse(str, parser));
         }
     }
 
     public static String parse(String str, String player, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
+        str = str.replace("{receiver}", (player));
+        str = str.replace("{player}", (player));
         return parse(str, receiver);
     }
 
     public static String parse(String str, OfflinePlayer receiver) {
         if (str.contains("{time}")) {
             String timeString = formatTime(System.currentTimeMillis(), LocalTime.TimeFormat.PLAYER, receiver.getPlayer());
-            str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+            str = str.replace("{time}", (timeString));
         }
-        str = str.replaceAll("\\{min_bounty}", Matcher.quoteReplacement(NumberFormatting.getValue(ConfigOptions.minBounty)));
-        str = str.replaceAll("\\{c_prefix}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix));
-        str = str.replaceAll("\\{c_suffix}", Matcher.quoteReplacement(NumberFormatting.currencySuffix));
+        str = str.replace("{min_bounty}", (NumberFormatting.getValue(ConfigOptions.minBounty)));
+        str = str.replace("{c_prefix}", (NumberFormatting.currencyPrefix));
+        str = str.replace("{c_suffix}", (NumberFormatting.currencySuffix));
 
         if (receiver != null) {
-            Bounty bounty = BountyManager.getBounty(receiver);
+            Bounty bounty = BountyManager.getBounty(receiver.getUniqueId());
             if (bounty != null) {
-                str = str.replaceAll("\\{min_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getLowestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
-                str = str.replaceAll("\\{max_expire}", Matcher.quoteReplacement(formatTime(BountyExpire.getHighestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
+                str = str.replace("{min_expire}", (formatTime(BountyExpire.getLowestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
+                str = str.replace("{max_expire}", (formatTime(BountyExpire.getHighestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
+                str = str.replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalDisplayBounty()) + NumberFormatting.currencySuffix);
+                str = str.replace("{bounty_value}", NumberFormatting.getValue(bounty.getTotalDisplayBounty()) );
             } else {
-                str = str.replaceAll("\\{min_expire}", "");
-                str = str.replaceAll("\\{max_expire}", "");
+                str = str.replace("{min_expire}", "");
+                str = str.replace("{max_expire}", "");
             }
             if (receiver.getName() != null) {
-                str = str.replaceAll("\\{player}", Matcher.quoteReplacement(receiver.getName()));
-                str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(receiver.getName()));
+                str = str.replace("{player}", (receiver.getName()));
+                str = str.replace("{receiver}", (receiver.getName()));
             } else {
-                str = str.replaceAll("\\{player}", Matcher.quoteReplacement(NotBounties.getPlayerName(receiver.getUniqueId())));
-                str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(NotBounties.getPlayerName(receiver.getUniqueId())));
+                str = str.replace("{player}", (NotBounties.getPlayerName(receiver.getUniqueId())));
+                str = str.replace("{receiver}", (NotBounties.getPlayerName(receiver.getUniqueId())));
             }
             if (str.contains("{balance}"))
-                str = str.replaceAll("\\{balance}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
+                str = str.replace("{balance}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
             Whitelist whitelist = NotBounties.getPlayerWhitelist(receiver.getUniqueId());
-            str = str.replaceAll("\\{whitelist}", Matcher.quoteReplacement(whitelist.toString()));
+            str = str.replace("{whitelist}", (whitelist.toString()));
             String mode = whitelist.isBlacklist() ? "Blacklist" : "Whitelist";
-            str = str.replaceAll("\\{mode}", Matcher.quoteReplacement(mode));
+            str = str.replace("{mode}", mode);
+            mode = whitelist.isBlacklist() ? "false" : "true";
+            str = str.replace("{mode_raw}", mode);
+            String notification = NotBounties.disableBroadcast.contains(receiver.getUniqueId()) ? "false" : "true";
+            str = str.replace("{notification}", notification);
             // {whitelist2} turns into the name of the second player in the receiver's whitelist
             while (str.contains("{whitelist") && str.substring(str.indexOf("{whitelist")).contains("}")) {
                 int num;
@@ -572,62 +601,66 @@ public class LanguageOptions {
     public static String parse(String str, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
         if (str.contains("{time}")) {
             String timeString = formatTime(time, format, receiver.getPlayer());
-            str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+            str = str.replace("{time}", (timeString));
         }
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(time + ""));
+        str = str.replace("{amount}", (time + ""));
         return parse(str, receiver);
     }
 
     public static String parse(String str, double amount, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
+        str = str.replace("{amount}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         return parse(str, receiver);
     }
 
     public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{player}", Matcher.quoteReplacement(player));
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(player));
+        str = str.replace("{player}", (player));
+        str = str.replace("{receiver}", (player));
         return parse(str,amount,receiver);
     }
 
     public static String parse(String str, String player, double amount, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
         if (str.contains("{time}")) {
             String timeString = formatTime(time, format, receiver.getPlayer());
-            str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+            str = str.replace("{time}", (timeString));
         }
         return parse(str, player, amount, receiver);
     }
 
     public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
+        str = str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
         return parse(str, player, amount, receiver);
     }
 
     public static String parse(String str, String player, double amount, double bounty, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
         if (str.contains("{time}")) {
             String timeString = formatTime(time, format, receiver.getPlayer());
-            str = str.replaceAll("\\{time}", Matcher.quoteReplacement(timeString));
+            str = str.replace("{time}", (timeString));
         }
         return parse(str, player, amount, bounty, receiver);
     }
 
     public static String parse(String str, String sender, String player, double amount, OfflinePlayer receiver) {
         if (sender != null)
-            str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
+            str = str.replace("{receiver}", (sender));
         return parse(str, player, amount, receiver);
     }
 
     public static String parse(String str, String sender, String player, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{receiver}", Matcher.quoteReplacement(sender));
+        str = str.replace("{receiver}", (sender));
         return parse(str, player, receiver);
     }
 
     public static String parse(String str, String sender, String player, double amount, double totalBounty, OfflinePlayer receiver) {
-        str = str.replaceAll("\\{bounty}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
+        str = str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
         return parse(str, sender, player, amount, receiver);
     }
 
     public static String parse(String str, String amount, long rank, String leaderboard, String playerName, double amountTax, long time, OfflinePlayer player) {
-        str = str.replaceAll("\\{amount}", Matcher.quoteReplacement(amount)).replaceAll("\\{rank}", Matcher.quoteReplacement(rank + "")).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(leaderboard)).replaceAll("\\{player}", Matcher.quoteReplacement(playerName)).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amountTax) + NumberFormatting.currencySuffix));
+        str = str.replace("{amount}", (amount));
+        str = str.replace("{rank}", (rank + ""));
+        str = str.replace("{leaderboard}", (leaderboard));
+        str = str.replace("{player}", (playerName));
+        str = str.replace("{amount_tax}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amountTax) + NumberFormatting.currencySuffix));
         return parse(str, time, player);
     }
 

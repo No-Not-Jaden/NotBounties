@@ -14,12 +14,19 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.server.MapInitializeEvent;
+import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.map.MapView;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -31,6 +38,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.*;
+
+import static me.jadenp.notbounties.NotBounties.debug;
+import static me.jadenp.notbounties.utils.BountyManager.getBounty;
+import static me.jadenp.notbounties.utils.BountyManager.hasBounty;
 
 public class BountyMap implements Listener {
 
@@ -134,6 +145,158 @@ public class BountyMap implements Listener {
             }
         }
     }
+    // craft maps with a player skull
+    // check for tracking crafting
+    @EventHandler
+    public void onPrepareCraft(PrepareItemCraftEvent event) {
+        // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
+        if (!ConfigOptions.craftPoster)
+            return;
+        ItemStack[] matrix = event.getInventory().getMatrix();
+        boolean hasMap = false;
+        ItemStack head = null;
+        for (ItemStack itemStack : matrix) {
+            if (itemStack == null)
+                continue;
+            if (itemStack.getType() == Material.MAP) {
+                if (!hasMap) {
+                    hasMap = true;
+                } else {
+                    // already a map in previous slot
+                    return;
+                }
+            } if (itemStack.getType() == Material.PLAYER_HEAD) {
+                if (head == null) {
+                    head = itemStack;
+                } else {
+                    // already a head in previous slot
+                    return;
+                }
+            }
+        }
+        if (head == null || !hasMap)
+            // not enough requirements
+            return;
+        SkullMeta meta = (SkullMeta) head.getItemMeta();
+        assert meta != null;
+        if (meta.getOwningPlayer() == null) {
+            if (debug)
+                Bukkit.getLogger().info("[NotBountiesDebug] Player head in crafting matrix has a null owner!");
+            return;
+        }
+        UUID trackedPlayer = meta.getOwningPlayer().getUniqueId();
+        if (!hasBounty(trackedPlayer))
+            return;
+        ItemStack map = getMap(Objects.requireNonNull(getBounty(trackedPlayer)));
+        event.getInventory().setResult(map);
+    }
+    // complete tracker crafting
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!ConfigOptions.craftPoster || !(event.getInventory() instanceof CraftingInventory))
+            return;
+        CraftingInventory inventory = (CraftingInventory) event.getInventory();
+        if (inventory.getResult() == null || inventory.getResult().getType() != Material.FILLED_MAP)
+            return;
+        if (event.getRawSlot() == 0) {
+            event.setCancelled(true);
+        } else {
+            return;
+        }
+        // update result
+        int amountCrafted = 1;
+        switch (event.getAction()){
+            case PICKUP_ONE:
+            case PICKUP_ALL:
+            case PICKUP_HALF:
+            case PICKUP_SOME:
+                new BukkitRunnable() {
+
+                    final int previousAmount = event.getCursor() != null ? event.getCursor().getAmount() : 0;
+                    final ItemStack result = inventory.getResult();
+                    @Override
+                    public void run() {
+                        assert result != null;
+                        result.setAmount(previousAmount + 1);
+                        event.getWhoClicked().getOpenInventory().setCursor(result);
+                    }
+                }.runTaskLater(NotBounties.getInstance(), 1);
+                break;
+            case DROP_ALL_SLOT:
+            case DROP_ALL_CURSOR:
+            case DROP_ONE_CURSOR:
+            case DROP_ONE_SLOT:
+                event.getWhoClicked().getWorld().dropItem(event.getWhoClicked().getEyeLocation(), inventory.getResult());
+                break;
+            case MOVE_TO_OTHER_INVENTORY:
+                int minAmount = 65;
+                ItemStack[] matrix = inventory.getMatrix();
+                for (ItemStack itemStack : matrix) {
+                    if (itemStack != null) {
+                        if (itemStack.getAmount() < minAmount) {
+                            minAmount = itemStack.getAmount();
+                        }
+                    }
+                }
+                NumberFormatting.givePlayer((Player) event.getWhoClicked(), inventory.getResult(), minAmount);
+                amountCrafted = minAmount;
+                break;
+            case HOTBAR_MOVE_AND_READD:
+            case HOTBAR_SWAP:
+                // hit a number button to move to a hotbar slot - slot must be empty
+                if (event.getWhoClicked().getOpenInventory().getBottomInventory().getItem(event.getHotbarButton()) == null)
+                    event.getWhoClicked().getOpenInventory().getBottomInventory().setItem(event.getHotbarButton(), inventory.getResult());
+                break;
+            default:
+                return;
+        }
+        // update matrix
+        boolean changed = false;
+        ItemStack[] matrix = inventory.getMatrix();
+        for (int i = 0; i < matrix.length; i++) {
+            if (matrix[i] != null) {
+                if (matrix[i].getAmount() > amountCrafted) {
+                    matrix[i].setAmount(matrix[i].getAmount() - amountCrafted);
+                } else {
+                    matrix[i] = null;
+                    changed = true;
+                }
+            }
+        }
+        inventory.setMatrix(matrix);
+        if (changed)
+            inventory.setResult(null);
+
+    }
+
+    // wash trackers
+    @EventHandler
+    public void onPlayerItemDrop(PlayerDropItemEvent event) {
+        if (!ConfigOptions.washPoster || !isPoster(event.getItemDrop().getItemStack()))
+            return;
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!event.getItemDrop().isValid())
+                    return;
+                ItemStack map = new ItemStack(Material.MAP, event.getItemDrop().getItemStack().getAmount());
+                if ((NotBounties.serverVersion < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.serverVersion >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
+                    event.getItemDrop().getWorld().dropItem(event.getItemDrop().getLocation(), map);
+                    event.getItemDrop().remove();
+                }
+            }
+        }.runTaskLater(NotBounties.getInstance(), 40);
+    }
+
+    public static boolean isPoster(ItemStack itemStack) {
+        if (itemStack.getType() != Material.FILLED_MAP)
+            return false;
+        MapMeta meta = (MapMeta) itemStack.getItemMeta();
+        if (meta == null || meta.getMapView() == null)
+            return false;
+        return mapIDs.containsKey(meta.getMapView().getId());
+    }
 
     public static void loadFont() {
         if (new File(posterDirectory + File.separator + "playerfont.ttf").exists()) {
@@ -156,7 +319,6 @@ public class BountyMap implements Listener {
             return playerFont.deriveFont(fontSize).deriveFont(Collections.singletonMap(TextAttribute.WEIGHT, TextAttribute.WEIGHT_ULTRABOLD));
         return playerFont.deriveFont(fontSize);
     }
-    public BountyMap(){}
 
     public static void giveMap(Player player, Bounty bounty) {
 
@@ -171,10 +333,10 @@ public class BountyMap implements Listener {
         MapMeta meta = (MapMeta) mapItem.getItemMeta();
         assert meta != null;
         meta.setMapView(mapView);
-        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, bounty.getName(), bounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, bounty.getName(), bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
         ArrayList<String> lore = new ArrayList<>();
         for (String str : LanguageOptions.mapLore) {
-            lore.add(LanguageOptions.parse(str, bounty.getName(), bounty.getTotalBounty(), bounty.getLatestSetter(), LocalTime.TimeFormat.SERVER, Bukkit.getOfflinePlayer(bounty.getUUID())));
+            lore.add(LanguageOptions.parse(str, bounty.getName(), bounty.getTotalDisplayBounty(), bounty.getLatestSetter(), LocalTime.TimeFormat.SERVER, Bukkit.getOfflinePlayer(bounty.getUUID())));
         }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

@@ -6,6 +6,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.ui.SkinManager;
 import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.geysermc.cumulus.form.util.FormBuilder;
 import org.geysermc.floodgate.api.FloodgateApi;
 
@@ -31,7 +32,7 @@ public class FloodGateClass {
 
     public void saveSkin(UUID uuid) {
         if (!api.isFloodgatePlayer(uuid))
-            throw new RuntimeException("Invalid UUID.");
+            throw new IllegalArgumentException("Invalid UUID.");
         String xuid = api.getPlayer(uuid).getXuid();
         try {
             URL url = new URL("https://api.geysermc.org/v2/skin/" + xuid);
@@ -48,21 +49,33 @@ public class FloodGateClass {
 
                 SkinManager.saveSkin(uuid, new PlayerSkin(SkinManager.getTextureURL(value), id));
             } else if (code == 400) {
-                if (NotBounties.debug) {
-                    Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from floodgate (400)");
-                    Bukkit.getLogger().warning(input.get("message").getAsString());
-                }
+                if (NotBounties.debug)
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from floodgate (400)");
+                            Bukkit.getLogger().warning(input.get("message").getAsString());
+                        }
+                    }.runTask(NotBounties.getInstance());
             } else {
-                if (NotBounties.debug) {
-                    Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from floodgate (" + code + ")");
-                    Bukkit.getLogger().warning(input.get("message").getAsString());
-                }
+                if (NotBounties.debug)
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from floodgate (" + code + ")");
+                            Bukkit.getLogger().warning(input.get("message").getAsString());
+                        }
+                    }.runTask(NotBounties.getInstance());
             }
         } catch (IOException e) {
-            if (NotBounties.debug) {
-                Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from floodgate");
-                Bukkit.getLogger().warning(e.toString());
-            }
+            if (NotBounties.debug)
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from floodgate");
+                        Bukkit.getLogger().warning(e.toString());
+                    }
+                }.runTask(NotBounties.getInstance());
         }
     }
 

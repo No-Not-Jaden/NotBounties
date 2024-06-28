@@ -101,15 +101,14 @@ public class BountyClaimRequirements {
             if ((!landsNation && landsClass.shareNation(player, killer)) || (!landsLand && landsClass.shareLand(player,killer)) || (!landsNationAllies && landsClass.areNationsAllied(player, killer)) || (!landsLandAllies && landsClass.areLandsAllied(player, killer)) || !landsClass.canClaim(killer, player.getLocation()))
                 return false;
         }
-        if (!scoreboardTeamClaim) {
-            if (Bukkit.getScoreboardManager() != null) {
+        if (!scoreboardTeamClaim && Bukkit.getScoreboardManager() != null) {
                 Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
                 for (Team team : sb.getTeams()) {
                     if (team.hasEntry(player.getDisplayName()) && team.hasEntry(killer.getDisplayName()))
                         return false;
                 }
             }
-        }
+
         if (papiEnabled && !teamsPlaceholder.isEmpty()) {
             PlaceholderAPIClass placeholderAPIClass = new PlaceholderAPIClass();
             if (placeholderAPIClass.parse(player, teamsPlaceholder).equals(placeholderAPIClass.parse(killer, teamsPlaceholder)))

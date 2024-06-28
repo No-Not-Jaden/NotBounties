@@ -14,6 +14,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.geysermc.cumulus.component.impl.DropdownComponentImpl;
 import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.cumulus.form.ModalForm;
 import org.geysermc.cumulus.form.SimpleForm;
@@ -62,7 +63,7 @@ public class BedrockGUIOptions {
         removePageItems = settings.getBoolean("remove-page-items");
         enabled = !settings.isSet("enabled") || settings.getBoolean("enabled");
         maxPlayers = settings.isSet("max-players") ? settings.getInt("max-players") : 9999;
-        playerText = settings.isSet("player-text") ? settings.getString("player-text") : "{player}";
+        playerText = settings.isSet("player-text") ? settings.getString("player-text") : null;
         formCompletionCommands = settings.isSet("completion-commands") ? settings.getStringList("completion-commands") : new ArrayList<>();
         playerButtonCommands = settings.isSet("player-button-commands") ? settings.getStringList("player-button-commands") : new ArrayList<>();
 
@@ -113,8 +114,10 @@ public class BedrockGUIOptions {
     }
 
     private String getPlayerText(int index, Player player, OfflinePlayer p, String amount, String[] replacements) {
+        if (playerText == null)
+            return NotBounties.getPlayerName(p.getUniqueId());
         long time = System.currentTimeMillis();
-        Bounty bounty = getBounty(p);
+        Bounty bounty = getBounty(p.getUniqueId());
         if (type.equals("bounty-gui")) {
             amount = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount)) + currencySuffix;
         } else {
@@ -131,7 +134,7 @@ public class BedrockGUIOptions {
         }
 
         final String finalAmount = amount;
-        final long rank = index + 1;
+        final long rank = index + 1L;
         String playerName = NotBounties.getPlayerName(p.getUniqueId());
         double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
         String text;
@@ -179,33 +182,46 @@ public class BedrockGUIOptions {
 
     private List<String> getPlayerText(Player player, long page, OfflinePlayer[] playerItems, String[] amount, String[] replacements) {
         List<String> text = new ArrayList<>();
+        if (playerText == null)
+            return text;
         for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * maxPlayers); i < Math.min(maxPlayers * page, playerItems.length); i++) {
             OfflinePlayer p = playerItems[i];
-            String finalAmount = NumberFormatting.formatNumber(amount[i]);
+            String finalAmount = NumberFormatting.formatNumber(amount[i] != null ? amount[i] : "0");
             text.add(getPlayerText(i, player, p, finalAmount, replacements));
         }
         return text;
     }
 
-    public void openInventory(Player player, long page, LinkedHashMap<UUID, String> values, String... replacements) {
+    public void openInventory(Player player, long page, Map<UUID, String> values, String... replacements) {
         final String thisName = this.name;
                 new BukkitRunnable() {
             String[] finalReplacements = replacements;
             long finalPage = page;
+            int maxRequests = 10;
 
             @Override
             public void run() {
                 OfflinePlayer[] playerItems = new OfflinePlayer[values.size()];
                 String[] amount = new String[values.size()];
                 int index = 0;
-                for (Map.Entry<UUID, String> entry : values.entrySet()) {
-                    if (!SkinManager.isSkinLoaded(entry.getKey())) {
-                        return;
+                    // load skins & player data to show in this gui
+                    for (Map.Entry<UUID, String> entry : values.entrySet()) {
+                        if (guiType == GUIType.SIMPLE && !SkinManager.isSkinLoaded(entry.getKey())) {
+                            // check if max requests hit
+                            if (maxRequests <= 0) {
+                                this.cancel();
+                                if (NotBounties.debug) {
+                                    Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(entry.getKey()));
+                                }
+                            } else {
+                                maxRequests--;
+                                return;
+                            }
+                        }
+                        playerItems[index] = Bukkit.getOfflinePlayer(entry.getKey());
+                        amount[index] = entry.getValue();
+                        index++;
                     }
-                    playerItems[index] = Bukkit.getOfflinePlayer(entry.getKey());
-                    amount[index] = entry.getValue();
-                    index++;
-                }
                 this.cancel();
                 // this is for adding more replacements in the future
                 int desiredLength = 1;
@@ -220,14 +236,14 @@ public class BedrockGUIOptions {
                     finalPage = 1;
                 }
                 String name = addPage ? thisName + " " + page : thisName;
-                if (amount.length > 0) {
+                if (amount.length > 0 && amount[0] != null) {
                     double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
                     String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
-                    name = name.replaceAll("\\{amount}", Matcher.quoteReplacement(amount[0])).replaceAll("\\{amount_tax}", Matcher.quoteReplacement(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replaceAll("\\{leaderboard}", Matcher.quoteReplacement(finalReplacements[0])).replaceAll("\\{player}", playerName);
+                    name = name.replace("{amount}", (amount[0])).replace("{amount_tax}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replace("{leaderboard}", (finalReplacements[0])).replace("{player}", playerName);
                 }
-                name = name.replaceAll("\\{page}", Matcher.quoteReplacement(page + ""));
+                name = name.replace("{page}", (page + ""));
                 int maxPage = type.equals("select-price") ? (int) NumberFormatting.getBalance(player) : (playerItems.length / maxPlayers) + 1;
-                name = name.replaceAll("\\{page_max}", Matcher.quoteReplacement(maxPage + ""));
+                name = name.replace("{page_max}", (maxPage + ""));
                 name = parse(name, player);
                 List<GUIComponent> usedGUIComponents = new ArrayList<>();
 
@@ -366,7 +382,7 @@ public class BedrockGUIOptions {
     }
 
     private List<String> parseCompletionCommands(String value, double quantity, List<String> inputs) {
-        List<String> commands = formCompletionCommands.stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(value)).replaceAll("\\{quantity}", Matcher.quoteReplacement(getValue(quantity)))).collect(Collectors.toList());
+        List<String> commands = formCompletionCommands.stream().map(command -> command.replace("{value}", (value)).replace("{quantity}", (getValue(quantity)))).collect(Collectors.toList());
         List<String> parsedCommands = new ArrayList<>();
         for (String command : commands) {
             while (command.contains("{value") && command.substring(command.indexOf("{value")).contains("}")) {
@@ -439,15 +455,38 @@ public class BedrockGUIOptions {
                 switch (component.getType()) {
                     case DROPDOWN:
                         int selectedDropdown = customFormResponse.asDropdown();
-                        String dropdownText = component.getListOptions().get(selectedDropdown);
+                        String dropdownText = ((DropdownComponentImpl) component.getComponent()).getOptions().get(selectedDropdown);
                         inputs.add(dropdownText);
-                        if (component.getCommands().size() == component.getListOptions().size()) {
+                        if (component.getCommands().size() == component.getListOptions().size() && selectedDropdown < component.getCommands().size()) {
                             // 1 command
-                            ActionCommands.executeCommands(player, Collections.singletonList(component.getCommands().get(selectedDropdown).replaceAll("\\{dropdown}", Matcher.quoteReplacement(dropdownText))));
+                            ActionCommands.executeCommands(player, Collections.singletonList(component.getCommands().get(selectedDropdown).replace("{dropdown}", (dropdownText)).replace("[@ll]", "")));
                         } else {
-                            // all commands
-                            List<String> commands = component.getCommands().stream().map(command -> command.replaceAll("\\{dropdown}", Matcher.quoteReplacement(dropdownText))).collect(Collectors.toList());
-                            ActionCommands.executeCommands(player, commands);
+                            // maybe all commands
+                            List<String> commands = new ArrayList<>();
+                            int fillerIndex = -1;
+                            for (int i = 0; i < component.getCommands().size(); i++) {
+                                String cmd = component.getCommands().get(i);
+                                if (cmd.startsWith("[@ll] ")) {
+                                    cmd = cmd.substring(6);
+                                    fillerIndex = i;
+                                }
+                                cmd = cmd.replace("{dropdown}", (dropdownText));
+                                commands.add(cmd);
+                            }
+
+                            if (fillerIndex != -1 && commands.size() < ((DropdownComponentImpl) component.getComponent()).getOptions().size()) {
+                                // 1 command
+                                String cmd = commands.get(fillerIndex);
+                                for (int i = commands.size(); i < ((DropdownComponentImpl) component.getComponent()).getOptions().size(); i++) {
+                                    commands.add(i, cmd);
+                                }
+                                ActionCommands.executeCommands(player, Collections.singletonList(commands.get(selectedDropdown)));
+                            } else {
+                                // all commands
+                                ActionCommands.executeCommands(player, commands);
+                            }
+
+
                         }
 
                         try {
@@ -491,18 +530,18 @@ public class BedrockGUIOptions {
                         float sliderValue = customFormResponse.asSlider();
                         inputs.add(NumberFormatting.getValue(sliderValue));
                         quantity.put(component, (double) sliderValue); // possible to be used as quantity
-                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(NumberFormatting.getValue(sliderValue)))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (NumberFormatting.getValue(sliderValue)))).collect(Collectors.toList()));
                         break;
                     case STEP_SLIDER:
                         int stepSliderIndex = customFormResponse.asStepSlider();
                         String stepValue = component.getListOptions().get(stepSliderIndex);
                         inputs.add(stepValue);
                         value.put(component, stepValue);
-                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(stepValue))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (stepValue))).collect(Collectors.toList()));
                         break;
                     case INPUT:
                         String input = customFormResponse.asInput();
-                        if (input == null) {
+                        if (input == null || input.isEmpty()) {
                             inputs.add("");
                             break;
                         }
@@ -512,7 +551,7 @@ public class BedrockGUIOptions {
                         } catch (NumberFormatException e) {
                             value.put(component, input);
                         }
-                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replaceAll("\\{value}", Matcher.quoteReplacement(input))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (input))).collect(Collectors.toList()));
                         break;
                 }
             } catch (IllegalStateException e) {

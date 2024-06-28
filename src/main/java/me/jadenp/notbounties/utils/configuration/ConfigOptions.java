@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils.configuration;
 
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.ui.gui.GUI;
@@ -18,12 +19,15 @@ import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.command.CommandMap;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.text.DateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -31,16 +35,6 @@ import java.util.regex.Matcher;
 public class ConfigOptions {
     public static boolean autoConnect;
     public static boolean migrateLocalData;
-    public static boolean tracker;
-    public static boolean giveOwnTracker;
-    public static int trackerRemove;
-    public static int trackerGlow;
-    public static boolean trackerActionBar;
-    public static boolean TABShowAlways;
-    public static boolean TABPlayerName;
-    public static boolean TABDistance;
-    public static boolean TABPosition;
-    public static boolean TABWorld;
     public static int minBroadcast;
     public static int minBounty;
     public static double bountyTax;
@@ -60,13 +54,14 @@ public class ConfigOptions {
     public static double bountyWhitelistCost;
     public static boolean HDBEnabled;
     public static int maxSetters;
-
     public static DateFormat dateFormat;
     public static boolean giveOwnMap;
     public static boolean displayReward;
     public static String rewardText;
     public static boolean lockMap;
     public static boolean currencyWrap;
+    public static boolean craftPoster;
+    public static boolean washPoster;
     public static boolean bountyWhitelistEnabled;
     public static int updateInterval;
     public static boolean confirmation;
@@ -101,13 +96,13 @@ public class ConfigOptions {
     public static int updateName;
     public static boolean RRLVoucherPerSetter;
     public static String RRLSetterLoreAddition;
+    private static boolean firstStart = true;
 
     public enum ClaimOrder {
         BEFORE, REGULAR, AFTER
     }
 
     public static ClaimOrder claimOrder;
-    public static boolean geyserEnabled;
     public static boolean floodgateEnabled;
     public static boolean sendBStats;
     public static double autoBountyExpireTime;
@@ -116,6 +111,9 @@ public class ConfigOptions {
     public static boolean autoTimezone;
     public static boolean reducePageCalculations;
     public static boolean seePlayerList;
+    public static boolean overrideSkinsRestorer;
+    public static boolean stealBounties;
+    public static List<String> pluginBountyCommands;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -124,7 +122,6 @@ public class ConfigOptions {
         papiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         liteBansEnabled = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
-        geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
         floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
 
         if (skinsRestorerEnabled)
@@ -303,16 +300,6 @@ public class ConfigOptions {
         buyBackInterest = bounties.getConfig().getDouble("buy-own-bounties.cost-multiply");
         minBounty = bounties.getConfig().getInt("minimum-bounty");
         bountyTax = bounties.getConfig().getDouble("bounty-tax");
-        tracker = bounties.getConfig().getBoolean("bounty-tracker.enabled");
-        giveOwnTracker = bounties.getConfig().getBoolean("bounty-tracker.give-own");
-        trackerRemove = bounties.getConfig().getInt("bounty-tracker.remove");
-        trackerGlow = bounties.getConfig().getInt("bounty-tracker.glow");
-        trackerActionBar = bounties.getConfig().getBoolean("bounty-tracker.action-bar.enabled");
-        TABShowAlways = bounties.getConfig().getBoolean("bounty-tracker.action-bar.show-always");
-        TABPlayerName = bounties.getConfig().getBoolean("bounty-tracker.action-bar.player-name");
-        TABDistance = bounties.getConfig().getBoolean("bounty-tracker.action-bar.distance");
-        TABPosition = bounties.getConfig().getBoolean("bounty-tracker.action-bar.position");
-        TABWorld = bounties.getConfig().getBoolean("bounty-tracker.action-bar.world");
         redeemRewardLater = bounties.getConfig().getBoolean("redeem-reward-later.enabled");
         RRLVoucherPerSetter = bounties.getConfig().getBoolean("redeem-reward-later.voucher-per-setter");
         RRLSetterLoreAddition = bounties.getConfig().getString("redeem-reward-later.setter-lore-addition");
@@ -370,6 +357,21 @@ public class ConfigOptions {
         wantedVisibilityUpdateInterval = bounties.getConfig().getLong("wanted-tag.visibility-update-interval");
         reducePageCalculations = bounties.getConfig().getBoolean("reduce-page-calculations");
         seePlayerList = bounties.getConfig().getBoolean("see-player-list");
+        overrideSkinsRestorer = bounties.getConfig().getBoolean("override-skinsrestorer");
+        if (overrideSkinsRestorer && skinsRestorerEnabled) {
+            Bukkit.getLogger().info("[NotBounties] NotBounties will be using its own methods to get player skins instead of SkinsRestorer.");
+            skinsRestorerEnabled = false;
+        }
+        craftPoster = bounties.getConfig().getBoolean("bounty-posters.craft-poster");
+        washPoster = bounties.getConfig().getBoolean("bounty-posters.wash-poster");
+        stealBounties = bounties.getConfig().getBoolean("steal-bounties");
+        pluginBountyCommands = bounties.getConfig().getStringList("plugin-bounty-commands");
+        if (pluginBountyCommands.isEmpty())
+            pluginBountyCommands.add("notbounties");
+        if (firstStart)
+            registerAliases(pluginBountyCommands);
+
+
 
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag.level")).getKeys(false)) {
@@ -420,8 +422,34 @@ public class ConfigOptions {
         WebhookOptions.reloadOptions();
         SkinManager.refreshSkinRequests();
         //ChallengeManager.reloadOptions();
-        if (geyserEnabled && floodgateEnabled)
+        if (floodgateEnabled)
             BedrockGUI.reloadOptions();
+
+        BountyTracker.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-tracker")));
+        firstStart = false;
+    }
+
+    private static void registerAliases(List<String> aliases) {
+        aliases = new ArrayList<>(aliases);
+        aliases.removeIf(s -> s.equalsIgnoreCase("notbounties")); // this is already the command name
+        PluginCommand command = NotBounties.getInstance().getCommand("notbounties");
+        if (command == null) {
+            Bukkit.getLogger().warning("[NotBounties] Error finding bounty command to register aliases.");
+            return;
+        }
+        try {
+            final Field bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
+
+            bukkitCommandMap.setAccessible(true);
+            CommandMap commandMap = (CommandMap) bukkitCommandMap.get(Bukkit.getServer());
+
+            for (String alias : aliases) {
+                commandMap.register(alias, "notbounties", command);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            Bukkit.getLogger().warning("[NotBounties] Error adding command aliases");
+            Bukkit.getLogger().warning(e.toString());
+        }
     }
 
     private static void loadGUI(YamlConfiguration guiConfig) throws IOException {
@@ -451,11 +479,11 @@ public class ConfigOptions {
                     // convert {amount} to %notbounties_bounty_formatted%
                     String unformatted = languageConfig.getString("bounty-item-name");
                     assert unformatted != null;
-                    unformatted = unformatted.replaceAll("\\{amount}", "%notbounties_bounty_formatted%");
+                    unformatted = unformatted.replace("{amount}", "%notbounties_bounty_formatted%");
                     guiConfig.set("bounty-gui.head-name", unformatted);
 
                     List<String> unformattedList = languageConfig.getStringList("bounty-item-lore");
-                    unformattedList.replaceAll(s -> s.replaceAll("\\{amount}", "%notbounties_bounty_formatted%"));
+                    unformattedList.replaceAll(s -> s.replace("{amount}", "%notbounties_bounty_formatted%"));
                     guiConfig.set("bounty-gui.head-lore", unformattedList);
                     guiConfig.set("bounty-gui.gui-name", languageConfig.getString("gui-name"));
                     languageConfig.set("gui-name", null);
@@ -535,7 +563,7 @@ public class ConfigOptions {
             guiConfig.set("custom-items.yes-bounty.material", "LIME_STAINED_GLASS_PANE");
             guiConfig.set("custom-items.yes-bounty.amount", 1);
             guiConfig.set("custom-items.yes-bounty.name", "&a&lYes");
-            guiConfig.set("custom-items.yes-bounty.commands", Arrays.asList("[p] bounty {slot13} {page} --confirm", "[close]"));
+            guiConfig.set("custom-items.yes-bounty.commands", Arrays.asList("[p] notbounties {slot13} {page} --confirm", "[close]"));
             guiConfig.set("custom-items.return-set-bounty.material", "WHITE_BED");
             guiConfig.set("custom-items.return-set-bounty.amount", 1);
             guiConfig.set("custom-items.return-set-bounty.name", "&6&lReturn");
@@ -546,6 +574,36 @@ public class ConfigOptions {
             guiConfig.set("custom-items.return-select-price.name", "&6&lReturn");
             guiConfig.set("custom-items.return-select-price.lore", Collections.singletonList("&7Return to price selection"));
             guiConfig.set("custom-items.return-select-price.commands", Collections.singletonList("[gui] select-price {page}"));
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("bounty-item-select")) {
+            guiConfig.set("bounty-item-select.size", 54);
+            guiConfig.set("bounty-item-select.gui-name", "&d&lSelect &9&lBounty Items");
+            guiConfig.set("bounty-item-select.add-page", false);
+            guiConfig.set("bounty-item-select.remove-page-items", true);
+            guiConfig.set("bounty-item-select.player-slots", Arrays.asList("40", "0-35"));
+            guiConfig.set("bounty-item-select.layout.1.item", "fill");
+            guiConfig.set("bounty-item-select.layout.1.slot", "36-53");
+            guiConfig.set("bounty-item-select.layout.2.item", "next");
+            guiConfig.set("bounty-item-select.layout.2.slot", "44");
+            guiConfig.set("bounty-item-select.layout.3.item", "back");
+            guiConfig.set("bounty-item-select.layout.3.slot", "36");
+            guiConfig.set("bounty-item-select.layout.4.item", "return-set-bounty");
+            guiConfig.set("bounty-item-select.layout.4.slot", "49");
+            guiConfig.set("bounty-item-select.layout.5.item", "yes-bounty-item");
+            guiConfig.set("bounty-item-select.layout.5.slot", "51-53");
+            guiConfig.set("bounty-item-select.layout.6.item", "cancel");
+            guiConfig.set("bounty-item-select.layout.6.slot", "45-47");
+            guiConfig.set("bounty-item-select.head-name", "&eTax: &a{tax}");
+            guiConfig.set("bounty-item-select.head-lore", Arrays.asList("&7&oYou will be required to pay", "&7&othis amount in tax.", "", "&7{player}", ""));
+            guiConfig.set("custom-items.yes-bounty-item.material", "LIME_STAINED_GLASS_PANE");
+            guiConfig.set("custom-items.yes-bounty-item.amount", 1);
+            guiConfig.set("custom-items.yes-bounty-item.name", "&a&lSet Bounty");
+            guiConfig.set("custom-items.yes-bounty-item.commands", Arrays.asList("[p] notbounties {data} --confirm", "[close]"));
+            guiConfig.set("custom-items.cancel.material", "RED_STAINED_GLASS_PANE");
+            guiConfig.set("custom-items.cancel.amount", 1);
+            guiConfig.set("custom-items.cancel.name", "&c&lCancel");
+            guiConfig.set("custom-items.cancel.commands", Collections.singletonList("[p] notbounties"));
             guiChanges = true;
         }
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
@@ -576,18 +634,18 @@ public class ConfigOptions {
     }
 
     public static String getWantedDisplayText(OfflinePlayer player) {
-        if (!BountyManager.hasBounty(player))
+        if (!BountyManager.hasBounty(player.getUniqueId()))
             return "";
-        Bounty bounty = BountyManager.getBounty(player);
+        Bounty bounty = BountyManager.getBounty(player.getUniqueId());
         assert bounty != null;
         String levelReplace = "";
         for (Map.Entry<Integer, String> entry : wantedLevels.entrySet()) {
-            if (entry.getKey() <= bounty.getTotalBounty()) {
+            if (entry.getKey() <= bounty.getTotalDisplayBounty()) {
                 levelReplace = entry.getValue();
             } else {
                 break;
             }
         }
-        return LanguageOptions.parse(wantedText.replaceAll("\\{level}", Matcher.quoteReplacement(levelReplace)), bounty.getTotalBounty(), player);
+        return LanguageOptions.parse(wantedText.replace("{level}", (levelReplace)), bounty.getTotalDisplayBounty(), player);
     }
 }

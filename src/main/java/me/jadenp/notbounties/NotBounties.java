@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
 import me.jadenp.notbounties.ui.gui.GUI;
@@ -47,9 +48,94 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
 /**
  * Proxy Messaging
  * Challenges
- * Get skins in offline mode (get uuid from name and then skin)
+ * Save to json file instead of yaml
+ * Redis
+ * Folia
+ * Silent messages -s - (minus bounty set) x
+ * Bungeecord/Waterfall
+ * Fix SQL memory leak -
+ * Get skins in offline mode (get uuid from name and then skin) - x
+ * override skinsrestorer - x
+ * craft empty tracker x
+ * craft player tracker with player head - x
+ * bounty poster recipe x
+ * updating plugin version keeps bounty boards (saved in different world) - x
+ * bedrock gui works with bungeecord - x
+ * loading skins with geyser doesn't work - x
+ * don't display player names in gui if not specified - x
+ * dropdown option for online players - x
+ * don't get skins in bedrock GUI if none will be displayed - x
+ * can update bedrock gui file - x
+ * Skin requests can time out - x
+ * empty tracker does funky movement - x
+ * many new language options - x
+ * can give empty tracker - x
+ * tracker tab completes when give own is false - x
+ * tracker other help not sent without perms - x
+ * empty doesnt tab complete without permission - x
+ * tracker name tab completes if you are holding tracker item - x
+ * can write empty trackers - x
+ * can wash empty trackers - x
+ * can wash bounty maps - x
+ * cauldron has to be filled to wash - x
+ * reset trackers work both ways - x
+ * Allow players to place items as bounties - x
+ * /bounty {player} MATERIAL:amount - x
+ * Change messages to display estimated bounty price - x
+ * tab complete material, then amount - x
+ * bounty item gui - x
+ * works with manual economy - x
+ * test other options x
+ * tax works with items - x
+ * tab complete --confirm with items - x
+ * items are duplicated on server restart - x
+ * items are removed if they don't have enough - x
+ * items are given back correctly when exiting the gui - x
+ * add to bounty claim in bounty manager - x
+ * bounty check lists items (add to language.yml) - x
+ * Action command placeholder for just bounty value or item value - x
+ * Smart wanted tags update - x
+ * Reward head gets the right lore - x
+ * fixed bug where bounty boards would update every check interval with sql - x
+ * remove big bounty on bounty remove - x
+ * death tax override for combat logging - x
+ * combat safe message will be send when the player dies - x
+ * fixed a bug where the combat tag message would be sent every time - x
+ * test other versions
+ * try duplicating while washing bounty items - x
+ * pvp restrictions to worlguard region flag -
+ * double webhook msg - x
+ * vouchers can store items
+ * refund works with bounty items - x
+ * Hover text for bounty check - x
+ * big bounty works if you place a bounty exactly on threshold - x
+ * opped player doesnt have perm to do /bounty tracker (player) - x
+ * {tax} - x
+ * changed bounty-item-select gui for dev build - x
+ * server restart while in bounty item select will refund items - x
+ * sound is played when being given items - x
+ * players will not loose items if they disconnect while being given items - x
+ * remove items when opening bounty item gui - x
+ * refund bounty-item-select items on disconnect - x
+ * {bounty_value} placeholder for regular msgs -
+ * hover event doesn't show nbt (test for other versions)
+ * placeholder in toggle default -
+ * bdc on/true/enable - x
+ * {notification} - x
+ * {mode_raw} - x
+ * error clicking non registered head in player slot > page 1 - x
+ * no empty tracker msg - x
+ * Steal your own bounty if you kill the player that placed it on you - x
+ * Moved the error message when a hidden player name couldn't be converted to a uuid when using sql -
+ * sql works with items - x
+ * tutorial command parses prefix - x
+ * item bounty gui will be closed if the player is sent an immunity message  -
+ * removed [close] from set bounty item - x
+ * used-item-values works - x
+ * bounty board checks are no longer done when nobody is online - x
+ * fixed a bug where top bounties with sql would only return the first player - x
+ *
  */
-
 public final class NotBounties extends JavaPlugin {
 
     /**
@@ -70,7 +156,7 @@ public final class NotBounties extends JavaPlugin {
     public static final Map<String, Long> repeatBuyCommand2 = new HashMap<>();
 
 
-    public static final List<Player> displayParticle = new ArrayList<>();
+    public static final List<UUID> displayParticle = new ArrayList<>();
     public static final Map<UUID, AboveNameText> wantedText = new HashMap<>();
     private static NotBounties instance;
     private static BukkitTask autoConnectTask = null;
@@ -90,7 +176,7 @@ public final class NotBounties extends JavaPlugin {
         instance = this;
         // register api flags
         if (getServer().getPluginManager().getPlugin("WorldGuard") != null)
-            new WorldGuardClass().registerClaimFlag();
+            new WorldGuardClass().registerFlags();
         if (getServer().getPluginManager().getPlugin("Lands") != null)
             new LandsClass().registerClaimFlag();
     }
@@ -107,10 +193,11 @@ public final class NotBounties extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(new PVPRestrictions(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new WebhookOptions(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new Prompt(), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new BountyTracker(), this);
 
         this.saveDefaultConfig();
 
-        BountyManager.loadBounties();
+        loadBounties();
         BountyMap.initialize();
         namespacedKey = new NamespacedKey(this, "bounty-entity");
 
@@ -222,123 +309,18 @@ public final class NotBounties extends JavaPlugin {
 
             @Override
             public void run() {
-                if (tracker)
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        ItemStack item = player.getInventory().getItemInMainHand();
-                        if (item.getType() == Material.COMPASS) {
-                            if (item.getItemMeta() != null) {
-                                if (item.getItemMeta().getLore() != null) {
-                                    if (!item.getItemMeta().getLore().isEmpty()) {
-                                        String lastLine = item.getItemMeta().getLore().get(item.getItemMeta().getLore().size() - 1);
-                                        if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
-                                            if (player.hasPermission("notbounties.tracker")) {
-                                                int number;
-                                                try {
-                                                    number = Integer.parseInt(ChatColor.stripColor(lastLine).substring(1));
-                                                } catch (NumberFormatException ignored) {
-                                                    return;
-                                                }
-                                                if (trackedBounties.containsKey(number)) {
-                                                    if (hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
-                                                        CompassMeta compassMeta = (CompassMeta) item.getItemMeta();
-                                                        Location lodeStoneLoc = compassMeta.getLodestone();
-                                                        String actionBar;
-                                                        Bounty bounty = getBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))));
-                                                        assert bounty != null;
-                                                        OfflinePlayer p1 = Bukkit.getOfflinePlayer(bounty.getUUID());
-
-                                                        if (p1.isOnline() && (NotBounties.serverVersion >= 17 && player.canSee(Objects.requireNonNull(p1.getPlayer()))) && !isVanished(p1.getPlayer())) {
-                                                            Player p = p1.getPlayer();
-                                                            assert p != null;
-                                                            if (compassMeta.getLodestone() == null) {
-                                                                compassMeta.setLodestone(p.getLocation().getBlock().getLocation());
-                                                                compassMeta.setLodestoneTracked(false);
-                                                            } else if (Objects.equals(compassMeta.getLodestone().getWorld(), p.getWorld())) {
-                                                                if (compassMeta.getLodestone().distance(p.getLocation()) > 2) {
-                                                                    compassMeta.setLodestone(p.getLocation().getBlock().getLocation());
-                                                                    compassMeta.setLodestoneTracked(false);
-                                                                }
-                                                            } else {
-                                                                compassMeta.setLodestone(p.getLocation().getBlock().getLocation());
-                                                                compassMeta.setLodestoneTracked(false);
-                                                            }
-
-                                                            if (trackerGlow > 0) {
-                                                                if (p.getWorld().equals(player.getWorld())) {
-                                                                    if (player.getLocation().distance(p.getLocation()) < trackerGlow) {
-                                                                        p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 45, 0));
-                                                                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(trackedNotify, p)));
-                                                                    }
-                                                                }
-                                                            }
-                                                            actionBar = ChatColor.DARK_GRAY + "|";
-                                                            if (TABPlayerName) {
-                                                                actionBar += " " + ChatColor.YELLOW + p.getName() + ChatColor.DARK_GRAY + " |";
-                                                            }
-                                                            if (TABDistance) {
-                                                                if (p.getWorld().equals(player.getWorld())) {
-                                                                    actionBar += " " + ChatColor.GOLD + ((int) player.getLocation().distance(p.getLocation())) + "m" + ChatColor.DARK_GRAY + " |";
-                                                                } else {
-                                                                    actionBar += " ?m |";
-                                                                }
-                                                            }
-                                                            if (TABPosition) {
-                                                                actionBar += " " + ChatColor.RED + p.getLocation().getBlockX() + "x " + p.getLocation().getBlockY() + "y " + p.getLocation().getBlockZ() + "z" + ChatColor.DARK_GRAY + " |";
-                                                            }
-                                                            if (TABWorld) {
-                                                                actionBar += " " + ChatColor.LIGHT_PURPLE + p.getWorld().getName() + ChatColor.DARK_GRAY + " |";
-                                                            }
-                                                        } else {
-                                                            actionBar = ChatColor.GRAY + "*offline*";
-                                                            if (compassMeta.getLodestone() != null)
-                                                                if (!Objects.equals(compassMeta.getLodestone().getWorld(), player.getWorld()))
-                                                                    if (Bukkit.getWorlds().size() > 1) {
-                                                                        for (World world : Bukkit.getWorlds()) {
-                                                                            if (!world.equals(player.getWorld())) {
-                                                                                compassMeta.setLodestone(new Location(world, world.getSpawnLocation().getX(), world.getSpawnLocation().getY(), world.getSpawnLocation().getZ()));
-                                                                            }
-                                                                        }
-                                                                    } else {
-                                                                        //compassMeta.setLodestone(null);
-                                                                        compassMeta.setLodestoneTracked(true);
-                                                                    }
-                                                        }
-                                                        if (lodeStoneLoc != null && compassMeta.getLodestone() != null) {
-                                                            if (!lodeStoneLoc.equals(compassMeta.getLodestone())) {
-                                                                item.setItemMeta(compassMeta);
-                                                            }
-                                                        } else {
-                                                            if ((lodeStoneLoc == null && compassMeta.getLodestone() != null) || lodeStoneLoc != null && compassMeta.getLodestone() == null) {
-                                                                item.setItemMeta(compassMeta);
-                                                            }
-                                                        }
-
-                                                        // display action bar
-                                                        if (trackerActionBar && TABShowAlways) {
-                                                            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(actionBar));
-                                                        }
-                                                    }
-                                                }
-                                            } else {
-                                                if (trackerActionBar && TABShowAlways) {
-                                                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "No Permission."));
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                // update bounty tracker
+                BountyTracker.update();
 
                 // big bounty particle
                 if (BigBounty.getThreshold() != -1) {
                     if (BigBounty.isParticle())
-                        for (Player player : displayParticle) {
+                        for (UUID uuid : displayParticle) {
+                            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
                             if (player.isOnline()) {
                                 for (Player viewer : Bukkit.getOnlinePlayers()) {
-                                    if ((NotBounties.serverVersion >= 17 && viewer.canSee(player)) && viewer.getWorld().equals(player.getWorld()) && viewer.getLocation().distance(player.getLocation()) < 256 && !isVanished(player))
-                                        viewer.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
+                                    if ((NotBounties.serverVersion >= 17 && viewer.canSee(Objects.requireNonNull(player.getPlayer()))) && viewer.getWorld().equals(player.getPlayer().getWorld()) && viewer.getLocation().distance(player.getPlayer().getLocation()) < 256 && !isVanished(player.getPlayer()))
+                                        viewer.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getPlayer().getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
                                 }
                             }
                         }
@@ -350,7 +332,7 @@ public final class NotBounties extends JavaPlugin {
 
                 PVPRestrictions.checkCombatExpiry();
 
-                if (lastBountyBoardUpdate + boardUpdate * 1000 < System.currentTimeMillis()) {
+                if (lastBountyBoardUpdate + boardUpdate * 1000 < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty()) {
                     // update bounty board
                     if (queuedBoards.isEmpty()) {
                         queuedBoards = new ArrayList<>(bountyBoards);
@@ -361,7 +343,6 @@ public final class NotBounties extends JavaPlugin {
                         BountyBoard board = queuedBoards.get(i);
                         if (bountyCopy.size() >= board.getRank()) {
                             board.update(bountyCopy.get(board.getRank() - 1));
-                            //Bukkit.getLogger().info(board.getRank() + ": " + bountyCopy.get(board.getRank()-1).getName());
                         } else {
                             board.update(null);
                         }
@@ -374,7 +355,7 @@ public final class NotBounties extends JavaPlugin {
 
             }
         }.runTaskTimer(this, 100, 40);
-        // auto save bounties every 5 min & remove bounty tracker
+        // auto save bounties every 5 min & do some ram cleaning
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -386,45 +367,10 @@ public final class NotBounties extends JavaPlugin {
                 try {
                     BountyMap.save();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    Bukkit.getLogger().severe(e.toString());
                 }
 
-                if (trackerRemove > 1) {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        ItemStack[] contents = player.getInventory().getContents();
-                        boolean change = false;
-                        for (int x = 0; x < contents.length; x++) {
-                            if (contents[x] != null) {
-                                if (contents[x].getType() == Material.COMPASS) {
-                                    if (contents[x].getItemMeta() != null) {
-                                        if (Objects.requireNonNull(contents[x].getItemMeta()).getLore() != null) {
-                                            if (!Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).isEmpty()) {
-                                                String lastLine = Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).get(Objects.requireNonNull(Objects.requireNonNull(contents[x].getItemMeta()).getLore()).size() - 1);
-                                                if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
-                                                    int number;
-                                                    try {
-                                                        number = Integer.parseInt(ChatColor.stripColor(lastLine).substring(1));
-                                                    } catch (NumberFormatException ignored) {
-                                                        return;
-                                                    }
-                                                    if (trackedBounties.containsKey(number)) {
-                                                        if (!hasBounty(Bukkit.getOfflinePlayer(UUID.fromString(trackedBounties.get(number))))) {
-                                                            contents[x] = null;
-                                                            change = true;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (change) {
-                            player.getInventory().setContents(contents);
-                        }
-                    }
-                }
+
             }
         }.runTaskTimer(this, 6000, 6000);
         // Check for banned players
@@ -471,10 +417,26 @@ public final class NotBounties extends JavaPlugin {
 
         // wanted text
         new BukkitRunnable() {
+            static final int maxUpdateTime = 10;
+            int lastUpdateTime = 0; // time it took for the stands to update last
+            long lastRunTime = 0;
             @Override
             public void run() {
+                if (lastUpdateTime > maxUpdateTime) {
+                    //    (the amount of ms since last update)      (2 x the amount of ms last update took)
+                    if (System.currentTimeMillis() - lastRunTime < (lastUpdateTime - maxUpdateTime) * 2L) {
+                        return;
+                    }
+                }
+                long startTime = System.currentTimeMillis();
                 for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
                     entry.getValue().updateArmorStand();
+                }
+                lastUpdateTime = (int) (System.currentTimeMillis() - startTime);
+                if (lastUpdateTime > maxUpdateTime) {
+                    lastRunTime = System.currentTimeMillis();
+                    if (debug)
+                        Bukkit.getLogger().info("[NotBountiesDebug] Took " + lastUpdateTime + "ms to update wanted tags. Pausing for a few updates.");
                 }
             }
         }.runTaskTimer(this, 20, 1);
@@ -517,6 +479,8 @@ public final class NotBounties extends JavaPlugin {
                     configuration.set("bounties." + i + "." + f + ".whitelist", whitelist);
                     configuration.set("bounties." + i + "." + f + ".blacklist", setters.getWhitelist().isBlacklist());
                     configuration.set("bounties." + i + "." + f + ".playtime", setters.getReceiverPlaytime());
+                    if (!setters.getItems().isEmpty())
+                        configuration.set("bounties." + i + "." + f + ".items", SerializeInventory.itemStackArrayToBase64(setters.getItems().toArray(new ItemStack[0])));
                     f++;
                 }
                 i++;
@@ -569,7 +533,10 @@ public final class NotBounties extends JavaPlugin {
         for (Map.Entry<UUID, Double> entry : refundedBounties.entrySet()) {
             configuration.set("data." + entry.getKey().toString() + ".refund", entry.getValue());
         }
-        configuration.set("disable-broadcast", disableBroadcast);
+        for (Map.Entry<UUID, List<ItemStack>> entry : refundedItems.entrySet()) {
+            configuration.set("data." + entry.getKey().toString() + ".refund-items", SerializeInventory.itemStackArrayToBase64(entry.getValue().toArray(new ItemStack[0])));
+        }
+        configuration.set("disable-broadcast", disableBroadcast.stream().map(UUID::toString).collect(Collectors.toList()));
         i = 0;
         for (Map.Entry<UUID, List<RewardHead>> mapElement : headRewards.entrySet()) {
             configuration.set("head-rewards." + i + ".setter", mapElement.getKey().toString());
@@ -581,16 +548,25 @@ public final class NotBounties extends JavaPlugin {
             i++;
         }
         i = 0;
-        for (Map.Entry<Integer, String> mapElement : trackedBounties.entrySet()) {
+        for (Map.Entry<Integer, UUID> mapElement : BountyTracker.getTrackedBounties().entrySet()) {
             configuration.set("tracked-bounties." + i + ".number", mapElement.getKey());
-            configuration.set("tracked-bounties." + i + ".uuid", mapElement.getValue());
+            configuration.set("tracked-bounties." + i + ".uuid", mapElement.getValue().toString());
             i++;
         }
         if (RandomBounties.isRandomBountiesEnabled())
             configuration.set("next-random-bounty", RandomBounties.getNextRandomBounty());
         i = 0;
         for (BountyBoard board : bountyBoards) {
-            configuration.set("bounty-boards." + i + ".location", board.getLocation());
+            Location location = board.getLocation();
+            // can't save a null world or location
+            if (location == null || location.getWorld() == null)
+                continue;
+            configuration.set("bounty-boards." + i + ".location.world", location.getWorld().getUID().toString());
+            configuration.set("bounty-boards." + i + ".location.x", location.getX());
+            configuration.set("bounty-boards." + i + ".location.y", location.getY());
+            configuration.set("bounty-boards." + i + ".location.z", location.getZ());
+            configuration.set("bounty-boards." + i + ".location.yaw", location.getYaw());
+            configuration.set("bounty-boards." + i + ".location.pitch", location.getPitch());
             configuration.set("bounty-boards." + i + ".rank", board.getRank());
             configuration.set("bounty-boards." + i + ".direction", board.getDirection().toString());
             i++;
@@ -619,10 +595,10 @@ public final class NotBounties extends JavaPlugin {
             topBounties = new ArrayList<>(bountyList);
         }
         for (Bounty bounty : topBounties) {
-            if (bounty.getTotalBounty() >= BigBounty.getThreshold()) {
+            if (bounty.getTotalDisplayBounty() >= BigBounty.getThreshold()) {
                 OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
                 if (player.isOnline()) {
-                    displayParticle.add(player.getPlayer());
+                    displayParticle.add(player.getPlayer().getUniqueId());
                 }
             } else {
                 break;
@@ -657,6 +633,11 @@ public final class NotBounties extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        // close all GUIs
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            GUI.safeCloseGUI(player, true);
+        }
+        // remove wanted tags
         for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
             entry.getValue().removeStand();
         }
@@ -738,7 +719,7 @@ public final class NotBounties extends JavaPlugin {
         sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + SQL.getDatabaseType() + ChatColor.YELLOW + " ID: " + ChatColor.WHITE + SQL.getServerID() + ChatColor.YELLOW + " Local Bounties: " + ChatColor.WHITE + bountyList.size());
         sender.sendMessage(ChatColor.GOLD + "General > " + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion() + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + "1." + serverVersion + "." + serverSubVersion + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug);
         int bounties = SQL.isConnected() ? data.getTopBounties(2).size() : bountyList.size();
-        sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + trackedBounties.size() + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + bountyBoards.size());
+        sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + BountyTracker.getTrackedBounties().size() + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + bountyBoards.size());
         String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
         String papi = papiEnabled ? ChatColor.GREEN + "PlaceholderAPI" : ChatColor.RED + "PlaceholderAPI";
         String hdb = HDBEnabled ? ChatColor.GREEN + "HeadDataBase" : ChatColor.RED + "HeadDataBase";
@@ -746,12 +727,11 @@ public final class NotBounties extends JavaPlugin {
         String skinsRestorer = skinsRestorerEnabled ? ChatColor.GREEN + "SkinsRestorer" : ChatColor.RED + "SkinsRestorer";
         String betterTeams = BountyClaimRequirements.betterTeamsEnabled ? ChatColor.GREEN + "BetterTeams" : ChatColor.RED + "BetterTeams";
         String townyAdvanced = BountyClaimRequirements.townyAdvancedEnabled ? ChatColor.GREEN + "TownyAdvanced" : ChatColor.RED + "TownyAdvanced";
-        String geyser = geyserEnabled ? ChatColor.GREEN + "GeyserMC" : ChatColor.RED + "GeyserMC";
         String floodgate = floodgateEnabled ? ChatColor.GREEN + "Floodgate" : ChatColor.RED + "Floodgate";
         String kingdoms = BountyClaimRequirements.kingdomsXEnabled ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
         String lands = BountyClaimRequirements.landsEnabled ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
         String worldGuard = BountyClaimRequirements.worldGuardEnabled ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser + ChatColor.GRAY + "|" + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "|" + lands + ChatColor.GRAY + "|" + worldGuard + ChatColor.GRAY + "]");
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "|" + lands + ChatColor.GRAY + "|" + worldGuard + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));

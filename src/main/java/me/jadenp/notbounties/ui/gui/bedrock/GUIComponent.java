@@ -1,10 +1,12 @@
 package me.jadenp.notbounties.ui.gui.bedrock;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 import org.geysermc.cumulus.component.ButtonComponent;
 import org.geysermc.cumulus.component.Component;
 import org.geysermc.cumulus.component.impl.*;
@@ -107,8 +109,11 @@ public class GUIComponent {
                 break;
             case BUTTON:
                 FormImageImpl formImage = null;
-                if (options.containsKey("image") && !options.get("image").isEmpty())
-                    formImage = new FormImageImpl(FormImage.Type.URL, LanguageOptions.parse(options.get("image"), player));
+                if (options.containsKey("image") && !options.get("image").isEmpty()) {
+                    boolean url = options.containsKey("image-url") ? options.get("image-url").equalsIgnoreCase("true") : options.get("image").contains("http");
+                    FormImage.Type type = url ? FormImage.Type.URL : FormImage.Type.PATH;
+                    formImage = new FormImageImpl(type, LanguageOptions.parse(options.get("image"), player));
+                }
                 buttonComponent = new ButtonComponentImpl(text, formImage);
                 component = new LabelComponentImpl(text);
                 break;
@@ -172,7 +177,7 @@ public class GUIComponent {
                 int defaultStep = 1;
                 if (options.containsKey("default-step")) {
                     try {
-                        defaultStep = Integer.parseInt(options.get("default-step"));
+                        defaultStep = Integer.parseInt(LanguageOptions.parse(options.get("default-step"), player));
                     } catch (NumberFormatException e) {
                         Bukkit.getLogger().warning("[NotBounties] Could not parse a default slider value for step slider component \"" + name + "\" in bedrock-gui.yml");
                     }
@@ -182,14 +187,30 @@ public class GUIComponent {
             case TOGGLE:
                 boolean defaultToggle = false;
                 if (options.containsKey("default")) {
-                    defaultToggle = options.get("default").equalsIgnoreCase("true") || options.get("default").equalsIgnoreCase("on");
+                    String value = options.get("default");
+                    value = LanguageOptions.parse(value, player);
+                    defaultToggle = value.equalsIgnoreCase("true") || value.equalsIgnoreCase("on");
                 }
                 component = new ToggleComponentImpl(text, defaultToggle);
                 break;
             case DROPDOWN:
                 List<String> parsedOptions = new ArrayList<>();
-                for (String str : listOptions)
-                    parsedOptions.add(LanguageOptions.parse(str, player));
+                for (String str : listOptions) {
+                    switch (str) {
+                        case "{players}":
+                            for (Player onlinePlayer : Bukkit.getOnlinePlayers())
+                                parsedOptions.add(onlinePlayer.getName());
+                        break;
+                        case "{whitelist}":
+                            for (UUID uuid : NotBounties.getPlayerWhitelist(player.getUniqueId()).getList())
+                                parsedOptions.add(NotBounties.getPlayerName(uuid));
+                            break;
+                        default:
+                            parsedOptions.add(LanguageOptions.parse(str, player));
+                            break;
+                    }
+                }
+
                 component = new DropdownComponentImpl(text, parsedOptions, 0);
                 break;
 

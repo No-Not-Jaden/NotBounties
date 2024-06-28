@@ -51,11 +51,12 @@ public class BountyExpansion extends PlaceholderExpansion {
     /**
      * Add "_formatted" to the end to add the currency prefix and suffix
      * Add "_full" to the end of leaderboard to add what the stat is about
-     * Add "_value" to the e nd of leaderboard to get the raw value
+     * Add "_value" to the end of leaderboard to get the raw value
+     * Add "_name" to the end of top placeholder to get the name of the player in that position
      * <p>%notbounties_bounty%</p>
      * <p>%notbounties_total%</p>
      * <p>%notbounties_(all/kills/claimed/deaths/set/immunity/current)%</p>
-     * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity/current)[_name]%</p>
+     * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity/current)%</p>
      * <p>%notbounties_wanted%</p>
      * <p>%notbounties_notification%</p>
      * <p>%notbounties_mode%</p>
@@ -73,7 +74,7 @@ public class BountyExpansion extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, String params){
         UUID uuid = player.getUniqueId();
         if (params.equalsIgnoreCase("timed_bounty")) {
-            if (BountyManager.hasBounty(player) && TimedBounties.isMaxed(Objects.requireNonNull(BountyManager.getBounty(player)).getTotalBounty()))
+            if (BountyManager.hasBounty(uuid) && TimedBounties.isMaxed(Objects.requireNonNull(BountyManager.getBounty(uuid)).getTotalDisplayBounty()))
                 // maxed out, cant get any higher
                 return "";
             long next = TimedBounties.getUntilNextBounty(player.getUniqueId());
@@ -82,17 +83,17 @@ public class BountyExpansion extends PlaceholderExpansion {
             return LocalTime.formatTime(next, LocalTime.TimeFormat.RELATIVE);
         }
         if (params.equalsIgnoreCase("wanted")) {
-            Bounty bounty = BountyManager.getBounty(player);
+            Bounty bounty = BountyManager.getBounty(uuid);
             if (bounty == null)
                 return "";
             return getWantedDisplayText(player);
         }
         if (params.startsWith("bounty")){
-            Bounty bounty = BountyManager.getBounty(player);
+            Bounty bounty = BountyManager.getBounty(uuid);
             if (bounty != null){
                 if (params.endsWith("_formatted"))
-                    return LanguageOptions.color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalBounty()) + NumberFormatting.currencySuffix);
-                return NumberFormatting.getValue(bounty.getTotalBounty());
+                    return LanguageOptions.color(NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalDisplayBounty()) + NumberFormatting.currencySuffix);
+                return NumberFormatting.getValue(bounty.getTotalDisplayBounty());
             }
             return "0";
         }
@@ -226,7 +227,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             }
             LinkedHashMap<UUID, Double> stat = leaderboard.getTop(rank - 1, 1);
             if (stat.isEmpty())
-                return "0";
+                return "...";
             boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL || leaderboard == Leaderboard.CURRENT;
             Map.Entry<UUID, Double> entry = stat.entrySet().iterator().next();
             double amount = entry.getValue();
@@ -234,7 +235,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             String name = NotBounties.getPlayerName(uuid1);
             OfflinePlayer p = Bukkit.getOfflinePlayer(uuid1);
             if (ending == 1)
-                return LanguageOptions.parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(uuid1))), p);
+                return LanguageOptions.parse(leaderboard.getStatMsg(true).replace("{amount}", (leaderboard.getFormattedStat(uuid1))), p);
             if (ending == 2)
                 return LanguageOptions.parse(leaderboard.getFormattedStat(uuid1),p);
             if (ending == 3)
@@ -250,7 +251,7 @@ public class BountyExpansion extends PlaceholderExpansion {
         try {
             Leaderboard leaderboard = Leaderboard.valueOf(value.toUpperCase());
             if (ending == 1)
-                return LanguageOptions.parse(leaderboard.getStatMsg(true).replaceAll("\\{amount}", Matcher.quoteReplacement(leaderboard.getFormattedStat(player.getUniqueId()))), player);
+                return LanguageOptions.parse(leaderboard.getStatMsg(true).replace("{amount}", (leaderboard.getFormattedStat(player.getUniqueId()))), player);
             if (ending == 2)
                 return LanguageOptions.parse(leaderboard.getFormattedStat(player.getUniqueId()),player);
             if (ending == 3)

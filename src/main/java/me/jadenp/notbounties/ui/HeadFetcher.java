@@ -28,6 +28,7 @@ public class HeadFetcher {
     public void loadHeads(Player player, PlayerGUInfo guInfo, LinkedHashMap<OfflinePlayer, ItemStack> heads) {
         ItemStack[] fetchedHeads = new ItemStack[heads.size()];
         new BukkitRunnable() {
+            int maxRequests = 100;
             @Override
             public void run() {
                 boolean[] headsToUpdate = new boolean[heads.size()];
@@ -76,10 +77,28 @@ public class HeadFetcher {
                                 contents[slot] = fetchedHeads[j];
                             }
                             inventory.setContents(contents);
+                        } else {
+                            maxRequests = 0;
+                            if (NotBounties.debug)
+                                Bukkit.getLogger().info("[NotBountiesDebug] Player exited GUI while loading player heads.");
                         }
 
                     }
                 }.runTask(NotBounties.getInstance());
+                // check if max requests hit
+                if (maxRequests <= 0) {
+                    this.cancel();
+                    if (NotBounties.debug) {
+                        i = 0;
+                        for (Map.Entry<OfflinePlayer, ItemStack> entry : heads.entrySet()) {
+                            if (fetchedHeads[i] == null) {
+                                Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(entry.getKey().getUniqueId()));
+                            }
+                            i++;
+                        }
+                    }
+                }
+                maxRequests--;
                 // check if all heads are loaded
                 for (ItemStack itemStack : fetchedHeads)
                     if (itemStack == null)
@@ -115,8 +134,14 @@ public class HeadFetcher {
             meta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
         } catch (NullPointerException e) {
             if (NotBounties.serverVersion >= 18) {
-                PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getPlayerName(uuid));
-                meta.setOwnerProfile(profile);
+                try {
+                    PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getPlayerName(uuid));
+                    meta.setOwnerProfile(profile);
+                } catch (IllegalArgumentException ignored) {
+                    // The name of the profile is longer than 16 characters
+                    if (NotBounties.debug)
+                        Bukkit.getLogger().info("Could not get an unloaded head for: " + NotBounties.getPlayerName(uuid));
+                }
             }
         }
         head.setItemMeta(meta);

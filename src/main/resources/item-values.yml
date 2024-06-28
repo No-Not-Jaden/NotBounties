@@ -1,0 +1,70 @@
+# These values are for converting items set as bounty to a value for the bounty tax or leaderboards.
+# Disable this in the currency section in the config.yml file with the bounty-items.mode option.
+# default item value for items not defined in this file
+default: 0.1
+# A multiplier you can add to all the prices if you want to just scale everything instead of choosing all new values
+multiplier: 1.0
+# The default config uses diamonds, so this is a rough estimate for how much I would worth these items as in terms of diamonds (except the dragon egg)
+item-values:
+  # (material): (worth in your currency)
+  DRAGON_EGG: 9999999999
+  # This example uses custom model data - (material)<(data)>: (worth)
+  PAPER<1234567>: 8
+
+  NETHERITE_SCRAP: 5
+  NETHERITE_INGOT: 30
+  NETHERITE_BLOCK: 270
+  ANCIENT_DEBRIS: 4.5
+  NETHERITE_PICKAXE: 35
+  NETHERITE_AXE: 35
+  NETHERITE_SWORD: 34
+  NETHERITE_SHOVEL: 33
+  NETHERITE_HELMET: 37
+  NETHERITE_CHESTPLATE: 40
+  NETHERITE_LEGGINGS: 39
+  NETHERITE_BOOTS: 36
+  NETHERITE_UPGRADE_SMITHING_TEMPLATE: 7
+  DIAMOND: 1
+  DIAMOND_ORE: 2
+  DIAMOND_BLOCK: 9
+  DIAMOND_PICKAXE: 3
+  DIAMOND_AXE: 3
+  DIAMOND_SWORD: 2
+  DIAMOND_SHOVEL: 3
+  DIAMOND_HELMET: 5
+  DIAMOND_CHESTPLATE: 8
+  DIAMOND_LEGGINGS: 7
+  DIAMOND_BOOTS: 4
+  TRIDENT: 10
+  DIAMOND_HORSE_ARMOR: 5
+  TOTEM_OF_UNDYING: 10
+  TURTLE_HELMET: 2
+  NETHER_STAR: 32
+  BEACON: 35
+  ELYTRA: 10
+  ENCHANTED_GOLDEN_APPLE: 5
+
+# add extra value to items with enchantments
+# any enchantments not on this list will have no effect on the value
+# (enchantment): (value per level)
+enchantment-values:
+  UNBREAKING: 1
+  PROTECTION: 2
+  EFFICIENCY: 2
+  FEATHER_FALLING: 2
+  SOUL_SPEED: 1
+  SWIFT_SNEAK: 1
+  SHARPNESS: 2
+  LOOTING: 2
+  MENDING: 3
+  SILK_TOUCH: 2
+  FORTUNE: 2
+  PUNCH: 1
+  POWER: 2
+  FIRE_ASPECT: 1
+  FLAME: 1
+  LOYALTY: 1
+  RIPTIDE: 1
+  CHANNELING: 3
+  QUICK_CHARGE: 1
+  PIERCING: 1

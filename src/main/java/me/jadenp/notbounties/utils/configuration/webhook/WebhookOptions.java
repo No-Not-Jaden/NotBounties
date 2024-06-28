@@ -52,10 +52,10 @@ public class WebhookOptions implements Listener {
         if (link.equals("https://discord.com/api/webhooks/...") || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
-        Bounty totalBounty = BountyManager.getBounty(Bukkit.getOfflinePlayer(event.getBounty().getUUID()));
-        double total = totalBounty != null ? totalBounty.getTotalBounty() : 0;
-        total = total + event.getBounty().getTotalBounty();
-        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getBounty().getLastSetter().getName(), event.getBounty().getLastSetter().getUuid(), event.getBounty().getTotalBounty(), total);
+        Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
+        double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
+        total = total + event.getBounty().getTotalDisplayBounty();
+        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getBounty().getLastSetter().getName(), event.getBounty().getLastSetter().getUuid(), event.getBounty().getTotalDisplayBounty(), total);
     }
 
     @EventHandler
@@ -63,10 +63,10 @@ public class WebhookOptions implements Listener {
         if (link.equals("https://discord.com/api/webhooks/...") || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
-        Bounty totalBounty = BountyManager.getBounty(Bukkit.getOfflinePlayer(event.getBounty().getUUID()));
-        double total = totalBounty != null ? totalBounty.getTotalBounty() : 0;
-        total = total - event.getBounty().getTotalBounty();
-        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getKiller().getName(), event.getKiller().getUniqueId(), event.getBounty().getTotalBounty(), total);
+        Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
+        double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
+        total = total - event.getBounty().getTotalDisplayBounty();
+        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getKiller().getName(), event.getKiller().getUniqueId(), event.getBounty().getTotalDisplayBounty(), total);
     }
 
     @EventHandler
@@ -74,11 +74,11 @@ public class WebhookOptions implements Listener {
         if (link.equals("https://discord.com/api/webhooks/...") || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
-        Bounty totalBounty = BountyManager.getBounty(Bukkit.getOfflinePlayer(event.getBounty().getUUID()));
-        double total = totalBounty != null ? totalBounty.getTotalBounty() : 0;
-        total = total - event.getBounty().getTotalBounty();
+        Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
+        double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
+        total = total - event.getBounty().getTotalDisplayBounty();
         UUID removerUUID = event.getRemover() instanceof Player ? ((Player) event.getRemover()).getUniqueId() : new UUID(0,0);
-        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getRemover().getName(), removerUUID, event.getBounty().getTotalBounty(), total);
+        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getRemover().getName(), removerUUID, event.getBounty().getTotalDisplayBounty(), total);
     }
 
     @EventHandler
@@ -87,11 +87,12 @@ public class WebhookOptions implements Listener {
             return;
         Webhook webhook = webhooks.get(event.getClass());
         UUID editorUUID = event.getEditor() instanceof Player ? ((Player) event.getEditor()).getUniqueId() : new UUID(0,0);
-        buildWebhook(webhook, event.getBeforeEdit().getName(), event.getBeforeEdit().getUUID(), event.getEditor().getName(), editorUUID, event.getBeforeEdit().getTotalBounty(), event.getAfterEdit().getTotalBounty());
+        buildWebhook(webhook, event.getBeforeEdit().getName(), event.getBeforeEdit().getUUID(), event.getEditor().getName(), editorUUID, event.getBeforeEdit().getTotalDisplayBounty(), event.getAfterEdit().getTotalBounty());
     }
     
     private void buildWebhook(Webhook webhook, String playerName, UUID playerUUID, String receiverName, UUID receiverUUID, double amount, double total){
         new BukkitRunnable() {
+            int maxRequests = 50;
             @Override
             public void run() {
                 if (webhook.isEnabled()) {
@@ -100,8 +101,18 @@ public class WebhookOptions implements Listener {
                     UUID avatarUUID = webhook.isSwitchImages() ? playerUUID : receiverUUID;
                     UUID imageUUID = webhook.isSwitchImages() ? receiverUUID : playerUUID;
 
-                    if (!SkinManager.isSkinLoaded(avatarUUID) || !SkinManager.isSkinLoaded(imageUUID))
+                    if (!SkinManager.isSkinLoaded(avatarUUID) || !SkinManager.isSkinLoaded(imageUUID)) {
+                        // check if max requests hit
+                        if (maxRequests <= 0) {
+                            this.cancel();
+                            if (NotBounties.debug) {
+                                Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(avatarUUID) + " or " + NotBounties.getPlayerName(imageUUID));
+                            }
+                        }
+                        maxRequests--;
                         return;
+                    }
+                    this.cancel();
                     String avatarTextureID = SkinManager.getSkin(avatarUUID).getId();
                     String imageTextureID = SkinManager.getSkin(imageUUID).getId();
                     String avatarURL = "https://mc-heads.net/head/" + avatarTextureID + ".png";
@@ -125,7 +136,7 @@ public class WebhookOptions implements Listener {
                         Bukkit.getLogger().warning(e.toString());
                     }
                 }
-                this.cancel();
+
             }
         }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 4);
 

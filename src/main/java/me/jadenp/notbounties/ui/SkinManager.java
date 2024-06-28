@@ -3,7 +3,6 @@ package me.jadenp.notbounties.ui;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.mojang.authlib.exceptions.MinecraftClientException;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
@@ -32,6 +31,7 @@ public class SkinManager {
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
+        savedSkins.put(new UUID(0,0), missingSkin); // console
     }
 
     public static void refreshSkinRequests() {
@@ -51,7 +51,7 @@ public class SkinManager {
     public static boolean isSkinLoaded(UUID uuid) {
         if (savedSkins.containsKey(uuid)) {
             // check if the skin is missing
-            if (requestTimes.containsKey(uuid) && System.currentTimeMillis() - requestTimes.get(uuid) > requestInterval && savedSkins.get(uuid).getId().equals("46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82")) {
+            if (requestTimes.containsKey(uuid) && System.currentTimeMillis() - requestTimes.get(uuid) > requestInterval && isMissingSkin(savedSkins.get(uuid))) {
                 savedSkins.remove(uuid);
                 saveSkin(uuid);
                 return false;
@@ -106,7 +106,36 @@ public class SkinManager {
                         return;
                     }
                 }
-                saveJavaSkin(uuid);
+
+                try {
+                    saveJavaSkin(uuid);
+                } catch (Exception e) {
+                    if (NotBounties.debug) {
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                Bukkit.getLogger().warning("[NotBountiesDebug] Could not save a java skin for: " + NotBounties.getPlayerName(uuid));
+                                Bukkit.getLogger().warning(e.toString());
+                                Bukkit.getLogger().warning("[NotBountiesDebug] Attempting to load a skin from username.");
+                            }
+                        }.runTask(NotBounties.getInstance());
+                    }
+                    try {
+                        saveNamedSkin(uuid, NotBounties.getPlayerName(uuid));
+                    } catch (Exception e2) {
+                        if (NotBounties.debug) {
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    Bukkit.getLogger().warning("[NotBountiesDebug] Could not save a named skin for: " + NotBounties.getPlayerName(uuid));
+                                    Bukkit.getLogger().warning(e2.toString());
+                                    Bukkit.getLogger().warning("[NotBountiesDebug] Replacing with a missing skin.");
+                                    saveSkin(uuid, missingSkin);
+                                }
+                            }.runTask(NotBounties.getInstance());
+                        }
+                    }
+                }
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
     }
@@ -115,8 +144,8 @@ public class SkinManager {
         return Objects.equals(playerSkin.getId(), missingSkin.getId()) && playerSkin.getUrl() == missingSkin.getUrl();
     }
 
-    private static void saveJavaSkin(UUID uuid) {
-        try {
+    private static void saveJavaSkin(UUID uuid) throws Exception {
+
             URL url = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid);
             InputStreamReader reader = new InputStreamReader(url.openStream());
             JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseReader(reader).getAsJsonObject() : new JsonParser().parse(reader).getAsJsonObject();
@@ -126,14 +155,36 @@ public class SkinManager {
             String id = input.get("id").getAsString();
 
             SkinManager.saveSkin(uuid, new PlayerSkin(getTextureURL(value), id));
-        } catch (IOException | MinecraftClientException | IllegalStateException e) {
-            if (NotBounties.debug) {
-                Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from Mojang API");
-                Bukkit.getLogger().warning(e.toString());
-            }
-            saveSkin(uuid, missingSkin);
+    }
+
+    public static void saveNamedSkin(UUID originalUUID, String playerName) throws Exception {
+        URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + playerName);
+        InputStreamReader reader = new InputStreamReader(url.openStream());
+        JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseReader(reader).getAsJsonObject() : new JsonParser().parse(reader).getAsJsonObject();
+        reader.close();
+        if (input.has("errorMessage") && !input.get("errorMessage").isJsonNull()) {
+            throw new IOException(input.get("errorMessage").getAsString());
         }
 
+        // convert uuid without dashes to one with
+        // https://stackoverflow.com/questions/18986712/creating-a-uuid-from-a-string-with-no-dashes
+        UUID uuid =  java.util.UUID.fromString(
+                input.get("id").getAsString()
+                        .replaceFirst(
+                                "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5"
+                        )
+        );
+
+
+        URL url2 = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid);
+        InputStreamReader reader2 = new InputStreamReader(url2.openStream());
+        JsonObject input2 = NotBounties.serverVersion >= 18 ? JsonParser.parseReader(reader2).getAsJsonObject() : new JsonParser().parse(reader2).getAsJsonObject();
+        JsonObject textureProperty = input2.get("properties").getAsJsonArray().get(0).getAsJsonObject();
+        reader2.close();
+        String value = textureProperty.get("value").getAsString();
+        String id = input2.get("id").getAsString();
+
+        SkinManager.saveSkin(originalUUID, new PlayerSkin(getTextureURL(value), id));
     }
 
     public static BufferedImage getPlayerFace(UUID uuid) {
@@ -160,7 +211,15 @@ public class SkinManager {
             return head;
 
         } catch (IOException e) {
-            Bukkit.getLogger().warning(e.toString());
+            if (NotBounties.debug)
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        Bukkit.getLogger().warning("[NotBountiesDebug] Error reading texture url for bounty poster.");
+                        Bukkit.getLogger().warning(e.toString());
+                    }
+                }.runTask(NotBounties.getInstance());
+
         }
         return null;
     }

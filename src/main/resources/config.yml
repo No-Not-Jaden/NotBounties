@@ -23,6 +23,26 @@ currency:
   # MANUAL - NotBounties will not do any currency transactions, but will run the remove and add commands
   # I suggest pairing this up with the redeem-reward-later option for a voucher of proof
   manual-economy: AUTOMATIC
+  # these options control setting bounties with any item as currency - ex: placing an enchanted sword as a bounty
+  bounty-items:
+    # the status of this feature
+    # ALLOW - items and the currency object can be used to set bounties
+    # DENY - only the currency object can be used to set bounties
+    # EXCLUSIVE - only items can be set as bounties and the currency object is only used for other features like immunity or auto bounties
+    mode: DENY
+    # The bounty-item-select GUI will be opened by default instead of the price-select if this is true
+    default-gui: false
+    # the item values in item-values.yml will be used for tax and other features that use the total bounty
+    use-item-values: true
+    # Players can set item bounties on people with immunity
+    # The value of the items may not be mapped to a currency value which doesn't work well if you want to add high valued items like Netherite to the bounty
+    override-immunity: false
+    # When the player buys their own bounty, they will get any items set on them
+    # If this is false, the items will be deleted
+    buy-items: true
+    # Items from the player's inventory are tab completed when setting a bounty
+    # This could cause some lag
+    tab-complete: true
 # formatting of large numbers
 number-formatting:
   # Same as EssentialsX config
@@ -80,6 +100,8 @@ console-bounty-name: Sheriff
 remove-banned-players: true
 # allow players to set bounties on themselves
 self-setting: true
+# Allow players with bounties to get their own reward by killing the players who set a bounty on them
+steal-bounties: false
 # Change the order when the bounties are claimed event wise
 # BEFORE, REGULAR, or AFTER can be used
 # do not change this unless you know what you are doing
@@ -91,6 +113,15 @@ auto-timezone: true
 reduce-page-calculations: false
 # An extra check to make sure the player is visible to see them in the player selection
 see-player-list: false
+# Use NotBounties' methods to get skins
+override-skinsrestorer: false
+# The commands players can use to use bounties.
+# The first option is the one the plugin uses when forcing players to execute a command.
+# A restart is required after making changes.
+# Make sure another plugin doesn't override these.
+plugin-bounty-commands:
+  - 'notbounties'
+  - 'bounty'
 # this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
 redeem-reward-later:
   enabled: false
@@ -121,6 +152,9 @@ pvp-restrictions:
     time: 0
     # send the combat-tag and combat-safe messages when they are tagged
     send-message: false
+    # override the death tax for this combat log
+    # -1 to disable
+    death-tax-override: -1
 # allow players on the same team claim each-other's bounties
 teams:
   # claim if on the same scoreboard team
@@ -269,6 +303,10 @@ auto-bounties:
 bounty-posters:
   # players can give themselves bounty posters of any bounty, otherwise, only admins can give posters
   give-own: false
+  # players can craft a poster with an empty map and a player head
+  craft-poster: true
+  # players can wash posters by throwing them in a filled cauldron to get a regular map back
+  wash-poster: true
   # display bounty reward on the poster
   # note: changing this will change the position of the names and can cause text to overlap
   #       if you want to change this, I suggest setting clean-posters to true
@@ -376,8 +414,18 @@ bounty-tracker:
   # whether the compasses will actually track a player
   # does not stop admins from getting new compasses, and they will still be removed
   enabled: true
-  # whether players with notbounties.tracker can give themselves a tracker with the command
+  # allow players with the notbounties.tracker permission to give themselves a tracker with the command
   give-own: false
+  # allow players with the notbounties.tracker permission to use the tracker command to change an empty tracker
+  write-empty-trackers: true
+  # allow all players to clean a tracker by throwing it in a filled cauldron (resets to empty tracker)
+  wash-trackers: true
+  # allow players with the notbounties.tracker permission to craft an empty tracker
+  craft-tracker: true
+  # clicking on a bounty poster with the tracker will change the tracked player
+  poster-tracking: true
+  # instead of removing trackers, the compasses will turn into empty trackers
+  reset-removed-trackers: true
   # When to remove the compass after the bounty has been claimed
   # the higher the number, the more performance heavy it will be on your server
   # 0 - don't ever remove it

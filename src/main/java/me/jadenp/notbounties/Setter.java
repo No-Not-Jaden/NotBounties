@@ -2,10 +2,13 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,16 +16,18 @@ public class Setter implements Comparable<Setter>{
     private final String name;
     private final UUID uuid;
     private final double amount;
+    private final List<ItemStack> items;
     private final long timeCreated;
     private boolean notified;
     private final Whitelist whitelist;
     private final long receiverPlaytime;
 
-    public Setter(String name, UUID uuid, double amount, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime){
+    public Setter(String name, UUID uuid, double amount, List<ItemStack> items, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime){
 
         this.name = name;
         this.uuid = uuid;
         this.amount = amount;
+        this.items = items;
         this.timeCreated = timeCreated;
         this.notified = Objects.requireNonNullElse(notified, true);
         this.whitelist = whitelist;
@@ -69,6 +74,13 @@ public class Setter implements Comparable<Setter>{
 
     public double getAmount() {
         return amount;
+    }
+    public double getDisplayAmount() {
+        return NumberFormatting.getTotalValue(items) + amount;
+    }
+
+    public List<ItemStack> getItems() {
+        return items;
     }
 
     public UUID getUuid() {

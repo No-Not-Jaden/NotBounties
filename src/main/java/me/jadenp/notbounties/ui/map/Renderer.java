@@ -5,6 +5,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.Bukkit;
@@ -40,8 +41,8 @@ public class Renderer extends MapRenderer {
     public Renderer(UUID uuid) {
         this.player = Bukkit.getOfflinePlayer(uuid);
         String name;
-        if (BountyManager.hasBounty(player)) {
-            Bounty bounty = BountyManager.getBounty(player);
+        if (BountyManager.hasBounty(uuid)) {
+            Bounty bounty = BountyManager.getBounty(uuid);
             assert bounty != null;
             name = bounty.getName();
         } else {
@@ -65,11 +66,26 @@ public class Renderer extends MapRenderer {
                     return;
                 this.cancel();
                 new BukkitRunnable() {
+                    int maxRequests = 50;
                     @Override
                     public void run() {
+                        // check if max requests hit
+                        if (maxRequests <= 0) {
+                            this.cancel();
+                            if (NotBounties.debug)
+                                new BukkitRunnable() {
+                                    @Override
+                                    public void run() {
+                                        Bukkit.getLogger().warning("[NotBounties] Timed out getting skin from \"" + name + "\" for a bounty poster. A question mark will be displayed instead.");
+                                    }
+                                }.runTask(NotBounties.getInstance());
+                            renderPoster(SkinManager.getPlayerFace(new UUID(0,0)), name, false);
+                            return;
+                        }
+                        maxRequests--;
                         if (!SkinManager.isSkinLoaded(uuid))
                             return;
-                        renderPoster(SkinManager.getPlayerFace(uuid), name);
+                        renderPoster(SkinManager.getPlayerFace(uuid), name, true);
                         this.cancel();
                     }
                 }.runTaskTimerAsynchronously(NotBounties.getInstance(),10,4);
@@ -78,7 +94,7 @@ public class Renderer extends MapRenderer {
 
     }
 
-    private void renderPoster(BufferedImage head, String name) {
+    private void renderPoster(BufferedImage head, String name, boolean save) {
         if (image == null)
             image = BountyMap.deepCopy(BountyMap.bountyPoster);
         Graphics2D graphics = image.createGraphics();
@@ -88,7 +104,7 @@ public class Renderer extends MapRenderer {
         // head display ends at y95
         float fontSize = maxFont;
         graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
-        String displayName = ConfigOptions.nameLine.replaceAll("\\{name}", Matcher.quoteReplacement(name));
+        String displayName = ConfigOptions.nameLine.replace("{name}", (name));
 
         if (ConfigOptions.papiEnabled)
             displayName = new PlaceholderAPIClass().parse(player, displayName);
@@ -113,7 +129,7 @@ public class Renderer extends MapRenderer {
 
         File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
 
-        if (ConfigOptions.saveTemplates) {
+        if (ConfigOptions.saveTemplates && save) {
             try {
                 ImageIO.write(image, "PNG", imageFile);
             } catch (IOException e) {
@@ -123,10 +139,10 @@ public class Renderer extends MapRenderer {
     }
 
     public double getBountyAmount() {
-        if (BountyManager.hasBounty(player)) {
-            Bounty bounty = BountyManager.getBounty(player);
+        if (BountyManager.hasBounty(player.getUniqueId())) {
+            Bounty bounty = BountyManager.getBounty(player.getUniqueId());
             assert bounty != null;
-            return bounty.getTotalBounty();
+            return bounty.getTotalDisplayBounty();
         }
         return 0;
     }
@@ -175,9 +191,8 @@ public class Renderer extends MapRenderer {
                     graphics.setComposite(AlphaComposite.Src);
                     String rewardText = ConfigOptions.rewardText;
                     String bountyText = ConfigOptions.currencyWrap ? NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(currentCost) + NumberFormatting.currencySuffix : NumberFormatting.formatNumber(currentCost);
-                    rewardText = rewardText.replaceAll("\\{reward}", Matcher.quoteReplacement(bountyText));
-                    if (ConfigOptions.papiEnabled)
-                        rewardText = new PlaceholderAPIClass().parse(player, rewardText);
+                    rewardText = rewardText.replace("{reward}", (bountyText));
+                    rewardText = LanguageOptions.parse(rewardText, player);
                     rewardText = ChatColor.translateAlternateColorCodes('&', rewardText);
 
 

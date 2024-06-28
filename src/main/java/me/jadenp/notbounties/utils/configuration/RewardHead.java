@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils.configuration;
 
+import me.jadenp.notbounties.ui.HeadFetcher;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;

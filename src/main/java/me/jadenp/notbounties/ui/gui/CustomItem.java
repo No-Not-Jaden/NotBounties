@@ -79,7 +79,7 @@ public class CustomItem {
 
 
     public ItemStack getFormattedItem(OfflinePlayer player, String[] replacements){
-        if (replacements == null)
+        if (replacements == null || replacements.length == 0)
             replacements = new String[]{""};
         ItemStack itemStack = headID != null && material == Material.PLAYER_HEAD ? Head.createPlayerSkull(headID) : new ItemStack(material, amount);
         if (itemStack == null)
@@ -87,11 +87,11 @@ public class CustomItem {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) return itemStack;
         if (name != null)
-            meta.setDisplayName(parse(color(name.replaceAll("\\{leaderboard}", replacements[0])), player));
+            meta.setDisplayName(parse(color(name.replace("{leaderboard}", replacements[0])), player));
         if (!lore.isEmpty()) {
             List<String> lore = new ArrayList<>(this.lore);
             String[] finalReplacements = replacements;
-            lore.replaceAll(s -> parse(color(s.replaceAll("\\{leaderboard}", finalReplacements[0])), player));
+            lore.replaceAll(s -> parse(color(s.replace("{leaderboard}", finalReplacements[0])), player));
             meta.setLore(lore);
         }
         if (customModelData != -1)
