@@ -6,18 +6,18 @@ import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import me.jadenp.notbounties.utils.externalAPIs.WorldGuardClass;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.*;
-import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.utils.BountyManager.claimBounty;
 
@@ -38,14 +38,26 @@ public class PVPRestrictions implements Listener {
         combatLoggingSendMessage = configurationSection.getBoolean("combat-logging.send-message");
         deathTaxOverride = configurationSection.getDouble("combat-logging.death-tax-override");
     }
+
     @EventHandler
     public void onPVP(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player && event.getDamager() instanceof Player))
-            return;
-        Player player = (Player) event.getEntity();
-        Player damager = (Player) event.getDamager();
+        if ((event.getEntity() instanceof Player && event.getDamager() instanceof Player))
+            controlPVP((Player) event.getEntity(), (Player) event.getDamager(), event);
 
-        int localPVPRule = BountyClaimRequirements.worldGuardEnabled ? new WorldGuardClass().getPVPRuleOverride(damager, player.getLocation()) : 0;
+    }
+
+    @EventHandler
+    public void onProjectileHit(ProjectileHitEvent event) {
+        if (event.getHitEntity() != null && event.getEntity().getShooter() != null) {
+            if (event.getHitEntity() instanceof Player && event.getEntity().getShooter() instanceof Player) {
+                controlPVP((Player) event.getHitEntity(), (Player) event.getEntity().getShooter(), event);
+            }
+        }
+    }
+
+
+    private void controlPVP(Player player, Player damager, Cancellable event) {
+        int localPVPRule = BountyClaimRequirements.worldGuardEnabled ? new WorldGuardClass().getPVPRuleOverride(damager, player.getLocation()) : -1;
 
         if (localPVPRule == -1 && (!worlds.contains(player.getWorld().getName()) && !worlds.isEmpty()))
             return;
@@ -64,9 +76,9 @@ public class PVPRestrictions implements Listener {
                 break;
             case 2:
                 if (!BountyManager.hasBounty(player.getUniqueId()) && (!historyMap.containsKey(damager.getUniqueId()) || historyMap.get(damager.getUniqueId()).getLastHit() < System.currentTimeMillis() - pvpTime * 1000L)) {
-                        event.setCancelled(true);
-                        return;
-                    }
+                    event.setCancelled(true);
+                    return;
+                }
 
                 break;
             case 3:
@@ -84,14 +96,15 @@ public class PVPRestrictions implements Listener {
             if (historyMap.containsKey(player.getUniqueId())) {
                 PVPHistory history = historyMap.get(player.getUniqueId());
                 if (history.isCombatSafe() && localCombatTime > 0 && combatLoggingSendMessage) {
-                    event.getEntity().sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatTag.replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
+                    player.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatTag.replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
                 }
-                history.setLastHit(event.getDamager().getUniqueId());
+                history.setLastHit(damager.getUniqueId());
             } else {
                 historyMap.put(player.getUniqueId(), new PVPHistory(damager.getUniqueId()));
                 if (localCombatTime > 0 && combatLoggingSendMessage) {
-                    event.getEntity().sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatTag.replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
+                    player.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatTag.replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
                 }
+
             }
         }
     }

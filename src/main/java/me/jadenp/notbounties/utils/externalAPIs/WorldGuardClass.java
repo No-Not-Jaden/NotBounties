@@ -141,7 +141,7 @@ public class WorldGuardClass {
         com.sk89q.worldedit.util.Location location = BukkitAdapter.adapt(pvpLocation);
         Integer value = query.queryValue(location, localPlayer, bountyPVPRule);
         if (value == null)
-            return 0;
+            return -1;
         return value;
     }
 }
