@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.utils.configuration;
 
+import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.HeadFetcher;
+import me.jadenp.notbounties.ui.SkinManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -20,7 +22,7 @@ public class RewardHead {
     private final double amount;
 
     public RewardHead(String playerName, UUID uuid, double amount) {
-
+        SkinManager.isSkinLoaded(uuid);
         this.playerName = playerName;
         this.uuid = uuid;
         this.amount = amount;
@@ -40,13 +42,12 @@ public class RewardHead {
 
     public ItemStack getItem(){
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-        ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
+        ItemStack skull = Head.createPlayerSkull(uuid, SkinManager.getSkin(uuid).getUrl());
         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         assert skullMeta != null;
-        skullMeta.setOwningPlayer(player);
-        skullMeta.setDisplayName(LanguageOptions.parse(rewardHeadName, player.getName(), amount, player));
+        skullMeta.setDisplayName(LanguageOptions.parse(rewardHeadName, playerName, amount, player));
         List<String> lore = new ArrayList<>();
-        rewardHeadLore.forEach(str -> lore.add(LanguageOptions.parse(str, player.getName(), amount, player)));
+        rewardHeadLore.forEach(str -> lore.add(LanguageOptions.parse(str, playerName, amount, player)));
         skullMeta.setLore(lore);
         skull.setItemMeta(skullMeta);
         return skull;

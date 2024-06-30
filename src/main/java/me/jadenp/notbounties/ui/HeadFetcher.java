@@ -92,7 +92,7 @@ public class HeadFetcher {
                         i = 0;
                         for (Map.Entry<OfflinePlayer, ItemStack> entry : heads.entrySet()) {
                             if (fetchedHeads[i] == null) {
-                                Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(entry.getKey().getUniqueId()));
+                                NotBounties.debugMessage("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(entry.getKey().getUniqueId()), true);
                             }
                             i++;
                         }
@@ -104,7 +104,6 @@ public class HeadFetcher {
                     if (itemStack == null)
                         return;
                 this.cancel();
-                //Bukkit.getLogger().info("Took: " + (System.currentTimeMillis() - start) + "ms to load heads");
             }
         }.runTaskTimerAsynchronously(NotBounties.getInstance(), 1, 4);
     }

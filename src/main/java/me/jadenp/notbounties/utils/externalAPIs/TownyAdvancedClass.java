@@ -30,4 +30,12 @@ public class TownyAdvancedClass {
         Town town2 = townyAPI.getTown(player2);
         return town1 != null && town1.equals(town2);
     }
+
+    public int getResidents(String name) {
+        TownyAPI townyAPI = TownyAPI.getInstance();
+        Town town = townyAPI.getTown(name);
+        if (town == null)
+            return -1;
+        return town.getResidents().size();
+    }
 }

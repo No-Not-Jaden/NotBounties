@@ -41,6 +41,7 @@ public class ConfigOptions {
     public static boolean rewardHeadClaimed;
     public static boolean redeemRewardLater;
     public static boolean rewardHeadSetter;
+    public static boolean rewardHeadAnyKill;
     public static boolean buyBack;
     public static double buyBackInterest;
     public static boolean papiEnabled;
@@ -370,6 +371,7 @@ public class ConfigOptions {
             pluginBountyCommands.add("notbounties");
         if (firstStart)
             registerAliases(pluginBountyCommands);
+        rewardHeadAnyKill = bounties.getConfig().getBoolean("reward-heads.any-kill");
 
 
 

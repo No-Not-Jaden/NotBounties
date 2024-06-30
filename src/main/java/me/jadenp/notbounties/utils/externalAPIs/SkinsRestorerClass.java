@@ -13,7 +13,6 @@ import net.skinsrestorer.api.storage.PlayerStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Optional;
@@ -50,13 +49,13 @@ public class SkinsRestorerClass {
         }
         String name = NotBounties.getPlayerName(uuid);
         if (!connect()) {
-            requestNamedSkin(uuid, name);
+            requestNamedSkin(uuid);
             return;
         }
         PlayerStorage playerStorage = skinsRestorer.getPlayerStorage();
         try {
             Optional<SkinProperty> skinProperty = playerStorage.getSkinForPlayer(uuid, name);
-            if (!skinProperty.isPresent()) {
+            if (skinProperty.isEmpty()) {
                 if (NotBounties.debug)
                     new BukkitRunnable() {
                         @Override
@@ -64,7 +63,7 @@ public class SkinsRestorerClass {
                             Bukkit.getLogger().warning("[NotBountiesDebug] Skin property not present from SkinsRestorer for " + name + ".");
                         }
                     }.runTask(NotBounties.getInstance());
-                requestNamedSkin(uuid, name);
+                requestNamedSkin(uuid);
                 return;
             }
             String skinUrl = PropertyUtils.getSkinTextureUrl(skinProperty.get());
@@ -79,21 +78,15 @@ public class SkinsRestorerClass {
                         Bukkit.getLogger().warning(e.toString());
                     }
                 }.runTask(NotBounties.getInstance());
-            requestNamedSkin(uuid, name);
+            requestNamedSkin(uuid);
         }
     }
 
-    private static void requestNamedSkin(UUID uuid, String name) {
+    private static void requestNamedSkin(UUID uuid) {
         try {
-            SkinManager.saveNamedSkin(uuid, name);
+            SkinManager.saveSkin(uuid);
         } catch (Exception e2) {
-            if (NotBounties.debug)
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        Bukkit.getLogger().warning("[NotBountiesDebug] Unable to obtain a skin for " + name + ".");
-                    }
-                }.runTask(NotBounties.getInstance());
+            NotBounties.debugMessage("[NotBountiesDebug] Unable to obtain a skin for " + uuid + ".", true);
         }
     }
 

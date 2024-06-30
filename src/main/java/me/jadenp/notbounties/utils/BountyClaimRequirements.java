@@ -51,12 +51,20 @@ public class BountyClaimRequirements {
      * WorldGuard
      */
     public static boolean worldGuardEnabled;
+    /**
+     * Sabre Factions
+     */
+    public static boolean saberEnabled;
+    public static boolean saberFactions;
+    public static boolean saberAlly;
+
     public static void loadConfiguration(ConfigurationSection configuration) {
         kingdomsXEnabled = Bukkit.getPluginManager().isPluginEnabled("Kingdoms");
         betterTeamsEnabled = Bukkit.getPluginManager().isPluginEnabled("BetterTeams");
         townyAdvancedEnabled = Bukkit.getPluginManager().isPluginEnabled("Towny");
         landsEnabled = Bukkit.getPluginManager().isPluginEnabled("Lands");
         worldGuardEnabled = Bukkit.getPluginManager().isPluginEnabled("WorldGuard");
+        saberEnabled = Bukkit.getPluginManager().isPluginEnabled("Factions");
 
         kingdomsXNation = configuration.getBoolean("kingdoms-x.nation");
         kingdomsXNationAllies = configuration.getBoolean("kingdoms-x.nation-ally");
@@ -73,6 +81,8 @@ public class BountyClaimRequirements {
         landsNationAllies = configuration.getBoolean("lands.nation-ally");
         landsLand = configuration.getBoolean("lands.land");
         landsLandAllies = configuration.getBoolean("lands.land-ally");
+        saberFactions = configuration.getBoolean("saber-factions.faction");
+        saberAlly = configuration.getBoolean("saber-factions.ally");
 
     }
     
@@ -117,6 +127,11 @@ public class BountyClaimRequirements {
         if (worldGuardEnabled) {
             WorldGuardClass worldGuardClass = new WorldGuardClass();
             if (!worldGuardClass.canClaim(killer, player.getLocation()))
+                return false;
+        }
+        if (saberEnabled) {
+            SabreFactionsClass sabreFactionsClass = new SabreFactionsClass();
+            if ((!saberFactions && sabreFactionsClass.inSameFaction(player, killer)) || (!saberAlly && sabreFactionsClass.areFactionsAllied(player, killer)))
                 return false;
         }
 

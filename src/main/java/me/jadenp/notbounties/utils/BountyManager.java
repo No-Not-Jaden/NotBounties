@@ -12,6 +12,8 @@ import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.Commands;
+import me.jadenp.notbounties.ui.Head;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.map.BountyBoard;
@@ -30,6 +32,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -349,6 +352,8 @@ public class BountyManager {
     public static List<Bounty> sortBounties(int sortType) {
         // how bounties are sorted
         List<Bounty> sortedList = new ArrayList<>(bountyList);
+        if (sortType == -1)
+            return sortedList;
         if (sortedList.isEmpty())
             return sortedList;
         Bounty temp;
@@ -701,8 +706,22 @@ public class BountyManager {
     }
 
     public static List<Bounty> getPublicBounties(int sortType) {
-        List<Bounty> bounties = SQL.isConnected() ? data.getTopBounties(sortType) : sortBounties(sortType);
+        List<Bounty> bounties = getAllBounties(sortType);
         return bounties.stream().filter(bounty -> !hiddenNames.contains(bounty.getName())).collect(Collectors.toList());
+    }
+
+    /**
+     * Get a copy of all bounties on the server.
+     * @param sortType
+     *   <p>-1 : unsorted</p>
+     *   <p> 0 : newer bounties at top</p>
+     *   <p> 1 : older bounties at top</p>
+     *   <p> 2 : more expensive bounties at top</p>
+     *   <p> 3 : less expensive bounties at top</p>
+     * @return A copy of all bounties on the server.
+     */
+    public static List<Bounty> getAllBounties(int sortType) {
+        return SQL.isConnected() ? data.getTopBounties(sortType) : sortBounties(sortType);
     }
 
     public static void removeBounty(UUID uuid) {
@@ -722,6 +741,9 @@ public class BountyManager {
     public static void claimBounty(@NotNull Player player, Player killer, List<ItemStack> drops, boolean forceEditDrops) {
         if (debug)
             Bukkit.getLogger().info("[NotBountiesDebug] Received a bounty claim request.");
+        Item droppedHead = null;
+        if (rewardHeadAnyKill)
+            droppedHead = player.getWorld().dropItemNaturally(player.getLocation(), Head.createPlayerSkull(player.getUniqueId(), SkinManager.getSkin(player.getUniqueId()).getUrl()));
         // possible remove this later when the other functions allow null killers
         if (killer == null)
             return;
@@ -854,6 +876,8 @@ public class BountyManager {
             }
         }
         if (rewardHeadClaimed) {
+            if (droppedHead != null)
+                droppedHead.remove();
             NumberFormatting.givePlayer(killer, rewardHead.getItem(), 1);
             if (debug)
                 Bukkit.getLogger().info("[NotBountiesDebug] Gave " + killer.getName() + " a player skull for the bounty.");

@@ -68,15 +68,13 @@ public class GUI implements Listener {
         LinkedHashMap<UUID, String> values = new LinkedHashMap<>();
         switch (name) {
             case "bounty-gui":
-                List<Bounty> sortedList = SQL.isConnected() ? BountyManager.data.getTopBounties(gui.getSortType()) : sortBounties(gui.getSortType());
+                List<Bounty> sortedList = BountyManager.getAllBounties(gui.getSortType());
                 for (Bounty bounty : sortedList) {
                     double bountyAmount = showWhitelistedBounties || player.hasPermission("notbounties.admin") ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
                     if (bountyAmount > 0)
                         values.put(bounty.getUUID(), String.format("%f", bountyAmount));
-                    if (reducePageCalculations) {
-                        if (values.size() > gui.getPlayerSlots().size() * page)
-                            break;
-                    }
+                    if (reducePageCalculations && values.size() > gui.getPlayerSlots().size() * page)
+                        break;
                 }
                 break;
             case "leaderboard":
@@ -184,6 +182,8 @@ public class GUI implements Listener {
                 String uuid2 = data.length > 0 && data[0] instanceof UUID ? data[0].toString() : player.getUniqueId().toString();
                 long price2 = data.length > 1 && data[1] instanceof Long ? (long) data[1] : 0;
                 values.put(UUID.fromString(uuid2), price2 + "");
+                break;
+            default:
                 break;
         }
         return values;

@@ -49,6 +49,7 @@ public class FloodGateClass {
 
                 SkinManager.saveSkin(uuid, new PlayerSkin(SkinManager.getTextureURL(value), id));
             } else if (code == 400) {
+                SkinManager.failRequest(uuid);
                 if (NotBounties.debug)
                     new BukkitRunnable() {
                         @Override
@@ -58,6 +59,7 @@ public class FloodGateClass {
                         }
                     }.runTask(NotBounties.getInstance());
             } else {
+                SkinManager.failRequest(uuid);
                 if (NotBounties.debug)
                     new BukkitRunnable() {
                         @Override
@@ -68,6 +70,7 @@ public class FloodGateClass {
                     }.runTask(NotBounties.getInstance());
             }
         } catch (IOException e) {
+            SkinManager.failRequest(uuid);
             if (NotBounties.debug)
                 new BukkitRunnable() {
                     @Override

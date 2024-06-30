@@ -1417,12 +1417,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return false;
                     }
                     if (args.length == 1) {
-                        if (sender instanceof Player)
+                        if (sender instanceof Player) {
                             if (bountyItemsDefaultGUI) {
                                 openGUI(parser, "bounty-item-select", ConfigOptions.minBounty, player.getUniqueId().toString());
                             } else {
                                 openGUI(parser, "select-price", ConfigOptions.minBounty, player.getUniqueId().toString());
                             }
+                        }
                         return true;
                     }
 

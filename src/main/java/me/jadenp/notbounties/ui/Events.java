@@ -81,7 +81,7 @@ public class Events implements Listener {
                 autoImmuneTimedPerms.add(event.getPlayer().getUniqueId().toString());
             }
         }
-        displayParticle.remove(event.getPlayer());
+        displayParticle.remove(event.getPlayer().getUniqueId());
         if (NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
             NotBounties.wantedText.get(event.getPlayer().getUniqueId()).removeStand();
             NotBounties.wantedText.remove(event.getPlayer().getUniqueId());
@@ -281,7 +281,7 @@ public class Events implements Listener {
                 LocalTime.formatTime(0, LocalTime.TimeFormat.PLAYER, event.getPlayer());
 
                 // get skin info
-                SkinManager.saveSkin(event.getPlayer().getUniqueId());
+                SkinManager.isSkinLoaded(event.getPlayer().getUniqueId());
             }
         }.runTaskLater(NotBounties.getInstance(), 40L);
 

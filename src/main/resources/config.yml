@@ -163,6 +163,16 @@ teams:
   # players with the same placeholder result will not be able to claim each other's bounties (Must have PlaceholderAPI installed)
   # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
   placeholder: ''
+  # Team bounties
+  bounties:
+    # whether team bounties are enabled
+    enabled: false
+    # how the bounty gets split
+    # ANY - any kill of a person on the team returns you a fraction of the bounty
+    # INDIVIDUAL - the bounty will be split across everyone on the team when the bounty is set
+    split-mode: ANY
+    # minimum bounty to set a team bounty
+    min-bounty: 100
   # <===> BetterTeams <===>
   better-teams:
     # claim if on the same BetterTeams team
@@ -198,6 +208,12 @@ teams:
     land: false
     # claim if lands are allied
     land-ally: false
+  # <===> Saber Factions <===>
+  saber-factions:
+    # claim if in the same faction
+    faction: false
+    # claim if allied
+    ally: false
 # auto-updating bounty poster board
 bounty-board:
   # 0 oldest bounties
@@ -359,6 +375,8 @@ reward-heads:
   setters: true
   # give player head of victim to the killer once claimed
   claimed: false
+  # drop player head when anyone is killed
+  any-kill: false
 # players can buy their own bounties for an increased amount - uses remove-currency-commands
 buy-own-bounties:
   enabled: true

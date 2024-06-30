@@ -17,6 +17,7 @@ softdepend:
   - Kingdoms
   - Lands
   - WorldGuard
+  - Factions
 commands:
   notbounties:
     description: Use all of the bounty commands.

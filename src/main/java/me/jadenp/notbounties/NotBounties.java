@@ -3,6 +3,7 @@ package me.jadenp.notbounties;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.ui.map.BountyMap;
@@ -51,90 +52,8 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Save to json file instead of yaml
  * Redis
  * Folia
- * Silent messages -s - (minus bounty set) x
- * Bungeecord/Waterfall
- * Fix SQL memory leak -
- * Get skins in offline mode (get uuid from name and then skin) - x
- * override skinsrestorer - x
- * craft empty tracker x
- * craft player tracker with player head - x
- * bounty poster recipe x
- * updating plugin version keeps bounty boards (saved in different world) - x
- * bedrock gui works with bungeecord - x
- * loading skins with geyser doesn't work - x
- * don't display player names in gui if not specified - x
- * dropdown option for online players - x
- * don't get skins in bedrock GUI if none will be displayed - x
- * can update bedrock gui file - x
- * Skin requests can time out - x
- * empty tracker does funky movement - x
- * many new language options - x
- * can give empty tracker - x
- * tracker tab completes when give own is false - x
- * tracker other help not sent without perms - x
- * empty doesnt tab complete without permission - x
- * tracker name tab completes if you are holding tracker item - x
- * can write empty trackers - x
- * can wash empty trackers - x
- * can wash bounty maps - x
- * cauldron has to be filled to wash - x
- * reset trackers work both ways - x
- * Allow players to place items as bounties - x
- * /bounty {player} MATERIAL:amount - x
- * Change messages to display estimated bounty price - x
- * tab complete material, then amount - x
- * bounty item gui - x
- * works with manual economy - x
- * test other options x
- * tax works with items - x
- * tab complete --confirm with items - x
- * items are duplicated on server restart - x
- * items are removed if they don't have enough - x
- * items are given back correctly when exiting the gui - x
- * add to bounty claim in bounty manager - x
- * bounty check lists items (add to language.yml) - x
- * Action command placeholder for just bounty value or item value - x
- * Smart wanted tags update - x
- * Reward head gets the right lore - x
- * fixed bug where bounty boards would update every check interval with sql - x
- * remove big bounty on bounty remove - x
- * death tax override for combat logging - x
- * combat safe message will be send when the player dies - x
- * fixed a bug where the combat tag message would be sent every time - x
- * test other versions
- * try duplicating while washing bounty items - x
- * pvp restrictions to worlguard region flag -
- * double webhook msg - x
- * vouchers can store items
- * refund works with bounty items - x
- * Hover text for bounty check - x
- * big bounty works if you place a bounty exactly on threshold - x
- * opped player doesnt have perm to do /bounty tracker (player) - x
- * {tax} - x
- * changed bounty-item-select gui for dev build - x
- * server restart while in bounty item select will refund items - x
- * sound is played when being given items - x
- * players will not loose items if they disconnect while being given items - x
- * remove items when opening bounty item gui - x
- * refund bounty-item-select items on disconnect - x
- * {bounty_value} placeholder for regular msgs -
- * hover event doesn't show nbt (test for other versions)
- * placeholder in toggle default -
- * bdc on/true/enable - x
- * {notification} - x
- * {mode_raw} - x
- * error clicking non registered head in player slot > page 1 - x
- * no empty tracker msg - x
- * Steal your own bounty if you kill the player that placed it on you - x
- * Moved the error message when a hidden player name couldn't be converted to a uuid when using sql -
- * sql works with items - x
- * tutorial command parses prefix - x
- * item bounty gui will be closed if the player is sent an immunity message  -
- * removed [close] from set bounty item - x
- * used-item-values works - x
- * bounty board checks are no longer done when nobody is online - x
- * fixed a bug where top bounties with sql would only return the first player - x
- *
+ * Reward head for any kill x
+ * Team bounties
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -253,6 +172,10 @@ public final class NotBounties extends JavaPlugin {
         if (!tryToConnect()) {
             Bukkit.getLogger().info("[NotBounties] Database not connected, using internal storage");
         }
+
+        // load skins for bounties
+        for (Bounty bounty : BountyManager.getAllBounties(-1))
+            SkinManager.saveSkin(bounty.getUUID());
 
         // register plugin messaging to a proxy
         this.getServer().getMessenger().registerOutgoingPluginChannel(this, "bungeecord:main");
@@ -824,6 +747,31 @@ public final class NotBounties extends JavaPlugin {
      */
     public static boolean isAboveVersion(int majorVersion, int subVersion) {
         return serverVersion > majorVersion || (majorVersion == serverVersion && subVersion < serverSubVersion);
+    }
+
+    public static void debugMessage(String message, boolean warning) {
+        if (!debug)
+            return;
+        message = "[NotBountiesDebug] " + message;
+        NotBounties notBounties = NotBounties.getInstance();
+        if (notBounties.isEnabled()) {
+            String finalMessage = message;
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    consoleMessage(finalMessage, warning);
+                }
+            }.runTask(notBounties);
+        } else {
+            consoleMessage(message, warning);
+        }
+    }
+
+    private static void consoleMessage(String message, boolean warning) {
+        if (warning)
+            Bukkit.getLogger().warning(message);
+        else
+            Bukkit.getLogger().info(message);
     }
 
 }
