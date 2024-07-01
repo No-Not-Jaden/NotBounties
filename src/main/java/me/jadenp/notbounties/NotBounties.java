@@ -52,8 +52,11 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Save to json file instead of yaml
  * Redis
  * Folia
- * Reward head for any kill x
  * Team bounties
+ *
+ * Fixed an error when requesting skins
+ * fixed an sql sorting bug
+ * fixed a bug when loading heads in the GUI
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -116,7 +119,7 @@ public final class NotBounties extends JavaPlugin {
 
         this.saveDefaultConfig();
 
-        loadBounties();
+
         BountyMap.initialize();
         namespacedKey = new NamespacedKey(this, "bounty-entity");
 
@@ -144,6 +147,7 @@ public final class NotBounties extends JavaPlugin {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        loadBounties();
 
         if (ChallengeManager.isEnabled()) {
             try {
@@ -308,7 +312,7 @@ public final class NotBounties extends JavaPlugin {
                 if (!removeBannedPlayers)
                     return;
                 if (bountyListCopy.isEmpty()) {
-                    bountyListCopy = SQL.isConnected() ? data.getTopBounties(2) : new ArrayList<>(bountyList);
+                    bountyListCopy = BountyManager.getAllBounties(-1);
                     playersPerRun = bountyListCopy.size() / 12 + 1;
                 }
                 for (int i = 0; i < playersPerRun; i++) {
@@ -320,11 +324,7 @@ public final class NotBounties extends JavaPlugin {
                         @Override
                         public void run() {
                             if (player.isBanned() || (liteBansEnabled && !(new LiteBansClass().isPlayerNotBanned(bounty.getUUID())))) {
-                                if (SQL.isConnected()) {
-                                    data.removeBounty(bounty.getUUID());
-                                } else {
-                                    bountyList.remove(bounty);
-                                }
+                                BountyManager.removeBounty(bounty.getUUID());
                             }
                         }
                     }.runTaskAsynchronously(NotBounties.getInstance());
@@ -388,7 +388,7 @@ public final class NotBounties extends JavaPlugin {
         }
         if (!SQL.isConnected()) {
             i = 0;
-            for (Bounty bounty : bountyList) {
+            for (Bounty bounty : BountyManager.getAllBounties(-1)) {
                 configuration.set("bounties." + i + ".uuid", bounty.getUUID().toString());
                 configuration.set("bounties." + i + ".name", bounty.getName());
                 int f = 0;
@@ -507,32 +507,32 @@ public final class NotBounties extends JavaPlugin {
 
         ConfigOptions.reloadOptions();
 
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // check players to display particles
+                displayParticle.clear();
+                List<Bounty> topBounties = getAllBounties(2);
 
-        // check players to display particles
-        displayParticle.clear();
-        List<Bounty> topBounties;
-        if (SQL.isConnected()) {
-            topBounties = data.getTopBounties(2);
-        } else {
-            Collections.sort(bountyList);
-            topBounties = new ArrayList<>(bountyList);
-        }
-        for (Bounty bounty : topBounties) {
-            if (bounty.getTotalDisplayBounty() >= BigBounty.getThreshold()) {
-                OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
-                if (player.isOnline()) {
-                    displayParticle.add(player.getPlayer().getUniqueId());
+                for (Bounty bounty : topBounties) {
+                    if (bounty.getTotalDisplayBounty() >= BigBounty.getThreshold()) {
+                        OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
+                        if (player.isOnline()) {
+                            displayParticle.add(Objects.requireNonNull(player.getPlayer()).getUniqueId());
+                        }
+                    } else {
+                        break;
+                    }
                 }
-            } else {
-                break;
             }
-        }
+        }.runTaskLater(NotBounties.getInstance(), 40);
+
 
         if (autoConnectTask != null) {
             autoConnectTask.cancel();
         }
         try {
-            if ((SQL.isConnected() || autoConnect) && !firstConnect) {
+            if (!firstConnect && (SQL.isConnected() || autoConnect)) {
                 SQL.reconnect();
             }
         } catch (SQLException ignored) {
@@ -639,9 +639,10 @@ public final class NotBounties extends JavaPlugin {
     public void sendDebug(CommandSender sender) throws SQLException {
         sender.sendMessage(parse(prefix + ChatColor.WHITE + "NotBounties debug info:", null));
         String connected = SQL.isConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
-        sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + SQL.getDatabaseType() + ChatColor.YELLOW + " ID: " + ChatColor.WHITE + SQL.getServerID() + ChatColor.YELLOW + " Local Bounties: " + ChatColor.WHITE + bountyList.size());
+        int localBounties = BountyManager.getAllBounties(-1).size();
+        sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + SQL.getDatabaseType() + ChatColor.YELLOW + " ID: " + ChatColor.WHITE + SQL.getServerID() + ChatColor.YELLOW + " Local Bounties: " + ChatColor.WHITE + localBounties);
         sender.sendMessage(ChatColor.GOLD + "General > " + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion() + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + "1." + serverVersion + "." + serverSubVersion + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug);
-        int bounties = SQL.isConnected() ? data.getTopBounties(2).size() : bountyList.size();
+        int bounties = SQL.isConnected() ? data.getTopBounties(-1).size() : localBounties;
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + BountyTracker.getTrackedBounties().size() + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + bountyBoards.size());
         String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
         String papi = papiEnabled ? ChatColor.GREEN + "PlaceholderAPI" : ChatColor.RED + "PlaceholderAPI";

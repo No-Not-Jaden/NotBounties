@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils.configuration;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.utils.BountyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -137,18 +138,15 @@ public class BountyExpire {
                 }
             }
         } else {
-            ListIterator<Bounty> bountyIterator = bountyList.listIterator();
-            while (bountyIterator.hasNext()) {
-                Bounty bounty = bountyIterator.next();
-                ListIterator<Setter> setterIterator = bounty.getSetters().listIterator();
-                while (setterIterator.hasNext()) {
-                    Setter setter = setterIterator.next();
+            Map<UUID, List<Setter>> settersToRemove = new HashMap<>();
+            for (Bounty bounty : BountyManager.getAllBounties(-1)) {
+                for (Setter setter : bounty.getSetters()) {
                     if (isExpired(bounty.getUUID(), setter)) {
-                        if (!setter.getUuid().equals(new UUID(0,0))) {
+                        if (!setter.getUuid().equals(new UUID(0, 0))) {
                             // check if setter is online
                             Player player = Bukkit.getPlayer(setter.getUuid());
                             if (player != null) {
-                                player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getAmount(), player));
+                                player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getDisplayAmount(), player));
                             }
                             if (rewardReceiver) {
                                 refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems());
@@ -156,19 +154,18 @@ public class BountyExpire {
                                 refundSetter(setter);
                             }
                         }
-                        setterIterator.remove();
+                        if (settersToRemove.containsKey(bounty.getUUID())) {
+                            settersToRemove.get(bounty.getUUID()).add(setter);
+                        } else {
+                            settersToRemove.put(bounty.getUUID(), new ArrayList<>(List.of(setter)));
+                        }
+
                         change = true;
                     }
                 }
-                //bounty.getSetters().removeIf(setter -> System.currentTimeMillis() - setter.getTimeCreated() > 1000L * 60 * 60 * 24 * bountyExpire);
-                // remove bounty if all the setters have been removed
-                if (bounty.getSetters().isEmpty()) {
-                    bountyIterator.remove();
-                    if (NotBounties.wantedText.containsKey(bounty.getUUID())) {
-                        NotBounties.wantedText.get(bounty.getUUID()).removeStand();
-                        NotBounties.wantedText.remove(bounty.getUUID());
-                    }
-                }
+            }
+            for (Map.Entry<UUID, List<Setter>> entry : settersToRemove.entrySet()) {
+                BountyManager.removeSetters(entry.getKey(), entry.getValue());
             }
         }
         return change;

@@ -25,7 +25,6 @@ public class SkinsRestorerClass {
 
     public SkinsRestorerClass() {
         connect();
-        firstConnect = false;
     }
 
     private boolean connect(){
@@ -33,6 +32,15 @@ public class SkinsRestorerClass {
             skinsRestorer = SkinsRestorerProvider.get();
             return true;
         } catch (IllegalStateException e) {
+            if (!Bukkit.getOnlinePlayers().isEmpty()) {
+                // set first connect to false in 5 seconds (give the proxy time to respond)
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        firstConnect = false;
+                    }
+                }.runTaskLaterAsynchronously(NotBounties.getInstance(), 5 * 20L);
+            }
             if (!firstConnect && lastHookError < System.currentTimeMillis()) {
                     Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
                     lastHookError = System.currentTimeMillis() + 60000 * 5;
@@ -45,11 +53,20 @@ public class SkinsRestorerClass {
     public void saveSkin(UUID uuid) {
         if (ProxyMessaging.hasConnectedBefore()) {
             ProxyMessaging.requestPlayerSkin(uuid);
+            // timeout runnable
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (!SkinManager.isSkinLoaded(uuid))
+                        requestNamedSkin(uuid);
+                }
+            }.runTaskLaterAsynchronously(NotBounties.getInstance(), 5 * 20L); // 5 seconds
             return;
         }
         String name = NotBounties.getPlayerName(uuid);
         if (!connect()) {
-            requestNamedSkin(uuid);
+            if (!firstConnect)
+                requestNamedSkin(uuid);
             return;
         }
         PlayerStorage playerStorage = skinsRestorer.getPlayerStorage();
@@ -84,7 +101,7 @@ public class SkinsRestorerClass {
 
     private static void requestNamedSkin(UUID uuid) {
         try {
-            SkinManager.saveSkin(uuid);
+            SkinManager.requestSkin(uuid);
         } catch (Exception e2) {
             NotBounties.debugMessage("[NotBountiesDebug] Unable to obtain a skin for " + uuid + ".", true);
         }

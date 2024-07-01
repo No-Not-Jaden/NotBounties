@@ -67,7 +67,7 @@ public class BountyManager {
     public static final Map<UUID, Double> allTimeBounties = new HashMap<>();
     public static final Map<UUID, Double> allClaimedBounties = new HashMap<>();
     public static final Map<UUID, List<RewardHead>> headRewards = new HashMap<>();
-    public static final List<Bounty> bountyList = new ArrayList<>();
+    private static final List<Bounty> bountyList = new ArrayList<>();
 
     public static void loadBounties(){
         SQL = new MySQL(NotBounties.getInstance());
@@ -246,6 +246,8 @@ public class BountyManager {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        Collections.sort(bountyList);
+        tryToConnect();
     }
 
 
@@ -354,15 +356,17 @@ public class BountyManager {
         List<Bounty> sortedList = new ArrayList<>(bountyList);
         if (sortType == -1)
             return sortedList;
+        if (sortType == 2)
+            return sortedList.reversed();
+        if (sortType == 3)
+            return sortedList;
         if (sortedList.isEmpty())
             return sortedList;
         Bounty temp;
         for (int i = 0; i < sortedList.size(); i++) {
             for (int j = i + 1; j < sortedList.size(); j++) {
                 if ((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
-                        (sortedList.get(i).getSetters().get(0).getTimeCreated() < sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 1) || // newest bounties at top
-                        (sortedList.get(i).getTotalDisplayBounty() < sortedList.get(j).getTotalDisplayBounty() && sortType == 2) || // more expensive bounties at top
-                        (sortedList.get(i).getTotalDisplayBounty() > sortedList.get(j).getTotalDisplayBounty() && sortType == 3)) { // less expensive bounties at top
+                        (sortedList.get(i).getSetters().get(0).getTimeCreated() < sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 1)){// newest bounties at top
                     temp = sortedList.get(i);
                     sortedList.set(i, sortedList.get(j));
                     sortedList.set(j, temp);
@@ -388,7 +392,7 @@ public class BountyManager {
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + title + " " + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "               ");
         int sortType = Objects.requireNonNull(GUI.getGUI("bounty-gui")).getSortType();
-        List<Bounty> sortedList = SQL.isConnected() ? data.getTopBounties(sortType) : sortBounties(sortType);
+        List<Bounty> sortedList = getPublicBounties(sortType);
         for (int i = page * length; i < (page * length) + length; i++) {
             if (sortedList.size() > i) {
                 sender.sendMessage(parse(listTotal, sortedList.get(i).getName(), sortedList.get(i).getTotalDisplayBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));
@@ -446,32 +450,12 @@ public class BountyManager {
         if (!setter.hasDiscoveredRecipe(BountyTracker.getBountyTrackerRecipe()))
             setter.discoverRecipe(BountyTracker.getBountyTrackerRecipe());
 
-        Bounty bounty = null;
         if (SQL.isConnected()) {
-            bounty = data.getBounty(receiver.getUniqueId());
-            if (bounty == null) {
-                bounty = new Bounty(setter, receiver, amount, items, whitelist);
-            } else {
-                bounty.addBounty(setter, amount, items, whitelist);
-            }
-            data.addBounty(new Bounty(setter, receiver, amount, items, whitelist), new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, displayAmount, 0, 0);
         } else {
-            allTimeBounties.replace(receiver.getUniqueId(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + displayAmount);
-            for (Bounty bountySearch : bountyList) {
-                // if they have a bounty already
-                if (bountySearch.getUUID().equals(receiver.getUniqueId())) {
-                    bounty = bountySearch;
-                    bounty.addBounty(setter, amount, items, whitelist);
-                    break;
-                }
-            }
-            if (bounty == null) {
-                // create new bounty
-                bounty = new Bounty(setter, receiver, amount, items, whitelist);
-                bountyList.add(bounty);
-            }
+            allTimeBounties.put(receiver.getUniqueId(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + displayAmount);
         }
+        Bounty bounty = insertBounty(setter, receiver, amount, items, whitelist);
 
         if (receiver.isOnline()) {
             Player onlineReceiver = receiver.getPlayer();
@@ -546,31 +530,14 @@ public class BountyManager {
             return;
         }
 
-        Bounty bounty = null;
+
         if (SQL.isConnected()) {
-            bounty = data.getBounty(receiver.getUniqueId());
-            if (bounty == null) {
-                bounty = new Bounty(receiver, amount, items, whitelist);
-            }
-            data.addBounty(new Bounty(receiver, amount, items, whitelist), new Setter(consoleName, new UUID(0, 0), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
-            bounty.addBounty(amount, items, whitelist);
             data.addData(receiver.getUniqueId().toString(), 0, 0, 0, displayAmount, 0, 0);
         } else {
             allTimeBounties.put(receiver.getUniqueId(), Leaderboard.ALL.getStat(receiver.getUniqueId()) + displayAmount);
-            for (Bounty bountySearch : bountyList) {
-                // if they have a bounty already
-                if (bountySearch.getUUID().equals(receiver.getUniqueId())) {
-                    bounty = bountySearch;
-                    bounty.addBounty(amount, items, whitelist);
-                    break;
-                }
-            }
-            if (bounty == null) {
-                // create new bounty
-                bounty = new Bounty(receiver, amount, items, whitelist);
-                bountyList.add(bounty);
-            }
         }
+        Bounty bounty = insertBounty(null, receiver, amount, items, whitelist);
+
         if (receiver.isOnline()) {
             Player onlineReceiver = receiver.getPlayer();
             assert onlineReceiver != null;
@@ -721,8 +688,55 @@ public class BountyManager {
      * @return A copy of all bounties on the server.
      */
     public static List<Bounty> getAllBounties(int sortType) {
+        // Check if the SQL object has been loaded
+        // If not, no bounties should be loaded locally either
+        if (SQL == null)
+            return new ArrayList<>();
         return SQL.isConnected() ? data.getTopBounties(sortType) : sortBounties(sortType);
     }
+
+    /**
+     * Inserts a bounty into the sorted bountyList
+     * @return The new bounty. This bounty will be the combination of all bounties on the same person.
+     */
+    public static Bounty insertBounty(@Nullable Player setter, @NotNull OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
+        Bounty prevBounty;
+        Bounty newBounty = setter == null ? new Bounty(receiver, amount, items, whitelist) : new Bounty(setter, receiver, amount, items, whitelist);
+        if (SQL.isConnected()) {
+            prevBounty = data.getBounty(receiver.getUniqueId());
+            data.addBounty(newBounty, newBounty.getLastSetter());
+            if (prevBounty == null) {
+                prevBounty = newBounty;
+            } else {
+                if (setter == null) {
+                    prevBounty.addBounty(amount, items, whitelist);
+                } else {
+                    prevBounty.addBounty(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
+                }
+            }
+        } else {
+            prevBounty = getBounty(receiver.getUniqueId());
+            if (prevBounty == null) {
+                // insert new bounty for this player
+                int index = Collections.binarySearch(bountyList, newBounty);
+                if (index < 0) {
+                    index = -index - 1;
+                }
+                bountyList.add(index, newBounty);
+                prevBounty = newBounty;
+            } else {
+                // combine with previous bounty
+                if (setter == null) {
+                    prevBounty.addBounty(amount, items, whitelist);
+                } else {
+                    prevBounty.addBounty(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
+                }
+                Collections.sort(bountyList);
+            }
+        }
+        return prevBounty;
+    }
+
 
     public static void removeBounty(UUID uuid) {
         BountyTracker.stopTracking(uuid);
@@ -735,6 +749,15 @@ public class BountyManager {
         } else {
             bountyList.removeIf(bounty -> bounty.getUUID().equals(uuid));
         }
+    }
+
+    public static void removeSetters(UUID bountyUUID, List<Setter> setters) {
+        Bounty bounty = getBounty(bountyUUID);
+        if (bounty == null)
+            return;
+        bounty.getSetters().removeIf(setters::contains);
+        if (bounty.getSetters().isEmpty())
+            removeBounty(bounty.getUUID());
     }
 
 

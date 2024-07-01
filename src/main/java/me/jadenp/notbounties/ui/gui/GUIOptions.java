@@ -200,8 +200,8 @@ public class GUIOptions {
             page = 1;
         }
 
-
-        Inventory inventory = Bukkit.createInventory(player, size, getTitle(player, page, amount, playerItems, replacements));
+        String title = getTitle(player, page, amount, playerItems, replacements);
+        Inventory inventory = Bukkit.createInventory(player, size, title);
         ItemStack[] contents = inventory.getContents();
         // set up regular items
         for (int i = 0; i < contents.length; i++) {
@@ -310,7 +310,7 @@ public class GUIOptions {
             int slot = isSinglePlayerSlot ? playerSlots.get(i) : (playerSlots.get((int) (i - playerSlots.size() * (page-1))));
             contents[slot] = skull;
         }
-        new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, new Object[0], values.keySet().toArray(new UUID[0]), name), unloadedHeads);
+        new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, new Object[0], values.keySet().toArray(new UUID[0]), title), unloadedHeads);
         if  (type.equals("bounty-item-select") && !replacements[0].isEmpty()) {
             // load in saved items
             ItemStack[] savedContents = new ItemStack[0];

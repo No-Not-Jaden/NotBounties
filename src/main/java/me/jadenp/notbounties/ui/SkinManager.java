@@ -16,6 +16,7 @@ import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.util.Timeout;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.Debug;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -51,7 +52,14 @@ public class SkinManager {
 
     public static void refreshSkinRequests() {
         requestCooldown.clear(); // clear request times
-        savedSkins.entrySet().removeIf(pair -> isMissingSkin(pair.getValue())); // remove any skins that are set to missing
+        try {
+            savedSkins.entrySet().removeIf(pair -> isMissingSkin(pair.getValue())); // remove any skins that are set to missing
+        } catch (ConcurrentModificationException ignored) {
+            // skins are still being processed
+            Bukkit.getLogger().warning("[NotBounties] Failed to refresh skin cache.");
+            Bukkit.getLogger().warning("[NotBounties] Skins are currently being processed.");
+            Bukkit.getLogger().warning("[NotBounties] Please try again.");
+        }
     }
 
     public static void saveSkin(UUID uuid, PlayerSkin playerSkin) {
@@ -109,37 +117,48 @@ public class SkinManager {
                     ConfigOptions.skinsRestorerClass.saveSkin(uuid);
                     return;
                 }
-                if (ConfigOptions.floodgateEnabled) {
-                    FloodGateClass floodGateClass = new FloodGateClass();
-                    if (floodGateClass.isBedrockPlayer(uuid)) {
-                        floodGateClass.saveSkin(uuid);
-                        return;
-                    }
-                }
 
-
-
-                if (isSafeToRequest()) {
-                    try {
-                        new SkinResponseHandler(uuid).saveJavaSkin();
-                    } catch (ExecutionException | InterruptedException e) {
-                        NotBounties.debugMessage("[NotBountiesDebug] Could not save a java skin for: " + NotBounties.getPlayerName(uuid), true);
-                        NotBounties.debugMessage(e.toString(), true);
-                    }
-                } else {
-                    requestLater(uuid);
-                }
+                requestSkin(uuid);
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
     }
 
+    public static void requestSkin(UUID uuid) {
+        if (ConfigOptions.floodgateEnabled) {
+            FloodGateClass floodGateClass = new FloodGateClass();
+            if (floodGateClass.isBedrockPlayer(uuid)) {
+                floodGateClass.saveSkin(uuid);
+                return;
+            }
+        }
+
+        if (isSafeToRequest()) {
+            try {
+                new SkinResponseHandler(uuid).saveJavaSkin();
+            } catch (ExecutionException | InterruptedException e) {
+                NotBounties.debugMessage("[NotBountiesDebug] Could not save a java skin for: " + NotBounties.getPlayerName(uuid), true);
+                NotBounties.debugMessage(e.toString(), true);
+            }
+        } else {
+            requestLater(uuid);
+        }
+    }
+
     private static boolean isSafeToRequest(){
-        rateLimit.removeIf(l -> l < System.currentTimeMillis() - 60000); // remove times more than 1 minute ago
-        if (rateLimit.size() < 66)
+        List<Long> rateLimitCopy = new ArrayList<>(rateLimit);
+        // remove on main thread
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                rateLimit.removeIf(l -> l < System.currentTimeMillis() - 60000); // remove times more than 1 minute ago
+            }
+        }.runTask(NotBounties.getInstance());
+        rateLimitCopy.removeIf(l -> l < System.currentTimeMillis() - 60000);
+        if (rateLimitCopy.size() < 66)
             return true;
         long threshold = System.currentTimeMillis() - 5000;
-        int numRecent = (int) rateLimit.stream().mapToLong(l -> l).filter(l -> l > threshold).count(); // get number of requests less than 5 seconds ago
-        return rateLimit.size() < 190 && rateLimit.size() + numRecent < 200;
+        int numRecent = (int) rateLimitCopy.stream().mapToLong(l -> l).filter(l -> l > threshold).count(); // get number of requests less than 5 seconds ago
+        return rateLimitCopy.size() < 190 && rateLimitCopy.size() + numRecent < 200;
     }
 
     private static void requestLater(UUID uuid) {
@@ -161,7 +180,13 @@ public class SkinManager {
     }
 
     public static void incrementMojangRate() {
-        rateLimit.add(System.currentTimeMillis());
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                rateLimit.add(System.currentTimeMillis());
+            }
+        }.runTask(NotBounties.getInstance());
+
     }
 
     public static void failRequest(UUID uuid) {

@@ -47,7 +47,8 @@ public class SQLGetter {
                 "    time BIGINT NOT NULL," +
                 "    whitelist VARCHAR(369)," +
                 "    playtime BIGINT DEFAULT 0 NOT NULL," +
-                "    items BLOB" +
+                "    items BLOB," +
+                "    display FLOAT(53) DEFAULT -1 NOT NULL" +
                 ");");
             PreparedStatement checkAmount = SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = ? and table_name = 'notbounties' and column_name = 'amount';");
             PreparedStatement alterAmount = SQL.getConnection().prepareStatement("ALTER TABLE notbounties MODIFY COLUMN amount FLOAT(53);");
@@ -58,7 +59,9 @@ public class SQLGetter {
             PreparedStatement checkItems = SQL.getConnection().prepareStatement("SHOW COLUMNS FROM `notbounties` LIKE 'items';");
             PreparedStatement addItems = SQL.getConnection().prepareStatement("ALTER TABLE notbounties ADD items BLOB;");
             PreparedStatement checkItemsType = SQL.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = ? and table_name = 'notbounties' and column_name = 'items';");
-            PreparedStatement alterItems = SQL.getConnection().prepareStatement("ALTER TABLE notbounties MODIFY COLUMN items BLOB;");){
+            PreparedStatement alterItems = SQL.getConnection().prepareStatement("ALTER TABLE notbounties MODIFY COLUMN items BLOB;");
+            PreparedStatement checkDisplay = SQL.getConnection().prepareStatement("SHOW COLUMNS FROM `notbounties` LIKE 'display';");
+            PreparedStatement addDisplay = SQL.getConnection().prepareStatement("ALTER TABLE notbounties ADD display FLOAT(53) DEFAULT -1 NOT NULL;");){
             
             ps.executeUpdate();
             
@@ -92,6 +95,12 @@ public class SQLGetter {
             rs = checkItemsType.executeQuery();
             if (rs.next() && rs.getString("data_type").equalsIgnoreCase("char")){
                 alterItems.executeUpdate();
+            }
+            rs.close();
+
+            rs = checkDisplay.executeQuery();
+            if (!rs.next()) {
+                addDisplay.executeUpdate();
             }
             rs.close();
 
@@ -352,16 +361,15 @@ public class SQLGetter {
             end = " LIMIT " + skip + "," + (skip + results) + ";";
         }
 
-        try (PreparedStatement ps = SQL.getConnection().prepareStatement("SELECT uuid, `" + listName + "` FROM bounty_data WHERE uuid != '" + builder + "' ORDER BY ? DESC" + end)){
-            ps.setString(1, listName);
+        try (PreparedStatement ps = SQL.getConnection().prepareStatement("SELECT uuid, `" + listName + "` FROM bounty_data WHERE uuid != '" + builder + "' ORDER BY `" + listName + "` DESC" + end)){
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
                 String uuid = rs.getString("uuid");
-                if (leaderboard.isMoney())
-                      data.put(UUID.fromString(uuid), rs.getDouble(2));
-                else
+                if (leaderboard.isMoney()) {
+                    data.put(UUID.fromString(uuid), rs.getDouble(2));
+                } else {
                     data.put(UUID.fromString(uuid), (double) rs.getLong(2));
-
+                }
             }
         } catch (SQLException e){
             if (reconnect()){
@@ -500,7 +508,7 @@ public class SQLGetter {
 
 
     public void addBounty(Bounty bounty, Setter setter){
-        try (PreparedStatement ps = SQL.getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, time, whitelist, playtime, items) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")){
+        try (PreparedStatement ps = SQL.getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, time, whitelist, playtime, items, display) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")){
             ps.setString(1, bounty.getUUID().toString());
             ps.setString(2, bounty.getName());
             ps.setString(3, setter.getName());
@@ -511,6 +519,7 @@ public class SQLGetter {
             ps.setString(8, encodeWhitelist(setter.getWhitelist()));
             ps.setLong(9, setter.getReceiverPlaytime());
             ps.setBlob(10, SerializeInventory.itemStackArrayToBinaryStream(setter.getItems().toArray(new ItemStack[0])));
+            ps.setDouble(11, setter.getDisplayAmount());
             ps.executeUpdate();
         } catch (SQLException e){
             if (reconnect()){
@@ -544,7 +553,8 @@ public class SQLGetter {
                     items = new ArrayList<>();
                 }
                 UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0,0) : UUID.fromString(rs.getString("suuid"));
-                setters.add(new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), items, rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist")), rs.getLong("playtime")));
+                Setter setter = new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), items, rs.getLong("time"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist")), rs.getLong("playtime"), rs.getDouble("display"));
+                setters.add(setter);
             }
             if (setters.isEmpty())
                 return null;
@@ -723,10 +733,11 @@ public class SQLGetter {
                         } catch (StreamCorruptedException e) {
                             items = new ArrayList<>();
                         }
+                        Setter setter = new Setter(resultSet.getString("setter"), UUID.fromString(resultSet.getString("suuid")), resultSet.getDouble("amount"), items, resultSet.getLong("time"), resultSet.getBoolean("notified"), decodeWhitelist(resultSet.getString("whitelist")), resultSet.getLong("playtime"), resultSet.getDouble("display"));
                         if (bountyAmounts.containsKey(uuid)){
-                            bountyAmounts.get(uuid).addBounty(resultSet.getDouble("amount"), items, decodeWhitelist(resultSet.getString("whitelist")));
+                            bountyAmounts.get(uuid).addBounty(setter);
                         } else {
-                            bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(new Setter(resultSet.getString("setter"), UUID.fromString(resultSet.getString("suuid")), resultSet.getDouble("amount"), items, resultSet.getLong("time"), resultSet.getBoolean("notified"), decodeWhitelist(resultSet.getString("whitelist")), resultSet.getLong("playtime")))), resultSet.getString("name")));
+                            bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(setter)), resultSet.getString("name")));
                         }
                     } catch (IOException e) {
                         // error parsing encoded items

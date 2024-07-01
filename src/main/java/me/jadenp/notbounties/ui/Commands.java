@@ -911,7 +911,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("notbounties.admin")) {
                     if (args.length > 1) {
                         Bounty toRemove = null;
-                        List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;
+                        List<Bounty> bountyList = BountyManager.getAllBounties(-1);
                         for (Bounty bounty : bountyList) {
                             if (bounty.getName().equalsIgnoreCase(args[1]) || bounty.getUUID().toString().equalsIgnoreCase(args[1])) {
                                 toRemove = bounty;
@@ -1025,7 +1025,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return false;
                     }
                     Bounty toRemove = null;
-                    List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;
+                    List<Bounty> bountyList = BountyManager.getAllBounties(-1);
                     for (Bounty bounty : bountyList) {
                         if (bounty.getName().equalsIgnoreCase(args[1])) {
                             toRemove = bounty;
@@ -1095,7 +1095,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("notbounties.admin")) {
                     if (args.length > 2) {
                         Bounty toEdit = null;
-                        List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;
+                        List<Bounty> bountyList = BountyManager.getAllBounties(-1);
                         for (Bounty bounty : bountyList) {
                             if (bounty.getName().equalsIgnoreCase(args[1])) {
                                 toEdit = bounty;
@@ -1831,12 +1831,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             } else if (args.length == 2) {
                 if (args[0].equalsIgnoreCase("check") && sender.hasPermission("notbounties.view")) {
-                    List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;
+                    List<Bounty> bountyList = BountyManager.getPublicBounties(-1);
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
                 } else if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit") && sender.hasPermission("notbounties.admin"))) {
-                    List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;
+                    List<Bounty> bountyList = BountyManager.getAllBounties(-1);
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
@@ -1856,7 +1856,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else if (args[0].equalsIgnoreCase("tracker") && BountyTracker.isEnabled() && (sender.hasPermission("notbounties.admin") ||
                         ((BountyTracker.isGiveOwnTracker() || (BountyTracker.isWriteEmptyTrackers() && sender instanceof Player && BountyTracker.getTrackerID(((Player) sender).getInventory().getItemInMainHand()) == -1)) && sender.hasPermission("notbounties.tracker")))) {
 
-                    List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;
+                    List<Bounty> bountyList = sender.hasPermission("notbounties.admin") ? BountyManager.getAllBounties(-1) : BountyManager.getPublicBounties(-1);
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
@@ -1873,7 +1873,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("view");
                     tab.add("toggle");
                 } else if (args[0].equalsIgnoreCase("poster") && (sender.hasPermission("notbounties.admin") || giveOwnMap)) {
-                    List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;
+                    List<Bounty> bountyList = sender.hasPermission("notbounties.admin") ? BountyManager.getAllBounties(-1) : BountyManager.getPublicBounties(-1);
                     for (Bounty bounty : bountyList) {
                         tab.add(bounty.getName());
                     }
@@ -1954,7 +1954,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             } else if (args.length == 4) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission("notbounties.admin")) {
-                    List<Bounty> bountyList = SQL.isConnected() ? data.getTopBounties(2) : BountyManager.bountyList;
+                    List<Bounty> bountyList = BountyManager.getAllBounties(-1);
                     for (Bounty bounty1 : bountyList) {
                         if (bounty1.getName().equalsIgnoreCase(args[1])) {
                             for (Setter setter : bounty1.getSetters()) {

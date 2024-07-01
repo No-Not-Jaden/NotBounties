@@ -16,6 +16,7 @@ public class Setter implements Comparable<Setter>{
     private final String name;
     private final UUID uuid;
     private final double amount;
+    private final double displayBounty;
     private final List<ItemStack> items;
     private final long timeCreated;
     private boolean notified;
@@ -32,6 +33,25 @@ public class Setter implements Comparable<Setter>{
         this.notified = Objects.requireNonNullElse(notified, true);
         this.whitelist = whitelist;
         this.receiverPlaytime = receiverPlaytime;
+        displayBounty = amount + NumberFormatting.getTotalValue(items);
+    }
+
+    public Setter(String name, UUID uuid, double amount, List<ItemStack> items, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime, double displayBounty){
+
+        this.name = name;
+        this.uuid = uuid;
+        this.amount = amount;
+        this.items = items;
+        this.timeCreated = timeCreated;
+        this.notified = Objects.requireNonNullElse(notified, true);
+        this.whitelist = whitelist;
+        this.receiverPlaytime = receiverPlaytime;
+        if (displayBounty == -1) {
+            this.displayBounty = amount + NumberFormatting.getTotalValue(items);
+        } else {
+            this.displayBounty = displayBounty;
+        }
+
     }
 
     public long getReceiverPlaytime(){
@@ -76,7 +96,7 @@ public class Setter implements Comparable<Setter>{
         return amount;
     }
     public double getDisplayAmount() {
-        return NumberFormatting.getTotalValue(items) + amount;
+        return displayBounty;
     }
 
     public List<ItemStack> getItems() {
@@ -90,7 +110,22 @@ public class Setter implements Comparable<Setter>{
     @Override
     public int compareTo(@NotNull Setter o) {
         if (this.getAmount() != o.getAmount())
-            return (int) Math.signum(this.getAmount() - o.getAmount());
+            return (int) Math.signum(this.displayBounty - o.displayBounty);
+        if (this.getTimeCreated() != o.getTimeCreated())
+            return (int) (this.timeCreated - o.timeCreated);
         return this.getUuid().compareTo(o.getUuid());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Setter setter = (Setter) o;
+        return Double.compare(amount, setter.amount) == 0 && timeCreated == setter.timeCreated && notified == setter.notified && receiverPlaytime == setter.receiverPlaytime && Objects.equals(name, setter.name) && Objects.equals(uuid, setter.uuid) && Objects.equals(items, setter.items) && Objects.equals(whitelist, setter.whitelist);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime);
     }
 }

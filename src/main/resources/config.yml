@@ -75,7 +75,7 @@ death-tax: 0.0
 # make old bounties expire after a while
 bounty-expire:
   # how many real days until bounties expire | -1 to disable
-  # the lowest this can go is 0.00347 which is 5 minutes
+  # the lowest this can go is 0.00346 which is 5 minutes
   # check auto-bounties for their expiry time
   time: -1
   # track the player while they are offline
@@ -109,8 +109,8 @@ claim-order: REGULAR
 # automatically display times in the timezone of each player
 auto-timezone: true
 # reduce the number of players that are stored when using the GUI
-# this will mess up the {max_page} placeholder
-reduce-page-calculations: false
+# you cannot use the {max_page} placeholder if this is true
+reduce-page-calculations: true
 # An extra check to make sure the player is visible to see them in the player selection
 see-player-list: false
 # Use NotBounties' methods to get skins

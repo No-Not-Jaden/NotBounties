@@ -75,22 +75,21 @@ public class Bounty implements Comparable<Bounty>{
         return uuid;
     }
 
-    public void addBounty(Player setter, double amount, List<ItemStack> items, Whitelist whitelist){
+    public void addBounty(Setter setter){
         // first check if player already set a bounty
-        if (Bukkit.getPlayer(uuid) != null) {
             for (int i = 0; i < setters.size(); i++) {
-                if (setters.get(i).getUuid().equals(setter.getUniqueId()) && compareWhitelists(whitelist, setters.get(i).getWhitelist())) {
+                if (setters.get(i).getUuid().equals(setter.getUuid()) && compareWhitelists(setter.getWhitelist(), setters.get(i).getWhitelist())) {
                     // combine items
                     List<ItemStack> oldItems = setters.get(i).getItems();
-                    oldItems.addAll(items);
+                    oldItems.addAll(setter.getItems());
                     // same person
-                    setters.set(i, new Setter(setter.getName(), setter.getUniqueId(), setters.get(i).getAmount() + amount, oldItems, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
+                    setters.set(i, new Setter(setters.get(i).getName(), setter.getUuid(), setters.get(i).getAmount() + setter.getAmount(), oldItems, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, setter.getWhitelist(), BountyExpire.getTimePlayed(uuid), setters.get(i).getDisplayAmount() + setter.getDisplayAmount()));
                     return;
                 }
             }
-        }
+
         // otherwise, add a new setter
-        setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
+        setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, setter.getWhitelist(), BountyExpire.getTimePlayed(uuid), setter.getDisplayAmount()));
     }
 
     // console set bounty
@@ -109,6 +108,7 @@ public class Bounty implements Comparable<Bounty>{
         // otherwise, add a new setter
         setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, items, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
     }
+
 
     /**
      * Removes the setters that correspond to the uuid.
@@ -155,22 +155,14 @@ public class Bounty implements Comparable<Bounty>{
 
 
     public double getTotalBounty(){
-        double total = 0;
-        for (Setter setters : setters){
-            total += setters.getAmount();
-        }
-        return total;
+        return setters.stream().mapToDouble(Setter::getAmount).sum();
     }
     public List<ItemStack> getTotalItemBounty() {
-        List<ItemStack> items = new ArrayList<>();
-        for (Setter setters : setters){
-            items.addAll(setters.getItems());
-        }
-        return items;
+        return setters.stream().flatMap(setter -> setter.getItems().stream()).collect(Collectors.toList());
     }
 
     public double getTotalDisplayBounty() {
-        return getTotalBounty() + NumberFormatting.getTotalValue(getTotalItemBounty());
+        return setters.stream().mapToDouble(Setter::getDisplayAmount).sum();
     }
 
     /**
@@ -185,23 +177,13 @@ public class Bounty implements Comparable<Bounty>{
     public double getTotalBounty(UUID claimerUuid) {
         if (claimerUuid.equals(uuid))
             return getTotalBounty();
-        double total = 0;
-        for (Setter setters : setters){
-            if (setters.canClaim(claimerUuid))
-                total += setters.getAmount();
-        }
-        return total;
+        return setters.stream().filter(setters1 -> setters1.canClaim(claimerUuid)).mapToDouble(Setter::getAmount).sum();
     }
 
     public List<ItemStack> getTotalItemBounty(UUID claimerUuid) {
         if (claimerUuid.equals(uuid))
             return getTotalItemBounty();
-        List<ItemStack> items = new ArrayList<>();
-        for (Setter setters : setters){
-            if (setters.canClaim(claimerUuid))
-                items.addAll(setters.getItems());
-        }
-        return items;
+        return setters.stream().filter(setters1 -> setters1.canClaim(claimerUuid)).flatMap(setters1 -> setters1.getItems().stream()).collect(Collectors.toList());
     }
 
     public double getTotalDisplayBounty(UUID claimerUuid) {
@@ -305,6 +287,6 @@ public class Bounty implements Comparable<Bounty>{
 
     @Override
     public int compareTo(@NotNull Bounty o) {
-        return Double.compare(this.getTotalBounty(), o.getTotalBounty());
+        return Double.compare(this.getTotalDisplayBounty(), o.getTotalDisplayBounty());
     }
 }

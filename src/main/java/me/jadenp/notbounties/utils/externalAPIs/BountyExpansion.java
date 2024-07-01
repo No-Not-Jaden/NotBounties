@@ -112,10 +112,10 @@ public class BountyExpansion extends PlaceholderExpansion {
         }
         if (params.startsWith("total")) {
             if (params.equalsIgnoreCase("total")) {
-                int bounties = SQL.isConnected() ? data.getTopBounties(2).size() : bountyList.size();
+                int bounties = BountyManager.getAllBounties(-1).size();
                 return NumberFormatting.formatNumber(bounties);
             } else if (params.equalsIgnoreCase("total_unique")) {
-                List<Bounty> bounties = SQL.isConnected() ? data.getTopBounties(2) : bountyList;
+                List<Bounty> bounties = BountyManager.getAllBounties(-1);
                 List<UUID> counted = new ArrayList<>();
                 for (Bounty bounty : bounties) {
                     for (Setter setter : bounty.getSetters()) {

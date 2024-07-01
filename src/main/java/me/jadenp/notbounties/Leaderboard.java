@@ -1,7 +1,8 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.configuration.Immunity;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -10,10 +11,9 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.BountyManager.*;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.hiddenNames;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public enum Leaderboard {
@@ -137,8 +137,9 @@ public enum Leaderboard {
                 case IMMUNITY:
                     Immunity.setImmunity(uuid, newAmount);
                     return;
+                default:
+                    return;
             }
-            return;
         }
         switch (this){
             case ALL:
@@ -158,6 +159,9 @@ public enum Leaderboard {
                 return;
             case IMMUNITY:
                 Immunity.setImmunity(uuid, newAmount);
+                return;
+            default:
+                break;
         }
     }
 
@@ -193,7 +197,6 @@ public enum Leaderboard {
                 msg = shorten ? listTotal : checkBounty;
                 break;
         }
-        //msg = msg.replace("{amount}", (NumberFormatting.currencyPrefix + "{amount}" + NumberFormatting.currencySuffix));
         return msg;
     }
 
@@ -227,7 +230,7 @@ public enum Leaderboard {
                 break;
             case CURRENT:
                 map = new LinkedHashMap<>();
-                for (Bounty bounty : bountyList)
+                for (Bounty bounty : BountyManager.getAllBounties(-1))
                     map.put(bounty.getUUID(), bounty.getTotalDisplayBounty());
                 map = sortByValue(map);
                 break;
@@ -333,15 +336,10 @@ public enum Leaderboard {
         LinkedHashMap<UUID, String> formattedList = new LinkedHashMap<>();
         for (Map.Entry<UUID, Double> entry : top.entrySet()){
             switch (this){
-                case ALL:
-                case CLAIMED:
-                case IMMUNITY:
-                case CURRENT:
+                case ALL, CLAIMED, IMMUNITY, CURRENT:
                     formattedList.put(entry.getKey(), NumberFormatting.currencyPrefix + NumberFormatting.getValue(entry.getValue()) + NumberFormatting.currencySuffix);
                     break;
-                case KILLS:
-                case DEATHS:
-                case SET:
+                case KILLS, DEATHS, SET:
                     formattedList.put(entry.getKey(), NumberFormatting.getValue(entry.getValue()));
                     break;
             }

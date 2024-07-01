@@ -371,6 +371,8 @@ public class NumberFormatting {
 
 
     public static double getTotalValue(List<ItemStack> items) {
+        if (items.isEmpty())
+            return 0;
         return items.stream().filter(Objects::nonNull).mapToDouble(item -> NumberFormatting.getItemValue(item) * item.getAmount()).sum();
     }
 

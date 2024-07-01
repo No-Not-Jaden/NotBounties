@@ -349,7 +349,7 @@ public class GUI implements Listener {
         PlayerGUInfo info = playerInfo.get(event.getWhoClicked().getUniqueId());
         GUIOptions gui = getGUI(info.getGuiType());
 
-        if (gui == null) // JIC a player has a page number, but they aren't in a gui
+        if (gui == null || event.getRawSlot() == -999)
             return;
         String guiType = gui.getType();
         event.setCancelled(true);
