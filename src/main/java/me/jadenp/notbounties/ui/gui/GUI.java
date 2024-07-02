@@ -12,6 +12,7 @@ import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
+import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -215,7 +216,7 @@ public class GUI implements Listener {
         }
         LinkedHashMap<UUID, String> values = (LinkedHashMap<UUID, String>) getGUIValues(player, name, page, data);
 
-        if (floodgateEnabled && BedrockGUI.enabled && new FloodGateClass().isBedrockPlayer(player.getUniqueId()) && BedrockGUI.isGUIEnabled(name)) {
+        if (((floodgateEnabled && new FloodGateClass().isBedrockPlayer(player.getUniqueId())) || (geyserEnabled && new GeyserMCClass().isBedrockPlayer(player.getUniqueId()))) && BedrockGUI.enabled && BedrockGUI.isGUIEnabled(name)) {
             // open bedrock gui
             BedrockGUI.openGUI(player, name, page, values, replacements);
         } else {

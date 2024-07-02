@@ -4,8 +4,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.ProxyMessaging;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
+import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
@@ -21,10 +23,8 @@ import org.jetbrains.annotations.Debug;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.InputStreamReader;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -64,6 +64,7 @@ public class SkinManager {
 
     public static void saveSkin(UUID uuid, PlayerSkin playerSkin) {
         savedSkins.put(uuid, playerSkin);
+        NotBounties.debugMessage("Saved player skin -> " + uuid, false);
     }
 
     /**
@@ -108,11 +109,16 @@ public class SkinManager {
         }
 
         requestCooldown.put(uuid, System.currentTimeMillis() + CONCURRENT_REQUEST_INTERVAL);
+        NotBounties.debugMessage("Attempting to save skin for: " + uuid, false);
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (savedSkins.containsKey(uuid))
                     return;
+                if (NotBounties.isBedrockPlayer(uuid)) {
+                    saveBedrockSkin(uuid, NotBounties.getXuid(uuid));
+                    return;
+                }
                 if (ConfigOptions.skinsRestorerEnabled) {
                     ConfigOptions.skinsRestorerClass.saveSkin(uuid);
                     return;
@@ -124,13 +130,6 @@ public class SkinManager {
     }
 
     public static void requestSkin(UUID uuid) {
-        if (ConfigOptions.floodgateEnabled) {
-            FloodGateClass floodGateClass = new FloodGateClass();
-            if (floodGateClass.isBedrockPlayer(uuid)) {
-                floodGateClass.saveSkin(uuid);
-                return;
-            }
-        }
 
         if (isSafeToRequest()) {
             try {
@@ -141,6 +140,65 @@ public class SkinManager {
             }
         } else {
             requestLater(uuid);
+        }
+    }
+
+    public static void saveBedrockSkin(UUID uuid, String xuid) {
+        NotBounties.debugMessage("Attempting to get bedrock skin from xuid: " + xuid, false);
+        try {
+            URL url = new URL("https://api.geysermc.org/v2/skin/" + xuid);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.connect();
+            int code = connection.getResponseCode();
+            InputStreamReader reader = new InputStreamReader(connection.getInputStream());
+            JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseReader(reader).getAsJsonObject() : new JsonParser().parse(reader).getAsJsonObject();
+            reader.close();
+            if (code == 200) {
+                String value = input.get("value").getAsString();
+                String id = input.get("texture_id").getAsString();
+
+                SkinManager.saveSkin(uuid, new PlayerSkin(SkinManager.getTextureURL(value), id));
+            } else if (code == 400) {
+                SkinManager.failRequest(uuid);
+                if (NotBounties.debug)
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            Bukkit.getLogger().warning("[NotBountiesDebug] Error getting bedrock skin (400)");
+                            Bukkit.getLogger().warning(input.get("message").getAsString());
+                        }
+                    }.runTask(NotBounties.getInstance());
+            } else {
+                SkinManager.failRequest(uuid);
+                if (NotBounties.debug)
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            Bukkit.getLogger().warning("[NotBountiesDebug] Error getting bedrock skin (" + code + ")");
+                            Bukkit.getLogger().warning(input.get("message").getAsString());
+                        }
+                    }.runTask(NotBounties.getInstance());
+            }
+        } catch (IOException e) {
+            if (ProxyMessaging.hasConnectedBefore()) {
+                ProxyMessaging.requestPlayerSkin(uuid);
+            }
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (!SkinManager.isSkinLoaded(uuid))
+                        failRequest(uuid);
+                }
+            }.runTaskLaterAsynchronously(NotBounties.getInstance(), 5 * 20L);
+            if (NotBounties.debug)
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        Bukkit.getLogger().warning("[NotBountiesDebug] Error getting bedrock skin");
+                        Bukkit.getLogger().warning(e.toString());
+                    }
+                }.runTask(NotBounties.getInstance());
         }
     }
 
@@ -258,10 +316,10 @@ public class SkinManager {
             String urlJson = new String(Base64.getDecoder().decode(texture));
             JsonObject urlInput = NotBounties.serverVersion >= 18 ? JsonParser.parseString(urlJson).getAsJsonObject() : new JsonParser().parse(urlJson).getAsJsonObject();
             JsonElement skinURL = urlInput.get("textures").getAsJsonObject().get("SKIN").getAsJsonObject().get("url");
-
             return new URI(skinURL.getAsString()).toURL();
         } catch (IOException | URISyntaxException e) {
             // too many requests
+            NotBounties.debugMessage("Error getting texture url: " + texture, true);
             return null;
         }
     }

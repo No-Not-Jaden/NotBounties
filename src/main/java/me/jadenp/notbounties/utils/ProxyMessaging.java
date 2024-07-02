@@ -15,9 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class ProxyMessaging implements PluginMessageListener, Listener {
     private static boolean connectedBefore = false;
@@ -123,6 +121,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                         try {
                             String playerName = msgIn.readUTF();
                             String uuid = msgIn.readUTF();
+                            String xuid = msgIn.readUTF(); // will be "Java" if not a bedrock player
                             try {
                                 //LoggedPlayers.logPlayer(playerName, UUID.fromString(uuid));
                             } catch (IllegalArgumentException e) {
@@ -143,8 +142,10 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                         try {
                             for (int i = 0; i < 2000; i++) {
                                 String msg = msgIn.readUTF();
-                                String playerName = msg.substring(msg.indexOf(":") + 1);
-                                String uuid = msg.substring(0, msg.indexOf(":"));
+                                String[] split = msg.split(":");
+                                String playerName = split[0];
+                                String uuid = split[1];
+                                String xuid = split[2]; // will be "Java" if not a bedrock player
                                 try {
                                     //LoggedPlayers.logPlayer(playerName, UUID.fromString(uuid));
                                 } catch (IllegalArgumentException e) {
@@ -356,6 +357,11 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         try {
             msgout.writeUTF(playerName);
             msgout.writeUTF(uuid.toString());
+            if (NotBounties.isBedrockPlayer(uuid)) {
+                msgout.writeUTF(NotBounties.getXuid(uuid));
+            } else {
+                msgout.writeUTF("Java");
+            }
         } catch (IOException e) {
             Bukkit.getLogger().warning(e.toString());
             return;
@@ -363,6 +369,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         sendMessage("notbounties:main", wrapGlobalMessage(msgbytes, "LogPlayer"));
     }
 
+    private static final List<UUID> queuedSkinRequests = new ArrayList<>();
     /**
      * Requests skin information for a player.
      * @param uuid UUID of the player
@@ -371,28 +378,55 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         new BukkitRunnable() {
             @Override
             public void run() {
-                ByteArrayDataOutput out = ByteStreams.newDataOutput();
-                out.writeUTF("PlayerSkin");
+                if (Bukkit.getOnlinePlayers().isEmpty()) {
+                    SkinManager.failRequest(uuid);
+                    queuedSkinRequests.add(uuid);
+                } else {
+                    sendSkinRequest(uuid);
+                    UUID[] skinsToSend = queuedSkinRequests.toArray(new UUID[0]);
+                    queuedSkinRequests.clear();
+                    new BukkitRunnable() {
+                        int index = 0;
+                        @Override
+                        public void run() {
+                            if (index >= skinsToSend.length) {
+                                this.cancel();
+                                return;
+                            }
+                            sendSkinRequest(skinsToSend[index]);
+                            index++;
+                            if (index >= skinsToSend.length) {
+                                this.cancel();
+                            }
 
-                String playerName = NotBounties.getPlayerName(uuid);
-                ByteArrayOutputStream msgbytes = new ByteArrayOutputStream();
-                DataOutputStream msgout = new DataOutputStream(msgbytes);
-                try {
-                    msgout.writeUTF(playerName);
-                    msgout.writeUTF(uuid.toString());
-                } catch (IOException e) {
-                    if (NotBounties.debug)
-                        Bukkit.getLogger().warning(e.toString());
-                    return;
+                        }
+                    }.runTaskTimer(NotBounties.getInstance(), 5, 5);
                 }
-                out.writeShort(msgbytes.toByteArray().length); // This is the length.
-                out.write(msgbytes.toByteArray()); // This is the message.
-                sendMessage("notbounties:main", out.toByteArray());
-                if (NotBounties.debug)
-                    Bukkit.getLogger().info("[NotBountiesDebug] Sent player skin request.");
             }
         }.runTask(NotBounties.getInstance());
 
+    }
+
+    private static void sendSkinRequest(UUID uuid) {
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeUTF("PlayerSkin");
+
+        String playerName = NotBounties.getPlayerName(uuid);
+        ByteArrayOutputStream msgbytes = new ByteArrayOutputStream();
+        DataOutputStream msgout = new DataOutputStream(msgbytes);
+        try {
+            msgout.writeUTF(playerName);
+            msgout.writeUTF(uuid.toString());
+        } catch (IOException e) {
+            if (NotBounties.debug)
+                Bukkit.getLogger().warning(e.toString());
+            return;
+        }
+        out.writeShort(msgbytes.toByteArray().length); // This is the length.
+        out.write(msgbytes.toByteArray()); // This is the message.
+        sendMessage("notbounties:main", out.toByteArray());
+        if (NotBounties.debug)
+            Bukkit.getLogger().info("[NotBountiesDebug] Sent player skin request.");
     }
 
 }

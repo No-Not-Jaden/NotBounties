@@ -18,6 +18,8 @@ import static me.jadenp.notbounties.utils.configuration.ConfigOptions.HDBEnabled
 
 public class Head {
 
+    private Head(){}
+
     public static ItemStack createPlayerSkull(String data){
 
         ItemStack item = null;
@@ -44,7 +46,6 @@ public class Head {
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         String name = NotBounties.getPlayerName(uuid);
-
         if (NotBounties.serverVersion >= 18 && name.length() <= 16) {
             PlayerProfile profile = Bukkit.createPlayerProfile(uuid, name);
             PlayerTextures textures = profile.getTextures();

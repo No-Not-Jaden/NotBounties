@@ -15,6 +15,8 @@ import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.externalAPIs.*;
+import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
+import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -54,9 +56,6 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Folia
  * Team bounties
  *
- * Fixed an error when requesting skins
- * fixed an sql sorting bug
- * fixed a bug when loading heads in the GUI
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -64,6 +63,7 @@ public final class NotBounties extends JavaPlugin {
      * Name (lower case), UUID
      */
     public static final Map<String, UUID> loggedPlayers = new HashMap<>();
+    public static final Map<UUID, String> bedrockPlayers = new HashMap<>();
 
     public static List<String> immunePerms = new ArrayList<>();
     public static List<String> autoImmuneMurderPerms = new ArrayList<>();
@@ -445,6 +445,9 @@ public final class NotBounties extends JavaPlugin {
         for (Map.Entry<UUID, TimeZone> entry : LocalTime.getSavedTimeZones().entrySet()) {
             configuration.set("data." + entry.getKey() + ".time-zone", entry.getValue().getID());
         }
+        for (Map.Entry<UUID, String> entry : bedrockPlayers.entrySet()) {
+            configuration.set("data." + entry.getKey() + ".bedrock-player", entry.getValue());
+        }
         if (variableWhitelist) {
             for (Map.Entry<UUID, Whitelist> mapElement : playerWhitelist.entrySet()) {
                 List<String> stringList = mapElement.getValue().getList().stream().map(UUID::toString).collect(Collectors.toList());
@@ -652,10 +655,11 @@ public final class NotBounties extends JavaPlugin {
         String betterTeams = BountyClaimRequirements.betterTeamsEnabled ? ChatColor.GREEN + "BetterTeams" : ChatColor.RED + "BetterTeams";
         String townyAdvanced = BountyClaimRequirements.townyAdvancedEnabled ? ChatColor.GREEN + "TownyAdvanced" : ChatColor.RED + "TownyAdvanced";
         String floodgate = floodgateEnabled ? ChatColor.GREEN + "Floodgate" : ChatColor.RED + "Floodgate";
+        String geyser = geyserEnabled ? ChatColor.GREEN + "GeyserMC" : ChatColor.RED + "GeyserMC";
         String kingdoms = BountyClaimRequirements.kingdomsXEnabled ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
         String lands = BountyClaimRequirements.landsEnabled ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
         String worldGuard = BountyClaimRequirements.worldGuardEnabled ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "|" + lands + ChatColor.GRAY + "|" + worldGuard + ChatColor.GRAY + "]");
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser + ChatColor.GRAY + "|" + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "|" + lands + ChatColor.GRAY + "|" + worldGuard + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));
@@ -773,6 +777,36 @@ public final class NotBounties extends JavaPlugin {
             Bukkit.getLogger().warning(message);
         else
             Bukkit.getLogger().info(message);
+    }
+
+    public static boolean isBedrockPlayer(UUID uuid) {
+        if (bedrockPlayers.containsKey(uuid)) {
+          return true;
+        } else if (ConfigOptions.floodgateEnabled) {
+            FloodGateClass floodGateClass = new FloodGateClass();
+            return floodGateClass.isBedrockPlayer(uuid);
+        } else if  (ConfigOptions.geyserEnabled) {
+            GeyserMCClass geyserMCClass = new GeyserMCClass();
+            return geyserMCClass.isBedrockPlayer(uuid);
+        }
+        return false;
+    }
+
+    public static String getXuid(UUID uuid) {
+        if (bedrockPlayers.containsKey(uuid)) {
+            return bedrockPlayers.get(uuid);
+        } else if (ConfigOptions.floodgateEnabled) {
+            FloodGateClass floodGateClass = new FloodGateClass();
+            if (floodGateClass.isBedrockPlayer(uuid)) {
+                return floodGateClass.getXuid(uuid);
+            }
+        } else if  (ConfigOptions.geyserEnabled) {
+            GeyserMCClass geyserMCClass = new GeyserMCClass();
+            if (geyserMCClass.isBedrockPlayer(uuid)) {
+                return geyserMCClass.getXuid(uuid);
+            }
+        }
+        return "";
     }
 
 }

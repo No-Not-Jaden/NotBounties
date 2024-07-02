@@ -115,6 +115,7 @@ public class ConfigOptions {
     public static boolean overrideSkinsRestorer;
     public static boolean stealBounties;
     public static List<String> pluginBountyCommands;
+    public static boolean geyserEnabled;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -124,6 +125,7 @@ public class ConfigOptions {
         liteBansEnabled = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
         floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
+        geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
 
         if (skinsRestorerEnabled)
             skinsRestorerClass = new SkinsRestorerClass();

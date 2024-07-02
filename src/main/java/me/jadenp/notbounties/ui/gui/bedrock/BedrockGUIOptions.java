@@ -8,6 +8,7 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
+import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -30,8 +31,7 @@ import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ui.gui.GUIOptions.getPageType;
 import static me.jadenp.notbounties.utils.BountyManager.getBounty;
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.bountyTax;
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.bountyWhitelistCost;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.color;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.parse;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
@@ -289,7 +289,11 @@ public class BedrockGUIOptions {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                new FloodGateClass().sendForm(player.getUniqueId(), simpleBuilder);
+                                if (floodgateEnabled) {
+                                    new FloodGateClass().sendForm(player.getUniqueId(), simpleBuilder);
+                                } else if (geyserEnabled) {
+                                    new GeyserMCClass().sendForm(player.getUniqueId(), simpleBuilder);
+                                }
                             }
                         }.runTask(NotBounties.getInstance());
 
@@ -323,7 +327,11 @@ public class BedrockGUIOptions {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                new FloodGateClass().sendForm(player.getUniqueId(), modalBuilder);
+                                if (floodgateEnabled) {
+                                    new FloodGateClass().sendForm(player.getUniqueId(), modalBuilder);
+                                } else if (geyserEnabled) {
+                                    new GeyserMCClass().sendForm(player.getUniqueId(), modalBuilder);
+                                }
                             }
                         }.runTask(NotBounties.getInstance());
 
@@ -360,7 +368,11 @@ public class BedrockGUIOptions {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                new FloodGateClass().sendForm(player.getUniqueId(), customBuilder);
+                                if (floodgateEnabled) {
+                                    new FloodGateClass().sendForm(player.getUniqueId(), customBuilder);
+                                } else if (geyserEnabled) {
+                                    new GeyserMCClass().sendForm(player.getUniqueId(), customBuilder);
+                                }
                             }
                         }.runTask(NotBounties.getInstance());
 
