@@ -358,8 +358,10 @@ public class BountyManager {
         List<Bounty> sortedList = new ArrayList<>(bountyList);
         if (sortType == -1)
             return sortedList;
-        if (sortType == 2)
-            return sortedList.reversed();
+        if (sortType == 2) {
+            Collections.reverse(sortedList);
+            return sortedList;
+        }
         if (sortType == 3)
             return sortedList;
         if (sortedList.isEmpty())
