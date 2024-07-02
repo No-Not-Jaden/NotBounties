@@ -53,7 +53,7 @@ public class Webhook {
                 color = Color.decode(colorString);
             } catch (NumberFormatException e) {
                 // try to get rgb values
-                colorString = colorString.replaceAll(",", " "); // replace commas with spaces
+                colorString = colorString.replace(",", " "); // replace commas with spaces
                 String[] split = colorString.split(" "); // split between all spaces
                 List<String> rgbValues = new ArrayList<>(List.of(split)); // turn into array list for better manipulation
                 rgbValues.removeIf(String::isEmpty); // remove empty strings

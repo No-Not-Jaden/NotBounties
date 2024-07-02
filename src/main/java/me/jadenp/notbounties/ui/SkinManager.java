@@ -53,7 +53,7 @@ public class SkinManager {
     public static void refreshSkinRequests() {
         requestCooldown.clear(); // clear request times
         try {
-            savedSkins.entrySet().removeIf(pair -> isMissingSkin(pair.getValue())); // remove any skins that are set to missing
+            savedSkins.entrySet().removeIf(pair -> isMissingSkin(pair.getValue()) && !pair.getKey().equals(new UUID(0,0))); // remove any skins that are set to missing
         } catch (ConcurrentModificationException ignored) {
             // skins are still being processed
             Bukkit.getLogger().warning("[NotBounties] Failed to refresh skin cache.");
@@ -74,7 +74,7 @@ public class SkinManager {
     public static boolean isSkinLoaded(UUID uuid) {
         if (savedSkins.containsKey(uuid)) {
             // check if the skin is missing
-            if (isMissingSkin(savedSkins.get(uuid)) && (!requestCooldown.containsKey(uuid) || requestCooldown.get(uuid) < System.currentTimeMillis())) {
+            if (isMissingSkin(savedSkins.get(uuid)) && !uuid.equals(new UUID(0,0)) && (!requestCooldown.containsKey(uuid) || requestCooldown.get(uuid) < System.currentTimeMillis())) {
                 // Skin is missing. Send a request to load the skin again if the uuid isn't on a cooldown
                 savedSkins.remove(uuid);
                 saveSkin(uuid);

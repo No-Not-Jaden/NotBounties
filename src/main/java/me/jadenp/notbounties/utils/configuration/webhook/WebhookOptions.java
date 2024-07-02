@@ -91,11 +91,13 @@ public class WebhookOptions implements Listener {
     }
     
     private void buildWebhook(Webhook webhook, String playerName, UUID playerUUID, String receiverName, UUID receiverUUID, double amount, double total){
-        new BukkitRunnable() {
-            int maxRequests = 50;
-            @Override
-            public void run() {
-                if (webhook.isEnabled()) {
+        if (webhook.isEnabled()) {
+            new BukkitRunnable() {
+                int maxRequests = 50;
+
+                @Override
+                public void run() {
+
                     boolean sendEmbed = !webhook.getTitle().isEmpty() || !webhook.getDescription().isEmpty() || !webhook.getFooterText().isEmpty() || webhook.isSendImage();
                     DiscordWebhook.EmbedObject embed = null;
                     UUID avatarUUID = webhook.isSwitchImages() ? playerUUID : receiverUUID;
@@ -132,13 +134,20 @@ public class WebhookOptions implements Listener {
                     try {
                         sendEmbed(embed, username, avatarURL, content);
                     } catch (IOException e) {
-                        Bukkit.getLogger().warning("[NotBounties] Could not send a discord webhook!");
-                        Bukkit.getLogger().warning(e.toString());
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                Bukkit.getLogger().warning("[NotBounties] Could not send a discord webhook!");
+                                Bukkit.getLogger().warning(e.toString());
+                            }
+                        }.runTask(NotBounties.getInstance());
+
                     }
                 }
 
-            }
-        }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 4);
+
+            }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 4);
+        }
 
     }
 
