@@ -174,8 +174,6 @@ public class BountyManager {
                             immunitySpent.put(uuid, configuration.getDouble("data." + uuid + ".immunity"));
                         if (configuration.isSet("data." + uuid + ".next-bounty"))
                             timedBounties.put(uuid, configuration.getLong("data." + uuid + ".next-bounty"));
-                        if (configuration.isSet("data." + uuid + ".bedrock-player"))
-                            bedrockPlayers.put(uuid, configuration.getString("data." + uuid + ".bedrock-player"));
                         if (variableWhitelist && configuration.isSet("data." + uuid + ".whitelist"))
                             try {
                                 playerWhitelist.put(uuid, new Whitelist(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).collect(Collectors.toList()), configuration.getBoolean("data." + uuid + ".blacklist")));

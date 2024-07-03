@@ -63,7 +63,6 @@ public final class NotBounties extends JavaPlugin {
      * Name (lower case), UUID
      */
     public static final Map<String, UUID> loggedPlayers = new HashMap<>();
-    public static final Map<UUID, String> bedrockPlayers = new HashMap<>();
 
     public static List<String> immunePerms = new ArrayList<>();
     public static List<String> autoImmuneMurderPerms = new ArrayList<>();
@@ -445,9 +444,6 @@ public final class NotBounties extends JavaPlugin {
         for (Map.Entry<UUID, TimeZone> entry : LocalTime.getSavedTimeZones().entrySet()) {
             configuration.set("data." + entry.getKey() + ".time-zone", entry.getValue().getID());
         }
-        for (Map.Entry<UUID, String> entry : bedrockPlayers.entrySet()) {
-            configuration.set("data." + entry.getKey() + ".bedrock-player", entry.getValue());
-        }
         if (variableWhitelist) {
             for (Map.Entry<UUID, Whitelist> mapElement : playerWhitelist.entrySet()) {
                 List<String> stringList = mapElement.getValue().getList().stream().map(UUID::toString).collect(Collectors.toList());
@@ -780,22 +776,20 @@ public final class NotBounties extends JavaPlugin {
     }
 
     public static boolean isBedrockPlayer(UUID uuid) {
-        if (bedrockPlayers.containsKey(uuid)) {
-          return true;
-        } else if (ConfigOptions.floodgateEnabled) {
+         if (ConfigOptions.floodgateEnabled) {
             FloodGateClass floodGateClass = new FloodGateClass();
             return floodGateClass.isBedrockPlayer(uuid);
         } else if  (ConfigOptions.geyserEnabled) {
             GeyserMCClass geyserMCClass = new GeyserMCClass();
             return geyserMCClass.isBedrockPlayer(uuid);
-        }
-        return false;
+        } else {
+             String first = uuid.toString().substring(0, 18);
+             return first.equals("00000000-0000-0000");
+         }
     }
 
     public static String getXuid(UUID uuid) {
-        if (bedrockPlayers.containsKey(uuid)) {
-            return bedrockPlayers.get(uuid);
-        } else if (ConfigOptions.floodgateEnabled) {
+        if (ConfigOptions.floodgateEnabled) {
             FloodGateClass floodGateClass = new FloodGateClass();
             if (floodGateClass.isBedrockPlayer(uuid)) {
                 return floodGateClass.getXuid(uuid);
@@ -805,8 +799,17 @@ public final class NotBounties extends JavaPlugin {
             if (geyserMCClass.isBedrockPlayer(uuid)) {
                 return geyserMCClass.getXuid(uuid);
             }
+        } else if (isBedrockPlayer(uuid)) {
+            String last = uuid.toString().replace("-", "").substring(16);
+            try {
+                return Long.parseLong(last, 16) + "";
+            } catch (NumberFormatException ignored){
+                // Not parsable hex
+            }
         }
         return "";
     }
+
+
 
 }

@@ -198,14 +198,6 @@ public class Events implements Listener {
             }
         }
 
-        // check if they are a bedrock player
-        if (!bedrockPlayers.containsKey(event.getPlayer().getUniqueId()) && NotBounties.isBedrockPlayer(event.getPlayer().getUniqueId())) {
-            // save xuid
-            String xuid = NotBounties.getXuid(event.getPlayer().getUniqueId());
-            if (xuid != null)
-                bedrockPlayers.put(event.getPlayer().getUniqueId(), xuid);
-        }
-
         if (hasBounty(event.getPlayer().getUniqueId())) {
             Bounty bounty = getBounty(event.getPlayer().getUniqueId());
             assert bounty != null;
