@@ -1,0 +1,251 @@
+# Credit to Bunny for translating this file
+# This file was created for NotBounties 1.19.8
+# There may be untranslated text if you are using a later version
+# =====================================================================
+# a '#' after a line means only admins will see this message, if there is not a '#', then with all the other permissions, players can see this message
+prefix: '&7[&9Not&dBounties&7] &8» &r'
+unknown-number: '&cNúmero desconhecido!'
+unknown-player: '&cNão foi possível encontrar o jogador &4{receiver}&c!'
+unknown-command: '&dUse &9/bounty help &dpara uma lista de comandos.'
+unknown-material: '&cMaterial desconhecido: &7{material}'
+bounty-success: '&aRecompensa colocada em &e{receiver}&a por &e{amount}&a! Total da
+  Recompensa: &e{bounty}'
+bounty-receiver: '&4{player} &ccolocou uma recompensa em você de &4{amount}&c! Total
+  da Recompensa: &4{bounty}'
+bounty-broadcast: '&e{player}&6 colocou uma recompensa de &f{amount}&6 em &e{receiver}&6!
+  Total da Recompensa: &f{bounty}'
+no-permission: '&cVocê não tem permissão para executar este comando!'
+broke: '&cVocê não tem moeda suficiente para isso! &8Necessário: &7{amount}'
+claim-bounty-broadcast: '&e{player}&6 reivindicou a recompensa de &f{amount}&6 em
+  &e{receiver}&6!'
+no-bounty: '&4{receiver} &cnão tem uma recompensa!'
+check-bounty: '&e{receiver}&a tem uma recompensa de &e{amount}&a.'
+list-setter: '&e{player} &7> &a{amount} &7{items} &8{time}'
+list-total: '&e{player} &7> &a{amount}'
+offline-bounty: '&e{player}&6 colocou uma recompensa de &e{amount}&6 em você enquanto
+  você estava offline!'
+success-remove-bounty: '&aRecompensa de &2{receiver}&a removida com sucesso.' #
+success-edit-bounty: '&aRecompensa de &2{receiver}&a editada com sucesso.' #
+no-setter: '&4{player} &cnão colocou uma recompensa em {receiver}' #
+repeat-command-bounty: '&6Por favor, digite este comando novamente nos próximos 30
+  segundos para confirmar a compra da sua recompensa por &e{amount}&6.'
+repeat-command-immunity: '&6Por favor, digite este comando novamente nos próximos
+  30 segundos para confirmar a compra da imunidade por &e{amount}&6.'
+permanent-immunity: '&6{player} &eestá imune a recompensas!'
+scaling-immunity: '&6{player} &eestá imune a recompensas menores que &e{amount}&6.'
+time-immunity: '&6{player} &eestá imune a recompensas por &e{time}&6.'
+buy-permanent-immunity: '&aVocê comprou imunidade a recompensas.'
+buy-scaling-immunity: '&aVocê comprou imunidade a recompensas menores que &2{amount}&a.'
+buy-time-immunity: '&aVocê comprou imunidade a recompensas por &2{time}&a.'
+grace-period: '&cUma recompensa acabou de ser reivindicada em &4{player}&c. Por favor,
+  espere &4{time}&c antes de tentar novamente.'
+min-bounty: '&cA recompensa deve ser de pelo menos &4{amount}&c.'
+already-bought-perm: '&cVocê já tem imunidade permanente!'
+removed-immunity: '&aSua imunidade a recompensas foi removida com sucesso.'
+removed-other-immunity: '&aImunidade de &2{receiver}&a removida com sucesso.' #
+no-immunity: '&cVocê não tem imunidade comprada!'
+no-immunity-other: '&4{receiver} &cnão tem imunidade comprada!'
+immunity-expire: '&cSua imunidade a recompensas expirou!'
+expired-bounty: '&eSua recompensa em &6{player}&e expirou. Você foi reembolsado em
+  &2{amount}&e.'
+# uses placeholders for the player with the bounty, but they are not updated after the item is given
+bounty-tracker-name: '&eRastreador de Recompensas: &6&l{player}'
+bounty-tracker-lore:
+- ''
+- '&7Siga esta bússola'
+- '&7para encontrar {player}'
+- ''
+empty-tracker-name: '&fRastreador de Recompensas Vazio'
+empty-tracker-lore:
+- ''
+- '&7Clique em um cartaz de recompensa'
+- '&7ou crie com uma cabeça de jogador'
+- '&7para rastrear uma recompensa.'
+- ''
+tracker-offline: '&7*offline*'
+tracker-no-permission: '&cSem permissão.'
+tracker-give: '&eVocê deu a &6{receiver}&e uma bússola que rastreia &6{player}&e.' #
+tracker-receive: '&eVocê recebeu um rastreador de recompensas para &6{player}&e.'
+tracker-receive-empty: '&eVocê recebeu um rastreador de recompensas vazio. Clique
+  em um cartaz de recompensa ou crie com uma cabeça de jogador para rastrear uma recompensa.'
+tracked-notify: '&c&lVocê está sendo rastreado!'
+bounty-top: '&9&l{rank}. &d{player} &7> &a{amount}'
+bounty-top-title: '&7&m               &r &d&lRecompensas &9&lTop &7&m               '
+enable-broadcast: '&eVocê &aativou &ea transmissão de recompensas!'
+disable-broadcast: '&eVocê &cdesativou &ea transmissão de recompensas!'
+bounty-voucher-name: '&6{player}''s&e recompensa reivindicada de &a{bounty}&e.'
+bounty-voucher-lore:
+- ''
+- '&2Concedida a {receiver}'
+- '&7Clique com o botão direito para resgatar'
+- '&7esta recompensa'
+- ''
+redeem-voucher: '&aVoucher resgatado com sucesso por {amount}!'
+big-bounty: '&eSua recompensa é muito impressionante!'
+whitelisted-players: '&fSeus jogadores na lista branca:&7' # nomes dos jogadores seguirão esta mensagem
+whitelist-max: '&cVocê atingiu o número máximo de jogadores na lista branca.'
+whitelist-reset: '&fSeus jogadores na lista branca foram redefinidos.'
+whitelist-change: '&eSeus jogadores na lista branca foram alterados.'
+whitelist-toggle: '&fSua lista branca foi definida como normal.'
+blacklist-toggle: '&fSua lista branca agora está no modo lista negra.'
+whitelist-lore:
+- '&f&lEste jogador está na lista branca.'
+- ''
+blacklist-lore:
+- '&f&lEste jogador está na lista negra.'
+- ''
+whitelist-notify:
+- '&fVocê está na lista branca desta recompensa!'
+- ''
+not-whitelisted:
+- '&cParte desta recompensa está na lista branca.'
+- ''
+death-tax: '&cVocê foi morto por causa de uma recompensa. Você perdeu &4{items}&c.'
+max-setters: '&cO número máximo de definidores para este jogador foi alcançado.'
+map-name: '&6&lPROCURA-SE: &f{player}'
+map-lore:
+- ''
+- '&6&oRECOMPENSA:'
+- '&2{amount}'
+- '&6&oA PARTIR DE'
+- '&7{time}'
+- ''
+map-give: '&eVocê deu a &6{receiver}&e um cartaz de recompensa de {player}.' #
+map-receive: '&eVocê recebeu um cartaz de recompensa de &6{player}&e.'
+admin-edit-lore: #
+  - '&cClique Esquerdo &7para Remover'
+  - '&eClique Direito &7para Editar'
+  - ''
+buy-back-lore:
+- '&9Clique Esquerdo &7para recomprar por &a{amount}'
+- ''
+murder: '&cSua recompensa foi aumentada por assassinar &4{player}&c!'
+reward-head-name: '&c&lCabeça de {player}'
+reward-head-lore:
+- ''
+- '&4Esta cabeça tinha uma'
+- '&4recompensa de {amount}&4'
+- '&4em cima dela.'
+- ''
+update-stat: '&6O valor de {leaderboard} de &f{player} &efoi definido para {amount}.'
+self-set-deny: '&4Você não pode definir uma recompensa para si mesmo.'
+entity-remove: '&a{amount} entidades foram removidas.'
+prompt-cancel: '&eVocê cancelou o prompt.'
+prompt-expire: '&cO prompt expirou.'
+combat-tag: '&eVocê foi marcado para combate! Não saia por &f{time}&e.'
+combat-safe: '&aVocê está seguro para sair.'
+wait-command: '&cPor favor, espere {time} antes de usar este comando novamente.'
+give-tracker-lore:
+- '&fClique Esquerdo &7para obter um rastreador'
+give-poster-lore:
+- '&fClique Direito &7para obter um cartaz'
+no-empty-tracker: '&cVocê não tem um rastreador vazio na sua mão.'
+stolen-bounty: '&aVocê roubou a recompensa de &2{player}''s&a em você por {amount}&a!'
+stolen-bounty-broadcast: '&e{receiver}&6 roubou a recompensa de &e{player} them for
+  &f{amount}&6! New Bounty: &f{bounty}'
+# Estas são algumas mensagens de estatísticas.
+# Longa é enviada quando os jogadores estão visualizando suas próprias estatísticas com um comando.
+# Curta é enviada ao usar um placeholder que termina em _full. Isso é útil em lore de itens de jogador.
+bounty-stat:
+  all:
+    long: '&eSeu total de recompensas é &2{amount}&e.'
+    short: '&6Recompensas totais: &e{amount}'
+  kills:
+    long: '&eVocê matou &6{amount}&e jogadores com recompensas.'
+    short: '&6Mortes por recompensa: &e{amount}'
+  claimed:
+    long: '&eVocê reivindicou &2{amount}&e de recompensas.'
+    short: '&6Recompensas reivindicadas: &e{amount}'
+  deaths:
+    long: '&eVocê morreu &6{amount}&e vezes com uma recompensa.'
+    short: '&6Mortes com recompensa: &e{amount}'
+  set:
+    long: '&eVocê colocou &6{amount}&e recompensas com sucesso.'
+    short: '&6Recompensas colocadas: &e{amount}'
+  immunity:
+    long: '&eVocê gastou &2{amount}&e em imunidade.'
+    short: '&6Imunidade a recompensas: &e{amount}'
+help:
+  next-page: '&7Próxima Página'
+  previous-page: '&7Página Anterior'
+  title: '&7&m                     &9&l Not&d&lBounties &7&m                     '
+  basic:
+  - '&1O imposto de recompensa é atualmente: &5{tax}%'
+  - '&1O custo da lista de permissões é atualmente: {whitelist} por jogador.'
+  - '&9/bounty help &8- &dMostra esta mensagem.'
+  - '&9/bounty tutorial &8- &dMostra um tutorial de texto.'
+  - '&9/bounty bdc &8- &dAlterna a mensagem de transmissão de recompensa.'
+  view:
+  - '&9/bounty check (player) &8- &dVerifica uma recompensa.'
+  - '&9/bounty list &8- &dLista todas as recompensas.'
+  - '&9/bounty top (all/kills/claimed/deaths/set/immunity) <list> &8- &dLista os 10
+    melhores jogadores com as respectivas estatísticas.'
+  - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) &8- &dVeja suas estatísticas
+    de recompensa.'
+  - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) &8- &dVeja as
+    estatísticas de outro jogador.'
+  - '&9/bounty &8- &dAbre a GUI de recompensa.'
+  set:
+  - '&9/bounty (player) (amount) <whitelisted players> &8- &dAdiciona uma recompensa
+    a um jogador.'
+  - '&9/bounty (player) (material):(amount),(material):(amount),... <whitelisted players>
+    &8- &dAdiciona uma recompensa de itens a um jogador.'
+  - '&9/bounty set <offline> &8- &dAbre a GUI de configuração de recompensa.'
+  whitelist:
+  - '&9/bounty whitelist (add/remove/set) (whitelisted players) &8- &dMuda os jogadores
+    que podem reivindicar as recompensas que você definir.'
+  - '&9/bounty whitelist <offline> &8- &dAbre a GUI de configuração da lista de permissões.'
+  - '&9/bounty whitelist reset &8- &dRedefine seus jogadores na lista de permissões.'
+  - '&9/bounty whitelist view &8- &dExibe seus jogadores na lista de permissões no
+    chat.'
+  blacklist:
+  - '&9/bounty whitelist toggle &8- &dAlterna sua lista de permissões para uma lista
+    de bloqueio ou vice-versa.'
+  buy-own:
+  - '&9/bounty buy &8- &dCompra sua própria recompensa por {buy_back_interest}x o
+    preço.'
+  buy-immunity:
+    permanent:
+    - '&9/bounty immunity &8- &dCompre imunidade a recompensas definidas para você
+      por {permanent_cost} moedas.'
+    scaling:
+    - '&9/bounty immunity (price) &8- &dCompre imunidade a recompensas definidas para
+      você por {scaling_ratio}x o preço que você gastar.'
+    time:
+    - '&9/bounty immunity (price) &8- &dCompre imunidade a recompensas por preço *
+      {time_immunity}.'
+  remove-immunity:
+  - '&9/bounty immunity remove &8- &dRemove a imunidade comprada de si mesmo.'
+  remove-set:
+  - '&9/bounty remove (player) &8- &dRemove suas recompensas definidas no jogador.'
+  poster-own:
+  - '&9/bounty poster (player) &8- &dDá a você um pôster da recompensa de um jogador.'
+  poster-other:
+  - '&9/bounty poster (player) (receiver) &8- &dDá ao destinatário um pôster da recompensa
+    de um jogador.'
+  tracker-own:
+  - '&9/bounty tracker (player) &8- &dDá a você uma bússola que rastreia um jogador
+    com uma recompensa.'
+  tracker-other:
+  - '&9/bounty tracker (player) (receiver) &8- &dDá ao destinatário uma bússola que
+    rastreia um jogador com uma recompensa.'
+  admin: #
+  - '&9/bounty immunity remove (player) &8- &dRemove a imunidade comprada de um jogador.'
+  - '&9/bounty remove (player) &8- &dRemove todas as recompensas de um jogador.'
+  - '&9/bounty remove (player) from (setter) &8- &dRemove uma recompensa específica
+    colocada em um jogador.'
+  - '&9/bounty edit (player) (amount) &8- &dEdita a recompensa total de um jogador.'
+  - '&9/bounty edit (player) from (setter) (amount) &8- &dEdita uma recompensa específica
+    colocada em um jogador.'
+  - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) edit (change)
+    &8- &dEdita o valor da estatística de um jogador.'
+  - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) setValue (new
+    value) &8- &dDefine o valor da estatística de um jogador.'
+  - '&9/bounty board <rank> &8- &dCria um quadro para recompensas atuais.'
+  - '&9/bounty board clear &8- &dRemove todos os quadros de recompensas.'
+  - '&9/bounty board remove &8- &dRemove um quadro de recompensas específico.'
+  - '&9/bounty cleanEntities <radius> &8- &dRemove entidades persistentes de recompensa.'
+  - '&9/bounty reload &8- &dRecarrega o plugin.'
+  - '&9/bounty debug &8- &dMostra informações de depuração.'
+  immune:
+  - '&dNota: Você está imune a receber recompensas.'

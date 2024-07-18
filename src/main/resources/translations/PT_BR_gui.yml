@@ -1,0 +1,555 @@
+# Credit to Bunny for translating this file
+# This file was created for NotBounties 1.19.8
+# Not all text in this file is translated
+# =====================================================================
+custom-items:
+  fill:
+    # material from https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+    material: GRAY_STAINED_GLASS_PANE
+    amount: 1
+    # for resource packs. Not required to use this
+    custom-model-data: 10
+    # name and lore accept placeholders and hex
+    # {amount} will be replaced with the value you are sorting by. This changes for different GUIs
+    # {amount_tax} will be replaced with {amount} * bounty tax
+    # this will make the name invisible
+    name: '&r'
+    lore: []
+    enchanted: false
+    hide-nbt: true
+    # this will cause the item to not have anything displayed when hovered over (Minecraft version 1.20.5 and higher)
+    hide-tooltip: true
+    # Commands to run when the item is clicked
+    # see https://github.com/No-Not-Jaden/NotBounties/wiki/Action-Commands for a description of the special actions you can use here
+    commands: []
+  custom-head:
+    material: player_head eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWRjZjJjMTk4ZjYxZGY1YTZkMGJhOTdkYmY5MGMzMzc5OTU0MDVjMTczOTZjMDE2Yzg1ZjZmM2ZlYTUyYzkwNiJ9fX0=
+    amount: 1
+    name: '&cCrânio'
+  enter-value:
+    material: WRITABLE_BOOK
+    amount: 1
+    name: '&eEscreva uma quantidade de recompensa &7->'
+    lore:
+      - ''
+      - '&6Clique para manualmente'
+      - '&6Escreva a quantidade de recompensa'
+      - ''
+    commands:
+      - '[pprompt] notbounties {player1} <&eDigite no chat a recompensa ou digite "cancel" para cancelar.>'
+  exit:
+    material: BARRIER
+    amount: 1
+    name: '&c&lSair'
+    commands:
+      - '[close]'
+  next:
+    material: ARROW
+    amount: 1
+    name : '&l→ &7Próxima Página'
+    commands:
+      - '[next]'
+  back:
+    material: ARROW
+    amount: 1
+    name: '&l← &7Página anterior'
+    commands:
+      - '[back]'
+  set-bounty:
+    material: SKELETON_SKULL
+    amount: 1
+    name: '&c&lDefinir Recompensa'
+    commands:
+      - '[p] notbounties set'
+  set-whitelist:
+    material: PAPER
+    amount: 1
+    name: '&f&lDefinir Whitelist'
+    commands:
+      - '[p] notbounties whitelist'
+  add1:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 1
+    name: '&a&lAdicionar 1'
+    commands:
+      - '[next] 1'
+  add10:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 10
+    name: '&a&lAdicionar 10'
+    commands:
+      - '[next] 10'
+  add100:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 64
+    name: '&a&lAdicionar 100'
+    commands:
+      - '[next] 100'
+  remove1:
+    material: RED_STAINED_GLASS_PANE
+    amount: 1
+    name: '&c&lRemover 1'
+    commands:
+      - '[back] 1'
+  remove10:
+    material: RED_STAINED_GLASS_PANE
+    amount: 10
+    name: '&c&lRemover 10'
+    commands:
+      - '[back] 10'
+  remove100:
+    material: RED_STAINED_GLASS_PANE
+    amount: 64
+    name: '&c&lRemover 100'
+    commands:
+      - '[back] 100'
+  yes:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 1
+    name: '&a&lYes'
+    commands:
+      - '!@notbounties.admin [p] notbounties buy --confirm'
+      - '@notbounties.admin [p] notbounties remove {player1}'
+      - '[close]'
+  yes-bounty:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 1
+    name: '&a&lYes'
+    commands:
+      - '[p] notbounties {player1} {page} --confirm'
+      - '[close]'
+  yes-bounty-item:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 1
+    name: '&a&lDefinir Bounty'
+    commands:
+      - '[p] notbounties {data} --confirm' # {data} is a special placeholder for GUI data. In the case of the bounty-item-select GUI, it contains the uuid of the bountied player as well as the items in the GUI
+  cancel:
+    material: RED_STAINED_GLASS_PANE
+    amount: 1
+    name: '&c&lCancelar'
+    commands:
+      - '[p] notbounties'
+  no:
+    material: RED_STAINED_GLASS_PANE
+    amount: 1
+    name: '&c&lNão'
+    commands:
+      - '[p] notbounties'
+  add-offline:
+    material: LEVER
+    amount: 1
+    name: '&7Ver Todos jogadores'
+    commands:
+      - '[offline]'
+  reset-whitelist:
+    material: MILK_BUCKET
+    amount: 1
+    name: '&fRedefinir Whitelist'
+    commands:
+      - '[p] notbounties whitelist reset'
+      - '[gui] set-whitelist 1'
+  return:
+    material: WHITE_BED
+    amount: 1
+    name: '&6&lRetornar'
+    lore: '&7Menu Principal'
+    commands:
+      - '[gui] bounty-gui 1'
+  return-set-bounty:
+    material: WHITE_BED
+    amount: 1
+    name: '&6&lRetornar'
+    lore:
+      - '&7Retornar para a seleção de players'
+    commands:
+      - '[gui] set-bounty 1'
+  return-select-price:
+    material: WHITE_BED
+    amount: 1
+    name: '&6&lRetornar'
+    lore:
+      - '&7Retornar para a seleção de preço'
+    commands:
+      - '[gui] select-price {page}'
+  toggle-whitelist:
+    material: PAPER
+    amount: 1
+    name: '&7Ligar &fWhitelist&7/&8Blacklist'
+    lore:
+      - ''
+      - '&7Modo atual: &f{mode}'
+      - ''
+    commands:
+      - '[p] notbounties whitelist toggle'
+      - '[gui] settings-gui'
+  toggle-broadcast:
+    material: CRIMSON_SIGN
+    amount: 1
+    name: '&7Ligar &eAviso de bounty'
+    lore:
+      - ''
+      - '&7Receber avisos de bounty: &f{notification}'
+      - ''
+    commands:
+      - '[p] notbounties bdc'
+      - '[gui] settings-gui'
+  settings:
+    material: compass
+    amount: 1
+    name: '&9&lConfigurações'
+    lore:
+      - '&7Abrir configurações.'
+    commands:
+      - '[gui] settings-gui'
+  set-item-bounty:
+    material: CHEST
+    amount: 1
+    name: '&b&lDefinir item bounty &7->'
+    lore:
+      - ''
+      - '&3Clique para definir'
+      - '&3itens do jogador.'
+      - ''
+    commands:
+      - '[gui] bounty-item-select 1 {data}'
+  set-currency-bounty:
+    material: SUNFLOWER
+    amount: 1
+    name: '&b&lDefinir Moeda &7->'
+    lore:
+      - ''
+      - '&3Clique para definir bounty'
+      - '&3Moeda disponível'
+      - '&3O jogador'
+      - ''
+    commands:
+      - '[p] notbounties {player1}'
+# for customizing the layout of the regular bounty GUI
+bounty-gui:
+  # how the bounty menu is sorted
+  # 0 : newer bounties at top
+  # 1 : older bounties at top
+  # 2 : more expensive bounties at top
+  # 3 : less expensive bounties at top
+  sort-type: 2
+  # how many slots in the GUI
+  # looks best with multiples of 9
+  size: 54
+  # name of the gui
+  # you can use {page} and {page_max} separately from the add-page option
+  gui-name: '&d&lRecompensas &9&lPage'
+  # this will add the page number at the end of the gui name
+  add-page: true
+  # this will remove items with actions of [next] or [back] if there is no next page or previous page
+  remove-page-items: true
+  # which slots heads will appear in
+  # can accept multiple strings
+  player-slots:
+    - '0-44'
+  # - '45'
+  head-name: '&4☠ &c&l{player} &4☠'
+  head-lore:
+    - '&7<&m                        &7>'
+    - '&4Recompensa: &6{amount}'
+    - '&4&oElimine esse jogador para'
+    - '&4&oreceber a recompensa'
+    - '&7<&m                        &7>'
+  layout:
+    1:
+      # use custom items here or preset items such as 'exit' 'next' 'back'
+      item: fill
+      # what slot or slots in the inventory will be filled - this image has the layout: https://wiki.vg/images/b/bb/DoubleChest-slots.png
+      # this can be a list too like player-slots
+      slot: 45-53
+    # clicking this item will exit the GUI
+    2:
+      item: exit
+      slot: 49
+    # these next 2 will only appear when there are multiple pages
+    # they switch between the pages
+    3:
+      item: back
+      slot: 45
+    4:
+      item: next
+      slot: 53
+    5:
+      item: set-bounty
+      slot: 51
+    6:
+      item: set-whitelist
+      slot: 47
+    7:
+      item: settings
+      slot: 46
+leaderboard:
+  # 1 for highest value
+  # 2 for lowest value
+  # 3 for alphabetically
+  # 4 for reverse alphabetically
+  sort-type: 1
+  size: 36
+  gui-name: '&d&lRecompensas &9&lTop'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    - '11'
+    - '13'
+    - '15'
+    - '19-25'
+  head-name: '&e&l{player}'
+  # rank is number in linked hashmap in customgui create inv
+  head-lore:
+    - '&7<&m                        &7>'
+    - '&8&l{leaderboard}'
+    #- '&6%notbounties_top_{rank}_{leaderboard}%' this is better if you are using placeholderAPI
+    - '&6{rank}&8: &7{amount}'
+    - '&7<&m                        &7>'
+  layout:
+    1:
+      item: fill
+      slot: 0-35
+    2:
+      item: return
+      slot: 31
+set-bounty:
+  # same sort for leaderboard, but this sorts immunity
+  sort-type: 3
+  size: 54
+  gui-name: '&d&lSelect &9&lPlayer &7[{page}/{page_max}]'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    - '0-44'
+  head-name: '&e&l{player}'
+  head-lore:
+    - ''
+    - '&6Immunity: {amount}'
+    - '&7Click to select player'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 45-53
+    2:
+      item: return
+      slot: 48
+    3:
+      item: next
+      slot: 53
+    4:
+      item: back
+      slot: 45
+    5:
+      item: add-offline
+      slot: 50
+set-whitelist:
+  # also sorts by immunity
+  sort-type: 3
+  size: 54
+  gui-name: '&d&lSelect &7&lWhitelisted &9&lPlayers'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    - '0-44'
+  head-name: '&e&l{player}'
+  head-lore:
+    - ''
+    - '&6Immunity: {amount}'
+    - '&7Click to toggle whitelist'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 45-53
+    2:
+      item: return
+      slot: 49
+    3:
+      item: next
+      slot: 53
+    4:
+      item: back
+      slot: 45
+    5:
+      item: add-offline
+      slot: 51
+    6:
+      item: reset-whitelist
+      slot: 47
+# the page of this is the price
+select-price:
+  sort-type: 1
+  size: 54
+  gui-name: '&d&lSelect &9&lBounty Value:&f'
+  add-page: true
+  remove-page-items: false
+  player-slots:
+    - '13'
+  head-name: '&2Price: &a{amount_tax}'
+  head-lore:
+    - '&7&oPrice may be adjusted for '
+    - '&7&otax and whitelisted players'
+    - ''
+    - '&7{player}'
+    - '&cClick to set bounty'
+    #- '&7Immunity: &f%notbounties_immunity_formatted%'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 0-53
+    2:
+      item: return-set-bounty
+      slot: 49
+    3:
+      item: remove1
+      slot: 19-21
+    4:
+      item: remove10
+      slot: 28-30
+    5:
+      item: remove100
+      slot: 37-39
+    6:
+      item: add1
+      slot: 23-25
+    7:
+      item: add10
+      slot: 32-34
+    8:
+      item: add100
+      slot: 41-43
+    9:
+      item: enter-value
+      slot: 31
+bounty-item-select:
+  size: 54
+  gui-name: '&d&lSelect &9&lBounty Items &7[{page}/{page_max}]'
+  add-page: false
+  remove-page-items: true
+  # the first player slot is where the player's head will go
+  # the rest of the player slots are where the user can place items
+  player-slots:
+    - '40'
+    - '0-35'
+  head-name: '&eBounty Value: &a{amount}'
+  head-lore:
+    - '&7&oYou will be required to'
+    - '&7&opay &f&o{tax}&7&o in tax.'
+    - ''
+    - '&7{player}'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 36-53
+    2:
+      item: next
+      slot: 44
+    3:
+      item: back
+      slot: 36
+    4:
+      item: return-set-bounty
+      slot: 49
+    5:
+      item: yes-bounty-item
+      slot: 51-53
+    6:
+      item: cancel
+      slot: 45-47
+confirm:
+  sort-type: 1
+  size: 54
+  gui-name: '&6&lAre you sure?'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    - '13'
+  head-name: '&e&lBuy Back for: &6{amount}'
+  head-lore:
+    - ''
+    - '&7{player}'
+    #- '&7Total Bounty: &f%notbounties_bounty_formatted%'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 0-53
+    2:
+      item: return
+      slot: 49
+    3:
+      item: no
+      slot: 28-30
+    4:
+      item: no
+      slot: 19-21
+    5:
+      item: no
+      slot: 37-39
+    6:
+      item: yes
+      slot: 23-25
+    7:
+      item: yes
+      slot: 32-34
+    8:
+      item: yes
+      slot: 41-43
+confirm-bounty:
+  sort-type: 1
+  size: 54
+  gui-name: '&6&lBounty Cost: &2{amount_tax}'
+  add-page: false
+  remove-page-items: true
+  player-slots:
+    - '13'
+  head-name: '&e&lSet bounty of {amount}'
+  head-lore:
+    - ''
+    - '&7{player}'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 0-53
+    2:
+      item: return-select-price
+      slot: 49
+    3:
+      item: no
+      slot: 28-30
+    4:
+      item: no
+      slot: 19-21
+    5:
+      item: no
+      slot: 37-39
+    6:
+      item: yes-bounty
+      slot: 23-25
+    7:
+      item: yes-bounty
+      slot: 32-34
+    8:
+      item: yes-bounty
+      slot: 41-43
+settings-gui:
+  size: 27
+  gui-name: '&9&lSettings'
+  layout:
+    1:
+      item: fill
+      slot: 0-26
+    2:
+      item: return
+      slot: 13
+    3:
+      item: toggle-whitelist
+      slot: 10
+    4:
+      item: toggle-broadcast
+      slot: 16
