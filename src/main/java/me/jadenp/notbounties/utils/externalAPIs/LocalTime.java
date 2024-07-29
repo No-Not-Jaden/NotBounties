@@ -37,6 +37,7 @@ public class LocalTime {
     private static int account;
     private static String license = null;
     private static long lastException = 0;
+    private static final String SECRET_FILE = "secret.yml";
 
     public static void addTimeZone(UUID uuid, String timeZone) {
         savedTimeZones.put(uuid, TimeZone.getTimeZone(timeZone));
@@ -44,12 +45,12 @@ public class LocalTime {
 
     private static void readAuthentication() throws IOException {
         // checks if secret file is present
-        File secretFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "secret.yml");
+        File secretFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + SECRET_FILE);
         YamlConfiguration configuration;
         if (secretFile.exists()) {
             configuration = YamlConfiguration.loadConfiguration(secretFile);
-        } else if (NotBounties.getInstance().getResource("secret.yml") != null) {
-            configuration = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("secret.yml"))));
+        } else if (NotBounties.getInstance().getResource(SECRET_FILE) != null) {
+            configuration = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource(SECRET_FILE))));
         } else {
             throw new IOException("No Secret File Found!");
         }
@@ -61,24 +62,24 @@ public class LocalTime {
 
     private static String formatTime(long time, Player player) {
         if (!ConfigOptions.autoTimezone)
-            return formatTime(time);
+            return formatTime(time, player.getLocale());
         if (lastException + 10 * 60 * 1000 > System.currentTimeMillis())
-            return formatTime(time);
+            return formatTime(time, player.getLocale());
         if (ProxyMessaging.hasConnectedBefore())
-            return formatTime(time);
+            return formatTime(time, player.getLocale());
         if (license == null) {
             try {
                 readAuthentication();
             } catch (IOException e) {
-                return formatTime(time);
+                return formatTime(time, player.getLocale());
             }
         }
         if (savedTimeZones.containsKey(player.getUniqueId()))
-            return formatTime(time, savedTimeZones.get(player.getUniqueId())) + " " + savedTimeZones.get(player.getUniqueId()).getDisplayName(false, TimeZone.SHORT);
+            return formatTime(time, savedTimeZones.get(player.getUniqueId()));
+
         InetSocketAddress address = player.getAddress();
         if (address == null)
-            return formatTime(time);
-
+            return formatTime(time, player.getLocale());
 
         new BukkitRunnable() {
             @Override
@@ -88,7 +89,7 @@ public class LocalTime {
         }.runTaskAsynchronously(NotBounties.getInstance());
 
 
-        return formatTime(time);
+        return formatTime(time, player.getLocale());
     }
 
     private static void registerTimeZone(Player player) {
@@ -121,7 +122,13 @@ public class LocalTime {
     private static String formatTime(long time, TimeZone timeZone) {
         DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.locale);
         dateFormat.setTimeZone(timeZone);
-        return dateFormat.format(time);
+        return dateFormat.format(time) + " " + timeZone.getDisplayName(false, TimeZone.SHORT);
+    }
+
+    private static String formatTime(long time, String localeString) {
+        Locale locale = Locale.forLanguageTag(localeString);
+        DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, locale);
+        return dateFormat.format(time) + " " + dateFormat.getTimeZone().getDisplayName(false, TimeZone.SHORT);
     }
 
     private static String formatTime(long time) {
@@ -147,17 +154,15 @@ public class LocalTime {
     }
 
     public static String formatTime(long time, TimeFormat format, Player... players) {
-        switch (format) {
-            case PLAYER:
+        return switch (format) {
+            case PLAYER -> {
                 if (players.length > 0 && players[0] != null)
-                    return formatTime(time, players[0]);
-                return formatTime(time);
-            case SERVER:
-                return formatTime(time);
-            case RELATIVE:
-                return formatRelativeTime(time);
-        }
-        return formatTime(time);
+                    yield formatTime(time, players[0]);
+                yield formatTime(time);
+            }
+            case SERVER -> formatTime(time);
+            case RELATIVE -> formatRelativeTime(time);
+        };
     }
 
      public static Map<UUID, TimeZone> getSavedTimeZones() {

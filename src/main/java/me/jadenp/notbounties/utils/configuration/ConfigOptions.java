@@ -7,11 +7,14 @@ import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.ui.gui.GUI;
+import me.jadenp.notbounties.ui.gui.GUIClicks;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.BountyClaimRequirements;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.TrickleBounties;
+import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
@@ -30,11 +33,9 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.text.DateFormat;
 import java.util.*;
-import java.util.regex.Matcher;
 
 public class ConfigOptions {
     public static boolean autoConnect;
-    public static boolean migrateLocalData;
     public static int minBroadcast;
     public static int minBounty;
     public static double bountyTax;
@@ -116,6 +117,7 @@ public class ConfigOptions {
     public static boolean stealBounties;
     public static List<String> pluginBountyCommands;
     public static boolean geyserEnabled;
+    private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level"};
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -267,7 +269,14 @@ public class ConfigOptions {
             bounties.getConfig().set("teams.towny-nation", null);
             bounties.getConfig().set("teams.towny-town", null);
             bounties.getConfig().set("teams.towny-allies", null);
+        }
 
+        // move saber-factions to just factions
+        if (bounties.getConfig().isSet("teams.saber-factions.faction")) {
+            bounties.getConfig().set("teams.factions.faction", bounties.getConfig().getBoolean("teams.saber-factions.faction"));
+            bounties.getConfig().set("teams.factions.ally", bounties.getConfig().getBoolean("teams.saber-factions.ally"));
+            bounties.getConfig().set("teams.saber-factions.faction", null);
+            bounties.getConfig().set("teams.saber-factions.ally", null);
         }
 
         boolean saveChanges = true;
@@ -280,6 +289,8 @@ public class ConfigOptions {
         if (NotBounties.getInstance().getResource("config.yml") != null) {
             bounties.getConfig().setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("config.yml")))));
             for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
+                if (Arrays.stream(modifiableSections).anyMatch(key::contains))
+                    continue;
                 if (!bounties.getConfig().isSet(key))
                     bounties.getConfig().set(key, bounties.getConfig().getDefaults().get(key));
             }
@@ -296,6 +307,8 @@ public class ConfigOptions {
         BigBounty.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("big-bounties")));
         BountyClaimRequirements.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("teams")));
         Prompt.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("prompts")));
+        TrickleBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("trickle-bounties")));
+        GUIClicks.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-gui-clicks")));
 
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
@@ -307,7 +320,6 @@ public class ConfigOptions {
         RRLVoucherPerSetter = bounties.getConfig().getBoolean("redeem-reward-later.voucher-per-setter");
         RRLSetterLoreAddition = bounties.getConfig().getString("redeem-reward-later.setter-lore-addition");
         minBroadcast = bounties.getConfig().getInt("minimum-broadcast");
-        migrateLocalData = bounties.getConfig().getBoolean("database.migrate-local-data");
         autoConnect = bounties.getConfig().getBoolean("database.auto-connect");
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
         updateNotification = bounties.getConfig().getBoolean("update-notification");
@@ -425,7 +437,7 @@ public class ConfigOptions {
         LanguageOptions.reloadOptions();
         WebhookOptions.reloadOptions();
         SkinManager.refreshSkinRequests();
-        //ChallengeManager.reloadOptions();
+        ChallengeManager.reloadOptions();
         if (floodgateEnabled)
             BedrockGUI.reloadOptions();
 
@@ -608,6 +620,38 @@ public class ConfigOptions {
             guiConfig.set("custom-items.cancel.amount", 1);
             guiConfig.set("custom-items.cancel.name", "&c&lCancel");
             guiConfig.set("custom-items.cancel.commands", Collections.singletonList("[p] notbounties"));
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("challenges")) {
+            guiConfig.set("challenges.size", 27);
+            guiConfig.set("challenges.gui-name", "&c&lChallenges");
+            guiConfig.set("challenges.player-slots", Arrays.asList("11", "13", "15"));
+            guiConfig.set("challenges.layout.1.item", "fill");
+            guiConfig.set("challenges.layout.1.slot", "0-26");
+            guiConfig.set("challenges.layout.2.item", "return");
+            guiConfig.set("challenges.layout.2.slot", "26");
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("view-bounty")) {
+            guiConfig.set("view-bounty.size", 54);
+            guiConfig.set("view-bounty.gui-name", "&d&l{player}'s &9&lBounty: &2{amount}");
+            guiConfig.set("view-bounty.remove-page-items", true);
+            guiConfig.set("view-bounty.add-page", false);
+            guiConfig.set("view-bounty.player-slots", List.of("0-44"));
+            guiConfig.set("view-bounty.head-name", "&e&l{player}");
+            guiConfig.set("view-bounty.head-lore", Arrays.asList("", "&6Contribution: {amount}", ""));
+            guiConfig.set("view-bounty.layout.1.item", "fill");
+            guiConfig.set("view-bounty.layout.1.slot", "45-53");
+            guiConfig.set("view-bounty.layout.2.item", "return");
+            guiConfig.set("view-bounty.layout.2.slot", "49");
+            guiConfig.set("view-bounty.layout.3.item", "back");
+            guiConfig.set("view-bounty.layout.3.slot", "45");
+            guiConfig.set("view-bounty.layout.4.item", "next");
+            guiConfig.set("view-bounty.layout.4.slot", "53");
+            guiConfig.set("custom-items.general-currency-item.material", "SUNFLOWER");
+            guiConfig.set("custom-items.general-currency-item.name", "{currency}");
+            guiConfig.set("custom-items.general-currency-item.enchanted", true);
+            guiConfig.set("custom-items.general-currency-item.hide-nbt", true);
             guiChanges = true;
         }
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");

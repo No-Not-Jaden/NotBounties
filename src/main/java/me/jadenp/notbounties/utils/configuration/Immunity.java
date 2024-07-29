@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.utils.configuration;
 
 import me.jadenp.notbounties.Leaderboard;
-import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -10,8 +10,6 @@ import org.bukkit.entity.Player;
 import java.util.*;
 
 import static me.jadenp.notbounties.NotBounties.immunePerms;
-import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.utils.BountyManager.immunitySpent;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class Immunity {
@@ -117,10 +115,7 @@ public class Immunity {
     public static boolean removeImmunity(UUID uuid) {
         if (getImmunity(uuid) == 0)
             return false;
-        if (SQL.isConnected())
-            data.setImmunity(uuid.toString(), 0);
-        else
-            BountyManager.immunitySpent.put(uuid, 0.0);
+        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStat(uuid, Leaderboard.IMMUNITY) * -1, true);
         if (immunityType == ImmunityType.TIME)
             immunityTimeTracker.remove(uuid);
         return true;
@@ -142,33 +137,33 @@ public class Immunity {
         gracePeriodTracker.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
-    private static int sqlTimer = 0;
+    private static long lastSQLUpdate = 0;
     public static void update() {
-        if (immunityType == ImmunityType.TIME) {
-            // iterate through immunity and update it
-            if (SQL.isConnected() && sqlTimer >= 150) {
-                // check if there is immunity there that isn't recorded
-                LinkedHashMap<UUID, Double> immunityData = data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1);
-                for (Map.Entry<UUID, Double> entry : immunityData.entrySet()) {
-                    UUID uuid = entry.getKey();
-                    if (entry.getValue() > 0)
-                        if (!immunityTimeTracker.containsKey(uuid)) {
-                            // add to time tracker
-                            if (Bukkit.getOfflinePlayer(uuid).isOnline() || timeOfflineTracking)
-                                immunityTimeTracker.put(uuid, (long) ((entry.getValue() * time * 1000) + System.currentTimeMillis()));
-                            else
-                                immunityTimeTracker.put(uuid, (long) ((entry.getValue() * time * 1000)));
-                        } else if (Math.abs(getTimeImmunity(Bukkit.getOfflinePlayer(uuid)) - (entry.getValue() * time * 1000L)) > 3000) {
-                            // values are farther than 3 seconds apart, update
-                            if (Bukkit.getOfflinePlayer(uuid).isOnline() || timeOfflineTracking)
-                                immunityTimeTracker.put(uuid, (long) ((entry.getValue() * time * 1000L) + System.currentTimeMillis()));
-                            else
-                                immunityTimeTracker.put(uuid, (long) ((entry.getValue() * time * 1000L)));
-                        }
-                }
-                sqlTimer = 0;
+        if (immunityType != ImmunityType.TIME)
+            return;
+        // iterate through immunity and update it
+        if (DataManager.isSQLConnected() && DataManager.getLastSQLLoad() > lastSQLUpdate) {
+            // check if there is immunity there that isn't recorded
+            LinkedHashMap<UUID, Double> immunityData = (LinkedHashMap<UUID, Double>) Leaderboard.IMMUNITY.getStatMap();
+            for (Map.Entry<UUID, Double> entry : immunityData.entrySet()) {
+                UUID uuid = entry.getKey();
+                if (entry.getValue() > 0)
+                    if (!immunityTimeTracker.containsKey(uuid)) {
+                        // add to time tracker
+                        if (Bukkit.getOfflinePlayer(uuid).isOnline() || timeOfflineTracking)
+                            immunityTimeTracker.put(uuid, (long) ((entry.getValue() * time * 1000) + System.currentTimeMillis()));
+                        else
+                            immunityTimeTracker.put(uuid, (long) ((entry.getValue() * time * 1000)));
+                    } else if (Math.abs(getTimeImmunity(Bukkit.getOfflinePlayer(uuid)) - (entry.getValue() * time * 1000L)) > 3000) {
+                        // values are farther than 3 seconds apart, update
+                        if (Bukkit.getOfflinePlayer(uuid).isOnline() || timeOfflineTracking)
+                            immunityTimeTracker.put(uuid, (long) ((entry.getValue() * time * 1000L) + System.currentTimeMillis()));
+                        else
+                            immunityTimeTracker.put(uuid, (long) ((entry.getValue() * time * 1000L)));
+                    }
             }
-            sqlTimer++;
+            lastSQLUpdate = System.currentTimeMillis();
+        }
 
             // iterate through time tracker to find any expired immunity.
             List<UUID> expiredImmunity = new ArrayList<>();
@@ -178,11 +173,8 @@ public class Immunity {
                 } else if (!(Bukkit.getOfflinePlayer(entry.getKey()).isOnline() || timeOfflineTracking) && entry.getValue() <= 0) {
                     expiredImmunity.add(entry.getKey());
                 } else {
-                    double immunity = Bukkit.getOfflinePlayer(entry.getKey()).isOnline() || timeOfflineTracking ? (double) (entry.getValue() - System.currentTimeMillis()) / 1000.0D / time : (double) (entry.getValue()) / 1000 / time;
-                    if (SQL.isConnected())
-                        data.setImmunity(entry.getKey().toString(), immunity);
-                    else
-                        immunitySpent.put(entry.getKey(), immunity);
+                    double immunity = Bukkit.getOfflinePlayer(entry.getKey()).isOnline() || timeOfflineTracking ? (entry.getValue() - System.currentTimeMillis()) / 1000.0D / time : (double) (entry.getValue()) / 1000 / time;
+                    DataManager.changeStat(entry.getKey(), Leaderboard.IMMUNITY, immunity - DataManager.getStat(entry.getKey(), Leaderboard.IMMUNITY), false);
                 }
             }
             for (UUID uuid : expiredImmunity) {
@@ -190,20 +182,14 @@ public class Immunity {
                 if (player.isOnline())
                     Objects.requireNonNull(player.getPlayer()).sendMessage(parse(prefix + immunityExpire, player));
                 immunityTimeTracker.remove(uuid);
-                if (SQL.isConnected())
-                    data.setImmunity(uuid.toString(), 0);
-                else
-                    immunitySpent.put(uuid, 0.0);
+                DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStat(uuid, Leaderboard.IMMUNITY) * -1, true);
             }
-        }
+
     }
 
+
     public static void addImmunity(UUID uuid, double amount) {
-        if (SQL.isConnected()) {
-            data.addData(uuid.toString(), 0, 0, 0, 0, amount, 0);
-        } else {
-            immunitySpent.put(uuid, Leaderboard.IMMUNITY.getStat(uuid) + (amount));
-        }
+        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, amount, false);
         if (immunityType == ImmunityType.TIME)
             if (immunityTimeTracker.containsKey(uuid)) {
                 immunityTimeTracker.replace(uuid, (long) (immunityTimeTracker.get(uuid) + amount * time * 1000L));
@@ -216,21 +202,18 @@ public class Immunity {
     }
 
     public static void setImmunity(UUID uuid, double amount) {
-        if (SQL.isConnected()) {
-            double currentImmunity = data.getImmunity(uuid.toString());
-            data.addData(uuid.toString(), 0,0,0,0, amount - currentImmunity,0);
-        } else {
-            immunitySpent.put(uuid, amount);
-        }
-        if (immunityType == ImmunityType.TIME)
-            if (Bukkit.getOfflinePlayer(uuid).isOnline() || !timeOfflineTracking)
+        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, amount - DataManager.getStat(uuid, Leaderboard.IMMUNITY), false);
+        if (immunityType == ImmunityType.TIME) {
+            if (Bukkit.getOfflinePlayer(uuid).isOnline() || !timeOfflineTracking) {
                 immunityTimeTracker.put(uuid, (long) (amount * time * 1000L + System.currentTimeMillis()));
-            else
+            } else {
                 immunityTimeTracker.put(uuid, (long) (amount * time * 1000L));
+            }
+        }
     }
 
     private static Map<UUID, Double> getImmunity() {
-        return BountyManager.SQL.isConnected() ? BountyManager.data.getTopStats(Leaderboard.IMMUNITY, new ArrayList<>(), -1, -1) : BountyManager.immunitySpent;
+        return Leaderboard.IMMUNITY.getStatMap();
     }
 
     public static long getGracePeriod(UUID uuid) {
@@ -247,7 +230,7 @@ public class Immunity {
     }
 
     public static double getImmunity(UUID uuid) {
-        return  SQL.isConnected() ? data.getImmunity(uuid.toString()) : Leaderboard.IMMUNITY.getStat(uuid);
+        return Leaderboard.IMMUNITY.getStat(uuid);
     }
 
     public static long getTimeImmunity(OfflinePlayer player) {
@@ -283,6 +266,8 @@ public class Immunity {
                 if (getImmunity(receiver.getUniqueId()) >= permanentCost)
                     return ImmunityType.PERMANENT;
                 break;
+            default:
+                return ImmunityType.DISABLE;
         }
         return ImmunityType.DISABLE;
     }

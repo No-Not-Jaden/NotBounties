@@ -6,6 +6,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
+import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.CommandPrompt;
 import me.jadenp.notbounties.utils.SerializeInventory;
@@ -14,7 +15,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Matcher;
 
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.playerInfo;
@@ -79,7 +78,7 @@ public class ActionCommands {
             return;
         if (NotBounties.debug)
             Bukkit.getLogger().info("[NotBountiesDebug] Executing Command for " + player.getName() + " : " + command);
-        PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, "", new Object[0], new UUID[0], "");
+        PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, "", new Object[0], new ArrayList<>(), "");
         double totalBounty = bounty != null ? bounty.getTotalDisplayBounty() : 0;
         double bountyCurrency = bounty != null ? bounty.getTotalBounty() : 0;
         double bountyItemValues = bounty != null ? NumberFormatting.getTotalValue(bounty.getTotalItemBounty()) : 0;
@@ -93,28 +92,28 @@ public class ActionCommands {
         command = command.replace("{bounty_item_values}", (NumberFormatting.formatNumber(bountyItemValues)));
         command = command.replace("{bounty_items}", (bountyItems));
         command = command.replace("{cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
-        command = command.replace("{page}", (info.getPage() + ""));
+        command = command.replace("{page}", (info.page() + ""));
         command = command.replace("{min_bounty}", getValue(ConfigOptions.minBounty));
-        if (info.getData().length > 0) {
-            Object[] data = info.getData();
-            if (info.getGuiType().equals("bounty-item-select") && player.getOpenInventory().getTitle().equals(info.getTitle())) {
+        if (info.data().length > 0) {
+            Object[] data = info.data();
+            if (info.guiType().equals("bounty-item-select") && player.getOpenInventory().getTitle().equals(info.title())) {
                 // update data with current item contentse
                 GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
                 ItemStack[] currentContents = new ItemStack[guiOptions.getPlayerSlots().size() - 1];
                 for (int i = 0; i < currentContents.length; i++) {
                     currentContents[i] = player.getOpenInventory().getTopInventory().getContents()[guiOptions.getPlayerSlots().get(i+1)];
                 }
-                Object[] tempData = new Object[(int) Math.max(info.getPage() + 1, data.length)];
+                Object[] tempData = new Object[(int) Math.max(info.page() + 1, data.length)];
                 System.arraycopy(data, 0, tempData, 0, data.length);
-                tempData[(int) info.getPage()] = SerializeInventory.itemStackArrayToBase64(currentContents);
+                tempData[(int) info.page()] = SerializeInventory.itemStackArrayToBase64(currentContents);
                 data = tempData;
-                playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(info.getPage(), info.getGuiType(), data, info.getPlayers(), info.getTitle()));
+                playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(info.page(), info.guiType(), data, info.displayItems(), info.title()));
             }
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < data.length; i++) {
                 if (data[i] == null)
                     data[i] = "";
-                if (info.getGuiType().equals("bounty-item-select")) {
+                if (info.guiType().equals("bounty-item-select")) {
                     if (i == 0)
                         // player uuid to set bounty on
                         builder.append(data[0].toString()).append(' ');
@@ -156,11 +155,11 @@ public class ActionCommands {
                         if (p != null) {
                             replacement = NotBounties.getPlayerName(p.getUniqueId());
                         } else {
-                            if (!info.getGuiType().isEmpty()) {
-                               GUIOptions guiOptions = GUI.getGUI(info.getGuiType());
+                            if (!info.guiType().isEmpty()) {
+                               GUIOptions guiOptions = GUI.getGUI(info.guiType());
                                if (guiOptions != null) {
-                                   if (guiOptions.getPlayerSlots().contains(slot)) {
-                                        replacement = NotBounties.getPlayerName(info.getPlayers()[guiOptions.getPlayerSlots().indexOf(slot)]);
+                                   if (guiOptions.getPlayerSlots().contains(slot) && info.displayItems().get(guiOptions.getPlayerSlots().indexOf(slot)) instanceof PlayerItem playerItem) {
+                                        replacement = NotBounties.getPlayerName(player.getUniqueId());
                                    }
                                } else {
                                    Bukkit.getLogger().warning("Invalid player for slot " + slot);
@@ -189,8 +188,8 @@ public class ActionCommands {
             String slotString = command.substring(command.indexOf("{player") + 7, command.substring(command.indexOf("{player")).indexOf("}") + command.substring(0, command.indexOf("{player")).length());
             try {
                 int slot = Integer.parseInt(slotString);
-                if (info.getPlayers().length > slot-1) {
-                    replacement = NotBounties.getPlayerName(info.getPlayers()[slot-1]);
+                if (info.displayItems().size() > slot-1 && info.displayItems().get(slot-1) instanceof PlayerItem playerItem) {
+                    replacement = NotBounties.getPlayerName(playerItem.getUuid());
                 }
             } catch (NumberFormatException e) {
                 Bukkit.getLogger().warning("Error getting player in command: \n" + command);
@@ -259,12 +258,12 @@ public class ActionCommands {
 
             if (command.startsWith("~player(") && command.contains(") ")) {
                 String requirement = command.substring(8, command.indexOf(") "));
-                if (isRequirementCanceled(requirement, player))
+                if (!isRequirementCompleted(requirement, player))
                     canceled = true;
                 command = command.substring(command.indexOf(") ") + 2);
             } else if (command.startsWith("~killer(") && command.contains(") ")) {
                 String requirement = command.substring(8, command.indexOf(") "));
-                if (isRequirementCanceled(requirement, killer))
+                if (!isRequirementCompleted(requirement, killer))
                     canceled = true;
                 command = command.substring(command.indexOf(") ") + 2);
             }
@@ -443,7 +442,7 @@ public class ActionCommands {
                     // additional parameters present
                     // check if the current GUI already has the offline parameter
                     // if so, set the last argument to nothing to toggle it
-                    if (command.equalsIgnoreCase("offline") && info.getData().length > 0 && info.getData()[0] instanceof String && ((String) info.getData()[0]).equalsIgnoreCase("offline")) {
+                    if (command.equalsIgnoreCase("offline") && info.data().length > 0 && info.data()[0] instanceof String && ((String) info.data()[0]).equalsIgnoreCase("offline")) {
                         command = "";
                     }
                     openGUI(player, guiName, amount, command);
@@ -470,23 +469,23 @@ public class ActionCommands {
                 amount = Integer.parseInt(command.substring(7));
             } catch (IndexOutOfBoundsException | NumberFormatException ignored) {
             }
-            if (info.getGuiType().equals("select-price")) {
+            if (info.guiType().equals("select-price")) {
                 GUIOptions gui = GUI.getGUI("select-price");
                 String uuid;
-                if (info.getData().length > 0) {
-                    uuid = (String) info.getData()[0];
+                if (info.data().length > 0) {
+                    uuid = (String) info.data()[0];
                 } else {
                     if (gui != null)
-                        uuid = info.getPlayers()[0].toString(); //Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
+                        uuid = ((PlayerItem) info.displayItems().get(0)).getUuid().toString();
                     else
                         // select-price GUI hasn't been set up
                         uuid = new UUID(0,0).toString();
                 }
-                openGUI(player, info.getGuiType(), info.getPage() + amount, uuid);
-            } else if (info.getGuiType().equals("leaderboard")) {
-                Leaderboard leaderboard = (Leaderboard) info.getData()[0];
-                openGUI(player, info.getGuiType(), info.getPage() + amount, leaderboard);
-            } else if (info.getGuiType().equals("bounty-item-select")) {
+                openGUI(player, info.guiType(), info.page() + amount, uuid);
+            } else if (info.guiType().equals("leaderboard")) {
+                Leaderboard leaderboard = (Leaderboard) info.data()[0];
+                openGUI(player, info.guiType(), info.page() + amount, leaderboard);
+            } else if (info.guiType().equals("bounty-item-select")) {
                 // add current items to data
                 GUIOptions gui = GUI.getGUI("bounty-item-select");
                 if (gui == null) {
@@ -502,13 +501,13 @@ public class ActionCommands {
                         items.add(item);
                 }
                 // create new data object
-                Object[] data = new Object[(int) Math.max(info.getPage() + 1, info.getData().length)];
-                System.arraycopy(info.getData(),0,data,0,info.getData().length);
-                data[(int) (info.getPage())] = SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0]));
+                Object[] data = new Object[(int) Math.max(info.page() + 1, info.data().length)];
+                System.arraycopy(info.data(),0,data,0,info.data().length);
+                data[(int) (info.page())] = SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0]));
                 // open GUI
-                openGUI(player, info.getGuiType(), info.getPage() + amount, data);
-            } else if (!info.getGuiType().isEmpty()){
-                openGUI(player, info.getGuiType(), info.getPage() + amount, info.getData());
+                openGUI(player, info.guiType(), info.page() + amount, data);
+            } else if (!info.guiType().isEmpty()){
+                openGUI(player, info.guiType(), info.page() + amount, info.data());
             }
 
         } else if (command.startsWith("[back]")) {
@@ -517,51 +516,54 @@ public class ActionCommands {
                 amount = Integer.parseInt(command.substring(7));
             } catch (IndexOutOfBoundsException | NumberFormatException ignored) {
             }
-            if (info.getGuiType().equals("select-price")) {
-                GUIOptions gui = GUI.getGUI("select-price");
-                String uuid;
-                if (info.getData().length > 0) {
-                    uuid = (String) info.getData()[0];
-                } else {
-                    if (gui != null)
-                        uuid = info.getPlayers()[0].toString(); //Objects.requireNonNull(((SkullMeta) Objects.requireNonNull(player.getOpenInventory().getTopInventory().getContents()[gui.getPlayerSlots().get(0)].getItemMeta())).getOwningPlayer()).getUniqueId().toString();
-                    else
-                        // select-price GUI hasn't been set up
-                        uuid = new UUID(0,0).toString();
+            switch (info.guiType()) {
+                case "select-price" -> {
+                    GUIOptions gui = GUI.getGUI("select-price");
+                    String uuid;
+                    if (info.data().length > 0) {
+                        uuid = (String) info.data()[0];
+                    } else {
+                        if (gui != null)
+                            uuid = ((PlayerItem) info.displayItems().get(0)).getUuid().toString();
+                        else
+                            // select-price GUI hasn't been set up
+                            uuid = new UUID(0, 0).toString();
+                    }
+                    openGUI(player, info.guiType(), info.page() - amount, uuid);
                 }
-                openGUI(player, info.getGuiType(), info.getPage() - amount, uuid);
-            } else if (info.getGuiType().equals("leaderboard")) {
-                Leaderboard leaderboard = (Leaderboard) info.getData()[0];
-                openGUI(player, info.getGuiType(), info.getPage() - amount, leaderboard);
-            } else if (info.getGuiType().equals("bounty-item-select")) {
-                // add current items to data
-                GUIOptions gui = GUI.getGUI("bounty-item-select");
-                if (gui == null) {
-                    // gui not set up
-                    Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not set up.");
-                    return;
+                case "leaderboard" -> {
+                    Leaderboard leaderboard = (Leaderboard) info.data()[0];
+                    openGUI(player, info.guiType(), info.page() - amount, leaderboard);
                 }
-                // get all items in player slots except first one
-                List<ItemStack> items = new ArrayList<>();
-                for (int i = 1; i < gui.getPlayerSlots().size(); i++) {
-                    ItemStack item = player.getOpenInventory().getItem(gui.getPlayerSlots().get(i));
-                    if (item != null)
-                        items.add(item);
+                case "bounty-item-select" -> {
+                    // add current items to data
+                    GUIOptions gui = GUI.getGUI("bounty-item-select");
+                    if (gui == null) {
+                        // gui not set up
+                        Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not set up.");
+                        return;
+                    }
+                    // get all items in player slots except first one
+                    List<ItemStack> items = new ArrayList<>();
+                    for (int i = 1; i < gui.getPlayerSlots().size(); i++) {
+                        ItemStack item = player.getOpenInventory().getItem(gui.getPlayerSlots().get(i));
+                        if (item != null)
+                            items.add(item);
+                    }
+                    // create new data object
+                    Object[] data = new Object[(int) Math.max(info.page() + 1, info.data().length)];
+                    System.arraycopy(info.data(), 0, data, 0, info.data().length);
+                    data[(int) (info.page())] = SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0]));
+                    // open GUI
+                    openGUI(player, info.guiType(), info.page() - amount, data);
                 }
-                // create new data object
-                Object[] data = new Object[(int) Math.max(info.getPage()+1, info.getData().length)];
-                System.arraycopy(info.getData(),0,data,0,info.getData().length);
-                data[(int) (info.getPage())] = SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0]));
-                // open GUI
-                openGUI(player, info.getGuiType(), info.getPage() - amount, data);
-            } else {
-                openGUI(player, info.getGuiType(), info.getPage() - amount, info.getData());
+                default -> openGUI(player, info.guiType(), info.page() - amount, info.data());
             }
         } else if (command.equalsIgnoreCase("[offline]")) {
-            if (info.getData().length > 0 && info.getData()[0] instanceof String && ((String) info.getData()[0]).equalsIgnoreCase("offline"))
-                openGUI(player, info.getGuiType(), info.getPage());
+            if (info.data().length > 0 && info.data()[0] instanceof String && ((String) info.data()[0]).equalsIgnoreCase("offline"))
+                openGUI(player, info.guiType(), info.page());
             else
-                openGUI(player, info.getGuiType(), info.getPage(), "offline");
+                openGUI(player, info.guiType(), info.page(), "offline");
 
         } else if (command.equalsIgnoreCase("<respawn>")) {
             if (player.isDead())
@@ -574,7 +576,7 @@ public class ActionCommands {
     }
 
 
-    private static boolean isRequirementCanceled(String requirement, OfflinePlayer player) {
+    public static boolean isRequirementCompleted(String requirement, OfflinePlayer player) {
         try {
             String placeholder = requirement.substring(0, requirement.indexOf(" "));
             String operator = requirement.substring(requirement.indexOf(" ") + 1, requirement.lastIndexOf(" "));
@@ -586,16 +588,13 @@ public class ActionCommands {
                 Object parsedPlaceholder = parseValue(parsed);
 
                 // value types don't match
-                if (parsedValue instanceof Boolean && !(parsedPlaceholder instanceof Boolean)) {
-                    return true;
-                } else if (parsedValue instanceof Integer && !(parsedPlaceholder instanceof Integer)) {
-                    return true;
-                } else if (parsedValue instanceof Double && !(parsedPlaceholder instanceof Double)) {
-                    return true;
-                } else if (parsedValue instanceof String && !(parsedPlaceholder instanceof String)) {
-                    return true;
+                if (parsedValue instanceof Boolean && !(parsedPlaceholder instanceof Boolean)
+                        || parsedValue instanceof Integer && !(parsedPlaceholder instanceof Integer)
+                        || parsedValue instanceof Double && !(parsedPlaceholder instanceof Double)
+                        || parsedValue instanceof String && !(parsedPlaceholder instanceof String)) {
+                    return false;
                 }
-                return !compareObjects(parsedValue, parsedPlaceholder, operator);
+                return compareObjects(parsedValue, parsedPlaceholder, operator);
             } else {
                 int customModelData = -1;
                 if (placeholder.contains("<") && placeholder.contains(">"))
@@ -607,22 +606,20 @@ public class ActionCommands {
                         Bukkit.getLogger().warning(e.toString());
                     }
                 // check if it is a material
-                if (player.isOnline()) {
-                    assert player.getPlayer() != null;
+                if (player.isOnline() && player.getPlayer() != null) {
                     Material m = Material.getMaterial(placeholder);
-                    if (m != null) {
-                        if (parsedValue instanceof Integer || parsedValue instanceof Double) {
+                    if (m != null && (parsedValue instanceof Integer || parsedValue instanceof Double)) {
                             int reqValue = parsedValue instanceof Double ? ((Double) parsedValue).intValue() : (int) parsedValue;
                             int playerValue = checkAmount(player.getPlayer(), m, customModelData);
-                            return !compareObjects(reqValue, playerValue, operator);
+                            return compareObjects(reqValue, playerValue, operator);
                         }
-                    }
+
                 }
             }
         } catch (IndexOutOfBoundsException e) {
             Bukkit.getLogger().warning("Could not check requirement: " + requirement + "\nIs it formatted properly?");
         }
-        return true;
+        return false;
     }
 
     private static Object parseValue(String str) {
@@ -638,7 +635,7 @@ public class ActionCommands {
         }
     }
 
-    private static boolean compareObjects(Object parsedValue, Object parsedPlaceholder, String operator) {
+    public static boolean compareObjects(Object parsedValue, Object parsedPlaceholder, String operator) {
         if (parsedValue instanceof Boolean) {
             boolean a = (boolean) parsedValue;
             boolean b = (boolean) parsedPlaceholder;

@@ -208,8 +208,8 @@ teams:
     land: false
     # claim if lands are allied
     land-ally: false
-  # <===> Saber Factions <===>
-  saber-factions:
+  # <===> Factions <===>
+  factions:
     # claim if in the same faction
     faction: false
     # claim if allied
@@ -271,6 +271,39 @@ prompts:
   # the time the player has to type in an answer to the prompt before it times out
   # in seconds
   time-limit: 30
+# What happens when a player clicks a bounty in the GUI
+bounty-gui-clicks:
+  # Available Actions:
+  # POSTER   - give a bounty poster (give-own must be enabled in bounty-posters section)
+  # TRACKER  - give a bounty tracker, or write to a tracker (one of those options must be enabled in bounty-trackers section)
+  # VIEW     - opens the view-bounty GUI
+  # REMOVE   - remove a bounty (must have notbounties.admin to execute)
+  # EDIT     - edit a bounty (must have notbounties.admin to execute)
+  # NONE     - no action on this click
+  # If you change this, you might want to change the following text in language.yml:
+  # give-tracker-lore, give-poster-lore, view-bounty-lore, remove-bounty-lore, and edit-bounty-lore
+  right: POSTER
+  left: TRACKER # Left click will be overridden on your own bounty to buy it back if buy-own-bounties is enabled
+  middle: NONE # Middle clicks only work when in creative
+  drop: VIEW
+  bedrock: VIEW # If using a simple GUI, bedrock players have only 1 click option
+  # These options override the click actions above if you have the notbounties.admin permission
+  admin:
+    right: EDIT
+    left: REMOVE
+    middle: NONE
+    drop: VIEW
+    bedrock: VIEW
+# claiming another bounty will increase your own by a percentage
+# items will not be trickled
+trickle-bounties:
+  # the ratio of the bounty that is physically rewarded to the person who claimed the bounty (they get the currency)
+  # 1 = all, 0.5 = half, 0 = none
+  given-reward: 1
+  # the ratio of the bounty that is transfered to the person who claimed the bounty
+  bounty-transfer: 0
+  # whether the player claiming the bounty will need a bounty on themselves for a trickle bounty to activate
+  require-bounty: true
 auto-bounties:
   # number of days until auto bounties expire
   # overrides the bounty-expire value unless it is set to -1
@@ -432,6 +465,8 @@ bounty-tracker:
   # whether the compasses will actually track a player
   # does not stop admins from getting new compasses, and they will still be removed
   enabled: true
+  # the minimum bounty required to obtain a tracker
+  minimum-bounty: 10
   # allow players with the notbounties.tracker permission to give themselves a tracker with the command
   give-own: false
   # allow players with the notbounties.tracker permission to use the tracker command to change an empty tracker
@@ -477,8 +512,6 @@ database:
   user: username
   password: pass
   use-ssl: false
-  # automatically move data stored locally to the MySQL database when one connects
-  migrate-local-data: true
   # automatically try to connect to the database if a connection was lost
   auto-connect: false
   # the id of the server used to get all players on the network

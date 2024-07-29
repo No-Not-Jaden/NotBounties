@@ -16,17 +16,10 @@ import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class BountyExpansion extends PlaceholderExpansion {
-
-
-    public BountyExpansion(){
-
-    }
 
     @Override
     public @NotNull String getAuthor() {
@@ -128,45 +121,27 @@ public class BountyExpansion extends PlaceholderExpansion {
         }
 
         if (params.equalsIgnoreCase("bounties_claimed")){
-            if (BountyManager.SQL.isConnected()){
-                return String.valueOf(BountyManager.data.getClaimed(player.getUniqueId().toString()));
-            }
-            return String.valueOf(BountyManager.killBounties.get(uuid));
+            return String.valueOf(Leaderboard.KILLS.getStat(uuid));
         }
 
         if (params.equalsIgnoreCase("bounties_set")){
-            if (BountyManager.SQL.isConnected()){
-                return String.valueOf(BountyManager.data.getSet(player.getUniqueId().toString()));
-            }
-            return String.valueOf(BountyManager.setBounties.get(uuid));
+            return String.valueOf(Leaderboard.SET.getStat(uuid));
         }
 
         if (params.equalsIgnoreCase("bounties_received")){
-            if (BountyManager.SQL.isConnected()){
-                return String.valueOf(BountyManager.data.getReceived(player.getUniqueId().toString()));
-            }
-            return String.valueOf(BountyManager.deathBounties.get(uuid));
+            return String.valueOf(Leaderboard.DEATHS.getStat(uuid));
         }
 
         if (params.equalsIgnoreCase("immunity_spent")){
-            if (BountyManager.SQL.isConnected()){
-                return String.valueOf(BountyManager.data.getImmunity(player.getUniqueId().toString()));
-            }
-            return String.valueOf(BountyManager.immunitySpent.get(player.getUniqueId()));
+            return String.valueOf(Leaderboard.IMMUNITY.getStat(uuid));
         }
 
         if (params.equalsIgnoreCase("all_time_bounty")){
-            if (BountyManager.SQL.isConnected()){
-                return String.valueOf(BountyManager.data.getAllTime(player.getUniqueId().toString()));
-            }
-            return String.valueOf(BountyManager.allTimeBounties.get(player.getUniqueId()));
+            return String.valueOf(Leaderboard.ALL.getStat(uuid));
         }
 
         if (params.equalsIgnoreCase("currency_gained")){
-            if (BountyManager.SQL.isConnected()){
-                return String.valueOf(BountyManager.data.getTotalClaimed(player.getUniqueId().toString()));
-            }
-            return String.valueOf(BountyManager.allClaimedBounties.get(player.getUniqueId()));
+            return String.valueOf(Leaderboard.CLAIMED.getStat(uuid));
         }
 
         if (params.equalsIgnoreCase("notification")) {
@@ -204,13 +179,14 @@ public class BountyExpansion extends PlaceholderExpansion {
         }
         if (params.startsWith("top_")) {
             params = params.substring(4);
-            int rank = 0;
+            int rank;
             try {
                 if (params.contains("_"))
                     rank = Integer.parseInt(params.substring(0,params.indexOf("_")));
                 else
                     rank = Integer.parseInt(params);
             } catch (NumberFormatException ignored) {
+                rank = 0;
             }
             if (rank < 1)
                 rank = 1;
@@ -225,7 +201,7 @@ public class BountyExpansion extends PlaceholderExpansion {
                     return null;
                 }
             }
-            LinkedHashMap<UUID, Double> stat = leaderboard.getTop(rank - 1, 1);
+            Map<UUID, Double> stat = leaderboard.getTop(rank - 1, 1);
             if (stat.isEmpty())
                 return "...";
             boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL || leaderboard == Leaderboard.CURRENT;
@@ -257,7 +233,9 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (ending == 3)
                 return NumberFormatting.getValue(leaderboard.getStat(player.getUniqueId()));
             return NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId()));
-        } catch (IllegalArgumentException ignored){}
+        } catch (IllegalArgumentException ignored){
+            // not a valid leaderboard
+        }
 
         return null;
     }

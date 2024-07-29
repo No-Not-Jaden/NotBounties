@@ -1,6 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -97,7 +98,7 @@ public class RemovePersistentEntitiesEvent implements Listener {
                             }
                             if (sender != null) {
                                 Player parser = sender instanceof Player ? (Player) sender : null;
-                                sender.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.entityRemove, toRemove.size(), parser));
+                                sender.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.entityRemove.replace("{amount}", NumberFormatting.formatNumber(toRemove.size())), parser));
                             }
                         }
                     }.runTask(NotBounties.getInstance());

@@ -1,7 +1,7 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.configuration.Immunity;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.hiddenNames;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
@@ -41,53 +40,7 @@ public enum Leaderboard {
      * @return stat
      */
     public double getStat(UUID uuid){
-        switch (this) {
-            case ALL:
-                if (SQL.isConnected())
-                    return data.getAllTime(uuid.toString());
-                if (!allTimeBounties.containsKey(uuid))
-                    return 0;
-                return allTimeBounties.get(uuid);
-            case KILLS:
-                if (SQL.isConnected())
-                    return data.getClaimed(uuid.toString());
-                if (!killBounties.containsKey(uuid))
-                    return 0;
-                return killBounties.get(uuid);
-            case CLAIMED:
-                if (SQL.isConnected())
-                    return data.getTotalClaimed(uuid.toString());
-                if (!allClaimedBounties.containsKey(uuid))
-                    return 0;
-                return allClaimedBounties.get(uuid);
-            case DEATHS:
-                if (SQL.isConnected())
-                    return data.getReceived(uuid.toString());
-                if (!deathBounties.containsKey(uuid))
-                    return 0;
-                return deathBounties.get(uuid);
-            case SET:
-                if (SQL.isConnected())
-                    return data.getSet(uuid.toString());
-                if (!setBounties.containsKey(uuid))
-                    return 0;
-                return setBounties.get(uuid);
-            case IMMUNITY:
-                if (SQL.isConnected())
-                    return data.getImmunity(uuid.toString());
-                if (!immunitySpent.containsKey(uuid))
-                    return 0;
-                return immunitySpent.get(uuid);
-            case CURRENT:
-                if (SQL.isConnected())
-                    return data.getBounty(uuid).getTotalDisplayBounty();
-                Bounty bounty = getBounty(uuid);
-                if (bounty == null)
-                    return 0;
-                return bounty.getTotalDisplayBounty();
-            default:
-                return 0;
-        }
+        return DataManager.getStat(uuid, this);
     }
 
     /**
@@ -115,55 +68,6 @@ public enum Leaderboard {
         }
     }
 
-    public void setStat(UUID uuid, double newAmount) {
-        if (SQL.isConnected()) {
-            double current = getStat(uuid);
-            switch (this) {
-                case ALL:
-                    data.addData(uuid.toString(), 0,0,0,current-newAmount,0,0);
-                    return;
-                case KILLS:
-                    data.addData(uuid.toString(), (long) (current-newAmount),0,0,0,0,0);
-                    return;
-                case CLAIMED:
-                    data.addData(uuid.toString(), 0,0,0,0,0,current-newAmount);
-                    return;
-                case DEATHS:
-                    data.addData(uuid.toString(), 0L, 0L, (long) (current-newAmount),0,0,0);
-                    return;
-                case SET:
-                    data.addData(uuid.toString(), 0,(long) (current-newAmount),0,0,0,0);
-                    return;
-                case IMMUNITY:
-                    Immunity.setImmunity(uuid, newAmount);
-                    return;
-                default:
-                    return;
-            }
-        }
-        switch (this){
-            case ALL:
-                allTimeBounties.put(uuid, newAmount);
-                return;
-            case KILLS:
-                killBounties.put(uuid, newAmount);
-                return;
-            case CLAIMED:
-                allClaimedBounties.put(uuid, newAmount);
-                return;
-            case DEATHS:
-                deathBounties.put(uuid, newAmount);
-                return;
-            case SET:
-                setBounties.put(uuid, newAmount);
-                return;
-            case IMMUNITY:
-                Immunity.setImmunity(uuid, newAmount);
-                return;
-            default:
-                break;
-        }
-    }
 
     public String getFormattedStat(UUID uuid){
         if (money) {
@@ -173,31 +77,15 @@ public enum Leaderboard {
     }
 
     public String getStatMsg(boolean shorten){
-        String msg = "";
-        switch (this){
-            case ALL:
-                msg = shorten ? bountyStatAllShort : bountyStatAllLong;
-                break;
-            case KILLS:
-                msg = shorten ? bountyStatKillsShort : bountyStatKillsLong;
-                break;
-            case CLAIMED:
-                msg = shorten ? bountyStatClaimedShort : bountyStatClaimedLong;
-                break;
-            case DEATHS:
-                msg = shorten ? bountyStatDeathsShort : bountyStatDeathsLong;
-                break;
-            case SET:
-                msg = shorten ? bountyStatSetShort : bountyStatSetLong;
-                break;
-            case IMMUNITY:
-                msg = shorten ? bountyStatImmunityShort : bountyStatImmunityLong;
-                break;
-            case CURRENT:
-                msg = shorten ? listTotal : checkBounty;
-                break;
-        }
-        return msg;
+        return switch (this) {
+            case ALL -> shorten ? bountyStatAllShort : bountyStatAllLong;
+            case KILLS -> shorten ? bountyStatKillsShort : bountyStatKillsLong;
+            case CLAIMED -> shorten ? bountyStatClaimedShort : bountyStatClaimedLong;
+            case DEATHS -> shorten ? bountyStatDeathsShort : bountyStatDeathsLong;
+            case SET -> shorten ? bountyStatSetShort : bountyStatSetLong;
+            case IMMUNITY -> shorten ? bountyStatImmunityShort : bountyStatImmunityLong;
+            case CURRENT -> shorten ? listTotal : checkBounty;
+        };
     }
 
     /**
@@ -205,63 +93,73 @@ public enum Leaderboard {
      * @param amount Amount of values you want returned
      * @return Map of UUID and stat value in descending order
      */
-    public LinkedHashMap<UUID, Double> getTop(int skip, int amount){
-        if (SQL.isConnected())
-            return data.getTopStats(this, hiddenNames, skip, amount);
-        LinkedHashMap<UUID, Double> map;
-        switch (this){
-            case ALL:
-                map = sortByValue(allTimeBounties);
-                break;
-            case KILLS:
-                map = sortByValue(killBounties);
-                break;
-            case CLAIMED:
-                map = sortByValue(allClaimedBounties);
-                break;
-            case DEATHS:
-                map = sortByValue(deathBounties);
-                break;
-            case SET:
-                map = sortByValue(setBounties);
-                break;
-            case IMMUNITY:
-                map = sortByValue(immunitySpent);
-                break;
-            case CURRENT:
-                map = new LinkedHashMap<>();
-                for (Bounty bounty : BountyManager.getAllBounties(-1))
-                    map.put(bounty.getUUID(), bounty.getTotalDisplayBounty());
-                map = sortByValue(map);
-                break;
-            default:
-                map = new LinkedHashMap<>();
-                break;
-        }
+    public Map<UUID, Double> getTop(int skip, int amount){
         LinkedHashMap<UUID, Double> top = new LinkedHashMap<>();
-        for (Map.Entry<UUID, Double> entry : map.entrySet()){
-            String name = NotBounties.getPlayerName(entry.getKey());
-            if (hiddenNames.contains(name))
-                continue;
-            if (amount == 0)
-                break;
-            if (skip == 0) {
-                top.put(entry.getKey(), entry.getValue());
-                amount--;
-            } else {
-                skip--;
+        if (this == Leaderboard.CURRENT) {
+            for (Bounty bounty : BountyManager.getPublicBounties(2)) {
+                if (amount == 0)
+                    return top;
+                if (skip == 0) {
+                    top.put(bounty.getUUID(), bounty.getTotalDisplayBounty());
+                    amount--;
+                } else {
+                    skip--;
+                }
+            }
+        } else {
+            LinkedHashMap<UUID, Double> map = sortByValue(getStatMap());
+            for (Map.Entry<UUID, Double> entry : map.entrySet()){
+                String name = NotBounties.getPlayerName(entry.getKey());
+                if (hiddenNames.contains(name))
+                    continue;
+                if (amount == 0)
+                    return top;
+                if (skip == 0) {
+                    top.put(entry.getKey(), entry.getValue());
+                    amount--;
+                } else {
+                    skip--;
+                }
             }
         }
         return top;
     }
 
+    /**
+     * Construct a map of this specific leaderboard stat.
+     * Will not work for the CURRENT leaderboard
+     * @return A map containing all stats for a specific type.
+     */
+    public @NotNull Map<UUID, Double> getStatMap() {
+        LinkedHashMap<UUID, Double> map = new LinkedHashMap<>();
+        if (this == Leaderboard.CURRENT) {
+            return map;
+        }
+        for (Map.Entry<UUID, Double[]> entry : DataManager.getAllStats().entrySet()) {
+            double value = 0;
+            switch (this) {
+                case KILLS -> value = entry.getValue()[0];
+                case SET -> value = entry.getValue()[1];
+                case DEATHS -> value = entry.getValue()[2];
+                case ALL -> value = entry.getValue()[3];
+                case IMMUNITY -> value = entry.getValue()[4];
+                case CLAIMED -> value = entry.getValue()[5];
+                default -> {
+                    // will never be reached unless a new stat is added, then value defaults to 0
+                }
+            }
+            map.put(entry.getKey(), value);
+        }
+        return map;
+    }
+
     public void displayTopStat(CommandSender sender, int amount){
-        if (sender instanceof Player)
-            sender.sendMessage(parse(bountyTopTitle, (Player) sender));
+        if (sender instanceof Player player)
+            sender.sendMessage(parse(bountyTopTitle, player));
         else
             sender.sendMessage(parse(bountyTopTitle, null));
         boolean useCurrency = this == Leaderboard.IMMUNITY || this == Leaderboard.CLAIMED || this == Leaderboard.ALL;
-        LinkedHashMap<UUID, Double> map = getTop(0, amount);
+        Map<UUID, Double> map = getTop(0, amount);
         int i = 0;
         for (Map.Entry<UUID, Double> entry : map.entrySet()){
             OfflinePlayer p = Bukkit.getOfflinePlayer(entry.getKey());
@@ -279,7 +177,7 @@ public enum Leaderboard {
         return parse(text, player);
     }
 
-    public static LinkedHashMap<UUID, Double> sortByValue(Map<UUID, Double> hm) {
+    private static LinkedHashMap<UUID, Double> sortByValue(Map<UUID, Double> hm) {
         // Create a list from elements of HashMap
         List<Map.Entry<UUID, Double>> list =
                 new LinkedList<>(hm.entrySet());
@@ -294,7 +192,7 @@ public enum Leaderboard {
         }
         return temp;
     }
-    public static LinkedHashMap<UUID, Double> sortByName(Map<UUID, Double> hm) {
+    private static LinkedHashMap<UUID, Double> sortByName(Map<UUID, Double> hm) {
         // Create a list from elements of HashMap
         List<Map.Entry<UUID, Double>> list = new LinkedList<>(hm.entrySet());
 
@@ -321,8 +219,8 @@ public enum Leaderboard {
         return parse(text, player);
     }
 
-    public LinkedHashMap<UUID, Double> getSortedList(int skip, int amount, int sortType) {
-        LinkedHashMap<UUID, Double> top = getTop(skip, amount);
+    public Map<UUID, Double> getSortedList(int skip, int amount, int sortType) {
+        LinkedHashMap<UUID, Double> top = (LinkedHashMap<UUID, Double>) getTop(skip, amount);
         if (sortType == 2)
             top = reverseMap(top);
         if (sortType == 3)
@@ -331,23 +229,20 @@ public enum Leaderboard {
             top = reverseMap(sortByName(top));
         return top;
     }
-    public LinkedHashMap<UUID, String> getFormattedList(int skip, int amount, int sortType){
-        LinkedHashMap<UUID, Double> top = getSortedList(skip, amount, sortType);
+    public Map<UUID, String> getFormattedList(int skip, int amount, int sortType){
+        LinkedHashMap<UUID, Double> top = (LinkedHashMap<UUID, Double>) getSortedList(skip, amount, sortType);
         LinkedHashMap<UUID, String> formattedList = new LinkedHashMap<>();
         for (Map.Entry<UUID, Double> entry : top.entrySet()){
-            switch (this){
-                case ALL, CLAIMED, IMMUNITY, CURRENT:
-                    formattedList.put(entry.getKey(), NumberFormatting.currencyPrefix + NumberFormatting.getValue(entry.getValue()) + NumberFormatting.currencySuffix);
-                    break;
-                case KILLS, DEATHS, SET:
-                    formattedList.put(entry.getKey(), NumberFormatting.getValue(entry.getValue()));
-                    break;
+            if (this.isMoney()) {
+                formattedList.put(entry.getKey(), NumberFormatting.currencyPrefix + NumberFormatting.getValue(entry.getValue()) + NumberFormatting.currencySuffix);
+            } else {
+                formattedList.put(entry.getKey(), NumberFormatting.getValue(entry.getValue()));
             }
         }
         return formattedList;
     }
 
-    public static LinkedHashMap<UUID, Double> reverseMap(LinkedHashMap<UUID, Double> map){
+    private static LinkedHashMap<UUID, Double> reverseMap(LinkedHashMap<UUID, Double> map){
         List<UUID> keys = new ArrayList<>(map.keySet());
         Collections.reverse(keys);
         LinkedHashMap<UUID, Double> newMap = new LinkedHashMap<>();
@@ -355,5 +250,10 @@ public enum Leaderboard {
             newMap.put(key, map.get(key));
         }
         return newMap;
+    }
+
+    @Override
+    public String toString() {
+        return this.name().charAt(0) + this.name().substring(1).toLowerCase();
     }
 }

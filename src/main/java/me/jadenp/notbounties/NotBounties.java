@@ -8,6 +8,7 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.*;
+import me.jadenp.notbounties.utils.challenges.ChallengeListener;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
@@ -41,6 +42,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
@@ -52,10 +54,32 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Proxy Messaging
  * Challenges
  * Save to json file instead of yaml
- * Redis
+ * Redis - create and test after
  * Folia
  * Team bounties
+ * can change levels and number formatting configuration sections - x
+ * override-type - x
+ * receive % of bounty when killing another bountied player (option to have bounty on urslef to activate) murdr bounties - x
+ * display bountied items in a GUI - x
+ * daily and weekly backup of bounties.yml file, check in save() function
+ * added bounties in the queue are saved to the file - x
+ * what to do if setter sets a bounty on the same person and is deleted on another server - x
+ * fix sql to remove old bounties - x
+ * bounty maps for offline players - x
+ * edit is now a change instead of new value - x
+ * Check sql for update before claiming a bounty & remove bounty instantly - x
+ * push stat change when they are edited through a command - x
+ * Does inserting new bounties keep the order? x
+ * admins can remove/edit setters in view-bounty gui - x
  *
+ * challenges work x
+ * bedrock GUIs don't work x
+ * tracker min bounty - x
+ * can use different faction plugins -
+ * contribution same for each x
+ * requires java 17
+ * view bounty with multiple pages x
+ * test player specific challenges
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -80,8 +104,6 @@ public final class NotBounties extends JavaPlugin {
     public static final List<UUID> displayParticle = new ArrayList<>();
     public static final Map<UUID, AboveNameText> wantedText = new HashMap<>();
     private static NotBounties instance;
-    private static BukkitTask autoConnectTask = null;
-    private boolean firstConnect = true;
     public static boolean latestVersion = true;
     public static final List<BountyBoard> bountyBoards = new ArrayList<>();
     public static final Map<UUID, Integer> boardSetup = new HashMap<>();
@@ -105,7 +127,20 @@ public final class NotBounties extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Random random = new Random(System.currentTimeMillis());
         // Plugin startup logic
+        if (random.nextInt(10) == 3) {
+            // 10% chance to receive this Easter egg
+            String display = """
+                    
+                    ████████████████████████████████████████████████████████████████████
+                    █▄─▀█▄─▄█─▄▄─█─▄─▄─█▄─▄─▀█─▄▄─█▄─██─▄█▄─▀█▄─▄█─▄─▄─█▄─▄█▄─▄▄─█─▄▄▄▄█
+                    ██─█▄▀─██─██─███─████─▄─▀█─██─██─██─███─█▄▀─████─████─███─▄█▀█▄▄▄▄─█
+                    ▀▄▄▄▀▀▄▄▀▄▄▄▄▀▀▄▄▄▀▀▄▄▄▄▀▀▄▄▄▄▀▀▄▄▄▄▀▀▄▄▄▀▀▄▄▀▀▄▄▄▀▀▄▄▄▀▄▄▄▄▄▀▄▄▄▄▄▀""";
+            Bukkit.getLogger().info(display);
+        }
+
+        // load commands and events
         Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(new Commands());
         Bukkit.getServer().getPluginManager().registerEvents(new Events(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new GUI(), this);
@@ -115,6 +150,7 @@ public final class NotBounties extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(new WebhookOptions(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new Prompt(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new BountyTracker(), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new ChallengeListener(), this);
 
         this.saveDefaultConfig();
 
@@ -146,8 +182,6 @@ public final class NotBounties extends JavaPlugin {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        loadBounties();
-
         if (ChallengeManager.isEnabled()) {
             try {
                 ChallengeManager.readChallengeData();
@@ -155,10 +189,17 @@ public final class NotBounties extends JavaPlugin {
                 throw new RuntimeException(e);
             }
         }
+        DataManager.loadBounties();
 
         if (sendBStats) {
             int pluginId = 20776;
-            new Metrics(this, pluginId);
+            Metrics metrics = new Metrics(this, pluginId);
+            metrics.addCustomChart(new Metrics.SingleLineChart("active_bounties", new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    return BountyManager.getAllBounties(-1).size();
+                }
+            }));
         }
 
 
@@ -172,7 +213,7 @@ public final class NotBounties extends JavaPlugin {
         }
 
 
-        if (!tryToConnect()) {
+        if (!DataManager.tryToConnect()) {
             Bukkit.getLogger().info("[NotBounties] Database not connected, using internal storage");
         }
 
@@ -181,8 +222,6 @@ public final class NotBounties extends JavaPlugin {
             SkinManager.saveSkin(bounty.getUUID());
 
         // register plugin messaging to a proxy
-        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "bungeecord:main");
-        this.getServer().getMessenger().registerIncomingPluginChannel(this, "bungeecord:main", new ProxyMessaging());
         this.getServer().getMessenger().registerOutgoingPluginChannel(this, "notbounties:main");
         this.getServer().getMessenger().registerIncomingPluginChannel(this, "notbounties:main", new ProxyMessaging());
 
@@ -257,6 +296,7 @@ public final class NotBounties extends JavaPlugin {
                 TimedBounties.update();
 
                 PVPRestrictions.checkCombatExpiry();
+                ChallengeManager.checkChallengeChange();
 
                 if (lastBountyBoardUpdate + boardUpdate * 1000 < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty()) {
                     // update bounty board
@@ -289,6 +329,8 @@ public final class NotBounties extends JavaPlugin {
                 // if they have expire-time enabled
                 BountyExpire.removeExpiredBounties();
 
+                SkinManager.removeOldData();
+
                 save();
                 try {
                     BountyMap.save();
@@ -298,7 +340,7 @@ public final class NotBounties extends JavaPlugin {
 
 
             }
-        }.runTaskTimer(this, 6000, 6000);
+        }.runTaskTimer(this, 6000, 6000); // 5 minutes
         // Check for banned players
         //         * Runs every hour and will check a few players at a time
         //         * Every player will be guaranteed to be checked after 12 hours
@@ -344,21 +386,23 @@ public final class NotBounties extends JavaPlugin {
             long lastRunTime = 0;
             @Override
             public void run() {
-                if (lastUpdateTime > maxUpdateTime) {
-                    //    (the amount of ms since last update)      (2 x the amount of ms last update took)
-                    if (System.currentTimeMillis() - lastRunTime < (lastUpdateTime - maxUpdateTime) * 2L) {
-                        return;
+                if (!Bukkit.getOnlinePlayers().isEmpty()) {
+                    if (lastUpdateTime > maxUpdateTime) {
+                        //    (the amount of ms since last update)      (2 x the amount of ms last update took)
+                        if (System.currentTimeMillis() - lastRunTime < (lastUpdateTime - maxUpdateTime) * 2L) {
+                            return;
+                        }
                     }
-                }
-                long startTime = System.currentTimeMillis();
-                for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
-                    entry.getValue().updateArmorStand();
-                }
-                lastUpdateTime = (int) (System.currentTimeMillis() - startTime);
-                if (lastUpdateTime > maxUpdateTime) {
-                    lastRunTime = System.currentTimeMillis();
-                    if (debug)
-                        Bukkit.getLogger().info("[NotBountiesDebug] Took " + lastUpdateTime + "ms to update wanted tags. Pausing for a few updates.");
+                    long startTime = System.currentTimeMillis();
+                    for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
+                        entry.getValue().updateArmorStand();
+                    }
+                    lastUpdateTime = (int) (System.currentTimeMillis() - startTime);
+                    if (lastUpdateTime > maxUpdateTime) {
+                        lastRunTime = System.currentTimeMillis();
+                        if (debug)
+                            Bukkit.getLogger().info("[NotBountiesDebug] Took " + lastUpdateTime + "ms to update wanted tags. Pausing for a few updates.");
+                    }
                 }
             }
         }.runTaskTimer(this, 20, 1);
@@ -385,9 +429,8 @@ public final class NotBounties extends JavaPlugin {
             configuration.set("logged-players." + i + ".uuid", value);
             i++;
         }
-        if (!SQL.isConnected()) {
             i = 0;
-            for (Bounty bounty : BountyManager.getAllBounties(-1)) {
+            for (Bounty bounty : DataManager.getLocalBounties()) {
                 configuration.set("bounties." + i + ".uuid", bounty.getUUID().toString());
                 configuration.set("bounties." + i + ".name", bounty.getName());
                 int f = 0;
@@ -397,7 +440,7 @@ public final class NotBounties extends JavaPlugin {
                     configuration.set("bounties." + i + "." + f + ".amount", setters.getAmount());
                     configuration.set("bounties." + i + "." + f + ".time-created", setters.getTimeCreated());
                     configuration.set("bounties." + i + "." + f + ".notified", setters.isNotified());
-                    List<String> whitelist = setters.getWhitelist().getList().stream().map(UUID::toString).collect(Collectors.toList());
+                    List<String> whitelist = setters.getWhitelist().getList().stream().map(UUID::toString).toList();
                     configuration.set("bounties." + i + "." + f + ".whitelist", whitelist);
                     configuration.set("bounties." + i + "." + f + ".blacklist", setters.getWhitelist().isBlacklist());
                     configuration.set("bounties." + i + "." + f + ".playtime", setters.getReceiverPlaytime());
@@ -407,37 +450,24 @@ public final class NotBounties extends JavaPlugin {
                 }
                 i++;
             }
-            for (Map.Entry<UUID, Double> mapElement : killBounties.entrySet()) {
-                if (mapElement.getValue() != 0.0) {
-                    configuration.set("data." + mapElement.getKey() + ".kills", mapElement.getValue().longValue());
-                }
+            // save stats
+            for (Map.Entry<UUID, Double[]> entry : DataManager.getLocalStats().entrySet()) {
+                String uuid = entry.getKey().toString();
+                Double[] stat = entry.getValue();
+                if (stat[0] != 0.0)
+                    configuration.set("data." + uuid + ".kills", stat[0].longValue());
+                if (stat[1] != 0.0)
+                    configuration.set("data." + uuid + ".set", stat[1].longValue());
+                if (stat[2] != 0.0)
+                    configuration.set("data." + uuid + ".deaths", stat[2].longValue());
+                if (stat[3] != 0.0)
+                    configuration.set("data." + uuid + ".all-time", stat[3]);
+                if (stat[4] != 0.0)
+                    configuration.set("data." + uuid + ".immunity", stat[4]);
+                if (stat[5] != 0.0)
+                    configuration.set("data." + uuid + ".all-claimed", stat[5]);
             }
-            for (Map.Entry<UUID, Double> mapElement : setBounties.entrySet()) {
-                if (mapElement.getValue() != 0.0) {
-                    configuration.set("data." + mapElement.getKey() + ".set", mapElement.getValue().longValue());
-                }
-            }
-            for (Map.Entry<UUID, Double> mapElement : deathBounties.entrySet()) {
-                if (mapElement.getValue() != 0.0) {
-                    configuration.set("data." + mapElement.getKey() + ".deaths", mapElement.getValue().longValue());
-                }
-            }
-            for (Map.Entry<UUID, Double> mapElement : allTimeBounties.entrySet()) {
-                if (mapElement.getValue() != 0.0) {
-                    configuration.set("data." + mapElement.getKey() + ".all-time", mapElement.getValue());
-                }
-            }
-            for (Map.Entry<UUID, Double> mapElement : allClaimedBounties.entrySet()) {
-                if (mapElement.getValue() != 0.0) {
-                    configuration.set("data." + mapElement.getKey() + ".all-claimed", mapElement.getValue());
-                }
-            }
-            for (Map.Entry<UUID, Double> mapElement : immunitySpent.entrySet()) {
-                if (mapElement.getValue() != 0.0) {
-                    configuration.set("data." + mapElement.getKey() + ".immunity", mapElement.getValue());
-                }
-            }
-        }
+
         for (Map.Entry<UUID, Long> entry : TimedBounties.getNextBounties().entrySet()) {
             configuration.set("data." + entry.getKey() + ".next-bounty", entry.getValue());
         }
@@ -446,7 +476,7 @@ public final class NotBounties extends JavaPlugin {
         }
         if (variableWhitelist) {
             for (Map.Entry<UUID, Whitelist> mapElement : playerWhitelist.entrySet()) {
-                List<String> stringList = mapElement.getValue().getList().stream().map(UUID::toString).collect(Collectors.toList());
+                List<String> stringList = mapElement.getValue().getList().stream().map(UUID::toString).toList();
                 configuration.set("data." + mapElement.getKey().toString() + ".whitelist", stringList);
                 if (mapElement.getValue().isBlacklist())
                     configuration.set("data." + mapElement.getKey().toString() + ".blacklist", true);
@@ -458,7 +488,7 @@ public final class NotBounties extends JavaPlugin {
         for (Map.Entry<UUID, List<ItemStack>> entry : refundedItems.entrySet()) {
             configuration.set("data." + entry.getKey().toString() + ".refund-items", SerializeInventory.itemStackArrayToBase64(entry.getValue().toArray(new ItemStack[0])));
         }
-        configuration.set("disable-broadcast", disableBroadcast.stream().map(UUID::toString).collect(Collectors.toList()));
+        configuration.set("disable-broadcast", disableBroadcast.stream().map(UUID::toString).toList());
         i = 0;
         for (Map.Entry<UUID, List<RewardHead>> mapElement : headRewards.entrySet()) {
             configuration.set("head-rewards." + i + ".setter", mapElement.getKey().toString());
@@ -493,9 +523,11 @@ public final class NotBounties extends JavaPlugin {
             configuration.set("bounty-boards." + i + ".direction", board.getDirection().toString());
             i++;
         }
+        configuration.set("next-challenge-change", ChallengeManager.getNextChallengeChange());
         File bounties = new File(NotBounties.getInstance().getDataFolder() + File.separator + "bounties.yml");
         try {
             configuration.save(bounties);
+            ChallengeManager.saveChallengeData();
         } catch (IOException e) {
             Bukkit.getLogger().warning(e.toString());
         }
@@ -527,27 +559,7 @@ public final class NotBounties extends JavaPlugin {
         }.runTaskLater(NotBounties.getInstance(), 40);
 
 
-        if (autoConnectTask != null) {
-            autoConnectTask.cancel();
-        }
-        try {
-            if (!firstConnect && (SQL.isConnected() || autoConnect)) {
-                SQL.reconnect();
-            }
-        } catch (SQLException ignored) {
-
-        }
-        if (firstConnect) {
-            firstConnect = false;
-        }
-        if (autoConnect) {
-            autoConnectTask = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    tryToConnect();
-                }
-            }.runTaskTimer(this, 600, 600);
-        }
+        DataManager.startAutoConnect();
 
 
     }
@@ -555,6 +567,7 @@ public final class NotBounties extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        SkinManager.shutdown();
         // close all GUIs
         for (Player player : Bukkit.getOnlinePlayers()) {
             GUI.safeCloseGUI(player, true);
@@ -569,7 +582,8 @@ public final class NotBounties extends JavaPlugin {
         try {
             BountyMap.save();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            Bukkit.getLogger().severe("Error saving bounty maps!");
+            Bukkit.getLogger().severe(e.toString());
         }
         for (BountyBoard board : bountyBoards) {
             board.remove();
@@ -637,11 +651,10 @@ public final class NotBounties extends JavaPlugin {
 
     public void sendDebug(CommandSender sender) throws SQLException {
         sender.sendMessage(parse(prefix + ChatColor.WHITE + "NotBounties debug info:", null));
-        String connected = SQL.isConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
-        int localBounties = BountyManager.getAllBounties(-1).size();
-        sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + SQL.getDatabaseType() + ChatColor.YELLOW + " ID: " + ChatColor.WHITE + SQL.getServerID() + ChatColor.YELLOW + " Local Bounties: " + ChatColor.WHITE + localBounties);
+        String connected = DataManager.isSQLConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
+        int bounties = BountyManager.getAllBounties(-1).size();
+        sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + DataManager.getSQLDatabaseType() + ChatColor.YELLOW + " ID: " + ChatColor.WHITE + DataManager.getServerID());
         sender.sendMessage(ChatColor.GOLD + "General > " + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion() + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + "1." + serverVersion + "." + serverSubVersion + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug);
-        int bounties = SQL.isConnected() ? data.getTopBounties(-1).size() : localBounties;
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + BountyTracker.getTrackedBounties().size() + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + bountyBoards.size());
         String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
         String papi = papiEnabled ? ChatColor.GREEN + "PlaceholderAPI" : ChatColor.RED + "PlaceholderAPI";
@@ -657,11 +670,11 @@ public final class NotBounties extends JavaPlugin {
         String worldGuard = BountyClaimRequirements.worldGuardEnabled ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
         sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + vault + ChatColor.GRAY + "|" + papi + ChatColor.GRAY + "|" + hdb + ChatColor.GRAY + "|" + liteBans + ChatColor.GRAY + "|" + skinsRestorer + ChatColor.GRAY + "|" + betterTeams + ChatColor.GRAY + "|" + townyAdvanced + ChatColor.GRAY + "|" + geyser + ChatColor.GRAY + "|" + floodgate + ChatColor.GRAY + "|" + kingdoms + ChatColor.GRAY + "|" + lands + ChatColor.GRAY + "|" + worldGuard + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
-        TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Discord: " + ChatColor.GRAY + "https://discord.gg/zEsUzwYEx7");
+        TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218)) + "Support Discord: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://discord.gg/zEsUzwYEx7");
         discord.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/zEsUzwYEx7"));
-        TextComponent spigot = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(240, 149, 45)) + "Spigot: " + ChatColor.GRAY + "https://www.spigotmc.org/resources/notbounties.104484/");
+        TextComponent spigot = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(240, 149, 45)) + "Spigot: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://www.spigotmc.org/resources/notbounties.104484/");
         spigot.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://www.spigotmc.org/resources/notbounties.104484/"));
-        TextComponent github = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(230, 237, 243)) + "Github: " + ChatColor.GRAY + "https://github.com/No-Not-Jaden/NotBounties");
+        TextComponent github = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(230, 237, 243)) + "Github: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://github.com/No-Not-Jaden/NotBounties");
         github.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/No-Not-Jaden/NotBounties"));
         sender.spigot().sendMessage(discord);
         sender.spigot().sendMessage(spigot);
@@ -699,7 +712,7 @@ public final class NotBounties extends JavaPlugin {
     public static void removeWantedTag(UUID uuid) {
         if (!wantedText.containsKey(uuid))
             return;
-        wantedText.get(uuid).removeStand();
+        wantedText.get(uuid).disable();
         wantedText.remove(uuid);
     }
 
@@ -728,9 +741,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
     public static List<OfflinePlayer> getNetworkPlayers() {
-        if (SQL.isConnected())
-            return data.getOnlinePlayers();
-        return Bukkit.getOnlinePlayers().stream().filter(player -> !isVanished(player)).collect(Collectors.toList());
+        return DataManager.getNetworkPlayers();
     }
 
     public static boolean isVanished(Player player) {
@@ -776,30 +787,34 @@ public final class NotBounties extends JavaPlugin {
     }
 
     public static boolean isBedrockPlayer(UUID uuid) {
-         if (ConfigOptions.floodgateEnabled) {
-            FloodGateClass floodGateClass = new FloodGateClass();
-            return floodGateClass.isBedrockPlayer(uuid);
-        } else if  (ConfigOptions.geyserEnabled) {
-            GeyserMCClass geyserMCClass = new GeyserMCClass();
-            return geyserMCClass.isBedrockPlayer(uuid);
-        } else {
-             String first = uuid.toString().substring(0, 18);
-             return first.equals("00000000-0000-0000");
-         }
+        if (Bukkit.getPlayer(uuid) != null) {
+            if (ConfigOptions.floodgateEnabled) {
+                FloodGateClass floodGateClass = new FloodGateClass();
+                return floodGateClass.isBedrockPlayer(uuid);
+            } else if (ConfigOptions.geyserEnabled) {
+                GeyserMCClass geyserMCClass = new GeyserMCClass();
+                return geyserMCClass.isBedrockPlayer(uuid);
+            }
+        }
+        String first = uuid.toString().substring(0, 18);
+        return first.equals("00000000-0000-0000");
     }
 
     public static String getXuid(UUID uuid) {
-        if (ConfigOptions.floodgateEnabled) {
-            FloodGateClass floodGateClass = new FloodGateClass();
-            if (floodGateClass.isBedrockPlayer(uuid)) {
-                return floodGateClass.getXuid(uuid);
+        if (Bukkit.getPlayer(uuid) != null) {
+            if (ConfigOptions.floodgateEnabled) {
+                FloodGateClass floodGateClass = new FloodGateClass();
+                if (floodGateClass.isBedrockPlayer(uuid)) {
+                    return floodGateClass.getXuid(uuid);
+                }
+            } else if (ConfigOptions.geyserEnabled) {
+                GeyserMCClass geyserMCClass = new GeyserMCClass();
+                if (geyserMCClass.isBedrockPlayer(uuid)) {
+                    return geyserMCClass.getXuid(uuid);
+                }
             }
-        } else if  (ConfigOptions.geyserEnabled) {
-            GeyserMCClass geyserMCClass = new GeyserMCClass();
-            if (geyserMCClass.isBedrockPlayer(uuid)) {
-                return geyserMCClass.getXuid(uuid);
-            }
-        } else if (isBedrockPlayer(uuid)) {
+        }
+        if (isBedrockPlayer(uuid)) {
             String last = uuid.toString().replace("-", "").substring(16);
             try {
                 return Long.parseLong(last, 16) + "";
@@ -810,6 +825,9 @@ public final class NotBounties extends JavaPlugin {
         return "";
     }
 
-
+    private static final String ADMIN_PERMISSION = "notbounties.admin";
+    public static String getAdminPermission(){
+        return ADMIN_PERMISSION;
+    }
 
 }

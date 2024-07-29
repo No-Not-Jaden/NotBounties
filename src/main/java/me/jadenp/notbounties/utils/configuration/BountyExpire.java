@@ -4,6 +4,7 @@ import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -125,19 +126,9 @@ public class BountyExpire {
         }
         boolean change = false;
         // go through all the bounties and remove setters if it has been more than expire time
-        if (SQL.isConnected()) {
-            Map<UUID, List<Setter>> setters = offlineTracking ? data.removeOldBounties() : data.removeOldPlaytimeBounties();
-            for (Map.Entry<UUID, List<Setter>> entry : setters.entrySet()) {
-                for (Setter setter : entry.getValue()) {
-                    if (rewardReceiver) {
-                        refundPlayer(entry.getKey(), setter.getAmount(), setter.getItems());
-                    } else {
-                        refundSetter(setter);
-                    }
-                    change = true;
-                }
-            }
-        } else {
+
+        DataManager.expireSQLBounties(offlineTracking);
+
             Map<UUID, List<Setter>> settersToRemove = new HashMap<>();
             for (Bounty bounty : BountyManager.getAllBounties(-1)) {
                 for (Setter setter : bounty.getSetters()) {
@@ -167,7 +158,7 @@ public class BountyExpire {
             for (Map.Entry<UUID, List<Setter>> entry : settersToRemove.entrySet()) {
                 BountyManager.removeSetters(entry.getKey(), entry.getValue());
             }
-        }
+
         return change;
     }
 

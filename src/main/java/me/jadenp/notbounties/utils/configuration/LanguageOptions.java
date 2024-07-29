@@ -5,6 +5,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -122,6 +123,11 @@ public class LanguageOptions {
     public static String noEmptyTracker;
     public static String stolenBounty;
     public static String stolenBountyBroadcast;
+    public static String challengeCompletion;
+    public static String challengeGUIClaim;
+    public static String challengeChatClaim;
+    public static String challengeClaimDeny;
+    public static String trickleBounty;
 
     public static List<String> emptyTrackerLore;
     public static List<String> giveTrackerLore;
@@ -153,6 +159,10 @@ public class LanguageOptions {
     public static List<String> helpPosterOwn;
     public static List<String> helpPosterOther;
     public static List<String> helpRemoveSet;
+    public static List<String> helpChallenges;
+    public static List<String> viewBountyLore;
+    public static List<String> removeBountyLore;
+    public static List<String> editBountyLore;
     public static String nextPage;
     public static String previousPage;
 
@@ -296,6 +306,11 @@ public class LanguageOptions {
         noEmptyTracker = configuration.getString("no-empty-tracker");
         stolenBounty = configuration.getString("stolen-bounty");
         stolenBountyBroadcast = configuration.getString("stolen-bounty-broadcast");
+        challengeCompletion = configuration.getString("challenge-completion");
+        challengeGUIClaim = configuration.getString("challenge-gui-claim");
+        challengeChatClaim = configuration.getString("challenge-chat-claim");
+        challengeClaimDeny = configuration.getString("challenge-claim-deny");
+        trickleBounty = configuration.getString("trickle-bounty");
 
         emptyTrackerLore = configuration.getStringList("empty-tracker-lore");
         giveTrackerLore = configuration.getStringList("give-tracker-lore");
@@ -327,6 +342,10 @@ public class LanguageOptions {
         helpPosterOwn = configuration.getStringList("help.poster-own");
         helpPosterOther = configuration.getStringList("help.poster-other");
         helpRemoveSet = configuration.getStringList("help.remove-set");
+        helpChallenges = configuration.getStringList("help.challenges");
+        viewBountyLore = configuration.getStringList("view-bounty-lore");
+        editBountyLore = configuration.getStringList("edit-bounty-lore");
+        removeBountyLore = configuration.getStringList("remove-bounty-lore");
         previousPage = configuration.getString("help.previous-page");
         nextPage = configuration.getString("help.next-page");
     }
@@ -342,19 +361,21 @@ public class LanguageOptions {
             page++;
         if (page == 5 && !(sender.hasPermission("notbounties.buyown") && buyBack) && !(sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE))
             page++;
-        if (page == 6 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission("notbounties.admin")))
+        if (page == 6 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
             page++;
-        if (page == 7 && !(sender.hasPermission("notbounties.admin") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission("notbounties.admin") || giveOwnMap))
+        if (page == 7 && !(sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap))
             page++;
-        if (page == 8 && !sender.hasPermission("notbounties.admin"))
+        if (page == 8 && (!sender.hasPermission("notbounties.challenges") || !ChallengeManager.isEnabled()))
             page++;
-        if (page >= 9)
+        if (page == 9 && !sender.hasPermission(NotBounties.getAdminPermission()))
+            page++;
+        if (page >= 10)
             page = 1;
         return page;
     }
 
     public static void sendHelpMessage(CommandSender sender) {
-        Player parser = sender instanceof Player ? (Player) sender : null;
+        Player parser = sender instanceof Player player ? player : null;
         sender.sendMessage(parse(prefix + helpTitle, parser));
         sendHelpMessage(sender, helpBasic);
         if (sender.hasPermission("notbounties.view")) {
@@ -388,21 +409,24 @@ public class LanguageOptions {
         if (sender.hasPermission("notbounties.removeimmunity")) {
             sendHelpMessage(sender, helpRemoveImmunity);
         }
-        if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission("notbounties.admin")) {
+        if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())) {
             sendHelpMessage(sender, helpRemoveSet);
         }
-        if (sender.hasPermission("notbounties.admin") || giveOwnMap) {
+        if (sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap) {
             sendHelpMessage(sender, helpPosterOwn);
-            if (sender.hasPermission("notbounties.admin"))
+            if (sender.hasPermission(NotBounties.getAdminPermission()))
                 sendHelpMessage(sender, helpPosterOther);
         }
         if (BountyTracker.isEnabled())
-            if (sender.hasPermission("notbounties.admin") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
+            if (sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
                 sendHelpMessage(sender, helpTrackerOwn);
-                if (sender.hasPermission("notbounties.admin"))
+                if (sender.hasPermission(NotBounties.getAdminPermission()))
                     sendHelpMessage(sender, helpTrackerOther);
             }
-        if (sender.hasPermission("notbounties.admin")) {
+        if (sender.hasPermission("notbounties.challenges") && ChallengeManager.isEnabled()) {
+            sendHelpMessage(sender, helpChallenges);
+        }
+        if (sender.hasPermission(NotBounties.getAdminPermission())) {
             sendHelpMessage(sender, helpAdmin);
         }
 
@@ -413,11 +437,10 @@ public class LanguageOptions {
     }
 
     public static void sendHelpMessage(CommandSender sender, int page) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player parser)) {
             sendHelpMessage(sender);
             return;
         }
-        Player parser = (Player) sender;
         sender.sendMessage(parse(helpTitle, parser));
         page = getAdjustedPage(sender, page);
 
@@ -467,26 +490,33 @@ public class LanguageOptions {
                 // remove
                 if (sender.hasPermission("notbounties.removeimmunity"))
                     sendHelpMessage(sender, helpRemoveImmunity);
-                if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission("notbounties.admin"))
+                if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission()))
                     sendHelpMessage(sender, helpRemoveSet);
                 break;
             case 7:
                 // item
-                if (sender.hasPermission("notbounties.admin") || giveOwnMap) {
+                if (sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap) {
                     sendHelpMessage(sender, helpPosterOwn);
-                    if (sender.hasPermission("notbounties.admin"))
+                    if (sender.hasPermission(NotBounties.getAdminPermission()))
                         sendHelpMessage(sender, helpPosterOther);
                 }
                 if (BountyTracker.isEnabled())
-                    if (sender.hasPermission("notbounties.admin") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
+                    if (sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
                         sendHelpMessage(sender, helpTrackerOwn);
-                        if (sender.hasPermission("notbounties.admin"))
+                        if (sender.hasPermission(NotBounties.getAdminPermission()))
                             sendHelpMessage(sender, helpTrackerOther);
                     }
                 break;
             case 8:
+                sendHelpMessage(sender, helpChallenges);
+                break;
+            case 9:
                 // admin
                 sendHelpMessage(sender, helpAdmin);
+                break;
+            default:
+                sender.sendMessage("You're not supposed to be here...");
+                sender.sendMessage("Join the discord! https://discord.gg/zEsUzwYEx7");
                 break;
         }
 
@@ -542,6 +572,7 @@ public class LanguageOptions {
             String timeString = formatTime(System.currentTimeMillis(), LocalTime.TimeFormat.PLAYER, receiver.getPlayer());
             str = str.replace("{time}", (timeString));
         }
+        str = str.replace("{next_challenges}", formatTime(ChallengeManager.getNextChallengeChange() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE));
         str = str.replace("{min_bounty}", (NumberFormatting.getValue(ConfigOptions.minBounty)));
         str = str.replace("{c_prefix}", (NumberFormatting.currencyPrefix));
         str = str.replace("{c_suffix}", (NumberFormatting.currencySuffix));

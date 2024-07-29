@@ -46,6 +46,11 @@ custom-components:
     type: BUTTON
     commands:
       - '[gui] settings-gui'
+  view-challenges:
+    text: '⎆ &eChallenges'
+    type: BUTTON
+    commands:
+      - '[gui] challenges'
   set-bounty:
     text: '⎆ &eSet Bounty'
     type: BUTTON
@@ -227,7 +232,8 @@ selection-gui:
     1: view-bounties
     2: set-bounty
     3: set-whitelist
-    4: settings
+    4: view-challenges
+    5: settings
 # main GUI to display bounties
 bounty-gui:
   enabled: true
@@ -343,5 +349,22 @@ settings-gui:
   enabled: true
   gui-name: '&9&lSettings'
   components:
+    -1: return-selection
     1: toggle-whitelist
     2: toggle-broadcast
+challenges:
+  enabled: true
+  gui-name: '&c&lChallenges'
+  # This will override the automatically selected GUI type
+  # Options: SIMPLE, MODAL, CUSTOM
+  # Delete this option if you don't want an override
+  override-type: SIMPLE
+  components:
+    -1: return-selection
+view-bounty:
+  enabled: true
+  gui-name: '&d&l{player}''s &9&lBounty: &2{amount}'
+  player-text: '&e{player} &7> &a{amount} &7{items}'
+  components:
+    1: view-bounties
+

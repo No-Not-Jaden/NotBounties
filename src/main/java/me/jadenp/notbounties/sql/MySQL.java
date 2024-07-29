@@ -11,6 +11,7 @@ import java.sql.SQLException;
 public class MySQL {
     private final Plugin plugin;
     private Connection connection;
+    private boolean hasConnected = false;
 
     private String host;
     private String port;
@@ -60,11 +61,20 @@ public class MySQL {
         return true;
     }
 
+    public boolean hasConnectedBefore() {
+        if (isConnected() && !hasConnected) {
+            hasConnected = true;
+            return false;
+        }
+        return hasConnected;
+    }
+
     public void connect() throws SQLException {
-        if (!isConnected())
+        if (!isConnected()) {
             connection = DriverManager.getConnection("jdbc:mysql://" +
-                            host + ":" + port + "/" + database + "?useSSL=" + useSSL,
+                            host + ":" + port + "/" + database + "?useSSL=" + useSSL + "&allowMultiQueries=true",
                     username, password);
+            }
     }
 
     public String getDatabaseType() throws SQLException {

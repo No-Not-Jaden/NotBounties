@@ -45,9 +45,8 @@ public class Head {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
-        String name = NotBounties.getPlayerName(uuid);
-        if (NotBounties.serverVersion >= 18 && name.length() <= 16) {
-            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, name);
+        if (NotBounties.serverVersion >= 18) {
+            PlayerProfile profile = Bukkit.createPlayerProfile(uuid);
             PlayerTextures textures = profile.getTextures();
             textures.setSkin(textureURL);
             profile.setTextures(textures);
@@ -55,8 +54,8 @@ public class Head {
             head.setItemMeta(meta);
             return head;
         } else {
-            byte[] encodedData = Base64.getEncoder().encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", textureURL).getBytes());
-            return Bukkit.getUnsafe().modifyItemStack(head, "{display:{Name:\"{\\\"text\\\":\\\"Head\\\"}\"},SkullOwner:{Id:[" + "I;1201296705,1414024019,-1385893868,1321399054" + "],Properties:{textures:[{Value:\"" + new String(encodedData) + "\"}]}}}");
+                byte[] encodedData = Base64.getEncoder().encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", textureURL).getBytes());
+                return Bukkit.getUnsafe().modifyItemStack(head, "{display:{Name:\"{\\\"text\\\":\\\"Head\\\"}\"},SkullOwner:{Id:[" + "I;1201296705,1414024019,-1385893868,1321399054" + "],Properties:{textures:[{Value:\"" + new String(encodedData) + "\"}]}}}");
         }
     }
 

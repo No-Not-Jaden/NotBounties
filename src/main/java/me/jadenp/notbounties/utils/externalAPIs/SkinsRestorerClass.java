@@ -58,7 +58,7 @@ public class SkinsRestorerClass {
                 @Override
                 public void run() {
                     if (!SkinManager.isSkinLoaded(uuid))
-                        requestNamedSkin(uuid);
+                        requestSkinManually(uuid);
                 }
             }.runTaskLaterAsynchronously(NotBounties.getInstance(), 5 * 20L); // 5 seconds
             return;
@@ -66,7 +66,7 @@ public class SkinsRestorerClass {
         String name = NotBounties.getPlayerName(uuid);
         if (!connect()) {
             if (!firstConnect)
-                requestNamedSkin(uuid);
+                requestSkinManually(uuid);
             return;
         }
         PlayerStorage playerStorage = skinsRestorer.getPlayerStorage();
@@ -80,7 +80,7 @@ public class SkinsRestorerClass {
                             Bukkit.getLogger().warning("[NotBountiesDebug] Skin property not present from SkinsRestorer for " + name + ".");
                         }
                     }.runTask(NotBounties.getInstance());
-                requestNamedSkin(uuid);
+                requestSkinManually(uuid);
                 return;
             }
             String skinUrl = PropertyUtils.getSkinTextureUrl(skinProperty.get());
@@ -95,11 +95,11 @@ public class SkinsRestorerClass {
                         Bukkit.getLogger().warning(e.toString());
                     }
                 }.runTask(NotBounties.getInstance());
-            requestNamedSkin(uuid);
+            requestSkinManually(uuid);
         }
     }
 
-    private static void requestNamedSkin(UUID uuid) {
+    private static void requestSkinManually(UUID uuid) {
         try {
             SkinManager.requestSkin(uuid);
         } catch (Exception e2) {

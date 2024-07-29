@@ -12,23 +12,22 @@
 # Claim a bounty with no armor on
 # Claim a bounty with 2 hearts or fewer left
 # Buy your own bounty
+# Custom challenges
 #
-# whether challenges will be enabled
-enabled: true
+# Whether challenges will be enabled
+enabled: false
 # The time limit that players have to complete the challenges before new ones appear
 time-limit-days: 7
 # number of challenges that will be active
 concurrent-challenges: 3
 # whether everyone has the same
 global-challenges: true
-# Messages to be added to the description when the reward needs to be claimed
-gui-claim: '&5&lClick to claim your reward'
-chat-claim: '&5&lDo &d/bounty challenges claim &5&lto claim your reward.'
 
 challenge-types:
   # Claim a certain number of bounties
   claim:
-    # info about the item displayed in the GUI
+    # info about the item displayed in the GUI. This is the same formatting as custom items in the gui.yml file.
+    # The in-progress and completed sections control the name and lore
     item:
       # material from https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
       # can also be a custom head like in the gui
@@ -38,11 +37,19 @@ challenge-types:
       custom-model-data: 5
       enchanted: false
       hide-nbt: true
+    # The component displayed in the bedrock GUI
+    # The first line of in-progress and completed sections control the text
+    bedrock-item:
+      type: BUTTON
+      # You can optionally add an image next to this button
+      image: 'textures/items/diamond_sword.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lClaim &f&l{x} &e&lBounties' # this first line is the name of the item in the GUI
       - '&7<&m                            &7>'
       - '&6&oKill {x} players with any bounty.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -66,29 +73,32 @@ challenge-types:
     #  - 3
     #  - 6
     #  - 9
-    # This command hands out the reward
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
-    # Which could also be written as a command per variation
-    #commands:
-    #  - 'minecraft:give {player} DIAMOND 3'
-    #  - 'minecraft:give {player} DIAMOND 6'
-    #  - 'minecraft:give {player} DIAMOND 9'
+      # This command hands out the reward
+      - 'minecraft:give {player} diamond {reward}'
+      # These commands give a little feedback to the player once they claim the reward
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # Spend money on setting bounties
   amount-set:
     item:
       material: DIAMOND
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/diamond.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lSpend {c_prefix}{x}{c_suffix} &e&lon Bounties'
       - '&7<&m                            &7>'
-      - '&6&oSet bounties using {c_prefix}{x}{c_suffix} or more.'
+      - '&6&oSet bounties using {c_prefix}{x}{c_suffix}&6&o or more.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Ancient Debris.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
     completed:
-      - '&a&l&mSpend {c_prefix}{x}{c_suffix} &e&lon Bounties'
+      - '&a&l&mSpend {c_prefix}{x}{c_suffix} &a&l&mon Bounties'
       - '&7<&m                            &7>'
       - '&2&oChallenge Completed'
       - '&7<&m                            &7>'
@@ -101,16 +111,25 @@ challenge-types:
       - 25
     reward: 0.2
     commands:
-      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+      - 'minecraft:give {player} ancient_debris {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # Have x of your set bounties be claimed
   successful-bounty:
+    item:
+      material: CARROT_ON_A_STICK
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/carrot_on_a_stick.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lHave {x} Successful Bounties'
       - '&7<&m                            &7>'
       - '&6&oSet bounties that are claimed {x}'
       - '&6&otimes or more.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -125,17 +144,27 @@ challenge-types:
       - 3
     reward: 4
     commands:
-      -  'minecraft:give {player} DIAMOND {reward}'
+      -  'minecraft:give {player} diamond {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # have your bounty increase by a multiple
-  multiple-bounty:
+  bounty-multiple:
+    item:
+      material: FIREWORK_ROCKET
+      hide-nbt: true
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/fireworks.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lIncrease your Bounty by {x}x'
       - '&7<&m                            &7>'
       - '&6&oHave your bounty increase by'
-      - '&6&o{x}times your original bounty at'
+      - '&6&o{x} times your original bounty at'
       - '&6&othe start of this challenge.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -150,17 +179,26 @@ challenge-types:
       - 3
     reward: 5
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
+      - 'minecraft:give {player} diamond {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # have your bounty increase by a fixed amount
   bounty-increase:
+    item:
+      material: NETHER_WART
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/nether_wart.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lIncrease your Bounty by {c_prefix}{x}{c_suffix}'
       - '&7<&m                            &7>'
-      - '&6&oHave your bounty increase by'
-      - '&6&o{c_prefix}{x}{c_suffix} by'
+      - '&6&oHave your bounty'
+      - '&6&oincrease by {c_prefix}{x}{c_suffix}&6&o before'
       - '&6&othe end of this challenge.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -176,21 +214,31 @@ challenge-types:
       - 50
     reward: 0.5
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
+      - 'minecraft:give {player} diamond {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # spend money on immunity
   purchase-immunity:
+    item:
+      material: TURTLE_HELMET
+      hide-nbt: true
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/turtle_helmet.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
-      - '&e&lSpend {c_prefix}{x}{c_suffix} on Immunity'
+      - '&e&lSpend {c_prefix}{x}{c_suffix}&e&l on Immunity'
       - '&7<&m                            &7>'
       - '&6&oPurchase immunity for {c_prefix}{x}{c_suffix}'
       - '&6&oor more.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Ancient Debris.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
     completed:
-      - '&a&l&mSpend {c_prefix}{x}{c_suffix} on Immunity'
+      - '&a&l&mSpend {c_prefix}{x}{c_suffix}&a&l&m on Immunity'
       - '&7<&m                            &7>'
       - '&2&oChallenge Completed'
       - '&7<&m                            &7>'
@@ -201,16 +249,25 @@ challenge-types:
       - 20
     reward: 0.2
     commands:
-      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+      - 'minecraft:give {player} ancient_debris {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
-  # be within 15 blocks of a bounty claim or be looking at it
+  # be within 50 blocks of a bounty claim
   witness-bounty-claim:
+    item:
+      material: ENDER_EYE
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/ender_eye.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lWitness {x} Bounty Claims'
       - '&7<&m                            &7>'
-      - '&6&oBe within 15 blocks of a bounty'
-      - '&6&oclaim, or be looking at it.'
+      - '&6&oBe within 50 blocks'
+      - '&6&oof a bounty claim.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -226,18 +283,27 @@ challenge-types:
       - 5
     reward: 3
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
+      - 'minecraft:give {player} diamond {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # have players on your whitelisted bounty
-  whitelist-bounty-set:
+  whitelisted-bounty-set:
+    item:
+      material: PAPER
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/paper.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lSet a Bounty with {x} Whitelisted Players'
       - '&7<&m                            &7>'
       - '&6&oUse the &f/bounty whitelist &6&o feature'
       - '&6&oto change your whitelisted players,'
-      - '&6&oand set a bounty with at last {x}'
+      - '&6&oand set a bounty with at least {x}'
       - '&6&oplayers selected.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Ancient Debris.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -252,15 +318,24 @@ challenge-types:
       - 3
     reward: 1
     commands:
-      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+      - 'minecraft:give {player} ancient_debris {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # hold your own bounty poster
   hold-poster:
+    item:
+      material: MAP
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/map_empty.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lHold your own Bounty Poster'
       - '&7<&m                            &7>'
       - '&6&oObtain a bounty poster of yourself.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -273,21 +348,30 @@ challenge-types:
       - 1
     reward: 1
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
+      - 'minecraft:give {player} diamond {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
-  # hold your own bounty poster
+  # obtain a bounty from the server
   auto-bounty:
+    item:
+      material: PUFFERFISH
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/fish_pufferfish_raw.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
-      - '&e&lObtain {c_prefix}{x}{c_suffix} of an Auto Bounty'
+      - '&e&lObtain {c_prefix}{x}{c_suffix}&e&l of an Auto Bounty'
       - '&7<&m                            &7>'
       - '&6&oHave an auto bounty set on you for'
-      - '&6&o{c_prefix}{x}{c_suffix} or more.'
+      - '&6&o{c_prefix}{x}{c_suffix}&6&o or more.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Ancient Debris.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
     completed:
-      - '&a&l&mObtain {c_prefix}{x}{c_suffix} of an Auto Bounty'
+      - '&a&l&mObtain {c_prefix}{x}{c_suffix}&a&l&m of an Auto Bounty'
       - '&7<&m                            &7>'
       - '&2&oChallenge Completed'
       - '&7<&m                            &7>'
@@ -298,16 +382,25 @@ challenge-types:
       - 20
     reward: 0.25
     commands:
-      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+      - 'minecraft:give {player} ancient_debris {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # have x number of people set a bounty on you
   receive-bounty:
+    item:
+      material: SWEET_BERRIES
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/sweet_berries.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lObtain {x} New Bounties'
       - '&7<&m                            &7>'
       - '&6&oHave {x} new people set a '
       - '&6&obounty on you.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -322,16 +415,26 @@ challenge-types:
       - 3
     reward: 3
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
+      - 'minecraft:give {player} diamond {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # claim a bounty without any armor on
   naked-bounty-claim:
+    item:
+      material: IRON_HORSE_ARMOR
+      hide-nbt: true
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/iron_horse_armor.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lClaim a Bounty while Naked'
       - '&7<&m                            &7>'
       - '&6&oClaim a bounty without any'
       - '&6&oarmor on.'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -344,16 +447,25 @@ challenge-types:
       - 1
     reward: 10
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
+      - 'minecraft:give {player} diamond {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # claim a bounty with certain amount of health left
   close-bounty:
+    item:
+      material: TOTEM_OF_UNDYING
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/totem.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lClaim a Bounty with {x} Health'
       - '&7<&m                            &7>'
       - '&6&oClaim a bounty with {x} health'
       - '&6&oleft. (1 heart = 2 health)'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Diamonds.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -371,16 +483,26 @@ challenge-types:
       - 8
       - 6
     commands:
-      - 'minecraft:give {player} DIAMOND {reward}'
+      - 'minecraft:give {player} diamond {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
   # buy your own bounty
   buy-own:
+    item:
+      material: NETHERITE_HELMET
+      hide-nbt: true
+    bedrock-item:
+      type: BUTTON
+      image: 'textures/items/netherite_helmet.png'
+      image-url: false
     # display of challenge before it has been completed
     in-progress:
       - '&e&lBuy your own Bounty'
       - '&7<&m                            &7>'
       - '&6&oBuy your own bounty with'
       - '&6&o/bounty buy'
+      - '&7<> ({progress_value}) {progress_bar} <>'
       - '&6&oReward: {reward} Ancient Debris.'
       - '&7<&m                            &7>'
     # display of challenge after it has been completed
@@ -393,10 +515,21 @@ challenge-types:
       - 1
     reward: 1
     commands:
-      - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+      - 'minecraft:give {player} ancient_debris {reward}'
+      - '[message_player] &aYou''ve completed the challenge: {challenge}'
+      - '[sound] UI_TOAST_CHALLENGE_COMPLETE'
 
+# Create custom challenges with placeholders. Requires PlaceholderAPI
   custom-challenges:
+    # this configuration section can be named whatever
     set-bounty:
+      item:
+        material: NETHERITE_SWORD
+        hide-nbt: true
+      bedrock-item:
+        type: BUTTON
+        image: 'textures/items/netherite_sword.png'
+        image-url: false
       # player must increase this stat by {x}
       requirement: '%notbounties_set% >= {x}'
       # display of challenge before it has been completed
@@ -404,6 +537,7 @@ challenge-types:
         - '&e&lSet {x} Bounties'
         - '&7<&m                            &7>'
         - '&6&oSet {x} Bounties'
+        - '&7<> ({progress_value}) {progress_bar} <>'
         - '&6&oReward: {reward} Ancient Debris.'
         - '&7<&m                            &7>'
       # display of challenge after it has been completed
@@ -418,4 +552,6 @@ challenge-types:
         - 3
       reward: 1
       commands:
-        - 'minecraft:give {player} ANCIENT_DEBRIS {reward}'
+        - 'minecraft:give {player} ancient_debris {reward}'
+        - '[message_player] &aYou''ve completed the challenge: {challenge}'
+        - '[sound] UI_TOAST_CHALLENGE_COMPLETE'

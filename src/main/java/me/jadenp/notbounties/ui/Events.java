@@ -6,7 +6,9 @@ import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.UpdateChecker;
+import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
@@ -82,17 +84,12 @@ public class Events implements Listener {
             }
         }
         displayParticle.remove(event.getPlayer().getUniqueId());
-        if (NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
-            NotBounties.wantedText.get(event.getPlayer().getUniqueId()).removeStand();
-            NotBounties.wantedText.remove(event.getPlayer().getUniqueId());
-        }
+        NotBounties.removeWantedTag(event.getPlayer().getUniqueId());
 
         TimedBounties.logout(event.getPlayer());
         Immunity.logout(event.getPlayer());
         BountyExpire.logout(event.getPlayer());
-
-        if (SQL.isConnected())
-            data.logout(event.getPlayer());
+        DataManager.logout(event.getPlayer());
 
     }
 
@@ -100,9 +97,8 @@ public class Events implements Listener {
     public void onEntityDeath(EntityDeathEvent event) {
         if (claimOrder != ClaimOrder.REGULAR)
             return;
-        if (!(event.getEntity() instanceof Player))
+        if (!(event.getEntity() instanceof Player player))
             return;
-        Player player = (Player) event.getEntity();
         if (event.getEntity().getKiller() == null)
             return;
         Player killer = event.getEntity().getKiller();
@@ -111,50 +107,40 @@ public class Events implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-
-
         // redeem reward later
-        if (event.getAction() == Action.RIGHT_CLICK_AIR && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC) {
-            if (event.getItem() != null) {
-                ItemStack item = event.getItem();
-                Player player = event.getPlayer();
-                if (item.getType() == Material.PAPER) {
-                    if (item.getItemMeta() != null) {
-                        if (item.getItemMeta().getLore() != null) {
-                            if (!item.getItemMeta().getLore().isEmpty()) {
-                                String lastLine = item.getItemMeta().getLore().get(item.getItemMeta().getLore().size() - 1);
-                                if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
-                                    String reward = ChatColor.stripColor(lastLine).substring(1);
-                                    double amount;
-                                    try {
-                                        amount = NumberFormatting.tryParse(reward);
-                                    } catch (NumberFormatException ignored) {
-                                        player.sendMessage(ChatColor.RED + "Error redeeming reward");
-                                        return;
-                                    }
-                                    NumberFormatting.doAddCommands(player, amount * item.getAmount());
-                                    player.getInventory().remove(item);
-                                    player.sendMessage(parse(prefix + redeemVoucher, amount * item.getAmount(), player));
-                                }
-                            }
+        if (event.getAction() == Action.RIGHT_CLICK_AIR && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC && event.getItem() != null) {
+            ItemStack item = event.getItem();
+            Player player = event.getPlayer();
+            if (item.getType() == Material.PAPER && item.getItemMeta() != null && item.getItemMeta().getLore() != null) {
+                if (!item.getItemMeta().getLore().isEmpty()) {
+                    String lastLine = item.getItemMeta().getLore().get(item.getItemMeta().getLore().size() - 1);
+                    if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
+                        String reward = ChatColor.stripColor(lastLine).substring(1);
+                        double amount;
+                        try {
+                            amount = NumberFormatting.tryParse(reward);
+                        } catch (NumberFormatException ignored) {
+                            player.sendMessage(ChatColor.RED + "Error redeeming reward");
+                            return;
                         }
+                        NumberFormatting.doAddCommands(player, amount * item.getAmount());
+                        player.getInventory().remove(item);
+                        player.sendMessage(parse(prefix + redeemVoucher, amount * item.getAmount(), player));
                     }
                 }
             }
-        }
-        if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
-            if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId())) {
-                event.setCancelled(true);
-                if (NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1) {
-                    NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
-                    event.getPlayer().sendMessage(parse(prefix + ChatColor.RED + "Canceled board removal.", event.getPlayer()));
-                    return;
-                }
-                Location location = Objects.requireNonNull(event.getClickedBlock()).getRelative(event.getBlockFace()).getLocation();
-                addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
-                event.getPlayer().sendMessage(parse(prefix + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
+
+        } else if (event.getAction() == Action.LEFT_CLICK_BLOCK && NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+            if (NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1) {
                 NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
+                event.getPlayer().sendMessage(parse(prefix + ChatColor.RED + "Canceled board removal.", event.getPlayer()));
+                return;
             }
+            Location location = Objects.requireNonNull(event.getClickedBlock()).getRelative(event.getBlockFace()).getLocation();
+            addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
+            event.getPlayer().sendMessage(parse(prefix + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
+            NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
         }
     }
 
@@ -169,14 +155,13 @@ public class Events implements Listener {
     }
 
 
-
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         TimedBounties.login(event.getPlayer());
         Immunity.login(event.getPlayer());
         BountyExpire.login(event.getPlayer());
-        if (SQL.isConnected())
-            data.login(event.getPlayer());
+        ChallengeManager.login(event.getPlayer());
+        DataManager.login(event.getPlayer());
 
         // check if they are logged yet
         if (!loggedPlayers.containsValue(event.getPlayer().getUniqueId())) {
@@ -202,24 +187,10 @@ public class Events implements Listener {
             Bounty bounty = getBounty(event.getPlayer().getUniqueId());
             assert bounty != null;
             bounty.setDisplayName(event.getPlayer().getName());
-            double addedAmount = 0;
-            for (Setter setter : bounty.getSetters()) {
-                if (!setter.isNotified()) {
-                    event.getPlayer().sendMessage(parse(prefix + offlineBounty, setter.getName(), setter.getAmount(), event.getPlayer()));
-                    setter.setNotified(true);
-                    addedAmount += setter.getAmount();
-                }
-            }
-            bounty.combineSetters();
-            updateBounty(bounty);
-            BigBounty.setBounty(event.getPlayer(), bounty, addedAmount);
-            if (bounty.getTotalDisplayBounty() > BigBounty.getThreshold()) {
-                displayParticle.add(event.getPlayer().getUniqueId());
-            }
-            if (wanted && bounty.getTotalDisplayBounty() >= minWanted) {
-                if (!NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
-                    NotBounties.wantedText.put(event.getPlayer().getUniqueId(), new AboveNameText(event.getPlayer()));
-                }
+            DataManager.notifyBounty(event.getPlayer());
+            // check if player should be given a wanted tag
+            if (wanted && bounty.getTotalDisplayBounty() >= minWanted && !NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
+                NotBounties.wantedText.put(event.getPlayer().getUniqueId(), new AboveNameText(event.getPlayer()));
             }
         }
 
@@ -234,8 +205,7 @@ public class Events implements Listener {
         }
 
         // check for updates
-        if (updateNotification && !NotBounties.latestVersion) {
-            if (event.getPlayer().hasPermission("notbounties.admin")) {
+        if (updateNotification && !NotBounties.latestVersion && event.getPlayer().hasPermission(NotBounties.getAdminPermission())) {
                 new UpdateChecker(NotBounties.getInstance(), 104484).getVersion(version -> {
                     if (NotBounties.getInstance().getDescription().getVersion().contains("dev"))
                         return;
@@ -248,11 +218,11 @@ public class Events implements Listener {
                     TextComponent msg = new TextComponent(ChatColor.YELLOW + "to disable this message in the future.");
                     click.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "Set update-notification to false")));
                     click.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "bounty update-notification false"));
-                    BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg,click,msg};
+                    BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg, click, msg};
                     event.getPlayer().spigot().sendMessage(baseComponents);
                 });
             }
-        }
+
 
         // check if they had a bounty refunded
         if (refundedBounties.containsKey(event.getPlayer().getUniqueId())) {
@@ -289,7 +259,6 @@ public class Events implements Listener {
     }
 
 
-
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         // remove persistent entities (wanted tags & bounty boards)
@@ -317,7 +286,7 @@ public class Events implements Listener {
         if (claimOrder != ClaimOrder.BEFORE || !(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player))
             return;
         Player player = (Player) event.getEntity();
-        if (event.getDamage() >= player.getHealth() && player.getInventory().getItemInMainHand().getType() != Material.TOTEM_OF_UNDYING && player.getInventory().getItemInOffHand().getType() != Material.TOTEM_OF_UNDYING){
+        if (event.getDamage() >= player.getHealth() && player.getInventory().getItemInMainHand().getType() != Material.TOTEM_OF_UNDYING && player.getInventory().getItemInOffHand().getType() != Material.TOTEM_OF_UNDYING) {
             claimBounty(player, (Player) event.getDamager(), Arrays.asList(player.getInventory().getContents()), true);
         }
     }

@@ -121,11 +121,12 @@ public class Setter implements Comparable<Setter>{
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Setter setter = (Setter) o;
-        return Double.compare(amount, setter.amount) == 0 && timeCreated == setter.timeCreated && notified == setter.notified && receiverPlaytime == setter.receiverPlaytime && Objects.equals(name, setter.name) && Objects.equals(uuid, setter.uuid) && Objects.equals(items, setter.items) && Objects.equals(whitelist, setter.whitelist);
+        return Double.compare(amount, setter.amount) == 0 && timeCreated == setter.timeCreated && notified == setter.notified && receiverPlaytime == setter.receiverPlaytime && Objects.equals(uuid, setter.uuid) && Objects.equals(items, setter.items) && Objects.equals(whitelist, setter.whitelist);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime);
+        return Objects.hash(uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime);
     }
+
 }

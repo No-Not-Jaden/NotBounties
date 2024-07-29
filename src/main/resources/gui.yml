@@ -221,6 +221,15 @@ custom-items:
       - ''
     commands:
       - '[p] notbounties {player1}'
+  next-challenge:
+    material: CLOCK
+    name: '&f&lNext Challenges in &e{next_challenges}'
+  # this item is used to represent currency in the view-bounty GUI
+  general-currency-item:
+    material: SUNFLOWER
+    name: '{amount}'
+    enchanted: true
+    hide-nbt: true
 # for customizing the layout of the regular bounty GUI
 bounty-gui:
   # how the bounty menu is sorted
@@ -549,7 +558,48 @@ settings-gui:
     4:
       item: toggle-broadcast
       slot: 16
-
+challenges:
+  size: 27
+  gui-name: '&c&lChallenges'
+  player-slots:
+    - '11'
+    - '13'
+    - '15'
+  layout:
+    1:
+      item: fill
+      slot: 0-26
+    2:
+      item: return
+      slot: 26
+    3:
+      item: next-challenge
+      slot: 18
+view-bounty:
+  size: 54
+  gui-name: '&d&l{player}''s &9&lBounty: &2{amount}'
+  remove-page-items: true
+  add-page: false
+  player-slots:
+    - '0-44'
+  head-name: '&e&l{player}'
+  head-lore:
+    - ''
+    - '&6Contribution: {amount}'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 45-53
+    2:
+      item: return
+      slot: 49
+    3:
+      item: back
+      slot: 45
+    4:
+      item: next
+      slot: 53
 
 
 

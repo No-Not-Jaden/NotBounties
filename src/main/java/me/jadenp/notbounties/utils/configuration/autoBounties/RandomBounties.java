@@ -13,6 +13,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Random;
 import java.util.UUID;
 
 import static me.jadenp.notbounties.utils.BountyManager.addBounty;
@@ -25,6 +26,10 @@ public class RandomBounties {
     private static double randomBountyMaxPrice;
     private static boolean randomBountyOfflineSet;
     private static long nextRandomBounty = 0;
+    private static final Random random = new Random(System.currentTimeMillis());
+
+    private RandomBounties(){}
+
     public static void loadConfiguration(ConfigurationSection randomBounties) {
         randomBountyMinTime = randomBounties.getInt("min-time");
         randomBountyMaxTime = randomBounties.getInt("max-time");
@@ -52,7 +57,7 @@ public class RandomBounties {
                 setNextRandomBounty();
                 return;
             }
-            UUID uuid = randomBountyOfflineSet ? (UUID) NotBounties.loggedPlayers.values().toArray()[(int) (Math.random() * NotBounties.loggedPlayers.values().size())] : ((OfflinePlayer) NotBounties.getNetworkPlayers().toArray()[(int) (Math.random() * NotBounties.getNetworkPlayers().size())]).getUniqueId();
+            UUID uuid = randomBountyOfflineSet ? (UUID) NotBounties.loggedPlayers.values().toArray()[random.nextInt(NotBounties.loggedPlayers.values().size())] : ((OfflinePlayer) NotBounties.getNetworkPlayers().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())]).getUniqueId();
             final double[] price = {randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice)};
             try {
                 OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
@@ -110,8 +115,7 @@ public class RandomBounties {
     }
 
     public static void setNextRandomBounty() {
-        nextRandomBounty = System.currentTimeMillis() + randomBountyMinTime * 1000L + (long) (Math.random() * (randomBountyMaxTime - randomBountyMinTime) * 1000L);
-        //Bukkit.getLogger().info(nextRandomBounty + "");
+        nextRandomBounty = System.currentTimeMillis() + randomBountyMinTime * 1000L + (random.nextInt(randomBountyMaxTime - randomBountyMinTime) * 1000L);
     }
 
     private static boolean hasImmunity(OfflinePlayer player) {

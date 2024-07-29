@@ -2,8 +2,7 @@ package me.jadenp.notbounties.utils;
 
 import me.jadenp.notbounties.NotBounties;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class Whitelist {
     private List<UUID> list;
@@ -59,5 +58,17 @@ public class Whitelist {
             builder.deleteCharAt(builder.length()-1);
             return builder.toString();
         }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Whitelist whitelist)
+            return whitelist.blacklist == this.blacklist && new HashSet<>(this.getList()).containsAll(whitelist.getList()) && new HashSet<>(whitelist.getList()).containsAll(this.getList());
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(list, blacklist);
     }
 }

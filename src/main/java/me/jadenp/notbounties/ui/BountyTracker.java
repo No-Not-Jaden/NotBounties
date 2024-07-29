@@ -59,6 +59,7 @@ public class BountyTracker implements Listener {
     private static boolean posterTracking;
     private static boolean craftTracker;
     private static boolean resetRemovedTrackers;
+    private static double minBounty;
 
     private static long lastInventorySearch = 0;
     private static BiMap<Integer, UUID> trackedBounties = HashBiMap.create();
@@ -76,6 +77,7 @@ public class BountyTracker implements Listener {
         posterTracking = configuration.getBoolean("poster-tracking");
         resetRemovedTrackers = configuration.getBoolean("reset-removed-trackers");
         craftTracker = configuration.getBoolean("craft-tracker");
+        minBounty = configuration.getDouble("minimum-bounty");
 
         // tracker action bar settings
         TABShowAlways = configuration.getBoolean("action-bar.show-always");
@@ -205,6 +207,10 @@ public class BountyTracker implements Listener {
 
     public static boolean isWriteEmptyTrackers() {
         return writeEmptyTrackers;
+    }
+
+    public static double getMinBounty() {
+        return minBounty;
     }
 
     public static void stopTracking(UUID uuid) {

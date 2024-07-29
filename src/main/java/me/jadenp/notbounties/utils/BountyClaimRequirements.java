@@ -52,11 +52,11 @@ public class BountyClaimRequirements {
      */
     public static boolean worldGuardEnabled;
     /**
-     * Sabre Factions
+     * Factions - SabreFactions or FactionsUUID
      */
-    public static boolean saberEnabled;
-    public static boolean saberFactions;
-    public static boolean saberAlly;
+    private static boolean factionsEnabled;
+    private static boolean factionsFaction;
+    private static boolean factionsAlly;
 
     public static void loadConfiguration(ConfigurationSection configuration) {
         kingdomsXEnabled = Bukkit.getPluginManager().isPluginEnabled("Kingdoms");
@@ -64,7 +64,7 @@ public class BountyClaimRequirements {
         townyAdvancedEnabled = Bukkit.getPluginManager().isPluginEnabled("Towny");
         landsEnabled = Bukkit.getPluginManager().isPluginEnabled("Lands");
         worldGuardEnabled = Bukkit.getPluginManager().isPluginEnabled("WorldGuard");
-        saberEnabled = Bukkit.getPluginManager().isPluginEnabled("Factions");
+        factionsEnabled = Bukkit.getPluginManager().isPluginEnabled("Factions");
 
         kingdomsXNation = configuration.getBoolean("kingdoms-x.nation");
         kingdomsXNationAllies = configuration.getBoolean("kingdoms-x.nation-ally");
@@ -81,8 +81,8 @@ public class BountyClaimRequirements {
         landsNationAllies = configuration.getBoolean("lands.nation-ally");
         landsLand = configuration.getBoolean("lands.land");
         landsLandAllies = configuration.getBoolean("lands.land-ally");
-        saberFactions = configuration.getBoolean("saber-factions.faction");
-        saberAlly = configuration.getBoolean("saber-factions.ally");
+        factionsFaction = configuration.getBoolean("saber-factions.faction");
+        factionsAlly = configuration.getBoolean("saber-factions.ally");
 
     }
     
@@ -129,10 +129,21 @@ public class BountyClaimRequirements {
             if (!worldGuardClass.canClaim(killer, player.getLocation()))
                 return false;
         }
-        if (saberEnabled) {
-            SabreFactionsClass sabreFactionsClass = new SabreFactionsClass();
-            if ((!saberFactions && sabreFactionsClass.inSameFaction(player, killer)) || (!saberAlly && sabreFactionsClass.areFactionsAllied(player, killer)))
-                return false;
+        if (factionsEnabled) {
+            try {
+                SaberFactionsClass sabreFactionsClass = new SaberFactionsClass();
+                if ((!factionsFaction && sabreFactionsClass.inSameFaction(player, killer)) || (!factionsAlly && sabreFactionsClass.areFactionsAllied(player, killer)))
+                    return false;
+            } catch (NoSuchMethodError ignored) {
+                // not using this specific factions plugin
+            }
+            try {
+                FactionsUUIDClass factionsUUIDClass = new FactionsUUIDClass();
+                if ((!factionsFaction && factionsUUIDClass.inSameFaction(player, killer)) || (!factionsAlly && factionsUUIDClass.areFactionsAllied(player, killer)))
+                    return false;
+            } catch (NoSuchMethodError ignored) {
+                // not using this specific factions plugin
+            }
         }
 
         return true;

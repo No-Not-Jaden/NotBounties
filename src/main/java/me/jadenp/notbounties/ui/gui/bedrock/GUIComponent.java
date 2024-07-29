@@ -12,6 +12,7 @@ import org.geysermc.cumulus.component.Component;
 import org.geysermc.cumulus.component.impl.*;
 import org.geysermc.cumulus.util.FormImage;
 import org.geysermc.cumulus.util.impl.FormImageImpl;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -27,6 +28,8 @@ public class GUIComponent {
     private List<String> listOptions = new ArrayList<>();
     private ComponentType type;
     private Map<String, String> options = new HashMap<>();
+    private OfflinePlayer builtPlayer = null;
+    private String playerGUIType = null;
 
     /**
      * Creation of a player GUI Component
@@ -36,7 +39,7 @@ public class GUIComponent {
      * @param amount Amount tied to this component
      * @param playerCommands Commands to be executed on click (if a button)
      */
-    public GUIComponent(String text, ComponentType type, OfflinePlayer player, String amount, List<String> playerCommands) {
+    public GUIComponent(String text, ComponentType type, UUID player, double amount, List<String> playerCommands, String guiType) {
         this.name = "?player_component?";
         this.text = text;
         this.type = type;
@@ -44,11 +47,13 @@ public class GUIComponent {
         // arguably better than parsing after click
         List<String> parsedCommands = new ArrayList<>();
         for (String cmd : playerCommands) {
-            parsedCommands.add(LanguageOptions.parse(cmd, NumberFormatting.tryParse(amount), player));
+            parsedCommands.add(LanguageOptions.parse(cmd, amount, Bukkit.getOfflinePlayer(player)));
         }
         commands = new ArrayList<>(parsedCommands);
+        // save gui to be used when click actions are being run
+        this.playerGUIType = guiType;
         // create components
-        buildComponent(player);
+        buildComponent(Bukkit.getOfflinePlayer(player));
     }
 
     /**
@@ -82,6 +87,15 @@ public class GUIComponent {
         }
     }
 
+    /**
+     * Create an empty label component
+     */
+    public GUIComponent() {
+        name = "<empty-component>";
+        text = "";
+        type = ComponentType.LABEL;
+    }
+
     private GUIComponent(String name, String text, Component component, ButtonComponent buttonComponent, List<String> commands, List<String> listOptions, ComponentType type, Map<String, String> options) {
         this.name = name;
         this.text = text;
@@ -97,11 +111,24 @@ public class GUIComponent {
         return commands;
     }
 
+    public void addCommands(List<String> commands) {
+        this.commands.addAll(commands);
+    }
+
     public ComponentType getType() {
         return type;
     }
 
+    public @Nullable OfflinePlayer getBuiltPlayer() {
+        return builtPlayer;
+    }
+
+    public @Nullable String getPlayerGUIType() {
+        return playerGUIType;
+    }
+
     public GUIComponent buildComponent(OfflinePlayer player) {
+        builtPlayer = player;
         String text = LanguageOptions.parse(this.text, player);
         switch (type) {
             case LABEL:
@@ -111,8 +138,8 @@ public class GUIComponent {
                 FormImageImpl formImage = null;
                 if (options.containsKey("image") && !options.get("image").isEmpty()) {
                     boolean url = options.containsKey("image-url") ? options.get("image-url").equalsIgnoreCase("true") : options.get("image").contains("http");
-                    FormImage.Type type = url ? FormImage.Type.URL : FormImage.Type.PATH;
-                    formImage = new FormImageImpl(type, LanguageOptions.parse(options.get("image"), player));
+                    FormImage.Type imageType = url ? FormImage.Type.URL : FormImage.Type.PATH;
+                    formImage = new FormImageImpl(imageType, LanguageOptions.parse(options.get("image"), player));
                 }
                 buttonComponent = new ButtonComponentImpl(text, formImage);
                 component = new LabelComponentImpl(text);
@@ -220,6 +247,10 @@ public class GUIComponent {
 
     public GUIComponent copy(){
         return new GUIComponent(name, text, component, buttonComponent, commands, listOptions, type, options);
+    }
+
+    public void setText(String text) {
+        this.text = text;
     }
 
     public List<String> getListOptions() {

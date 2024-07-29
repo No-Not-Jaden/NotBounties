@@ -4,12 +4,15 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.challenges.ChallengeManager;
+import me.jadenp.notbounties.utils.challenges.ChallengeType;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -22,7 +25,6 @@ import org.bukkit.event.server.MapInitializeEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.map.MapView;
@@ -124,21 +126,21 @@ public class BountyMap implements Listener {
         }
     }
 
-    // method to initialize maps for 1.20.5
+    // method to initialize maps for 1.20.5 & update challenge for holding your own map
     @EventHandler
     public void onMapHold(PlayerItemHeldEvent event) {
-        if (!NotBounties.isAboveVersion(20,4))
-            return;
         ItemStack newItem = event.getPlayer().getInventory().getItem(event.getNewSlot());
-        if (newItem == null || newItem.getType() != Material.FILLED_MAP)
+        if (newItem == null || !isPoster(newItem))
             return;
         MapMeta mapMeta = (MapMeta) newItem.getItemMeta();
-        if (mapMeta == null || mapMeta.getMapView() == null)
-            return;
+        assert mapMeta != null;
         MapView mapView = mapMeta.getMapView();
+        assert mapView != null;
         if (mapIDs.containsKey(mapView.getId())) {
-            if (!mapView.isVirtual()) {
-                UUID uuid = mapIDs.get(mapView.getId());
+            UUID uuid = mapIDs.get(mapView.getId());
+            if (uuid.equals(event.getPlayer().getUniqueId()))
+                ChallengeManager.updateChallengeProgress(uuid, ChallengeType.HOLD_POSTER, 1);
+            if (!NotBounties.isAboveVersion(20,4) && mapView.isVirtual()) {
                 mapView.setLocked(ConfigOptions.lockMap);
                 mapView.getRenderers().forEach(mapView::removeRenderer);
                 mapView.addRenderer(new Renderer(uuid));
@@ -185,9 +187,7 @@ public class BountyMap implements Listener {
             return;
         }
         UUID trackedPlayer = meta.getOwningPlayer().getUniqueId();
-        if (!hasBounty(trackedPlayer))
-            return;
-        ItemStack map = getMap(Objects.requireNonNull(getBounty(trackedPlayer)));
+        ItemStack map = hasBounty(trackedPlayer) ? getMap(Objects.requireNonNull(getBounty(trackedPlayer))) : getMap(trackedPlayer, NotBounties.getPlayerName(trackedPlayer), 0, System.currentTimeMillis());
         event.getInventory().setResult(map);
     }
     // complete tracker crafting
@@ -320,23 +320,22 @@ public class BountyMap implements Listener {
         return playerFont.deriveFont(fontSize);
     }
 
-    public static void giveMap(Player player, Bounty bounty) {
-
-        ItemStack mapItem = getMap(bounty);
-        NumberFormatting.givePlayer(player, mapItem, 1);
+    public static ItemStack getMap(Bounty bounty) {
+        return getMap(bounty.getUUID(), bounty.getName(), bounty.getTotalDisplayBounty(), bounty.getLatestSetter());
     }
 
-    public static ItemStack getMap(Bounty bounty) {
-        MapView mapView = getMapView(bounty.getUUID());
+    public static ItemStack getMap(UUID uuid, String name, double displayBounty, long updateTime) {
+        OfflinePlayer parser = Bukkit.getOfflinePlayer(uuid);
+        MapView mapView = getMapView(uuid);
 
         ItemStack mapItem = new ItemStack(Material.FILLED_MAP);
         MapMeta meta = (MapMeta) mapItem.getItemMeta();
         assert meta != null;
         meta.setMapView(mapView);
-        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, bounty.getName(), bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, name, displayBounty, parser));
         ArrayList<String> lore = new ArrayList<>();
         for (String str : LanguageOptions.mapLore) {
-            lore.add(LanguageOptions.parse(str, bounty.getName(), bounty.getTotalDisplayBounty(), bounty.getLatestSetter(), LocalTime.TimeFormat.SERVER, Bukkit.getOfflinePlayer(bounty.getUUID())));
+            lore.add(LanguageOptions.parse(str, name, displayBounty, updateTime, LocalTime.TimeFormat.SERVER, parser));
         }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

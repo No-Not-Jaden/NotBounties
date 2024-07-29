@@ -25,7 +25,7 @@ public class HeadFetcher {
     public HeadFetcher() {
     }
 
-    public void loadHeads(Player player, PlayerGUInfo guInfo, LinkedHashMap<OfflinePlayer, ItemStack> heads) {
+    public void loadHeads(Player player, PlayerGUInfo guInfo, List<QueuedHead> heads) {
 
         new BukkitRunnable() {
             int maxRequests = 100;
@@ -34,20 +34,20 @@ public class HeadFetcher {
             public void run() {
                 boolean[] headsToUpdate = new boolean[heads.size()];
                 int i = 0;
-                for (Map.Entry<OfflinePlayer, ItemStack> entry : heads.entrySet()) {
+                for (QueuedHead queuedHead : heads) {
                     if (fetchedHeads[i] == null) {
-                        if (savedHeads.containsKey(entry.getKey().getUniqueId())) {
-                            fetchedHeads[i] = savedHeads.get(entry.getKey().getUniqueId());
+                        if (savedHeads.containsKey(queuedHead.uuid())) {
+                            fetchedHeads[i] = savedHeads.get(queuedHead.uuid());
                             headsToUpdate[i] = true;
                         } else {
-                            if (SkinManager.isSkinLoaded(entry.getKey().getUniqueId())) {
-                                PlayerSkin playerSkin = SkinManager.getSkin(entry.getKey().getUniqueId());
-                                ItemStack head = copyItemText(entry.getValue(), Head.createPlayerSkull(entry.getKey().getUniqueId(), playerSkin.getUrl()));
+                            if (SkinManager.isSkinLoaded(queuedHead.uuid())) {
+                                PlayerSkin playerSkin = SkinManager.getSkin(queuedHead.uuid());
+                                ItemStack head = copyItemText(queuedHead.itemStack(), Head.createPlayerSkull(queuedHead.uuid(), playerSkin.getUrl()));
                                 fetchedHeads[i] = head;
                                 if (!SkinManager.isMissingSkin(playerSkin)) {
                                     // do not update head if the skin is missing.
                                     headsToUpdate[i] = true;
-                                    savedHeads.put(entry.getKey().getUniqueId(), head);
+                                    savedHeads.put(queuedHead.uuid(), head);
                                 }
                             }
                         }
@@ -61,21 +61,21 @@ public class HeadFetcher {
                     public void run() {
                         if (player.isOnline() && player.getOpenInventory().getType() == InventoryType.CHEST && GUI.playerInfo.containsKey(player.getUniqueId())) {
                             PlayerGUInfo currentInfo = GUI.playerInfo.get(player.getUniqueId());
-                            if (!currentInfo.getGuiType().equals(guInfo.getGuiType()) || currentInfo.getPage() != guInfo.getPage() || !currentInfo.getTitle().equals(guInfo.getTitle())) {
+                            if (!currentInfo.guiType().equals(guInfo.guiType()) || currentInfo.page() != guInfo.page() || !currentInfo.title().equals(guInfo.title())) {
                                 // no longer in same GUI
                                 maxRequests = 0;
                                 return;
                             }
-                            GUIOptions guiOptions = GUI.getGUI(guInfo.getGuiType());
+                            GUIOptions guiOptions = GUI.getGUI(guInfo.guiType());
                             if (guiOptions == null)
                                 return;
                             Inventory inventory = player.getOpenInventory().getTopInventory();
                             ItemStack[] contents = inventory.getContents();
                             for (int j = 0; j < Math.min(guiOptions.getPlayerSlots().size(), fetchedHeads.length); j++) {
-                                if (!headsToUpdate[j])
+                                QueuedHead head = heads.get(j);
+                                if (!headsToUpdate[j] || !guiOptions.getPlayerSlots().contains(head.slot()))
                                     continue;
-                                int slot = guiOptions.getPlayerSlots().get(j);
-                                contents[slot] = fetchedHeads[j];
+                                contents[head.slot()] = fetchedHeads[j];
                             }
                             inventory.setContents(contents);
                         } else {
@@ -91,9 +91,9 @@ public class HeadFetcher {
                     this.cancel();
                     if (NotBounties.debug) {
                         i = 0;
-                        for (Map.Entry<OfflinePlayer, ItemStack> entry : heads.entrySet()) {
+                        for (QueuedHead queuedHead : heads) {
                             if (fetchedHeads[i] == null) {
-                                NotBounties.debugMessage("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(entry.getKey().getUniqueId()), true);
+                                NotBounties.debugMessage("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(queuedHead.uuid()), true);
                             }
                             i++;
                         }

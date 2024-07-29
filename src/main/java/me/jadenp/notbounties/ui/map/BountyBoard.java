@@ -7,6 +7,7 @@ import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.inventory.ItemStack;
@@ -85,6 +86,12 @@ public class BountyBoard {
     }
 
     public void remove() {
+        // remove any duplicate frames
+        for (Entity entity : Objects.requireNonNull(location.getWorld()).getNearbyEntities(location, 0.5,0.5,0.5)) {
+            if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.serverVersion >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01) {
+                entity.remove();
+            }
+        }
         if (frame != null) {
             frame.setItem(null);
             frame.remove();

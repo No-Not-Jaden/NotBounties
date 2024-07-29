@@ -125,9 +125,20 @@ give-tracker-lore:
   - '&fLeft Click &7to get a tracker'
 give-poster-lore:
   - '&fRight Click &7to get a poster'
+view-bounty-lore:
+  - '&fDrop &7to view more details.'
+remove-bounty-lore: #
+  - '&cLeft Click &7to Remove'
+edit-bounty-lore: #
+  - '&eRight Click &7to Edit'
 no-empty-tracker: '&cYou do not have an empty tracker in your hand.'
 stolen-bounty: '&aYou stole &2{player}''s&a bounty on you for {amount}&a!'
 stolen-bounty-broadcast: '&e{receiver}&6 has stolen &e{player}''s&6 bounty set on them for &f{amount}&6! New Bounty: &f{bounty}'
+challenge-completion: '&5You''ve completed a challenge. Use &d/bounty challenges &5to view.'
+challenge-gui-claim: '&5Click to claim your reward'
+challenge-chat-claim: '&5Do &d/bounty challenges claim &5to claim your reward.'
+challenge-claim-deny: '&cYou can''t claim this challenge!'
+trickle-bounty: '&2{amount}&e of &6{player}''s &ebounty has been transferred to yours.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
@@ -161,7 +172,7 @@ help:
     - '&9/bounty tutorial &8- &dShows a text tutorial.'
     - '&9/bounty bdc &8- &dToggles the bounty broadcast message.'
   view:
-    - '&9/bounty check (player) &8- &dChecks a bounty.'
+    - '&9/bounty check (player) <list> &8- &dChecks a bounty.'
     - '&9/bounty list &8- &dLists all bounties.'
     - '&9/bounty top (all/kills/claimed/deaths/set/immunity) <list> &8- &dLists the top 10 players with the respective stats.'
     - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) &8- &dView your bounty stats.'
@@ -199,7 +210,11 @@ help:
     - '&9/bounty tracker (player) &8- &dGives you a compass that tracks a player with a bounty.'
   tracker-other:
     - '&9/bounty tracker (player) (receiver) &8- &dGives receiver a compass that tracks a player with a bounty.'
-  admin:
+  challenges:
+    - '&9/bounty challenges &8- &dOpens the challenges GUI.'
+    - '&9/bounty challenges claim <challenge #> &8- &dClaim a challenge reward.'
+    - '&9/bounty challenges check <challenge #> &8- &dDisplays challenge info in chat.'
+  admin: #
     - '&9/bounty immunity remove (player) &8- &dRemoves purchased immunity from a player.'
     - '&9/bounty remove (player) &8- &dRemoves all bounties from a player.'
     - '&9/bounty remove (player) from (setter) &8- &dRemoves a specific bounty put on a player.'

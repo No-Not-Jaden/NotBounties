@@ -77,6 +77,19 @@ public class CustomItem {
         commands = new ArrayList<>();
     }
 
+    public CustomItem(Material material, int amount, int customModelData, String name, List<String> lore, boolean enchanted, boolean hideNBT, boolean hideTooltip, List<String> commands) {
+
+        this.material = material;
+        this.amount = amount;
+        this.customModelData = customModelData;
+        this.name = name;
+        this.lore = lore;
+        this.enchanted = enchanted;
+        this.hideNBT = hideNBT;
+        this.hideTooltip = hideTooltip;
+        this.commands = commands;
+    }
+
 
     public ItemStack getFormattedItem(OfflinePlayer player, String[] replacements){
         if (replacements == null || replacements.length == 0)

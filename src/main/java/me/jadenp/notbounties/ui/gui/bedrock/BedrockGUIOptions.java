@@ -1,19 +1,23 @@
 package me.jadenp.notbounties.ui.gui.bedrock;
 
 import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
+import me.jadenp.notbounties.ui.gui.GUIClicks;
+import me.jadenp.notbounties.ui.gui.displayItems.AmountItem;
+import me.jadenp.notbounties.ui.gui.displayItems.DisplayItem;
+import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
+import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.geysermc.cumulus.component.impl.DropdownComponentImpl;
 import org.geysermc.cumulus.form.CustomForm;
@@ -26,14 +30,11 @@ import org.geysermc.cumulus.util.FormImage;
 import org.geysermc.cumulus.util.impl.FormImageImpl;
 
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ui.gui.GUIOptions.getPageType;
-import static me.jadenp.notbounties.utils.BountyManager.getBounty;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.color;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.parse;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 
 public class BedrockGUIOptions {
@@ -53,6 +54,22 @@ public class BedrockGUIOptions {
         CUSTOM, SIMPLE, MODAL
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public boolean isAddPage() {
+        return addPage;
+    }
+
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
+
     private final GUIType guiType;
 
     public BedrockGUIOptions(ConfigurationSection settings, ConfigurationSection customItems) {
@@ -66,6 +83,13 @@ public class BedrockGUIOptions {
         playerText = settings.isSet("player-text") ? settings.getString("player-text") : null;
         formCompletionCommands = settings.isSet("completion-commands") ? settings.getStringList("completion-commands") : new ArrayList<>();
         playerButtonCommands = settings.isSet("player-button-commands") ? settings.getStringList("player-button-commands") : new ArrayList<>();
+        GUIType overrideType = null;
+        if (settings.isString("override-type"))
+            try {
+                overrideType = GUIType.valueOf(Objects.requireNonNull(settings.getString("override-type")).toUpperCase());
+            } catch (IllegalArgumentException e) {
+                Bukkit.getLogger().warning("[NotBounties] Invalid GUI override type in bedrock-gui \"" + name + "\": " + settings.getString("override-type"));
+            }
 
         int buttonCount = 0;
         if (settings.isConfigurationSection("components"))
@@ -89,15 +113,19 @@ public class BedrockGUIOptions {
                     }
             }
 
-        if (buttonCount > 2) {
-            // simple form
-            guiType = GUIType.SIMPLE;
-        } else if (buttonCount > 0) {
-            // modal form
-            guiType = GUIType.MODAL;
+        if (overrideType != null) {
+            guiType = overrideType;
         } else {
-            // custom form
-            guiType = GUIType.CUSTOM;
+            if (buttonCount > 2) {
+                // simple form
+                guiType = GUIType.SIMPLE;
+            } else if (buttonCount > 0) {
+                // modal form
+                guiType = GUIType.MODAL;
+            } else {
+                // custom form
+                guiType = GUIType.CUSTOM;
+            }
         }
 
         components = sortByKey(components);
@@ -113,150 +141,109 @@ public class BedrockGUIOptions {
         return sortType;
     }
 
-    private String getPlayerText(int index, Player player, OfflinePlayer p, String amount, String[] replacements) {
-        if (playerText == null)
-            return NotBounties.getPlayerName(p.getUniqueId());
-        long time = System.currentTimeMillis();
-        Bounty bounty = getBounty(p.getUniqueId());
-        if (type.equals("bounty-gui")) {
-            amount = currencyPrefix + NumberFormatting.formatNumber(tryParse(amount)) + currencySuffix;
-        } else {
-            Leaderboard leaderboard = null;
-            try {
-                leaderboard = Leaderboard.valueOf(replacements[0]);
-            } catch (IllegalArgumentException ignored) {
-            }
-            if (leaderboard == null)
-                amount = formatNumber(amount);
-        }
-        if (bounty != null) {
-            time = bounty.getLatestSetter();
-        }
-
-        final String finalAmount = amount;
-        final long rank = index + 1L;
-        String playerName = NotBounties.getPlayerName(p.getUniqueId());
-        double total = parseCurrency(finalAmount) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
-        String text;
-        try {
-            text = parse(playerText, finalAmount, rank, replacements[0], playerName, total, time, p);
-        } catch (IllegalArgumentException e) {
-            Bukkit.getLogger().warning("Error parsing name and lore for player item! This is usually caused by a typo in the config.");
-            text = playerText;
-        }
-        if (type.equalsIgnoreCase("set-whitelist"))
-            if (NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().contains(p.getUniqueId())) {
-                text = ChatColor.GREEN + text;
-            } else {
-                text = ChatColor.YELLOW + text;
-            }
-        return parse(text, time, p);
-    }
-
-    private List<GUIComponent> addPlayerComponents(SimpleForm.Builder builder, Player player, long page, OfflinePlayer[] playerItems, String[] amount, String[] replacements) {
+    private List<GUIComponent> addPlayerComponents(SimpleForm.Builder builder, Player player, long page, List<DisplayItem> displayItems, Object[] data) {
         // keeping track of added components
         List<GUIComponent> playerComponents = new ArrayList<>();
         // iterate through players to add
         // the number of components added is limited to maxPlayers
         // the start position in the playerItems and amount arrays depend on the page
-        for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * maxPlayers); i < Math.min(maxPlayers * page, playerItems.length); i++) {
-            // get player and amount for this index
-            OfflinePlayer p = playerItems[i];
-            String finalAmount = amount[i];
-            // default texture id (question mark head)
-            String imageTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
-
-            if (SkinManager.isSkinLoaded(p.getUniqueId()))
-                imageTextureID = SkinManager.getSkin(p.getUniqueId()).getId();
-            // perspective head url
-            String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png";
+        for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * maxPlayers); i < Math.min(maxPlayers * page, displayItems.size()); i++) {
+            // get display item
+            DisplayItem displayItem = displayItems.get(i);
             // get the player text (will be parsed already)
-            String playerText = getPlayerText(i, player, p, finalAmount, replacements);
-            // add button to the component
-            builder.button(playerText, new FormImageImpl(FormImage.Type.URL, imageURL));
+            String parsedPlayerText = displayItem.parseText(playerText, player);
+            // set default player uuid for GUIComponent
+            UUID p = player.getUniqueId();
+            // set default amount for GUIComponent
+            double amount = 0;
+            if (displayItem instanceof PlayerItem playerItem) {
+                // default texture id (question mark head)
+                String imageTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
+
+                if (SkinManager.isSkinLoaded(playerItem.getUuid()))
+                    imageTextureID = SkinManager.getSkin(player.getUniqueId()).getId();
+                // perspective head url
+                String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png";
+                // add button to the component
+                builder.button(parsedPlayerText, new FormImageImpl(FormImage.Type.URL, imageURL));
+                p = playerItem.getUuid();
+            } else {
+                builder.button(parsedPlayerText);
+            }
+            // check if this item has an amount
+            if (displayItem instanceof AmountItem amountItem)
+                amount = amountItem.getAmount();
             // create a component to add to the playerComponents list
-            playerComponents.add(new GUIComponent(playerText, GUIComponent.ComponentType.BUTTON, p, finalAmount, playerButtonCommands));
+            playerComponents.add(new GUIComponent(parsedPlayerText, GUIComponent.ComponentType.BUTTON, p, amount, playerButtonCommands, type));
+        }
+        if (type.equalsIgnoreCase("challenges")) {
+            GUIComponent[] items = ChallengeManager.getDisplayComponents(player);
+            for (GUIComponent component : items) {
+                builder.button(component.getButtonComponent());
+                playerComponents.add(component);
+            }
         }
         return playerComponents;
     }
 
-    private List<String> getPlayerText(Player player, long page, OfflinePlayer[] playerItems, String[] amount, String[] replacements) {
+    private List<String> getPlayerText(Player player, long page, List<DisplayItem> displayItems, Object[] data) {
         List<String> text = new ArrayList<>();
         if (playerText == null)
             return text;
-        for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * maxPlayers); i < Math.min(maxPlayers * page, playerItems.length); i++) {
-            OfflinePlayer p = playerItems[i];
-            String finalAmount = NumberFormatting.formatNumber(amount[i] != null ? amount[i] : "0");
-            text.add(getPlayerText(i, player, p, finalAmount, replacements));
+        for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * maxPlayers); i < Math.min(maxPlayers * page, displayItems.size()); i++) {
+            text.add(displayItems.get(i).parseText(playerText, player));
+        }
+        if (type.equalsIgnoreCase("challenges")) {
+            GUIComponent[] items = ChallengeManager.getDisplayComponents(player);
+            for (GUIComponent item : items) {
+                text.add(item.getComponent().text());
+            }
         }
         return text;
     }
 
-    public void openInventory(Player player, long page, Map<UUID, String> values, String... replacements) {
-        final String thisName = this.name;
-                new BukkitRunnable() {
-            String[] finalReplacements = replacements;
+    public void openInventory(Player player, long page, List<DisplayItem> displayItems, String title, Object[] data) {
+        new BukkitRunnable() {
             long finalPage = page;
             int maxRequests = 10;
 
             @Override
             public void run() {
-                OfflinePlayer[] playerItems = new OfflinePlayer[values.size()];
-                String[] amount = new String[values.size()];
-                int index = 0;
-                    // load skins & player data to show in this gui
-                    for (Map.Entry<UUID, String> entry : values.entrySet()) {
-                        if (guiType == GUIType.SIMPLE && !SkinManager.isSkinLoaded(entry.getKey())) {
+                    // load skins
+                if (guiType == GUIType.SIMPLE) {
+                    for (DisplayItem displayItem : displayItems) {
+                        if (displayItem instanceof PlayerItem playerItem && !SkinManager.isSkinLoaded(playerItem.getUuid())) {
                             // check if max requests hit
                             if (maxRequests <= 0) {
                                 this.cancel();
                                 if (NotBounties.debug) {
-                                    Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(entry.getKey()));
+                                    Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(playerItem.getUuid()));
                                 }
                             } else {
                                 maxRequests--;
                                 return;
                             }
                         }
-                        playerItems[index] = Bukkit.getOfflinePlayer(entry.getKey());
-                        amount[index] = entry.getValue();
-                        index++;
                     }
-                this.cancel();
-                // this is for adding more replacements in the future
-                int desiredLength = 1;
-                if (finalReplacements.length < desiredLength)
-                    finalReplacements = new String[desiredLength];
-                for (int i = 0; i < finalReplacements.length; i++) {
-                    if (finalReplacements[i] == null)
-                        finalReplacements[i] = "";
                 }
+                this.cancel();
 
                 if (finalPage < 1) {
                     finalPage = 1;
                 }
-                String name = addPage ? thisName + " " + page : thisName;
-                if (amount.length > 0 && amount[0] != null) {
-                    double totalCost = parseCurrency(amount[0]) * (bountyTax + 1) + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * bountyWhitelistCost;
-                    String playerName = NotBounties.getPlayerName(playerItems[0].getUniqueId());
-                    name = name.replace("{amount}", (amount[0])).replace("{amount_tax}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalCost) + NumberFormatting.currencySuffix)).replace("{leaderboard}", (finalReplacements[0])).replace("{player}", playerName);
-                }
-                name = name.replace("{page}", (page + ""));
-                int maxPage = type.equals("select-price") ? (int) NumberFormatting.getBalance(player) : (playerItems.length / maxPlayers) + 1;
-                name = name.replace("{page_max}", (maxPage + ""));
-                name = parse(name, player);
+
                 List<GUIComponent> usedGUIComponents = new ArrayList<>();
 
                 switch (guiType) {
                     case SIMPLE:
-                        SimpleForm.Builder simpleBuilder = SimpleForm.builder().title(name);
+                        SimpleForm.Builder simpleBuilder = SimpleForm.builder().title(title);
                         StringBuilder content = new StringBuilder();
                         // before player values
                         for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
                             if (entry.getKey() > 0)
                                 break;
                             GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, playerItems.length))
+                            if (skipItem(component.getCommands(), page, displayItems.size()))
                                 continue;
 
                             if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON) {
@@ -267,7 +254,7 @@ public class BedrockGUIOptions {
                             }
                         }
                         // player values
-                        List<GUIComponent> addedComponents = addPlayerComponents(simpleBuilder, player, page, playerItems, amount, finalReplacements);
+                        List<GUIComponent> addedComponents = addPlayerComponents(simpleBuilder, player, page, displayItems, data);
                         // add all components because they will all be buttons from this method
                         usedGUIComponents.addAll(addedComponents);
                         // after player values
@@ -275,7 +262,7 @@ public class BedrockGUIOptions {
                             if (entry.getKey() < 1)
                                 continue;
                             GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, playerItems.length))
+                            if (skipItem(component.getCommands(), page, displayItems.size()))
                                 continue;
                             if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON) {
                                 simpleBuilder.button(component.getButtonComponent());
@@ -285,7 +272,7 @@ public class BedrockGUIOptions {
                             }
                         }
                         simpleBuilder.content(content.toString());
-                        simpleBuilder.validResultHandler((simpleFormResponse) -> doClickActions(player, simpleFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
+                        simpleBuilder.validResultHandler(simpleFormResponse -> doClickActions(player, simpleFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
                         new BukkitRunnable() {
                             @Override
                             public void run() {
@@ -299,13 +286,13 @@ public class BedrockGUIOptions {
 
                         break;
                     case MODAL:
-                        ModalForm.Builder modalBuilder = ModalForm.builder().title(name);
+                        ModalForm.Builder modalBuilder = ModalForm.builder().title(title);
                         StringBuilder modalContent = new StringBuilder();
                         int buttons = 0;
                         // before player values
                         for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
                             GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, playerItems.length))
+                            if (skipItem(component.getCommands(), page, displayItems.size()))
                                 continue;
                             if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON && buttons < 2) {
                                 if (buttons == 0)
@@ -319,7 +306,7 @@ public class BedrockGUIOptions {
                             }
                         }
                         // add player values to content
-                        for (String text : getPlayerText(player, page, playerItems, amount, finalReplacements)) {
+                        for (String text : getPlayerText(player, page, displayItems, data)) {
                             modalContent.append(text).append("\n");
                         }
                         modalBuilder.content(modalContent.toString());
@@ -337,20 +324,20 @@ public class BedrockGUIOptions {
 
                         break;
                     case CUSTOM:
-                        CustomForm.Builder customBuilder = CustomForm.builder().title(name);
+                        CustomForm.Builder customBuilder = CustomForm.builder().title(title);
                         // before player items
                         for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
                             if (entry.getKey() > 0)
                                 break;
                             GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, playerItems.length))
+                            if (skipItem(component.getCommands(), page, displayItems.size()))
                                 continue;
                             usedGUIComponents.add(component.copy());
 
                             customBuilder.component(component.getComponent());
                         }
                         // player items
-                        for (String text : getPlayerText(player, page, playerItems, amount, finalReplacements)) {
+                        for (String text : getPlayerText(player, page, displayItems, data)) {
                             customBuilder.label(text);
                         }
                         // after player items
@@ -358,7 +345,7 @@ public class BedrockGUIOptions {
                             if (entry.getKey() < 1)
                                 continue;
                             GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, playerItems.length))
+                            if (skipItem(component.getCommands(), page, displayItems.size()))
                                 continue;
                             usedGUIComponents.add(component.copy());
 
@@ -418,17 +405,28 @@ public class BedrockGUIOptions {
     // simple
     private void doClickActions(Player player, SimpleFormResponse simpleFormResponse, List<GUIComponent> usedGUIComponents) {
         if (simpleFormResponse.clickedButtonId() >= usedGUIComponents.size()) {
-            Bukkit.getLogger().warning("[NotBounties] This is a bug! User clicked an unregistered button in " + type + " bedrock gui.");
+            Bukkit.getLogger().warning(() -> "[NotBounties] This is a bug! User clicked an unregistered button in " + type + " bedrock gui.");
             return;
         }
         GUIComponent component = usedGUIComponents.get(simpleFormResponse.clickedButtonId());
         List<String> actions = new ArrayList<>(component.getCommands());
-        double quantity = 0;
+        double quantity;
         try {
             quantity = NumberFormatting.tryParse(component.getButtonComponent().text());
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+            quantity = 0;
+        }
         actions.addAll(parseCompletionCommands(component.getButtonComponent().text(), quantity, new ArrayList<>()));
         ActionCommands.executeCommands(player, actions);
+
+        // bounty-gui click actions
+        // playerGUIType will be null if the component isn't built for a specific player
+        if (component.getPlayerGUIType() != null && component.getPlayerGUIType().equals("bounty-gui") && component.getBuiltPlayer() != null) {
+            Bounty bounty = BountyManager.getBounty(component.getBuiltPlayer().getUniqueId());
+            if (bounty != null) {
+                GUIClicks.runClickActions(player, bounty, ClickType.UNKNOWN);
+            }
+        }
     }
 
     // modal

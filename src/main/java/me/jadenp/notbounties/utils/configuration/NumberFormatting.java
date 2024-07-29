@@ -20,7 +20,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -28,7 +27,6 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.stream.IntStream;
 
 import static me.jadenp.notbounties.NotBounties.debug;
@@ -85,7 +83,7 @@ public class NumberFormatting {
 
         if (vaultEnabled && !overrideVault) {
             vaultClass = new VaultClass();
-            //Bukkit.getLogger().info("Using Vault as currency!");
+            NotBounties.debugMessage("Using Vault as currency!", false);
         }
         currency = new ArrayList<>();
         currencyWeights = new ArrayList<>();
@@ -135,6 +133,7 @@ public class NumberFormatting {
                     currencyIterator.remove();
                     continue;
                 }
+                usingPapi = true;
             } else {
                 try {
                     Material.valueOf(currencyName);
@@ -176,12 +175,6 @@ public class NumberFormatting {
             currency.add("DIAMOND");
         }
 
-        for (String currencyName : currency)
-            if (currencyName.contains("%")) {
-                usingPapi = true;
-                break;
-            }
-
 
         if (currencyOptions.isSet("prefix"))
             currencyPrefix = LanguageOptions.color(Objects.requireNonNull(currencyOptions.getString("prefix")));
@@ -203,22 +196,24 @@ public class NumberFormatting {
         }
 
         // warning for not enough remove/add commands
-        if (addSingleCurrency == CurrencyAddType.BIMODAL) {
-            if (currency.size() < 2) {
-                Bukkit.getLogger().warning("Using bimodal currency but there aren't 2 currencies to use!");
-            } else {
-                if (currency.get(0).contains("%") && addCommands.isEmpty())
-                    Bukkit.getLogger().warning("Detected a placeholder for the first currency, but there are no add commands!");
-                if (currency.get(1).contains("%") && removeCommands.isEmpty())
-                    Bukkit.getLogger().warning("Detected a placeholder for the second currency, but there are no remove commands!");
-            }
+        if (!vaultEnabled || overrideVault) {
+            if (addSingleCurrency == CurrencyAddType.BIMODAL) {
+                if (currency.size() < 2) {
+                    Bukkit.getLogger().warning("Using bimodal currency but there aren't 2 currencies to use!");
+                } else {
+                    if (currency.get(0).contains("%") && addCommands.isEmpty())
+                        Bukkit.getLogger().warning("Detected a placeholder for the first currency, but there are no add commands!");
+                    if (currency.get(1).contains("%") && removeCommands.isEmpty())
+                        Bukkit.getLogger().warning("Detected a placeholder for the second currency, but there are no remove commands!");
+                }
 
-        } else {
-            int placeholderCurrencies = (int) currency.stream().filter(currencyName -> currencyName.contains("%")).count();
-            if (addCommands.size() < placeholderCurrencies)
-                Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + addCommands.size() + " add commands!");
-            if (removeCommands.size() < placeholderCurrencies)
-                Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + removeCommands.size() + " remove commands!");
+            } else {
+                int placeholderCurrencies = (int) currency.stream().filter(currencyName -> currencyName.contains("%")).count();
+                if (addCommands.size() < placeholderCurrencies)
+                    Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + addCommands.size() + " add commands!");
+                if (removeCommands.size() < placeholderCurrencies)
+                    Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + removeCommands.size() + " remove commands!");
+            }
         }
 
 
@@ -333,6 +328,10 @@ public class NumberFormatting {
             }
     }
 
+    public static boolean isUsingDecimals() {
+        return usingPapi || shouldUseDecimals();
+    }
+
     public static double getItemValue(ItemStack item) {
         if (item == null)
             return 0;
@@ -345,15 +344,15 @@ public class NumberFormatting {
         // check if material is a currency
         for (String s : currency) {
             if (material.toString().equalsIgnoreCase(s))
-                return currencyValues.get(s) + getEnchantmentValue(item);
+                return (currencyValues.get(s) + getEnchantmentValue(item)) * item.getAmount();
         }
         // check if registered as an item value
         if (itemValues.containsKey(material)) {
             double value = itemValues.get(material).getValue(customModelData);
             if (value != -1)
-                return value * itemValueMultiplier + getEnchantmentValue(item);
+                return (value * itemValueMultiplier + getEnchantmentValue(item)) * item.getAmount();
         }
-        return defaultItemValue + getEnchantmentValue(item);
+        return (defaultItemValue + getEnchantmentValue(item)) * item.getAmount();
     }
 
     private static double getEnchantmentValue(ItemStack item) {
@@ -373,7 +372,7 @@ public class NumberFormatting {
     public static double getTotalValue(List<ItemStack> items) {
         if (items.isEmpty())
             return 0;
-        return items.stream().filter(Objects::nonNull).mapToDouble(item -> NumberFormatting.getItemValue(item) * item.getAmount()).sum();
+        return items.stream().filter(Objects::nonNull).mapToDouble(NumberFormatting::getItemValue).sum();
     }
 
     public static String formatNumber(String number) {
@@ -424,7 +423,7 @@ public class NumberFormatting {
             // set divisions
             return setDivision(number);
         }
-        return RUZ(decimalFormat.format(number));
+        return ruz(decimalFormat.format(number));
     }
 
     /**
@@ -435,7 +434,7 @@ public class NumberFormatting {
      */
     public static String getValue(double number) {
         //return decimalFormat.format(number);
-        return RUZ(String.format("%f",number));
+        return ruz(String.format("%f",number));
     }
 
     /**
@@ -444,7 +443,7 @@ public class NumberFormatting {
      * @param value value to check zeros for
      * @return a value with no unnecessary Zeros
      */
-    public static String RUZ(String value) {
+    private static String ruz(String value) {
         if (value.isEmpty())
             return "";
         while (value.contains(Character.toString(decimalFormat.getDecimalFormatSymbols().getDecimalSeparator())) && (value.charAt(value.length() - 1) == '0' || value.charAt(value.length() - 1) == decimalFormat.getDecimalFormatSymbols().getDecimalSeparator()))
@@ -455,10 +454,10 @@ public class NumberFormatting {
     public static String setDivision(Double number) {
         for (Map.Entry<Long, String> entry : nfDivisions.entrySet()) {
             if (number / entry.getKey() >= 1) {
-                return RUZ(decimalFormat.format((double) number / entry.getKey())) + entry.getValue();
+                return ruz(decimalFormat.format(number / entry.getKey())) + entry.getValue();
             }
         }
-        return RUZ(decimalFormat.format(number));
+        return ruz(decimalFormat.format(number));
     }
 
 
@@ -699,8 +698,9 @@ public class NumberFormatting {
 
         try {
             return tryParse(amount) * multiplyValue;
-        } catch (NumberFormatException ignored){}
-        return NumberFormatting.findFirstNumber(amount) * multiplyValue;
+        } catch (NumberFormatException ignored){
+            return NumberFormatting.findFirstNumber(amount) * multiplyValue;
+        }
     }
 
     public static LinkedHashMap<Integer, Float> sortByFloatValue(Map<Integer, Float> hm) {

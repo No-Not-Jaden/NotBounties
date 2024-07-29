@@ -17,6 +17,7 @@ public class AboveNameText {
     private ArmorStand armorStand = null;
     private long nextTextUpdateTime = 0;
     private long nextVisibilityUpdateTime = 0;
+    private boolean enabled = true;
     public AboveNameText(Player player) {
         this.player = player;
         if (!BountyManager.hasBounty(player.getUniqueId()))
@@ -25,7 +26,7 @@ public class AboveNameText {
     }
 
     public void updateArmorStand(){
-        if (player != null && player.isOnline()) {
+        if (enabled && player != null && player.isOnline()) {
             if (nextVisibilityUpdateTime < System.currentTimeMillis()) {
                 // conditions if the tag should be removed/invisible
                 if (!BountyManager.hasBounty(player.getUniqueId()) || (hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible() || isVanished(player)) {
@@ -78,12 +79,18 @@ public class AboveNameText {
         armorStand.teleport(player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
     }
 
+    public void disable() {
+        enabled = false;
+        removeStand();
+    }
+
     public void removeStand(){
         if (armorStand == null)
             return;
         armorStand.remove();
         armorStand = null;
     }
+
     private void spawnWantedTag(){
         armorStand = (ArmorStand) player.getWorld().spawnEntity(player.getEyeLocation().add(0,wantedOffset,0), EntityType.ARMOR_STAND);
         armorStand.setVisible(false);

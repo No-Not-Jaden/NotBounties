@@ -1,7 +1,5 @@
 package me.jadenp.notbounties.utils.challenges;
 
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-
 public enum ChallengeType {
     CUSTOM, // Custom Requirement
     CLAIM, // Claim x bounties
@@ -21,7 +19,7 @@ public enum ChallengeType {
 
     public String getConfigurationName() {
         String name = this.name().toLowerCase();
-        return name.replaceAll("_", "-");
+        return name.replace("_", "-");
     }
 
     /**
@@ -31,14 +29,8 @@ public enum ChallengeType {
      * @throws IllegalArgumentException If the configuration name is not valid for the challenge type
      */
     public static ChallengeType convertFromConfiguration(String name) throws IllegalArgumentException {
-        name = name.toUpperCase().replaceAll("-", "_");
+        name = name.toUpperCase().replace("-", "_");
         return ChallengeType.valueOf(name);
     }
 
-    public static String getProgressString(double progress, double total) {
-        if (progress > total) {
-            return NumberFormatting.formatNumber(total) + "/" + NumberFormatting.formatNumber(total);
-        }
-        return NumberFormatting.formatNumber(progress) + "/" + NumberFormatting.formatNumber(total);
-    }
 }
