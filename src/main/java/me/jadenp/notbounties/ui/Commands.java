@@ -1489,7 +1489,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args.length == 1) {
                         if (sender instanceof Player) {
                             if (bountyItemsDefaultGUI) {
-                                openGUI(parser, "bounty-item-select", ConfigOptions.minBounty, player.getUniqueId().toString());
+                                openGUI(parser, "bounty-item-select", 1, player.getUniqueId());
                             } else {
                                 openGUI(parser, "select-price", ConfigOptions.minBounty, player.getUniqueId().toString());
                             }

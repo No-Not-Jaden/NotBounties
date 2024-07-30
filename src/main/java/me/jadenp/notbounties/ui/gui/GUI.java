@@ -554,7 +554,7 @@ public class GUI implements Listener {
                     break;
                 case "set-bounty":
                     if (NumberFormatting.bountyItemsDefaultGUI) {
-                        openGUI((Player) event.getWhoClicked(), "bounty-item-select", ConfigOptions.minBounty, playerUUID.toString());
+                        openGUI((Player) event.getWhoClicked(), "bounty-item-select", 1, playerUUID);
                     } else {
                         openGUI((Player) event.getWhoClicked(), "select-price", ConfigOptions.minBounty, playerUUID.toString());
                     }

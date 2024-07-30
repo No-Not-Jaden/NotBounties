@@ -80,6 +80,7 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * requires java 17
  * view bounty with multiple pages x
  * test player specific challenges
+ * bedrock open gui msg
  */
 public final class NotBounties extends JavaPlugin {
 

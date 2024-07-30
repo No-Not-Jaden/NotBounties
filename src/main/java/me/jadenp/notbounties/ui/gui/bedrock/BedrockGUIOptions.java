@@ -11,6 +11,7 @@ import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
+import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ui.gui.GUIOptions.getPageType;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.color;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 
 public class BedrockGUIOptions {
@@ -161,7 +162,7 @@ public class BedrockGUIOptions {
                 String imageTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
 
                 if (SkinManager.isSkinLoaded(playerItem.getUuid()))
-                    imageTextureID = SkinManager.getSkin(player.getUniqueId()).getId();
+                    imageTextureID = SkinManager.getSkin(playerItem.getUuid()).getId();
                 // perspective head url
                 String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png";
                 // add button to the component
@@ -203,6 +204,10 @@ public class BedrockGUIOptions {
     }
 
     public void openInventory(Player player, long page, List<DisplayItem> displayItems, String title, Object[] data) {
+        if (!LanguageOptions.bedrockOpenGUI.isEmpty() && !GUI.playerInfo.containsKey(player.getUniqueId())) {
+            player.sendMessage(LanguageOptions.parse(prefix + bedrockOpenGUI.replace("{page}", page + ""), player));
+        }
+        player.getOpenInventory().close();
         new BukkitRunnable() {
             long finalPage = page;
             int maxRequests = 10;
@@ -211,20 +216,24 @@ public class BedrockGUIOptions {
             public void run() {
                     // load skins
                 if (guiType == GUIType.SIMPLE) {
+                    boolean loaded = true; // whether all the skin
                     for (DisplayItem displayItem : displayItems) {
                         if (displayItem instanceof PlayerItem playerItem && !SkinManager.isSkinLoaded(playerItem.getUuid())) {
                             // check if max requests hit
                             if (maxRequests <= 0) {
-                                this.cancel();
                                 if (NotBounties.debug) {
                                     Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(playerItem.getUuid()));
                                 }
                             } else {
-                                maxRequests--;
-                                return;
+                                if (loaded) {
+                                    maxRequests--;
+                                    loaded = false;
+                                }
                             }
                         }
                     }
+                    if (!loaded) // not all skins are loaded
+                        return;
                 }
                 this.cancel();
 
@@ -276,10 +285,12 @@ public class BedrockGUIOptions {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                if (floodgateEnabled) {
-                                    new FloodGateClass().sendForm(player.getUniqueId(), simpleBuilder);
-                                } else if (geyserEnabled) {
-                                    new GeyserMCClass().sendForm(player.getUniqueId(), simpleBuilder);
+                                if (player.isOnline()) {
+                                    if (floodgateEnabled) {
+                                        new FloodGateClass().sendForm(player.getUniqueId(), simpleBuilder);
+                                    } else if (geyserEnabled) {
+                                        new GeyserMCClass().sendForm(player.getUniqueId(), simpleBuilder);
+                                    }
                                 }
                             }
                         }.runTask(NotBounties.getInstance());
@@ -314,10 +325,12 @@ public class BedrockGUIOptions {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                if (floodgateEnabled) {
-                                    new FloodGateClass().sendForm(player.getUniqueId(), modalBuilder);
-                                } else if (geyserEnabled) {
-                                    new GeyserMCClass().sendForm(player.getUniqueId(), modalBuilder);
+                                if (player.isOnline()) {
+                                    if (floodgateEnabled) {
+                                        new FloodGateClass().sendForm(player.getUniqueId(), modalBuilder);
+                                    } else if (geyserEnabled) {
+                                        new GeyserMCClass().sendForm(player.getUniqueId(), modalBuilder);
+                                    }
                                 }
                             }
                         }.runTask(NotBounties.getInstance());
@@ -355,10 +368,12 @@ public class BedrockGUIOptions {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                if (floodgateEnabled) {
-                                    new FloodGateClass().sendForm(player.getUniqueId(), customBuilder);
-                                } else if (geyserEnabled) {
-                                    new GeyserMCClass().sendForm(player.getUniqueId(), customBuilder);
+                                if (player.isOnline()) {
+                                    if (floodgateEnabled) {
+                                        new FloodGateClass().sendForm(player.getUniqueId(), customBuilder);
+                                    } else if (geyserEnabled) {
+                                        new GeyserMCClass().sendForm(player.getUniqueId(), customBuilder);
+                                    }
                                 }
                             }
                         }.runTask(NotBounties.getInstance());
