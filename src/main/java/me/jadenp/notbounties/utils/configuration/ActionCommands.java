@@ -159,7 +159,7 @@ public class ActionCommands {
                                GUIOptions guiOptions = GUI.getGUI(info.guiType());
                                if (guiOptions != null) {
                                    if (guiOptions.getPlayerSlots().contains(slot) && info.displayItems().get(guiOptions.getPlayerSlots().indexOf(slot)) instanceof PlayerItem playerItem) {
-                                        replacement = NotBounties.getPlayerName(player.getUniqueId());
+                                        replacement = NotBounties.getPlayerName(playerItem.getUuid());
                                    }
                                } else {
                                    Bukkit.getLogger().warning("Invalid player for slot " + slot);
