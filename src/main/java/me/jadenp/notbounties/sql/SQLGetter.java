@@ -428,7 +428,7 @@ public class SQLGetter {
         return null;
     }
 
-    public void removeBounty(UUID uuid) {
+    public boolean removeBounty(UUID uuid) {
         try (PreparedStatement ps = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ?")){
             ps.setString(1, uuid.toString());
             ps.executeUpdate();
@@ -439,14 +439,22 @@ public class SQLGetter {
             }
             NotBounties.debugMessage(e.toString(), true);
         }
+        return true;
     }
-    public void removeBounty(Bounty bounty) {
+    public boolean removeBounty(Bounty bounty) {
+        /*
+        try (PreparedStatement ps = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ? AND suuid = ? AND time = ?;")){
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }*/
         for (Setter setter : bounty.getSetters()) {
             removeSetter(bounty.getUUID(), setter);
         }
+        return true;
     }
     public void removeSetter(UUID uuid, Setter setter) {
-        try (PreparedStatement ps = sql.getConnection().prepareStatement("DELETE notbounties WHERE uuid = ? AND suuid = ? AND time = ?;")){
+        try (PreparedStatement ps = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ? AND suuid = ? AND time = ?;")){
             ps.setString(1, uuid.toString());
             ps.setString(2, setter.getUuid().toString());
             ps.setLong(3, setter.getTimeCreated());
