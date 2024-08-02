@@ -129,6 +129,7 @@ public class LanguageOptions {
     public static String challengeClaimDeny;
     public static String trickleBounty;
     public static String bedrockOpenGUI;
+    public static String paused;
 
     public static List<String> emptyTrackerLore;
     public static List<String> giveTrackerLore;
@@ -313,6 +314,7 @@ public class LanguageOptions {
         challengeClaimDeny = configuration.getString("challenge-claim-deny");
         trickleBounty = configuration.getString("trickle-bounty");
         bedrockOpenGUI = configuration.getString("bedrock-open-gui");
+        paused = configuration.getString("paused");
 
         emptyTrackerLore = configuration.getStringList("empty-tracker-lore");
         giveTrackerLore = configuration.getStringList("give-tracker-lore");

@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils.configuration;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.PVPHistory;
 import me.jadenp.notbounties.utils.BountyClaimRequirements;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -41,14 +42,14 @@ public class PVPRestrictions implements Listener {
 
     @EventHandler
     public void onPVP(EntityDamageByEntityEvent event) {
-        if ((event.getEntity() instanceof Player && event.getDamager() instanceof Player))
+        if ((event.getEntity() instanceof Player && event.getDamager() instanceof Player) && !NotBounties.isPaused())
             controlPVP((Player) event.getEntity(), (Player) event.getDamager(), event);
 
     }
 
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
-        if (event.getHitEntity() != null && event.getEntity().getShooter() != null) {
+        if (event.getHitEntity() != null && event.getEntity().getShooter() != null && !NotBounties.isPaused()) {
             if (event.getHitEntity() instanceof Player && event.getEntity().getShooter() instanceof Player) {
                 controlPVP((Player) event.getHitEntity(), (Player) event.getEntity().getShooter(), event);
             }
@@ -155,6 +156,8 @@ public class PVPRestrictions implements Listener {
     // priority is so that drops are modified before other plugins see them
     @EventHandler(priority = EventPriority.LOW)
     public void onQuit(PlayerQuitEvent event) {
+        if (NotBounties.isPaused())
+            return;
         int localCombatLoggingTime = BountyClaimRequirements.worldGuardEnabled ? new WorldGuardClass().getCombatLogOverride(event.getPlayer(), event.getPlayer().getLocation()) : -1;
         if ((combatLoggingTime < 1 && localCombatLoggingTime == -1) || localCombatLoggingTime == 0)
             return;

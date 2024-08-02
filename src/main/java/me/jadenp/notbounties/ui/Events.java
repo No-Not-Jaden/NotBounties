@@ -47,6 +47,8 @@ public class Events implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        if (NotBounties.isPaused())
+            return;
         if (immunePerms.contains(event.getPlayer().getUniqueId().toString())) {
             if (!event.getPlayer().hasPermission("notbounties.immune")) {
                 immunePerms.remove(event.getPlayer().getUniqueId().toString());
@@ -95,11 +97,10 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        if (claimOrder != ClaimOrder.REGULAR)
-            return;
-        if (!(event.getEntity() instanceof Player player))
-            return;
-        if (event.getEntity().getKiller() == null)
+        if (claimOrder != ClaimOrder.REGULAR ||
+                !(event.getEntity() instanceof Player player) ||
+                event.getEntity().getKiller() == null ||
+                NotBounties.isPaused())
             return;
         Player killer = event.getEntity().getKiller();
         claimBounty(player, killer, event.getDrops(), false);
@@ -107,6 +108,8 @@ public class Events implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
+        if (NotBounties.isPaused())
+            return;
         // redeem reward later
         if (event.getAction() == Action.RIGHT_CLICK_AIR && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC && event.getItem() != null) {
             ItemStack item = event.getItem();
@@ -146,6 +149,8 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityInteract(PlayerInteractEntityEvent event) {
+        if (NotBounties.isPaused())
+            return;
         if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId()) && NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1 && (event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME))) {
             event.setCancelled(true);
             int removes = removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
@@ -157,6 +162,8 @@ public class Events implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        if (NotBounties.isPaused())
+            return;
         TimedBounties.login(event.getPlayer());
         Immunity.login(event.getPlayer());
         BountyExpire.login(event.getPlayer());
@@ -261,6 +268,8 @@ public class Events implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
+        if (NotBounties.isPaused())
+            return;
         // remove persistent entities (wanted tags & bounty boards)
         if (serverVersion <= 16)
             if (wanted || !bountyBoards.isEmpty())
@@ -283,9 +292,8 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (claimOrder != ClaimOrder.BEFORE || !(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player))
+        if (claimOrder != ClaimOrder.BEFORE || !(event.getEntity() instanceof Player player) || !(event.getDamager() instanceof Player) || NotBounties.isPaused())
             return;
-        Player player = (Player) event.getEntity();
         if (event.getDamage() >= player.getHealth() && player.getInventory().getItemInMainHand().getType() != Material.TOTEM_OF_UNDYING && player.getInventory().getItemInOffHand().getType() != Material.TOTEM_OF_UNDYING) {
             claimBounty(player, (Player) event.getDamager(), Arrays.asList(player.getInventory().getContents()), true);
         }
@@ -293,7 +301,7 @@ public class Events implements Listener {
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
-        if (claimOrder != ClaimOrder.AFTER)
+        if (claimOrder != ClaimOrder.AFTER || NotBounties.isPaused())
             return;
         Player player = event.getPlayer();
         Player killer = player.getKiller();

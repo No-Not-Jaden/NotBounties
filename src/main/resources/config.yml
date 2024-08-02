@@ -115,6 +115,8 @@ reduce-page-calculations: true
 see-player-list: false
 # Use NotBounties' methods to get skins
 override-skinsrestorer: false
+# back up any locally stored data
+bounty-backups: true
 # The commands players can use to use bounties.
 # The first option is the one the plugin uses when forcing players to execute a command.
 # A restart is required after making changes.

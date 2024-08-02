@@ -245,6 +245,8 @@ public class DataManager {
                 if (configuration.isSet("next-challenge-change")) {
                     ChallengeManager.setNextChallengeChange(configuration.getLong("next-challenge-change"));
                 }
+                if (configuration.isBoolean("paused"))
+                    NotBounties.setPaused(configuration.getBoolean("paused"));
             }
         } catch (IOException e) {
             Bukkit.getLogger().severe("[NotBounties] Error loading saved data!");
@@ -614,11 +616,8 @@ public class DataManager {
             }
         }
         if (removed != null) {
-            if (sql.isConnected()) {
-                data.removeBounty(uuid);
-            } else {
+            if (!sql.isConnected() || !data.removeBounty(uuid))
                 queuedChanges.add(new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, removed));
-            }
         }
     }
 
@@ -693,7 +692,8 @@ public class DataManager {
                 }
             }
             // apply changes to the database
-            data.pushChanges(completedChanges, new HashMap<>(), lastSQLLoad);
+            if (!data.pushChanges(completedChanges, new HashMap<>(), lastSQLLoad))
+                queuedChanges.addAll(completedChanges);
             replaceBounty(uuid, sqlBounty);
             return sqlBounty;
         } else {
@@ -857,11 +857,8 @@ public class DataManager {
             deleteBounty(bounty.getUUID());
         } else {
             Bounty removedBounty = new Bounty(bounty.getUUID(), setters, bounty.getName());
-            if (sql.isConnected()) {
-                data.removeBounty(removedBounty);
-            } else {
+            if (!sql.isConnected() || !data.removeBounty(removedBounty))
                 queuedChanges.add(new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, removedBounty));
-            }
         }
     }
 

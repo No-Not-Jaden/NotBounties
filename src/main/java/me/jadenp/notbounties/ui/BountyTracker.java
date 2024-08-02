@@ -86,7 +86,7 @@ public class BountyTracker implements Listener {
         TABPosition = configuration.getBoolean("action-bar.position");
         TABWorld = configuration.getBoolean("action-bar.world");
 
-        registerRecipies();
+        registerRecipes();
     }
 
     public static boolean isEnabled() {
@@ -97,7 +97,7 @@ public class BountyTracker implements Listener {
         return bountyTrackerRecipe;
     }
 
-    private static void registerRecipies(){
+    private static void registerRecipes(){
         bountyTrackerRecipe = new NamespacedKey(NotBounties.getInstance(),"bounty_tracker");
         Bukkit.removeRecipe(bountyTrackerRecipe);
         ShapedRecipe bountyTrackerCraftingPattern = new ShapedRecipe(
@@ -428,7 +428,7 @@ public class BountyTracker implements Listener {
     // update tracking manually
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        if (!tracker)
+        if (!tracker || NotBounties.isPaused())
             return;
         if (event.getItem() == null || !(event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK))
             return;
@@ -443,7 +443,7 @@ public class BountyTracker implements Listener {
     // remove tracker if holding
     @EventHandler
     public void onHold(PlayerItemHeldEvent event) {
-        if (trackerRemove <= 0)
+        if (trackerRemove <= 0 || NotBounties.isPaused())
             return;
         ItemStack item = event.getPlayer().getInventory().getItem(event.getNewSlot());
         if (item == null)
@@ -459,7 +459,7 @@ public class BountyTracker implements Listener {
     // remove trackers in container
     @EventHandler
     public void onOpenInv(InventoryOpenEvent event) {
-        if (trackerRemove != 3 || event.getInventory().getType() == InventoryType.CRAFTING)
+        if (trackerRemove != 3 || event.getInventory().getType() == InventoryType.CRAFTING || NotBounties.isPaused())
             return;
         removeTracker(event.getInventory());
     }
@@ -467,7 +467,7 @@ public class BountyTracker implements Listener {
     // poster tracking
     @EventHandler
     public void onEntityInteract(PlayerInteractEntityEvent event) {
-        if (!posterTracking || !(event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)))
+        if (!posterTracking || !(event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)) || NotBounties.isPaused())
             return;
         ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
         int id = getTrackerID(item);
@@ -498,7 +498,7 @@ public class BountyTracker implements Listener {
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
-        if (!tracker || !craftTracker)
+        if (!tracker || !craftTracker || NotBounties.isPaused())
             return;
         ItemStack[] matrix = event.getInventory().getMatrix();
         boolean hasEmptyTracker = false;
@@ -542,9 +542,8 @@ public class BountyTracker implements Listener {
     // complete tracker crafting
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!tracker || !craftTracker || !(event.getInventory() instanceof CraftingInventory))
+        if (!tracker || !craftTracker || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused())
             return;
-        CraftingInventory inventory = (CraftingInventory) event.getInventory();
         int id = getTrackerID(inventory.getResult());
         if (id < 0)
             return;
@@ -575,7 +574,8 @@ public class BountyTracker implements Listener {
             case DROP_ALL_CURSOR:
             case DROP_ONE_CURSOR:
             case DROP_ONE_SLOT:
-                event.getWhoClicked().getWorld().dropItem(event.getWhoClicked().getEyeLocation(), inventory.getResult());
+                if (inventory.getResult() != null)
+                    event.getWhoClicked().getWorld().dropItem(event.getWhoClicked().getEyeLocation(), inventory.getResult());
                 break;
             case MOVE_TO_OTHER_INVENTORY:
                 int minAmount = 65;
@@ -622,7 +622,7 @@ public class BountyTracker implements Listener {
     // wash trackers
     @EventHandler
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        if (!tracker || !washTrackers)
+        if (!tracker || !washTrackers || NotBounties.isPaused())
             return;
         int id = getTrackerID(event.getItemDrop().getItemStack());
         if (id == -404 || id == -1)

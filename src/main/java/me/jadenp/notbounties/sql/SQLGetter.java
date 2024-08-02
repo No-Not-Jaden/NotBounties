@@ -68,7 +68,7 @@ public class SQLGetter {
              PreparedStatement checkItemsType = sql.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = ? and table_name = 'notbounties' and column_name = 'items';");
              PreparedStatement alterItems = sql.getConnection().prepareStatement("ALTER TABLE notbounties MODIFY COLUMN items BLOB;");
              PreparedStatement checkDisplay = sql.getConnection().prepareStatement("SHOW COLUMNS FROM `notbounties` LIKE 'display';");
-             PreparedStatement addDisplay = sql.getConnection().prepareStatement("ALTER TABLE notbounties ADD display FLOAT(53) DEFAULT -1 NOT NULL;");){
+             PreparedStatement addDisplay = sql.getConnection().prepareStatement("ALTER TABLE notbounties ADD display FLOAT(53) DEFAULT -1 NOT NULL;")){
             
             ps.executeUpdate();
             createEditBountyProcedure.execute();
@@ -129,7 +129,7 @@ public class SQLGetter {
                 "    PRIMARY KEY (uuid)" +
                 ");");
             PreparedStatement ps1 = sql.getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = ? and table_name = 'bounty_data' and column_name = 'claimed';");
-            PreparedStatement ps2 = sql.getConnection().prepareStatement("ALTER TABLE bounty_data MODIFY COLUMN claimed BIGINT, MODIFY sets BIGINT, MODIFY received BIGINT, MODIFY alltime FLOAT(53), MODIFY immunity FLOAT(53), MODIFY allclaimed FLOAT(53);");) {
+            PreparedStatement ps2 = sql.getConnection().prepareStatement("ALTER TABLE bounty_data MODIFY COLUMN claimed BIGINT, MODIFY sets BIGINT, MODIFY received BIGINT, MODIFY alltime FLOAT(53), MODIFY immunity FLOAT(53), MODIFY allclaimed FLOAT(53);")) {
             
             ps.executeUpdate();
             
@@ -162,7 +162,7 @@ public class SQLGetter {
     private long lastPlayerListRequest = 0;
     private final List<OfflinePlayer> onlinePlayers = new ArrayList<>();
     public List<OfflinePlayer> getOnlinePlayers() {
-        if (lastPlayerListRequest + 5000 < System.currentTimeMillis()) {
+        if (lastPlayerListRequest + 10000 < System.currentTimeMillis()) {
             lastPlayerListRequest = System.currentTimeMillis();
             new BukkitRunnable() {
                 @Override
@@ -198,10 +198,9 @@ public class SQLGetter {
                 }
             }
         } catch (SQLException e){
-            if (reconnect()){
+            if (reconnect(e)){
                 return getNetworkPlayers();
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
         onlinePlayers.clear();
         onlinePlayers.addAll(networkPlayers);
@@ -213,10 +212,9 @@ public class SQLGetter {
             ps.executeUpdate();
 
         } catch (SQLException e){
-            if (reconnect()){
+            if (reconnect(e)){
                 refreshOnlinePlayers();
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
         for (Player player : Bukkit.getOnlinePlayers())
             if (!isVanished(player))
@@ -228,10 +226,9 @@ public class SQLGetter {
             ps.setInt(2, sql.getServerID());
             ps.executeUpdate();
         } catch (SQLException e){
-            if (reconnect()){
+            if (reconnect(e)){
                 logout(player);
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
     }
     public void login(Player player) {
@@ -243,10 +240,9 @@ public class SQLGetter {
             ps.executeUpdate();
 
         } catch (SQLException e){
-            if (reconnect()){
+            if (reconnect(e)){
                 login(player);
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
     }
     public void addData(String uuid, long claimed, long set, long received, double allTime, double immunity, double allClaimed){
@@ -267,8 +263,7 @@ public class SQLGetter {
             ps.executeUpdate();
 
         } catch (SQLException e){
-            reconnect();
-            NotBounties.debugMessage(e.toString(), true);
+            reconnect(e);
         }
     }
 
@@ -294,10 +289,9 @@ public class SQLGetter {
             }
             return stats;
         } catch (SQLException e) {
-            if (reconnect()){
+            if (reconnect(e)){
                 return getAllStats();
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
         return new HashMap<>();
     }
@@ -317,8 +311,7 @@ public class SQLGetter {
             try {
                 uuids.add(UUID.fromString(uuidString));
             } catch (IllegalArgumentException e) {
-                if (NotBounties.debug)
-                    Bukkit.getLogger().warning(e.toString());
+                NotBounties.debugMessage(e.toString(), true);
             }
         }
         return new Whitelist(uuids, blacklist);
@@ -362,17 +355,16 @@ public class SQLGetter {
                     ps.executeUpdate();
 
                 } catch (SQLException e){
-                    if (reconnect()){
+                    if (reconnect(e)){
                         addBounty(bounty, setter);
                     }
-                    if (NotBounties.debug)
-                        Bukkit.getLogger().warning(e.toString());
                 }
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
 
     }
     public void addBounty(Bounty bounty){
+        // most of the time there is only 1 setter being added
         for (Setter setter : bounty.getSetters())
             addBounty(bounty, setter);
     }
@@ -420,10 +412,9 @@ public class SQLGetter {
                 return null;
             return new Bounty(uuid, setters, name);
         } catch (SQLException e){
-            if (reconnect()){
+            if (reconnect(e)){
                 return getBounty(uuid);
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
         return null;
     }
@@ -432,40 +423,44 @@ public class SQLGetter {
         try (PreparedStatement ps = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ?")){
             ps.setString(1, uuid.toString());
             ps.executeUpdate();
-            
+            return true;
         } catch (SQLException e){
-            if (reconnect()){
-                removeBounty(uuid);
+            if (reconnect(e)){
+                return removeBounty(uuid);
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
-        return true;
+        return false;
     }
     public boolean removeBounty(Bounty bounty) {
-        /*
         try (PreparedStatement ps = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ? AND suuid = ? AND time = ?;")){
-
+            ps.setString(1, bounty.getUUID().toString());
+            for (Setter setter : bounty.getSetters()) {
+                ps.setString(2, setter.getUuid().toString());
+                ps.setLong(3, setter.getTimeCreated());
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            return true;
         } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }*/
-        for (Setter setter : bounty.getSetters()) {
-            removeSetter(bounty.getUUID(), setter);
+            if (reconnect(e)) {
+                return removeBounty(bounty);
+            }
         }
-        return true;
+        return false;
     }
-    public void removeSetter(UUID uuid, Setter setter) {
+    public boolean removeSetter(UUID uuid, Setter setter) {
         try (PreparedStatement ps = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ? AND suuid = ? AND time = ?;")){
             ps.setString(1, uuid.toString());
             ps.setString(2, setter.getUuid().toString());
             ps.setLong(3, setter.getTimeCreated());
             ps.executeUpdate();
-
+            return true;
         } catch (SQLException e){
-            if (reconnect()){
-                removeSetter(uuid, setter);
+            if (reconnect(e)){
+                return removeSetter(uuid, setter);
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
+        return false;
     }
     public void removeOldPlaytimeBounties() {
         new BukkitRunnable() {
@@ -494,7 +489,7 @@ public class SQLGetter {
         double autoExpire = ConfigOptions.autoBountyExpireTime == -1 ? BountyExpire.getTime() : ConfigOptions.autoBountyExpireTime;
         long minTimeAuto = (long) (System.currentTimeMillis() - 1000L * 60 * 60 * 24 * autoExpire);
         try (PreparedStatement ps = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE time <= ? AND suuid != ?;");
-             PreparedStatement ps2 = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE time <= ? AND suuid = ?;");) {
+             PreparedStatement ps2 = sql.getConnection().prepareStatement("DELETE FROM notbounties WHERE time <= ? AND suuid = ?;")) {
 
             ps.setLong(1, minTime);
             ps2.setLong(1, minTimeAuto);
@@ -505,10 +500,9 @@ public class SQLGetter {
             ps2.executeUpdate();
 
         } catch (SQLException e){
-            if (reconnect()){
+            if (reconnect(e)){
                removeOldBounties();
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
     }
 
@@ -519,10 +513,9 @@ public class SQLGetter {
             ps.executeUpdate();
             
         } catch (SQLException e) {
-            if (reconnect()){
+            if (reconnect(e)){
                 notifyPlayer(uuid, lastUpdate);
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
     }
 
@@ -630,10 +623,9 @@ public class SQLGetter {
             
             return true;
         } catch (SQLException e) {
-            if (reconnect()){
+            if (reconnect(e)){
                 return pushChanges(bountyChanges, statChanges, lastUpdate);
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
         return false;
     }
@@ -684,10 +676,9 @@ public class SQLGetter {
             }
             return sortedList;
         } catch (SQLException e){
-            if (reconnect()){
+            if (reconnect(e)){
                 return getTopBounties(sortType);
             }
-            NotBounties.debugMessage(e.toString(), true);
         }
         return new ArrayList<>();
 
@@ -698,16 +689,20 @@ public class SQLGetter {
             ps.setDouble(1, 0L);
             return ps.executeUpdate();
         } catch (SQLException e){
-            if (reconnect()){
+            if (reconnect(e)){
                 return removeExtraData();
             }
-
-            NotBounties.debugMessage(e.toString(), true);
         }
         return 0;
     }
 
-    private boolean reconnect() {
+    private boolean reconnect(SQLException e) {
+        if (e instanceof SQLSyntaxErrorException) {
+            Bukkit.getLogger().warning("[NotBounties] SQL Syntax Error! Please report this to Not_Jaden.");
+            Bukkit.getLogger().warning(e.toString());
+            return false;
+        }
+        NotBounties.debugMessage(e.toString(), true);
         if (System.currentTimeMillis() > nextReconnectAttempt) {
             reconnectAttempts++;
             sql.disconnect();

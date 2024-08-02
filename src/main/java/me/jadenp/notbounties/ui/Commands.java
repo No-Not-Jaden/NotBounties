@@ -45,9 +45,9 @@ public class Commands implements CommandExecutor, TabCompleter {
 
     private static final Map<UUID, Long> giveOwnCooldown = new HashMap<>();
     private static final long cooldownTime = 3000;
+    private static final String[] allowedPausedAliases = new String[]{"check", "help", "cleanEntities", "unpause", "pause", "debug", "top", "reload"};
 
-    public Commands() {
-    }
+    public Commands() {}
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, Command command, @NotNull String label, String[] args) {
@@ -64,6 +64,22 @@ public class Commands implements CommandExecutor, TabCompleter {
     }
 
     public boolean executeCommand(@NotNull CommandSender sender, String[] args) {
+        if (NotBounties.isPaused()) {
+            if (args.length > 0) {
+                boolean allow = false;
+                for (String str : allowedPausedAliases) {
+                    if (str.equalsIgnoreCase(args[0])) {
+                        allow = true;
+                        break;
+                    }
+                }
+                if (!allow) {
+                    if (sender.hasPermission(NotBounties.getAdminPermission()))
+                        sender.sendMessage(parse(prefix + paused, null));
+                    return true;
+                }
+            }
+        }
         boolean silent = false;
         for (int i = 0; i < args.length; i++) {
             // check if the argument has the -s
@@ -214,12 +230,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 RemovePersistentEntitiesEvent.cleanAsync(parser.getNearbyEntities(radius, radius, radius), sender);
                 return true;
-            } else if (args[0].equalsIgnoreCase("debug")) {
-                if (!sender.hasPermission(NotBounties.getAdminPermission())) {
-                    if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+            } else if (args[0].equalsIgnoreCase("pause") && sender.hasPermission(NotBounties.getAdminPermission())) {
+                if (NotBounties.isPaused()) {
+                    sender.sendMessage(LanguageOptions.parse(prefix + ChatColor.RED + "NotBounties is already paused.", parser));
+                    return false;
+                } else {
+                    NotBounties.setPaused(true);
+                    sender.sendMessage(parse(prefix + ChatColor.RED + "NotBounties is now paused. Players will only be able to view previous bounties. Run " + ChatColor.GREEN + "/" + pluginBountyCommands.get(0) + " unpause " + ChatColor.RED + " to use all features again.", parser));
+                    return true;
+                }
+            } else if (args[0].equalsIgnoreCase("unpause") && sender.hasPermission(NotBounties.getAdminPermission())) {
+                if (NotBounties.isPaused()) {
+                    NotBounties.setPaused(false);
+                    sender.sendMessage(parse(prefix + ChatColor.GREEN + "NotBounties is no longer paused.", parser));
+                    return true;
+                } else {
+                    sender.sendMessage(parse(prefix + ChatColor.GREEN + "NotBounties is already unpaused.", parser));
                     return false;
                 }
+            } else if (args[0].equalsIgnoreCase("debug") && sender.hasPermission(NotBounties.getAdminPermission())) {
                 if (args.length == 1) {
                     try {
                         NotBounties.getInstance().sendDebug(sender);

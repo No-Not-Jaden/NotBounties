@@ -18,7 +18,6 @@ import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.externalAPIs.*;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
 import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
-import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -26,20 +25,20 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -80,7 +79,7 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * requires java 17
  * view bounty with multiple pages x
  * test player specific challenges
- * bedrock open gui msg
+ * bedrock open gui msg x
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -114,6 +113,8 @@ public final class NotBounties extends JavaPlugin {
     public static int serverVersion = 20;
     public static int serverSubVersion = 0;
     public static boolean debug = false;
+    private static boolean paused = false;
+    private static Events events;
 
     @Override
     public void onLoad() {
@@ -143,7 +144,8 @@ public final class NotBounties extends JavaPlugin {
 
         // load commands and events
         Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(new Commands());
-        Bukkit.getServer().getPluginManager().registerEvents(new Events(), this);
+        events = new Events();
+        Bukkit.getServer().getPluginManager().registerEvents(events, this);
         Bukkit.getServer().getPluginManager().registerEvents(new GUI(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new CurrencySetup(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new BountyMap(), this);
@@ -275,6 +277,8 @@ public final class NotBounties extends JavaPlugin {
 
             @Override
             public void run() {
+                if (paused)
+                    return;
                 // update bounty tracker
                 BountyTracker.update();
 
@@ -326,6 +330,8 @@ public final class NotBounties extends JavaPlugin {
         new BukkitRunnable() {
             @Override
             public void run() {
+                if (paused)
+                    return;
                 MurderBounties.cleanPlayerKills();
                 // if they have expire-time enabled
                 BountyExpire.removeExpiredBounties();
@@ -351,7 +357,7 @@ public final class NotBounties extends JavaPlugin {
 
             @Override
             public void run() {
-                if (!removeBannedPlayers)
+                if (!removeBannedPlayers || paused)
                     return;
                 if (bountyListCopy.isEmpty()) {
                     bountyListCopy = BountyManager.getAllBounties(-1);
@@ -525,12 +531,84 @@ public final class NotBounties extends JavaPlugin {
             i++;
         }
         configuration.set("next-challenge-change", ChallengeManager.getNextChallengeChange());
+        if (NotBounties.isPaused())
+            configuration.set("paused", true);
         File bounties = new File(NotBounties.getInstance().getDataFolder() + File.separator + "bounties.yml");
         try {
             configuration.save(bounties);
             ChallengeManager.saveChallengeData();
         } catch (IOException e) {
             Bukkit.getLogger().warning(e.toString());
+        }
+        saveBackup(configuration);
+    }
+
+    private void saveBackup(YamlConfiguration configuration) {
+        if (bountyBackups) {
+            Date date = new Date();
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yy-MM-dd");
+            File backupDirectory = new File(this.getDataFolder() + File.separator + "backups");
+            File today = new File(backupDirectory + File.separator + simpleDateFormat.format(date) + "_bounties.yml");
+            if (!backupDirectory.exists() && backupDirectory.mkdir()) {
+                Bukkit.getLogger().info("[NotBounties] Created backups directory.");
+            }
+            // try to create a daily backup
+            try {
+                if (today.createNewFile()) {
+                    configuration.save(today);
+                    Bukkit.getLogger().info("[NotBounties] Created daily backup.");
+                }
+            } catch (IOException e) {
+                Bukkit.getLogger().warning(e.toString());
+            }
+            // delete old backups
+            File[] files = backupDirectory.listFiles();
+            if (files != null) {
+                Map<File, Long> fileDates = new HashMap<>();
+                for (File value : files) {
+                    try {
+                        if (value.getName().contains("_"))
+                            fileDates.put(value, simpleDateFormat.parse(value.getName().substring(0, value.getName().indexOf("_"))).getTime());
+                    } catch (ParseException ignored) {
+                        // file not in correct format
+                    }
+                }
+                Map<File, Long> sortedMap =
+                        fileDates.entrySet().stream()
+                                .sorted(Map.Entry.comparingByValue())
+                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                                        (e1, e2) -> e1, LinkedHashMap::new));
+                // find out which files need to be deleted
+                final long maxWeeklyBackup = 1000 * 60 * 60 * 24 * 7 * 3;
+                final long maxDailyBackup = 1000 * 60 * 60 * 24 * 7;
+                int weeklyBackups = 0;
+                long lastWeeklyBackup = 0;
+                List<File> pendingDeletion = new ArrayList<>();
+                for (Map.Entry<File, Long> entry : sortedMap.entrySet()) {
+                    long timeSinceCreation = System.currentTimeMillis() - entry.getValue();
+                    if (timeSinceCreation > maxWeeklyBackup) {
+                        // too long ago to be useful
+                        pendingDeletion.add(entry.getKey());
+                        continue;
+                    }
+                    if (timeSinceCreation > maxDailyBackup) {
+                        // been over 7 days since this backup was created
+                        if (weeklyBackups == 0 || (weeklyBackups < 3 && timeSinceCreation - lastWeeklyBackup >= maxDailyBackup)) {
+                            // only keep 3 weekly backups
+                            weeklyBackups++;
+                            lastWeeklyBackup = timeSinceCreation;
+                        } else {
+                            // delete
+                            pendingDeletion.add(entry.getKey());
+                        }
+                    }
+                }
+                for (File file : pendingDeletion) {
+                    if (!file.delete()) {
+                        Bukkit.getLogger().info("[NotBounties] Could not delete old backup.");
+                    }
+                }
+            }
         }
     }
 
@@ -539,28 +617,28 @@ public final class NotBounties extends JavaPlugin {
 
         ConfigOptions.reloadOptions();
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                // check players to display particles
-                displayParticle.clear();
-                List<Bounty> topBounties = getAllBounties(2);
+        if (!NotBounties.isPaused()) {
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    // check players to display particles
+                    displayParticle.clear();
+                    List<Bounty> topBounties = getAllBounties(2);
 
-                for (Bounty bounty : topBounties) {
-                    if (bounty.getTotalDisplayBounty() >= BigBounty.getThreshold()) {
-                        OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
-                        if (player.isOnline()) {
-                            displayParticle.add(Objects.requireNonNull(player.getPlayer()).getUniqueId());
+                    for (Bounty bounty : topBounties) {
+                        if (bounty.getTotalDisplayBounty() >= BigBounty.getThreshold()) {
+                            OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
+                            if (player.isOnline()) {
+                                displayParticle.add(Objects.requireNonNull(player.getPlayer()).getUniqueId());
+                            }
+                        } else {
+                            break;
                         }
-                    } else {
-                        break;
                     }
                 }
-            }
-        }.runTaskLater(NotBounties.getInstance(), 40);
-
-
-        DataManager.startAutoConnect();
+            }.runTaskLater(NotBounties.getInstance(), 40);
+            DataManager.startAutoConnect();
+        }
 
 
     }
@@ -777,6 +855,32 @@ public final class NotBounties extends JavaPlugin {
             }.runTask(notBounties);
         } else {
             consoleMessage(message, warning);
+        }
+    }
+
+    public static boolean isPaused() {
+        return paused;
+    }
+
+    public static void setPaused(boolean paused) {
+        if (paused) {
+            for (BountyBoard board : bountyBoards)
+                board.remove();
+            // close all GUIs
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                GUI.safeCloseGUI(player, true);
+            }
+            // remove wanted tags
+            for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
+                entry.getValue().removeStand();
+            }
+            for (Player player : Bukkit.getOnlinePlayers())
+                events.onQuit(new PlayerQuitEvent(player, ""));
+            NotBounties.paused = true;
+        } else {
+            NotBounties.paused = false;
+            for (Player player : Bukkit.getOnlinePlayers())
+                events.onJoin(new PlayerJoinEvent(player, ""));
         }
     }
 

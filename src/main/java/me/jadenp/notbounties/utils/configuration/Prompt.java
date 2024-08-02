@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils.configuration;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.CommandPrompt;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.EventHandler;
@@ -27,7 +28,7 @@ public class Prompt implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void asyncChatEvent(AsyncPlayerChatEvent event) {
-        if (commandPrompts.containsKey(event.getPlayer().getUniqueId())) {
+        if (commandPrompts.containsKey(event.getPlayer().getUniqueId()) && !NotBounties.isPaused()) {
             CommandPrompt commandPrompt = commandPrompts.get(event.getPlayer().getUniqueId());
             if (commandPrompt.isExpired() || commandPrompt.isSilentCancel()) {
                 removePrompt(event.getPlayer().getUniqueId());

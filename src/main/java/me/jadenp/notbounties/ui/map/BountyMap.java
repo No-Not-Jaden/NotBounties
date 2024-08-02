@@ -152,7 +152,7 @@ public class BountyMap implements Listener {
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
-        if (!ConfigOptions.craftPoster)
+        if (!ConfigOptions.craftPoster || NotBounties.isPaused())
             return;
         ItemStack[] matrix = event.getInventory().getMatrix();
         boolean hasMap = false;
@@ -193,9 +193,8 @@ public class BountyMap implements Listener {
     // complete tracker crafting
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!ConfigOptions.craftPoster || !(event.getInventory() instanceof CraftingInventory))
+        if (!ConfigOptions.craftPoster || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused())
             return;
-        CraftingInventory inventory = (CraftingInventory) event.getInventory();
         if (inventory.getResult() == null || inventory.getResult().getType() != Material.FILLED_MAP)
             return;
         if (event.getRawSlot() == 0) {
@@ -272,7 +271,7 @@ public class BountyMap implements Listener {
     // wash trackers
     @EventHandler
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        if (!ConfigOptions.washPoster || !isPoster(event.getItemDrop().getItemStack()))
+        if (!ConfigOptions.washPoster || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused())
             return;
 
         new BukkitRunnable() {

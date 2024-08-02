@@ -67,10 +67,8 @@ public class ConfigOptions {
     public static boolean bountyWhitelistEnabled;
     public static int updateInterval;
     public static boolean confirmation;
-
     public static boolean showWhitelistedBounties;
     public static boolean variableWhitelist;
-
     public static String consoleName;
     public static boolean enableBlacklist;
     public static boolean liteBansEnabled;
@@ -93,12 +91,12 @@ public class ConfigOptions {
     public static boolean skinsRestorerEnabled;
     public static SkinsRestorerClass skinsRestorerClass;
     public static int boardStaggeredUpdate;
-
     public static String boardName;
     public static int updateName;
     public static boolean RRLVoucherPerSetter;
     public static String RRLSetterLoreAddition;
     private static boolean firstStart = true;
+    public static boolean bountyBackups;
 
     public enum ClaimOrder {
         BEFORE, REGULAR, AFTER
@@ -386,6 +384,7 @@ public class ConfigOptions {
         if (firstStart)
             registerAliases(pluginBountyCommands);
         rewardHeadAnyKill = bounties.getConfig().getBoolean("reward-heads.any-kill");
+        bountyBackups = bounties.getConfig().getBoolean("bounty-backups");
 
 
 

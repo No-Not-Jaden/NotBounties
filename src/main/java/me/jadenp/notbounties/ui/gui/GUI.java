@@ -46,6 +46,7 @@ public class GUI implements Listener {
 
     public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
+    private static final String[] allowedPausedGUIs = new String[]{"bounty-gui", "leaderboard", "view-bounty"};
 
 
     public static CustomItem getGeneralCurrencyItem() {
@@ -305,6 +306,21 @@ public class GUI implements Listener {
     }
 
     public static void openGUI(Player player, String name, long page, Object... data) {
+        if (NotBounties.isPaused()) {
+            boolean allowed = false;
+            for (String str : allowedPausedGUIs) {
+                if (str.equalsIgnoreCase(name)) {
+                    allowed = true;
+                    break;
+                }
+            }
+            if (!allowed) {
+                if (player.hasPermission(NotBounties.getAdminPermission()))
+                    player.sendMessage(parse(prefix + paused, player));
+                return;
+            }
+        }
+
         if (page < 1)
             page = 1;
 
