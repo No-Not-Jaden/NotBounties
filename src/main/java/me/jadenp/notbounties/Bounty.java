@@ -1,5 +1,8 @@
 package me.jadenp.notbounties;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import me.jadenp.notbounties.utils.*;
 import me.jadenp.notbounties.utils.configuration.BountyExpire;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
@@ -17,7 +20,13 @@ public class Bounty implements Comparable<Bounty>{
     private final UUID uuid;
     private String name;
     private List<Setter> setters = new ArrayList<>();
-
+    private static final Gson gson;
+    static {
+        GsonBuilder builder = new GsonBuilder();
+        builder.registerTypeAdapter(Bounty.class, new BountyTypeAdapter());
+        builder.registerTypeAdapter(Setter.class, new SetterTypeAdapter());
+        gson = builder.create();
+    }
 
     public Bounty(Player setter, OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist){
         // save player
@@ -56,6 +65,14 @@ public class Bounty implements Comparable<Bounty>{
         this.uuid = uuid;
         this.setters = setters;
         this.name = name;
+    }
+
+    public Bounty(JsonObject jsonObject) {
+        this(gson.fromJson(jsonObject, Bounty.class));
+    }
+
+    public JsonObject toJson(){
+        return (JsonObject) gson.toJsonTree(this);
     }
 
     /**

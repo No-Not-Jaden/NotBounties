@@ -1,5 +1,8 @@
 package me.jadenp.notbounties;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -22,6 +25,13 @@ public class Setter implements Comparable<Setter>{
     private boolean notified;
     private final Whitelist whitelist;
     private final long receiverPlaytime;
+    private static final Gson gson;
+    static {
+        GsonBuilder builder = new GsonBuilder();
+        builder.registerTypeAdapter(Bounty.class, new BountyTypeAdapter());
+        builder.registerTypeAdapter(Setter.class, new SetterTypeAdapter());
+        gson = builder.create();
+    }
 
     public Setter(String name, UUID uuid, double amount, List<ItemStack> items, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime){
 
@@ -52,6 +62,10 @@ public class Setter implements Comparable<Setter>{
             this.displayBounty = displayBounty;
         }
 
+    }
+
+    public JsonObject toJson(){
+        return (JsonObject) gson.toJsonTree(this);
     }
 
     public long getReceiverPlaytime(){

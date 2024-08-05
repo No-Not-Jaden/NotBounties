@@ -8,6 +8,7 @@ import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -135,15 +136,20 @@ public class BountyExpire {
                     if (isExpired(bounty.getUUID(), setter)) {
                         if (!setter.getUuid().equals(new UUID(0, 0))) {
                             // check if setter is online
-                            Player player = Bukkit.getPlayer(setter.getUuid());
-                            if (player != null) {
-                                player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getDisplayAmount(), player));
-                            }
-                            if (rewardReceiver) {
-                                refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems());
-                            } else {
-                                refundSetter(setter);
-                            }
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    Player player = Bukkit.getPlayer(setter.getUuid());
+                                    if (player != null) {
+                                        player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getDisplayAmount(), player));
+                                    }
+                                    if (rewardReceiver) {
+                                        refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems());
+                                    } else {
+                                        refundSetter(setter);
+                                    }
+                                }
+                            }.runTask(NotBounties.getInstance());
                         }
                         if (settersToRemove.containsKey(bounty.getUUID())) {
                             settersToRemove.get(bounty.getUUID()).add(setter);

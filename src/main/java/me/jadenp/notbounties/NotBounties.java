@@ -347,7 +347,7 @@ public final class NotBounties extends JavaPlugin {
 
 
             }
-        }.runTaskTimer(this, 6000, 6000); // 5 minutes
+        }.runTaskTimerAsynchronously(this, 6000, 6000); // 5 minutes
         // Check for banned players
         //         * Runs every hour and will check a few players at a time
         //         * Every player will be guaranteed to be checked after 12 hours
