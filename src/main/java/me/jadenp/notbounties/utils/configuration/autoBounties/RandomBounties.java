@@ -44,9 +44,9 @@ public class RandomBounties {
             randomBountyMaxPrice = randomBountyMinPrice;
 
         // stop next random bounty if it is changed
-        if (!isRandomBountiesEnabled() && nextRandomBounty != 0)
+        if (!isEnabled() && nextRandomBounty != 0)
             nextRandomBounty = 0;
-        if (isRandomBountiesEnabled() && nextRandomBounty == 0)
+        if (isEnabled() && nextRandomBounty == 0)
             setNextRandomBounty();
     }
 
@@ -102,7 +102,7 @@ public class RandomBounties {
         }
     }
 
-    public static boolean isRandomBountiesEnabled() {
+    public static boolean isEnabled() {
         return randomBountyMinTime != 0;
     }
 

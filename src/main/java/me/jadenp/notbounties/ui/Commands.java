@@ -1910,6 +1910,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("debug");
                     tab.add("board");
                     tab.add("cleanEntities");
+                    if (NotBounties.isPaused()) {
+                        tab.add("unpause");
+                    } else {
+                        tab.add("pause");
+                    }
                 } else if (sender.hasPermission("notbounties.removeset")) {
                     tab.add("remove");
                 }

@@ -395,7 +395,7 @@ world-filter:
     - SafeWorld
 bounty-whitelist:
   # allow players to whitelist other players to claim bounties they set
-  enabled: true
+  enabled: false
   # cost to add 1 player to the bounty whitelist - up to 10 players can be added
   cost: 10
   # show everyone bounties that are not whitelisted to them

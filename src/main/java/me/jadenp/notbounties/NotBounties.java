@@ -512,7 +512,7 @@ public final class NotBounties extends JavaPlugin {
             configuration.set("tracked-bounties." + i + ".uuid", mapElement.getValue().toString());
             i++;
         }
-        if (RandomBounties.isRandomBountiesEnabled())
+        if (RandomBounties.isEnabled())
             configuration.set("next-random-bounty", RandomBounties.getNextRandomBounty());
         i = 0;
         for (BountyBoard board : bountyBoards) {
@@ -579,8 +579,8 @@ public final class NotBounties extends JavaPlugin {
                                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                                         (e1, e2) -> e1, LinkedHashMap::new));
                 // find out which files need to be deleted
-                final long maxWeeklyBackup = 1000 * 60 * 60 * 24 * 7 * 3;
-                final long maxDailyBackup = 1000 * 60 * 60 * 24 * 7;
+                final long maxWeeklyBackup = 1000L * 60 * 60 * 24 * 7 * 3;
+                final long maxDailyBackup = 1000L * 60 * 60 * 24 * 7;
                 int weeklyBackups = 0;
                 long lastWeeklyBackup = 0;
                 List<File> pendingDeletion = new ArrayList<>();

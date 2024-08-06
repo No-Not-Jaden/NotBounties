@@ -21,6 +21,7 @@ public class MurderBounties {
     private static double murderBountyIncrease;
     private static boolean murderExcludeClaiming;
     private static Map<UUID, Map<UUID, Long>> playerKills = new HashMap<>();
+
     public static void loadConfiguration(ConfigurationSection murderBounties) {
         murderCooldown = murderBounties.getInt("player-cooldown");
         murderBountyIncrease = murderBounties.getDouble("bounty-increase");
@@ -41,27 +42,29 @@ public class MurderBounties {
         playerKills = updatedMap;
     }
 
-    public static void killPlayer(Player player, Player killer){
+    public static void killPlayer(Player player, Player killer) {
         // check if we should increase the killer's bounty
-        if (murderBountyIncrease > 0) {
-            if (!killer.hasMetadata("NPC")) { // don't raise bounty on a npc
-                // check immunity
-                if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(killer, murderBountyIncrease) != Immunity.ImmunityType.DISABLE || hasImmunity(killer))
-                    return;
-                if (!playerKills.containsKey(killer.getUniqueId()) ||
-                        !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
-                        playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) {
-                    if (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01) {
-                        // increase
-                        addBounty(killer, murderBountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
-                        killer.sendMessage(parse(prefix + murder, player.getName(), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), killer));
-                        Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
-                        kills.put(player.getUniqueId(), System.currentTimeMillis());
-                        playerKills.put(killer.getUniqueId(), kills);
-                    }
-                }
+        if (isEnabled() && !killer.hasMetadata("NPC")) { // don't raise bounty on a npc
+            // check immunity
+            if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(killer, murderBountyIncrease) != Immunity.ImmunityType.DISABLE || hasImmunity(killer))
+                return;
+            if ((!playerKills.containsKey(killer.getUniqueId()) ||
+                    !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
+                    playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) && (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01)) {
+                // increase
+                addBounty(killer, murderBountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                killer.sendMessage(parse(prefix + murder, player.getName(), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), killer));
+                Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
+                kills.put(player.getUniqueId(), System.currentTimeMillis());
+                playerKills.put(killer.getUniqueId(), kills);
             }
+
         }
+
+    }
+
+    public static boolean isEnabled() {
+        return murderBountyIncrease > 0;
     }
 
     private static boolean hasImmunity(OfflinePlayer player) {

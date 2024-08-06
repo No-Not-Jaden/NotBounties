@@ -1,9 +1,14 @@
 package me.jadenp.notbounties.utils.challenges;
 
+import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.bedrock.GUIComponent;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
+import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
+import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -470,18 +475,51 @@ public class ChallengeManager implements Listener {
     private static void generateChallenges(UUID uuid) {
         LinkedList<ActiveChallenge> activeChallengeList = new LinkedList<>();
         List<Challenge> createdChallenges = new ArrayList<>();
+        int uniqueChallengesEnabled = getUniqueChallengesEnabled();
         for (int i = 0; i < concurrentChallenges; i++) {
             Challenge challenge; // get random challenge
             // make sure the challenge is different from the others
             do {
                 challenge = getRandomChallenge();
-            } while (createdChallenges.size() < allChallenges.size() && createdChallenges.contains(challenge));
+            } while (createdChallenges.size() < uniqueChallengesEnabled && createdChallenges.contains(challenge) || !isChallengeEnabled(challenge));
             createdChallenges.add(challenge);
             int randomVariationIndex = random.nextInt(challenge.getVariations().size()); // get random variation
             // add to list
             activeChallengeList.add(new ActiveChallenge(challenge, randomVariationIndex));
         }
         activeChallenges.put(uuid, activeChallengeList);
+    }
+
+    private static boolean isChallengeEnabled(Challenge challenge) {
+        switch (challenge.getChallengeType()) {
+            case PURCHASE_IMMUNITY -> {
+                return Immunity.immunityType == Immunity.ImmunityType.TIME || Immunity.immunityType == Immunity.ImmunityType.SCALING;
+            }
+            case HOLD_POSTER -> {
+                return ConfigOptions.craftPoster;
+            }
+            case WHITELISTED_BOUNTY_SET -> {
+                return ConfigOptions.bountyWhitelistEnabled;
+            }
+            case AUTO_BOUNTY -> {
+                return MurderBounties.isEnabled() || RandomBounties.isEnabled() || TimedBounties.isEnabled();
+            }
+            case BUY_OWN -> {
+                return ConfigOptions.buyBack;
+            }
+            default -> {
+                return true;
+            }
+        }
+    }
+
+    private static int getUniqueChallengesEnabled() {
+        int enabled = 0;
+        for (Challenge challenge : allChallenges) {
+            if (isChallengeEnabled(challenge))
+                enabled++;
+        }
+        return enabled;
     }
 
     private static Challenge getRandomChallenge() {

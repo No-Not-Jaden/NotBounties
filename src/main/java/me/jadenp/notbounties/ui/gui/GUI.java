@@ -46,7 +46,7 @@ public class GUI implements Listener {
 
     public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
-    private static final String[] allowedPausedGUIs = new String[]{"bounty-gui", "leaderboard", "view-bounty"};
+    private static final String[] allowedPausedGUIs = new String[]{"bounty-gui", "leaderboard", "view-bounty", "selection-gui"};
 
 
     public static CustomItem getGeneralCurrencyItem() {
@@ -86,9 +86,9 @@ public class GUI implements Listener {
                     double bountyAmount = showWhitelistedBounties || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
                     if (bountyAmount > 0) {
                         List<String> additionalLore = GUIClicks.getClickLore(player, buyBack && bounty.getUUID().equals(player.getUniqueId()), (bounty.getTotalDisplayBounty() * buyBackInterest));
-                        if (bounty.getAllWhitelists().contains(player.getUniqueId())) {
+                        if (bounty.getAllWhitelists().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
                             additionalLore.addAll(whitelistNotify);
-                        } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId())) {
+                        } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
                             additionalLore.addAll(whitelistNotify);
                         } else if (showWhitelistedBounties || player.hasPermission(NotBounties.getAdminPermission())) {
                             // not whitelisted

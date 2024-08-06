@@ -67,8 +67,12 @@ public class TimedBounties {
         }
     }
 
+    public static boolean isEnabled() {
+        return time != 0 && bountyIncrease != 0;
+    }
+
     public static void update() {
-        if (time == 0 || bountyIncrease == 0)
+        if (!isEnabled())
             return;
         Map<UUID, Long> nextBountiesCopy = Map.copyOf(nextBounties);
         for (Map.Entry<UUID, Long> entry : nextBountiesCopy.entrySet()) {

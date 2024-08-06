@@ -226,7 +226,7 @@ public class DataManager {
 
                 if (configuration.isSet("next-random-bounty"))
                     RandomBounties.setNextRandomBounty(configuration.getLong("next-random-bounty"));
-                if (!RandomBounties.isRandomBountiesEnabled()) {
+                if (!RandomBounties.isEnabled()) {
                     RandomBounties.setNextRandomBounty(0);
                 } else if (RandomBounties.getNextRandomBounty() == 0) {
                     RandomBounties.setNextRandomBounty();
@@ -244,6 +244,8 @@ public class DataManager {
                     }
                 if (configuration.isSet("next-challenge-change")) {
                     ChallengeManager.setNextChallengeChange(configuration.getLong("next-challenge-change"));
+                } else {
+                    ChallengeManager.setNextChallengeChange(1);
                 }
                 if (configuration.isBoolean("paused"))
                     NotBounties.setPaused(configuration.getBoolean("paused"));

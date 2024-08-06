@@ -14,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.util.Objects;
 
 public class JedisConnection {
     private final JedisPooled jedis;
@@ -25,9 +26,9 @@ public class JedisConnection {
         try {
             sslFactory = createSslSocketFactory(
                     configuration.getString("ssl.ca-path"), // "./truststore.jks"
-                    configuration.getString("ssl.ca-password"), // use the password you specified for keytool command
+                    Objects.requireNonNull(configuration.getString("ssl.ca-password")), // use the password you specified for keytool command
                     configuration.getString("ssl.user-path"), // "./redis-user-keystore.p12"
-                    configuration.getString("ssl.user-password") // use the password you specified for openssl command
+                    Objects.requireNonNull(configuration.getString("ssl.user-password")) // use the password you specified for openssl command
             );
 
         } catch (IOException | GeneralSecurityException e) {

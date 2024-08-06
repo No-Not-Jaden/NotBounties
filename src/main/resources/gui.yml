@@ -282,12 +282,9 @@ bounty-gui:
     5:
       item: set-bounty
       slot: 51
-    6:
-      item: set-whitelist
-      slot: 47
     7:
       item: settings
-      slot: 46
+      slot: 47
 leaderboard:
   # 1 for highest value
   # 2 for lowest value

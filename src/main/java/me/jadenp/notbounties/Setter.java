@@ -79,7 +79,7 @@ public class Setter implements Comparable<Setter>{
     }
 
     public boolean canClaim(UUID claimerUuid) {
-        if (whitelist.getList().isEmpty())
+        if (whitelist.getList().isEmpty() || !ConfigOptions.bountyWhitelistEnabled)
             return true;
         if (ConfigOptions.variableWhitelist)
             return (NotBounties.getPlayerWhitelist(uuid).getList().isEmpty() || NotBounties.getPlayerWhitelist(uuid).isBlacklist()) != NotBounties.getPlayerWhitelist(uuid).getList().contains(claimerUuid);
