@@ -133,14 +133,13 @@ public class BountyTracker implements Listener {
     public static ItemStack getTracker(UUID uuid) {
         if (!BountyManager.hasBounty(uuid))
             return getEmptyTracker();
-        String playerName = NotBounties.getPlayerName(uuid);
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         ItemStack compass = new ItemStack(Material.COMPASS, 1);
         ItemMeta meta = compass.getItemMeta();
         assert meta != null;
-        meta.setDisplayName(parse(bountyTrackerName, playerName, player));
+        meta.setDisplayName(parse(bountyTrackerName, player));
 
-        ArrayList<String> lore = trackerLore.stream().map(str -> parse(str, playerName, player)).collect(Collectors.toCollection(ArrayList::new));
+        ArrayList<String> lore = trackerLore.stream().map(str -> parse(str, player)).collect(Collectors.toCollection(ArrayList::new));
 
         int id = registerTrackedUUID(uuid);
 
@@ -491,7 +490,7 @@ public class BountyTracker implements Listener {
         removeEmptyTracker(event.getPlayer(), true); // remove one empty tracker
         NumberFormatting.givePlayer(event.getPlayer(), getTracker(posterPlayerUUID), 1); // give tracker
         // you have been given
-        event.getPlayer().sendMessage(parse(prefix + trackerReceive, event.getPlayer().getName(), event.getPlayer()));
+        event.getPlayer().sendMessage(parse(prefix + trackerReceive, event.getPlayer()));
     }
 
     // check for tracking crafting

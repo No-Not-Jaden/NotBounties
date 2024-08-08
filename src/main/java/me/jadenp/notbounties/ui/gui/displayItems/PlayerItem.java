@@ -7,6 +7,7 @@ import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -54,7 +55,7 @@ public class PlayerItem implements DisplayItem, AmountItem{
         }
         text = text.replace("{rank}", (index + 1) + "")
                 .replace("{leaderboard}", displayType.toString());
-        return LanguageOptions.parse(text, NotBounties.getPlayerName(uuid), amount, time, LocalTime.TimeFormat.PLAYER, player);
+        return LanguageOptions.parse(text, amount, time, LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(uuid));
     }
 
     public PlayerItem(UUID uuid, double amount, Leaderboard displayType, int index, long time, List<String> additionalLore) {

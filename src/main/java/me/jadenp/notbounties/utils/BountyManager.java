@@ -62,7 +62,7 @@ public class BountyManager {
         List<Bounty> sortedList = getPublicBounties(sortType);
         for (int i = page * length; i < (page * length) + length; i++) {
             if (sortedList.size() > i) {
-                sender.sendMessage(parse(listTotal, sortedList.get(i).getName(), sortedList.get(i).getTotalDisplayBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));
+                sender.sendMessage(parse(listTotal, sortedList.get(i).getTotalDisplayBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));
             } else {
                 break;
             }
@@ -123,7 +123,7 @@ public class BountyManager {
             // check for big bounty
             BigBounty.setBounty(onlineReceiver, bounty, displayAmount);
             // send messages
-            onlineReceiver.sendMessage(parse(prefix + bountyReceiver, setter.getName(), displayAmount, bounty.getTotalDisplayBounty(), receiver));
+            onlineReceiver.sendMessage(parse(prefix + bountyReceiver, displayAmount, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(setter.getUniqueId())));
 
             if (serverVersion <= 16) {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
@@ -138,7 +138,7 @@ public class BountyManager {
             }
         }
         // send messages
-        setter.sendMessage(parse(prefix + bountySuccess, getPlayerName(receiver.getUniqueId()), displayAmount, bounty.getTotalDisplayBounty(), receiver));
+        setter.sendMessage(parse(prefix + bountySuccess, displayAmount, bounty.getTotalDisplayBounty(), receiver));
 
         if (serverVersion <= 16) {
             setter.playSound(setter.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
@@ -146,7 +146,7 @@ public class BountyManager {
             setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1, 1);
         }
 
-        String message = parse(prefix + bountyBroadcast, getPlayerName(receiver.getUniqueId()), setter.getName(), displayAmount, bounty.getTotalDisplayBounty(), receiver);
+        String message = parse(prefix + bountyBroadcast, setter, displayAmount, bounty.getTotalDisplayBounty(), receiver);
 
         Bukkit.getConsoleSender().sendMessage(message);
         if (whitelist.getList().isEmpty()) {
@@ -214,7 +214,7 @@ public class BountyManager {
             }
         }
         // send messages
-        String message = parse(prefix + bountyBroadcast, getPlayerName(receiver.getUniqueId()), consoleName, displayAmount, bounty.getTotalDisplayBounty(), receiver);
+        String message = parse(prefix + bountyBroadcast, consoleName, displayAmount, bounty.getTotalDisplayBounty(), receiver);
         Bukkit.getConsoleSender().sendMessage(message);
         if (whitelist.getList().isEmpty()) {
             if (displayAmount >= minBroadcast)
@@ -396,9 +396,9 @@ public class BountyManager {
                     NumberFormatting.givePlayer(killer, bounty.getTotalItemBounty(), false);
                 }
                 // send messages
-                killer.sendMessage(parse(prefix + LanguageOptions.stolenBounty, getPlayerName(player.getUniqueId()), stolenBounty.getTotalDisplayBounty(), killer));
+                killer.sendMessage(parse(prefix + LanguageOptions.stolenBounty, stolenBounty.getTotalDisplayBounty(), player));
                 // send messages
-                String message = parse(prefix + stolenBountyBroadcast, getPlayerName(killer.getUniqueId()), getPlayerName(player.getUniqueId()), stolenBounty.getTotalDisplayBounty(), bounty.getTotalDisplayBounty(), killer);
+                String message = parse(prefix + stolenBountyBroadcast, player, stolenBounty.getTotalDisplayBounty(), bounty.getTotalDisplayBounty(), killer);
                 Bukkit.getConsoleSender().sendMessage(message);
                 if (stolenBounty.getTotalDisplayBounty() >= minBroadcast)
                     for (Player p : Bukkit.getOnlinePlayers()) {
@@ -448,7 +448,7 @@ public class BountyManager {
         displayParticle.remove(player.getUniqueId());
 
         // broadcast message
-        String message = parse(prefix + claimBountyBroadcast, player.getName(), killer.getName(), bounty.getTotalDisplayBounty(killer), player);
+        String message = parse(prefix + claimBountyBroadcast, killer, bounty.getTotalDisplayBounty(killer), player);
         Bukkit.getConsoleSender().sendMessage(message);
         for (Player p : Bukkit.getOnlinePlayers()) {
             if ((!NotBounties.disableBroadcast.contains(p.getUniqueId()) && bounty.getTotalDisplayBounty(killer) >= minBroadcast) || p.getUniqueId().equals(player.getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(killer).getUniqueId())) {
@@ -459,7 +459,7 @@ public class BountyManager {
             Bukkit.getLogger().info("[NotBountiesDebug] Claim messages sent to all players.");
 
         // reward head
-        RewardHead rewardHead = new RewardHead(player.getName(), player.getUniqueId(), bounty.getTotalDisplayBounty(killer));
+        RewardHead rewardHead = new RewardHead(player.getUniqueId(), bounty.getTotalDisplayBounty(killer));
 
         if (rewardHeadSetter) {
             for (Setter setter : claimedBounties) {
@@ -575,13 +575,13 @@ public class BountyManager {
                     assert meta != null;
                     ArrayList<String> lore = new ArrayList<>();
                     for (String str : voucherLore) {
-                        lore.add(parse(str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), player.getName(), Objects.requireNonNull(player).getName(),setter.getAmount(), player));
+                        lore.add(parse(str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), Bukkit.getOfflinePlayer(setter.getUuid()),setter.getAmount(), player));
                     }
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                    meta.setDisplayName(parse(bountyVoucherName.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), player.getName(), Objects.requireNonNull(killer).getName(), setter.getAmount(), player));
+                    meta.setDisplayName(parse(bountyVoucherName.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), killer, setter.getAmount(), player));
                     ArrayList<String> setterLore = new ArrayList<>(lore);
                     if (!RRLSetterLoreAddition.isEmpty()) {
-                        setterLore.add(parse(RRLSetterLoreAddition, setter.getName(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
+                        setterLore.add(parse(RRLSetterLoreAddition, setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
                     }
                     setterLore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + setter.getAmount());
                     meta.setLore(setterLore);
@@ -598,15 +598,15 @@ public class BountyManager {
                 assert meta != null;
                 ArrayList<String> lore = new ArrayList<>();
                 for (String str : voucherLore) {
-                    lore.add(parse(str, player.getName(), Objects.requireNonNull(player.getKiller()).getName(), rewardedBounty.getTotalBounty(killer), player));
+                    lore.add(parse(str, player.getKiller(), rewardedBounty.getTotalBounty(killer), player));
                 }
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                meta.setDisplayName(parse(bountyVoucherName, player.getName(), Objects.requireNonNull(killer).getName(), rewardedBounty.getTotalBounty(killer), player));
+                meta.setDisplayName(parse(bountyVoucherName, killer, rewardedBounty.getTotalBounty(killer), player));
                 if (!RRLSetterLoreAddition.isEmpty()) {
                     for (Setter setter : rewardedBounty.getSetters()) {
                         if (!setter.canClaim(killer) || setter.getAmount() <= 0.01 || (setter.getUuid().equals(new UUID(0,0)) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL))
                             continue;
-                        lore.add(parse(RRLSetterLoreAddition, setter.getName(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
+                        lore.add(parse(RRLSetterLoreAddition, setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
                     }
                 }
                 lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));

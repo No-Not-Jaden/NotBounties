@@ -141,7 +141,7 @@ public class BountyExpire {
                                 public void run() {
                                     Player player = Bukkit.getPlayer(setter.getUuid());
                                     if (player != null) {
-                                        player.sendMessage(parse(prefix + expiredBounty, bounty.getName(), setter.getDisplayAmount(), player));
+                                        player.sendMessage(parse(prefix + expiredBounty, setter.getDisplayAmount(), Bukkit.getOfflinePlayer(bounty.getUUID())));
                                     }
                                     if (rewardReceiver) {
                                         refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems());

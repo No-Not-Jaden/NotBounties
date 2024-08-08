@@ -106,17 +106,16 @@ public class SkinManager {
         NotBounties.debugMessage("Attempting to save skin for: " + uuid, false);
         if (savedSkins.containsKey(uuid))
             return;
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (ConfigOptions.skinsRestorerEnabled) {
+        if (ConfigOptions.skinsRestorerEnabled) {
+            new BukkitRunnable() {
+                @Override
+                public void run() {
                     ConfigOptions.skinsRestorerClass.saveSkin(uuid);
-                    return;
                 }
-
-                requestSkin(uuid);
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+            }.runTaskAsynchronously(NotBounties.getInstance());
+        } else {
+            requestSkin(uuid);
+        }
     }
 
     public static void requestSkin(UUID uuid) {

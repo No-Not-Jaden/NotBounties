@@ -648,7 +648,7 @@ public class ConfigOptions {
             guiConfig.set("view-bounty.layout.4.item", "next");
             guiConfig.set("view-bounty.layout.4.slot", "53");
             guiConfig.set("custom-items.general-currency-item.material", "SUNFLOWER");
-            guiConfig.set("custom-items.general-currency-item.name", "{currency}");
+            guiConfig.set("custom-items.general-currency-item.name", "{amount}");
             guiConfig.set("custom-items.general-currency-item.enchanted", true);
             guiConfig.set("custom-items.general-currency-item.hide-nbt", true);
             guiChanges = true;

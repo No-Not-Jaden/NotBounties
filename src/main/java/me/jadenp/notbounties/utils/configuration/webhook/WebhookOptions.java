@@ -29,6 +29,8 @@ public class WebhookOptions implements Listener {
     private static String link;
     private static boolean tts;
     private static final Map<Class<? extends Event>, Webhook> webhooks = new HashMap<>();
+    private static final String UNSET_LINK = "https://discord.com/api/webhooks/...";
+
     public static File getFile() {
         return new File(NotBounties.getInstance().getDataFolder() + File.separator + "webhook.yml");
     }
@@ -49,48 +51,48 @@ public class WebhookOptions implements Listener {
 
     @EventHandler
     public void onBountySet(BountySetEvent event) {
-        if (link.equals("https://discord.com/api/webhooks/...") || event.isCancelled())
+        if (link.equals(UNSET_LINK) || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
         Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
         double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
         total = total + event.getBounty().getTotalDisplayBounty();
-        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getBounty().getLastSetter().getName(), event.getBounty().getLastSetter().getUuid(), event.getBounty().getTotalDisplayBounty(), total);
+        buildWebhook(webhook, event.getBounty().getUUID(), event.getBounty().getLastSetter().getUuid(), event.getBounty().getTotalDisplayBounty(), total);
     }
 
     @EventHandler
     public void onBountyClaim(BountyClaimEvent event) {
-        if (link.equals("https://discord.com/api/webhooks/...") || event.isCancelled())
+        if (link.equals(UNSET_LINK) || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
         Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
         double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
         total = total - event.getBounty().getTotalDisplayBounty();
-        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getKiller().getName(), event.getKiller().getUniqueId(), event.getBounty().getTotalDisplayBounty(), total);
+        buildWebhook(webhook, event.getBounty().getUUID(), event.getKiller().getUniqueId(), event.getBounty().getTotalDisplayBounty(), total);
     }
 
     @EventHandler
     public void onBountyRemove(BountyRemoveEvent event) {
-        if (link.equals("https://discord.com/api/webhooks/...") || event.isCancelled())
+        if (link.equals(UNSET_LINK) || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
         Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
         double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
         total = total - event.getBounty().getTotalDisplayBounty();
-        UUID removerUUID = event.getRemover() instanceof Player ? ((Player) event.getRemover()).getUniqueId() : new UUID(0,0);
-        buildWebhook(webhook, event.getBounty().getName(), event.getBounty().getUUID(), event.getRemover().getName(), removerUUID, event.getBounty().getTotalDisplayBounty(), total);
+        UUID removerUUID = event.getRemover() instanceof Player player ? player.getUniqueId() : new UUID(0,0);
+        buildWebhook(webhook, event.getBounty().getUUID(), removerUUID, event.getBounty().getTotalDisplayBounty(), total);
     }
 
     @EventHandler
     public void onBountyEdit(BountyEditEvent event) {
-        if (link.equals("https://discord.com/api/webhooks/...") || event.isCancelled())
+        if (link.equals(UNSET_LINK) || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
-        UUID editorUUID = event.getEditor() instanceof Player ? ((Player) event.getEditor()).getUniqueId() : new UUID(0,0);
-        buildWebhook(webhook, event.getBeforeEdit().getName(), event.getBeforeEdit().getUUID(), event.getEditor().getName(), editorUUID, event.getBeforeEdit().getTotalDisplayBounty(), event.getAfterEdit().getTotalBounty());
+        UUID editorUUID = event.getEditor() instanceof Player player ? player.getUniqueId() : new UUID(0,0);
+        buildWebhook(webhook, event.getBeforeEdit().getUUID(), editorUUID, event.getBeforeEdit().getTotalDisplayBounty(), event.getAfterEdit().getTotalBounty());
     }
     
-    private void buildWebhook(Webhook webhook, String playerName, UUID playerUUID, String receiverName, UUID receiverUUID, double amount, double total){
+    private void buildWebhook(Webhook webhook, UUID receiver, UUID player, double amount, double total){
         if (webhook.isEnabled()) {
             new BukkitRunnable() {
                 int maxRequests = 50;
@@ -100,8 +102,8 @@ public class WebhookOptions implements Listener {
 
                     boolean sendEmbed = !webhook.getTitle().isEmpty() || !webhook.getDescription().isEmpty() || !webhook.getFooterText().isEmpty() || webhook.isSendImage();
                     DiscordWebhook.EmbedObject embed = null;
-                    UUID avatarUUID = webhook.isSwitchImages() ? playerUUID : receiverUUID;
-                    UUID imageUUID = webhook.isSwitchImages() ? receiverUUID : playerUUID;
+                    UUID avatarUUID = webhook.isSwitchImages() ? receiver : player;
+                    UUID imageUUID = webhook.isSwitchImages() ? player : receiver;
 
                     if (!SkinManager.isSkinLoaded(avatarUUID) || !SkinManager.isSkinLoaded(imageUUID)) {
                         // check if max requests hit
@@ -121,16 +123,16 @@ public class WebhookOptions implements Listener {
                     String imageURL = "https://mc-heads.net/avatar/" + imageTextureID + "/128.png";
                     if (sendEmbed) {
                         embed = new DiscordWebhook.EmbedObject()
-                                .setTitle(ChatColor.stripColor(LanguageOptions.parse(webhook.getTitle(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))))
-                                .setDescription(ChatColor.stripColor(LanguageOptions.parse(webhook.getDescription(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))))
+                                .setTitle(ChatColor.stripColor(LanguageOptions.parse(webhook.getTitle(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))))
+                                .setDescription(ChatColor.stripColor(LanguageOptions.parse(webhook.getDescription(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))))
                                 .setColor(webhook.getColor())
-                                .setFooter(ChatColor.stripColor(LanguageOptions.parse(webhook.getFooterText(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))), webhook.getFooterURL());
+                                .setFooter(ChatColor.stripColor(LanguageOptions.parse(webhook.getFooterText(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), webhook.getFooterURL());
                         for (WebhookField field : webhook.getContent())
-                            embed.addField(ChatColor.stripColor(LanguageOptions.parse(field.getName(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID))), ChatColor.stripColor(LanguageOptions.parse(field.getValue(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(playerUUID))), field.isInline());
+                            embed.addField(ChatColor.stripColor(LanguageOptions.parse(field.getName(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), ChatColor.stripColor(LanguageOptions.parse(field.getValue(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), field.isInline());
                         embed.setImage(imageURL);
                     }
-                    String username = ChatColor.stripColor(LanguageOptions.parse(webhook.getUsername(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID)));
-                    String content = ChatColor.stripColor(LanguageOptions.parse(webhook.getMessage(), playerName, receiverName, amount, total, Bukkit.getOfflinePlayer(receiverUUID)));
+                    String username = ChatColor.stripColor(LanguageOptions.parse(webhook.getUsername(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver)));
+                    String content = ChatColor.stripColor(LanguageOptions.parse(webhook.getMessage(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver)));
                     try {
                         sendEmbed(embed, username, avatarURL, content);
                     } catch (IOException e) {
@@ -152,7 +154,7 @@ public class WebhookOptions implements Listener {
     }
 
     private void sendEmbed(DiscordWebhook.EmbedObject embed, String username, String avatarURL, String content) throws IOException {
-        if (link.equals("https://discord.com/api/webhooks/..."))
+        if (link.equals(UNSET_LINK))
             return;
         DiscordWebhook webhook = new DiscordWebhook(link);
         webhook.setTts(tts);

@@ -800,14 +800,14 @@ public final class NotBounties extends JavaPlugin {
         try {
             if (!input.contains(",")) {
                 UUID uuid = UUID.fromString(input);
-                return new RewardHead(getPlayerName(uuid), uuid, 0);
+                return new RewardHead( uuid, 0);
             } else {
                 UUID uuid = UUID.fromString(input.substring(0, input.indexOf(",")));
                 input = input.substring(input.indexOf(',') + 1);
-                String playerName = input.substring(0, input.indexOf(","));
+                //String playerName = input.substring(0, input.indexOf(","));
                 input = input.substring(input.indexOf(",") + 1);
                 double amount = NumberFormatting.tryParse(input);
-                return new RewardHead(playerName, uuid, amount);
+                return new RewardHead(uuid, amount);
             }
         } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
             Bukkit.getLogger().warning(e.toString());
@@ -816,7 +816,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
     public static String encodeRewardHead(RewardHead rewardHead) {
-        return rewardHead.getUuid().toString() + "," + rewardHead.getPlayerName() + "," + NumberFormatting.getValue(rewardHead.getAmount());
+        return rewardHead.uuid().toString() + ",name," + NumberFormatting.getValue(rewardHead.amount());
     }
 
     public static List<OfflinePlayer> getNetworkPlayers() {

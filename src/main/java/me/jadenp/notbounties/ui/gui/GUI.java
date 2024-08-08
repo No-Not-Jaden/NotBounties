@@ -564,7 +564,7 @@ public class GUI implements Listener {
                         } else {
                             // no longer has a bounty
                             openGUI((Player) event.getWhoClicked(), "bounty-gui", 1);
-                            event.getWhoClicked().sendMessage(LanguageOptions.parse(prefix + noBounty, NotBounties.getPlayerName(uuid), (Player) event.getWhoClicked()));
+                            event.getWhoClicked().sendMessage(LanguageOptions.parse(prefix + noBounty, Bukkit.getOfflinePlayer(uuid)));
                         }
                     }
                     break;

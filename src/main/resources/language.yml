@@ -1,5 +1,8 @@
 # a '#' after a line means only admins will see this message, if there is not a '#', then with all the other permissions, players can see this message
 prefix: '&7[&9Not&dBounties&7] &8» &r'
+# The prefix and suffix will show in front of every player name with a few exceptions - you can use placeholderapi here
+player-prefix: ''
+player-suffix: ''
 unknown-number: '&cUnknown number!'
 unknown-player: '&cCould not find the player &4{receiver}&c!'
 unknown-command: '&dUse &9/bounty help &dfor a list of commands.'

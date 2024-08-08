@@ -5,6 +5,7 @@ import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.utils.configuration.BountyExpire;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
@@ -67,7 +68,7 @@ public class TrickleBounties {
                 }
             }
             // send message to claimer
-            claimer.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.trickleBounty, bounty.getName(), transferedBounty.getTotalBounty(), claimer));
+            claimer.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.trickleBounty, transferedBounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
             DataManager.addBounty(transferedBounty);
         }
     }

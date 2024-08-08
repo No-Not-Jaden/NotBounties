@@ -808,7 +808,7 @@ public class DataManager {
             double addedAmount = 0;
             for (Setter setter : bounty.getSetters()) {
                 if (!setter.isNotified()) {
-                    player.sendMessage(parse(prefix + offlineBounty, setter.getName(), setter.getAmount(), player));
+                    player.sendMessage(parse(prefix + offlineBounty, setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
                     setter.setNotified(true);
                     addedAmount += setter.getAmount();
                     if (!sql.isConnected())

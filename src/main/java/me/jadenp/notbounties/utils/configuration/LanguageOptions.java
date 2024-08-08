@@ -130,6 +130,8 @@ public class LanguageOptions {
     public static String trickleBounty;
     public static String bedrockOpenGUI;
     public static String paused;
+    public static String playerPrefix;
+    public static String playerSuffix;
 
     public static List<String> emptyTrackerLore;
     public static List<String> giveTrackerLore;
@@ -315,6 +317,8 @@ public class LanguageOptions {
         trickleBounty = configuration.getString("trickle-bounty");
         bedrockOpenGUI = configuration.getString("bedrock-open-gui");
         paused = configuration.getString("paused");
+        playerPrefix = configuration.getString("player-prefix");
+        playerSuffix = configuration.getString("player-suffix");
 
         emptyTrackerLore = configuration.getStringList("empty-tracker-lore");
         giveTrackerLore = configuration.getStringList("give-tracker-lore");
@@ -565,6 +569,10 @@ public class LanguageOptions {
         }
     }
 
+    /**
+     * Will not add the player prefix or player suffix
+     * Mainly for unknown player
+     */
     public static String parse(String str, String player, OfflinePlayer receiver) {
         str = str.replace("{receiver}", (player));
         str = str.replace("{player}", (player));
@@ -593,11 +601,11 @@ public class LanguageOptions {
                 str = str.replace("{max_expire}", "");
             }
             if (receiver.getName() != null) {
-                str = str.replace("{player}", (receiver.getName()));
-                str = str.replace("{receiver}", (receiver.getName()));
+                str = str.replace("{player}", playerPrefix + receiver.getName() + playerSuffix);
+                str = str.replace("{receiver}", playerPrefix + receiver.getName() + playerSuffix);
             } else {
-                str = str.replace("{player}", (NotBounties.getPlayerName(receiver.getUniqueId())));
-                str = str.replace("{receiver}", (NotBounties.getPlayerName(receiver.getUniqueId())));
+                str = str.replace("{player}", playerPrefix + NotBounties.getPlayerName(receiver.getUniqueId()) + playerPrefix);
+                str = str.replace("{receiver}", playerPrefix + NotBounties.getPlayerName(receiver.getUniqueId()) + playerSuffix);
             }
             if (str.contains("{balance}"))
                 str = str.replace("{balance}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
@@ -653,50 +661,71 @@ public class LanguageOptions {
         return parse(str,amount,receiver);
     }
 
-    public static String parse(String str, String player, double amount, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
+    public static String parse(String str, double amount, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
         if (str.contains("{time}")) {
             String timeString = formatTime(time, format, receiver.getPlayer());
             str = str.replace("{time}", (timeString));
         }
-        return parse(str, player, amount, receiver);
+        return parse(str, amount, receiver);
     }
 
+    /**
+     * This does not add the player prefix or suffix
+     * Used for console name
+     */
     public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
         str = str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
         return parse(str, player, amount, receiver);
     }
 
-    public static String parse(String str, String player, double amount, double bounty, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
+    public static String parse(String str, double amount, double bounty, OfflinePlayer receiver) {
+        str = str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
+        return parse(str, amount, receiver);
+    }
+
+    public static String parse(String str, double amount, double bounty, long time, LocalTime.TimeFormat format, OfflinePlayer receiver) {
         if (str.contains("{time}")) {
             String timeString = formatTime(time, format, receiver.getPlayer());
             str = str.replace("{time}", (timeString));
         }
-        return parse(str, player, amount, bounty, receiver);
+        return parse(str, amount, bounty, receiver);
     }
 
-    public static String parse(String str, String sender, String player, double amount, OfflinePlayer receiver) {
-        if (sender != null)
-            str = str.replace("{receiver}", (sender));
-        return parse(str, player, amount, receiver);
+    public static String parse(String str, OfflinePlayer player, double amount, OfflinePlayer receiver) {
+        if (player != null) {
+            String replacement;
+            if (player.getName() != null) {
+                replacement = player.getName();
+            } else {
+                replacement = NotBounties.getPlayerName(player.getUniqueId());
+            }
+            replacement = playerPrefix + replacement + playerSuffix;
+            if (papiEnabled)
+                replacement = new PlaceholderAPIClass().parse(player, replacement);
+            str = str.replace("{player}", replacement);
+        }
+        return parse(str, amount, receiver);
     }
 
-    public static String parse(String str, String sender, String player, OfflinePlayer receiver) {
-        str = str.replace("{receiver}", (sender));
-        return parse(str, player, receiver);
+    public static String parse(String str, OfflinePlayer player, OfflinePlayer receiver) {
+        if (player != null) {
+            String replacement;
+            if (player.getName() != null) {
+                replacement = player.getName();
+            } else {
+                replacement = NotBounties.getPlayerName(player.getUniqueId());
+            }
+            replacement = playerPrefix + replacement + playerSuffix;
+            if (papiEnabled)
+                replacement = new PlaceholderAPIClass().parse(player, replacement);
+            str = str.replace("{player}", replacement);
+        }
+        return parse(str, receiver);
     }
 
-    public static String parse(String str, String sender, String player, double amount, double totalBounty, OfflinePlayer receiver) {
+    public static String parse(String str, OfflinePlayer player, double amount, double totalBounty, OfflinePlayer receiver) {
         str = str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
-        return parse(str, sender, player, amount, receiver);
-    }
-
-    public static String parse(String str, String amount, long rank, String leaderboard, String playerName, double amountTax, long time, OfflinePlayer player) {
-        str = str.replace("{amount}", (amount));
-        str = str.replace("{rank}", (rank + ""));
-        str = str.replace("{leaderboard}", (leaderboard));
-        str = str.replace("{player}", (playerName));
-        str = str.replace("{amount_tax}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amountTax) + NumberFormatting.currencySuffix));
-        return parse(str, time, player);
+        return parse(str, player, amount, receiver);
     }
 
     public static String color(String str) {

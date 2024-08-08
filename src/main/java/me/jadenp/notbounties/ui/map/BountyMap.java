@@ -187,7 +187,7 @@ public class BountyMap implements Listener {
             return;
         }
         UUID trackedPlayer = meta.getOwningPlayer().getUniqueId();
-        ItemStack map = hasBounty(trackedPlayer) ? getMap(Objects.requireNonNull(getBounty(trackedPlayer))) : getMap(trackedPlayer, NotBounties.getPlayerName(trackedPlayer), 0, System.currentTimeMillis());
+        ItemStack map = hasBounty(trackedPlayer) ? getMap(Objects.requireNonNull(getBounty(trackedPlayer))) : getMap(trackedPlayer, 0, System.currentTimeMillis());
         event.getInventory().setResult(map);
     }
     // complete tracker crafting
@@ -320,10 +320,10 @@ public class BountyMap implements Listener {
     }
 
     public static ItemStack getMap(Bounty bounty) {
-        return getMap(bounty.getUUID(), bounty.getName(), bounty.getTotalDisplayBounty(), bounty.getLatestSetter());
+        return getMap(bounty.getUUID(), bounty.getTotalDisplayBounty(), bounty.getLatestSetter());
     }
 
-    public static ItemStack getMap(UUID uuid, String name, double displayBounty, long updateTime) {
+    public static ItemStack getMap(UUID uuid, double displayBounty, long updateTime) {
         OfflinePlayer parser = Bukkit.getOfflinePlayer(uuid);
         MapView mapView = getMapView(uuid);
 
@@ -331,10 +331,10 @@ public class BountyMap implements Listener {
         MapMeta meta = (MapMeta) mapItem.getItemMeta();
         assert meta != null;
         meta.setMapView(mapView);
-        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, name, displayBounty, parser));
+        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, displayBounty, parser));
         ArrayList<String> lore = new ArrayList<>();
         for (String str : LanguageOptions.mapLore) {
-            lore.add(LanguageOptions.parse(str, name, displayBounty, updateTime, LocalTime.TimeFormat.SERVER, parser));
+            lore.add(LanguageOptions.parse(str, displayBounty, updateTime, LocalTime.TimeFormat.SERVER, parser));
         }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

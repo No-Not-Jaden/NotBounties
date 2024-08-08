@@ -57,7 +57,7 @@ public class BountyBoard {
                 ItemStack map = BountyMap.getMap(bounty);
                 ItemMeta mapMeta = map.getItemMeta();
                 assert mapMeta != null;
-                mapMeta.setDisplayName(LanguageOptions.parse(ConfigOptions.boardName, bounty.getName(), bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+                mapMeta.setDisplayName(LanguageOptions.parse(ConfigOptions.boardName, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
                 map.setItemMeta(mapMeta);
                 frame.setItem(map);
                 frame.setInvulnerable(true);

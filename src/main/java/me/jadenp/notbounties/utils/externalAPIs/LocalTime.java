@@ -179,15 +179,6 @@ class ResponseHandler implements HttpClientResponseHandler<TimeZone> {
             // return it as a String
             String result = EntityUtils.toString(entity);
             classicHttpResponse.close();
-            if (NotBounties.debug) {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        Bukkit.getLogger().info("[NotBountiesDebug] ->");
-                        Bukkit.getLogger().info(result);
-                    }
-                }.runTask(NotBounties.getInstance());
-            }
 
             JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseString(result).getAsJsonObject() : new JsonParser().parse(result).getAsJsonObject();
             if (input.has("location")) {

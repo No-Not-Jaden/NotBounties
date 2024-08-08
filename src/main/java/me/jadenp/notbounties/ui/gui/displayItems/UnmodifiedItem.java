@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui.gui.displayItems;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -30,14 +31,14 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
             previousLore.addAll(meta.getLore());
         }
         previousLore.addAll(additionalLore);
-        meta.setLore(previousLore.stream().map(string -> LanguageOptions.parse(string, NotBounties.getPlayerName(owningPlayer), player)).toList());
+        meta.setLore(previousLore.stream().map(string -> LanguageOptions.parse(string, Bukkit.getOfflinePlayer(owningPlayer))).toList());
         item.setItemMeta(meta);
         return item;
     }
 
     @Override
     public String parseText(String text, Player player) {
-        return LanguageOptions.parse(text, NotBounties.getPlayerName(owningPlayer), player);
+        return LanguageOptions.parse(text, Bukkit.getOfflinePlayer(owningPlayer));
     }
 
     public UnmodifiedItem(UUID owningPlayer, ItemStack itemStack, List<String> additionalLore) {
