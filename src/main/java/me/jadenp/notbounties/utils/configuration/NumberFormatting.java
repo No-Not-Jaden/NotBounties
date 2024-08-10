@@ -4,7 +4,6 @@ import com.google.common.primitives.Floats;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ItemValue;
-import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import me.jadenp.notbounties.utils.externalAPIs.VaultClass;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -336,7 +335,7 @@ public class NumberFormatting {
         if (item == null)
             return 0;
         if (!bountyItemsUseItemValues)
-            return defaultItemValue;
+            return 0;
         Material material = item.getType();
         int customModelData = -1;
         if (item.getItemMeta() != null && item.getItemMeta().hasCustomModelData())
@@ -1024,7 +1023,7 @@ public class NumberFormatting {
         for (ItemStack itemStack : items) {
             if (itemStack == null)
                 continue;
-            if (itemString.length() != 0)
+            if (!itemString.isEmpty())
                 itemString.append(",");
             itemString.append(itemStack.getType()).append(amountDenote).append(itemStack.getAmount());
         }
@@ -1176,28 +1175,40 @@ public class NumberFormatting {
 
 
     /**
-     * Serialized items after separating them based on how many slots they take up
+     * Separate items based on how many slots they take up and how many slots per page.
+     * Each new row is a new page
      * @param items Items to serialize
      * @param maxSlotsPerPage Maximum slots per object in the returned array
-     * @return An array of strings with serialized items
+     * @return A 2D array of ItemStacks with maxSlotsPerPage column length
      */
-    public static String[] serializeItems(List<ItemStack> items, int maxSlotsPerPage) {
-        if (items.isEmpty())
-            return new String[0];
-        List<String> serialized = new ArrayList<>();
+    public static ItemStack[][] separateItems(List<ItemStack> items, int maxSlotsPerPage) {
         ItemStack[] contents = new ItemStack[maxSlotsPerPage];
+        if (items.isEmpty())
+            return new ItemStack[1][maxSlotsPerPage];
+        List<ItemStack[]> pages = new ArrayList<>();
         int index = 0;
         while (!items.isEmpty()) {
             if (index == contents.length) {
-                serialized.add(SerializeInventory.itemStackArrayToBase64(contents));
+                pages.add(contents);
                 contents = new ItemStack[maxSlotsPerPage];
                 index = 0;
             }
-            contents[index] = items.remove(0);
+            ItemStack currentItem = items.get(0).clone();
+            if (currentItem.getAmount() > currentItem.getMaxStackSize()) {
+                currentItem.setAmount(currentItem.getMaxStackSize());
+                items.get(0).setAmount(items.get(0).getAmount() - items.get(0).getMaxStackSize());
+            } else {
+                items.remove(0);
+            }
+            contents[index] = currentItem;
             index++;
         }
-        serialized.add(SerializeInventory.itemStackArrayToBase64(contents));
-        return serialized.toArray(new String[0]);
+        pages.add(contents);
+        ItemStack[][] inventoryPages = new ItemStack[pages.size()][maxSlotsPerPage];
+        for (int i = 0; i < pages.size(); i++) {
+            inventoryPages[i] = pages.get(i);
+        }
+        return inventoryPages;
     }
 
     /**

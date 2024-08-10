@@ -425,9 +425,9 @@ public class BountyManager {
         }
 
         // check if killer can claim it
-        if (bounty.getTotalDisplayBounty(killer) < 0.01) {
+        if (bounty.getTotalDisplayBounty(killer) < 0.01 && bounty.getTotalItemBounty(killer).isEmpty()) {
             if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] This bounty is too small!");
+                Bukkit.getLogger().info("[NotBountiesDebug] This bounty is too small, and there are no items attached!");
             return;
         }
         if (debug)

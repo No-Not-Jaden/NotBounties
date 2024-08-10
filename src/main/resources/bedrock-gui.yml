@@ -364,7 +364,7 @@ challenges:
 view-bounty:
   enabled: true
   gui-name: '&d&l{player}''s &9&lBounty: &2{amount}'
-  player-text: '&e{player} &7> &a{amount} &7{items}'
+  player-text: '&6{player}''s Contribution: &a{amount}'
   components:
     1: view-bounties
 

@@ -8,9 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Represents a regular item
@@ -38,6 +36,8 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
 
     @Override
     public String parseText(String text, Player player) {
+        text = text.replace("{amount}", NumberFormatting.formatNumber(getAmount()));
+        text = text.replace("{items}", NumberFormatting.listItems(Collections.singletonList(itemStack), 'x'));
         return LanguageOptions.parse(text, Bukkit.getOfflinePlayer(owningPlayer));
     }
 

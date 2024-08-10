@@ -24,10 +24,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.playerInfo;
@@ -99,14 +96,17 @@ public class ActionCommands {
             if (info.guiType().equals("bounty-item-select") && player.getOpenInventory().getTitle().equals(info.title())) {
                 // update data with current item contentse
                 GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
-                ItemStack[] currentContents = new ItemStack[guiOptions.getPlayerSlots().size() - 1];
+                if (guiOptions == null)
+                    return; // this shouldn't be reached
+                // read current inventory
+                ItemStack[] currentContents = new ItemStack[GUI.getMaxBountyItemSlots()];
                 for (int i = 0; i < currentContents.length; i++) {
-                    currentContents[i] = player.getOpenInventory().getTopInventory().getContents()[guiOptions.getPlayerSlots().get(i+1)];
+                    currentContents[i] = player.getOpenInventory().getTopInventory().getContents()[guiOptions.getPlayerSlots().get(i + 1)];
                 }
-                Object[] tempData = new Object[(int) Math.max(info.page() + 1, data.length)];
-                System.arraycopy(data, 0, tempData, 0, data.length);
-                tempData[(int) info.page()] = SerializeInventory.itemStackArrayToBase64(currentContents);
-                data = tempData;
+                // get all items
+                ItemStack[][] allItems = data.length > 1 && data[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[GUI.getMaxBountyItemSlots()][(int) info.page()];
+                allItems[(int) info.page() - 1] = currentContents; // set current content
+                data = new Object[]{data[0], allItems};
                 playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(info.page(), info.guiType(), data, info.displayItems(), info.title()));
             }
             StringBuilder builder = new StringBuilder();
@@ -116,18 +116,15 @@ public class ActionCommands {
                 if (info.guiType().equals("bounty-item-select")) {
                     if (i == 0)
                         // player uuid to set bounty on
-                        builder.append(data[0].toString()).append(' ');
+                        builder.append(data[0]).append(' ');
                     else if (i > 1)
                         builder.append(",");
                     if (i > 0) {
-                        // items to set bounty but encoded in base64
-                        try {
-                            ItemStack[] contents = SerializeInventory.itemStackArrayFromBase64(data[i].toString()); // decode items
-                            builder.append(NumberFormatting.listItems(Arrays.asList(contents), ':'));
-                        } catch (IOException e) {
-                            Bukkit.getLogger().warning("[NotBounties] Could not deserialize string while preparing {data} replacement: " + data[i].toString());
-                            Bukkit.getLogger().warning(e.toString());
-                        }
+                        // items to set bounty
+                        ItemStack[][] allItems = (ItemStack[][]) data[i];
+                        List<ItemStack> listItems = new ArrayList<>();
+                        Arrays.stream(allItems).forEach(itemStacks -> Arrays.stream(itemStacks).filter(Objects::nonNull).forEach(listItems::add));
+                        builder.append(NumberFormatting.listItems(listItems, ':'));
                     }
                 } else {
                     if (i > 0)
@@ -493,19 +490,24 @@ public class ActionCommands {
                     Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not set up.");
                     return;
                 }
+
+                // get current inventory items from gui info
+                ItemStack[][] allItems = (ItemStack[][]) info.data()[1];
                 // get all items in player slots except first one
-                List<ItemStack> items = new ArrayList<>();
+                ItemStack[] items = new ItemStack[allItems[0].length];
                 for (int i = 1; i < gui.getPlayerSlots().size(); i++) {
                     ItemStack item = player.getOpenInventory().getItem(gui.getPlayerSlots().get(i));
-                    if (item != null)
-                        items.add(item);
+                    items[i-1] = item;
                 }
-                // create new data object
-                Object[] data = new Object[(int) Math.max(info.page() + 1, info.data().length)];
-                System.arraycopy(info.data(),0,data,0,info.data().length);
-                data[(int) (info.page())] = SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0]));
+                // create new array to fit a new page if needed
+                ItemStack[][] newItems = new ItemStack[(int) Math.max(info.page() + amount, allItems.length)][allItems[0].length];
+                // transfer all items into new items
+                System.arraycopy(allItems,0,newItems,0,allItems.length);
+                // set the current page's items in the array
+                newItems[(int) (info.page()-1)] = items;
+
                 // open GUI
-                openGUI(player, info.guiType(), info.page() + amount, data);
+                openGUI(player, info.guiType(), info.page() + amount, info.data()[0], newItems);
             } else if (!info.guiType().isEmpty()){
                 openGUI(player, info.guiType(), info.page() + amount, info.data());
             }
@@ -543,19 +545,18 @@ public class ActionCommands {
                         Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not set up.");
                         return;
                     }
+                    // get current inventory items from gui info
+                    ItemStack[][] allItems = (ItemStack[][]) info.data()[1];
                     // get all items in player slots except first one
-                    List<ItemStack> items = new ArrayList<>();
+                    ItemStack[] items = new ItemStack[allItems[0].length];
                     for (int i = 1; i < gui.getPlayerSlots().size(); i++) {
                         ItemStack item = player.getOpenInventory().getItem(gui.getPlayerSlots().get(i));
-                        if (item != null)
-                            items.add(item);
+                        items[i-1] = item;
                     }
-                    // create new data object
-                    Object[] data = new Object[(int) Math.max(info.page() + 1, info.data().length)];
-                    System.arraycopy(info.data(), 0, data, 0, info.data().length);
-                    data[(int) (info.page())] = SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0]));
+                    // change current page in current inventory items
+                    allItems[(int) (info.page()-1)] = items;
                     // open GUI
-                    openGUI(player, info.guiType(), info.page() - amount, data);
+                    openGUI(player, info.guiType(), info.page() - amount, info.data()[0], allItems);
                 }
                 default -> openGUI(player, info.guiType(), info.page() - amount, info.data());
             }

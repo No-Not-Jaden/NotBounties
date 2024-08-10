@@ -50,11 +50,12 @@ public class BountyBoard {
         if (frame == null) {
             EntityType type = ConfigOptions.boardGlow && NotBounties.serverVersion >= 17 ? EntityType.GLOW_ITEM_FRAME : EntityType.ITEM_FRAME;
             try {
+                ItemStack map = BountyMap.getMap(bounty);
+                if (map == null)
+                    return;
                 frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, type);
                 frame.getPersistentDataContainer().set(NotBounties.namespacedKey, PersistentDataType.STRING, NotBounties.sessionKey);
                 frame.setFacingDirection(direction, true);
-                //frame.setRotation(Rotation.NONE);
-                ItemStack map = BountyMap.getMap(bounty);
                 ItemMeta mapMeta = map.getItemMeta();
                 assert mapMeta != null;
                 mapMeta.setDisplayName(LanguageOptions.parse(ConfigOptions.boardName, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));

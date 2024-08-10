@@ -19,6 +19,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -46,12 +47,29 @@ public class GUIOptions {
     private final boolean addPage;
     private final String type;
     private final Map<Integer, CustomItem> pageReplacements = new HashMap<>();
+    private final InventoryType inventoryType;
 
     public GUIOptions(ConfigurationSection settings) {
+        InventoryType inventoryType1;
         type = settings.getName();
         name = settings.isSet("gui-name") ? color(settings.getString("gui-name")) : "Custom GUI";
         playerSlots = new ArrayList<>();
-        size = settings.isSet("size") ? settings.getInt("size") : 54;
+        if (settings.isString("inventory-type")) {
+            try {
+                inventoryType1 = InventoryType.valueOf(Objects.requireNonNull(settings.getString("inventory-type")).toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                Bukkit.getLogger().warning("[NotBounties] Invalid inventory type \"" + settings.getString("inventory-type") + "\" for gui: " + type);
+                inventoryType1 = InventoryType.CHEST;
+            }
+        } else {
+            inventoryType1 = InventoryType.CHEST;
+        }
+        inventoryType = inventoryType1;
+        if (inventoryType == InventoryType.CHEST) {
+            size = settings.isSet("size") ? settings.getInt("size") : 54;
+        } else {
+            size = inventoryType.getDefaultSize();
+        }
         addPage = settings.isSet("add-page") && settings.getBoolean("add-page");
         sortType = settings.isSet("sort-type") ? settings.getInt("sort-type") : 1;
         removePageItems = settings.getBoolean("remove-page-items");
@@ -82,6 +100,7 @@ public class GUIOptions {
                         if (i >= customItems.length) {
                             Bukkit.getLogger().warning("[NotBounties] Error loading custom item in GUI: " + type);
                             Bukkit.getLogger().warning("Slot " + i + " is bigger than the inventory size! (max=" + (size-1) + ")");
+                            continue;
                         }
                         //Bukkit.getLogger().info(i + "");
                         if (customItems[i] != null) {
@@ -111,7 +130,7 @@ public class GUIOptions {
 
     public CustomItem getCustomItem(int slot, long page, int entryAmount) {
         // Check if slot is in bounds (-999 is a click outside the GUI)
-        if (slot >= customItems.length || slot == -999)
+        if (slot >= customItems.length || slot < 0)
             return null;
         CustomItem item = customItems[slot];
         if (item == null)
@@ -144,7 +163,7 @@ public class GUIOptions {
         if (page < 1) {
             page = 1;
         }
-        Inventory inventory = Bukkit.createInventory(player, size, title);
+        Inventory inventory = inventoryType == InventoryType.CHEST ? Bukkit.createInventory(player, size, title) : Bukkit.createInventory(player, inventoryType, title);
         ItemStack[] contents = inventory.getContents();
         // set up regular items
         for (int i = 0; i < contents.length; i++) {
@@ -189,15 +208,10 @@ public class GUIOptions {
             new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, data, displayItems, title), unloadedHeads);
         }
 
-        if  (type.equals("bounty-item-select") && data.length > page && data[(int) page] instanceof String items) {
+        if  (type.equals("bounty-item-select") && data.length > 1 && data[1] instanceof ItemStack[][] items && items.length >= page) {
             // load in saved items
-            ItemStack[] savedContents = new ItemStack[0];
-            try {
-                savedContents = SerializeInventory.itemStackArrayFromBase64(items);
-            } catch (IOException e) {
-                Bukkit.getLogger().warning("[NotBounties] Couldn't read saved inventory contents: " + items);
-                Bukkit.getLogger().warning(e.toString());
-            }
+            ItemStack[] savedContents = items[(int) (page-1)];
+
             for (int i = 0; i < savedContents.length; i++) {
                 contents[playerSlots.get(i+1)] = savedContents[i];
             }

@@ -259,7 +259,7 @@ public class Immunity {
                     return ImmunityType.TIME;
                 break;
             case SCALING:
-                if (getImmunity(receiver.getUniqueId()) * scalingRatio >= amount)
+                if (getImmunity(receiver.getUniqueId()) * scalingRatio >= amount && amount != 0)
                     return ImmunityType.SCALING;
                 break;
             case PERMANENT:

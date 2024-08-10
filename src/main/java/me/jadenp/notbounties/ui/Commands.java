@@ -27,11 +27,13 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.Debug;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.IntStream;
 
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.reopenBountiesGUI;
@@ -895,8 +897,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (event.isCancelled())
                                             return true;
                                         NumberFormatting.doRemoveCommands(parser, (bounty.getTotalDisplayBounty() * buyBackInterest), new ArrayList<>());
-                                        if (bountyItemsBuyItem)
+                                        if (bountyItemsBuyItem) {
                                             NumberFormatting.givePlayer(parser, bounty.getTotalItemBounty(), false);
+                                        } else {
+                                            for (Setter setter : bounty.getSetters()) {
+                                                if (!setter.getItems().isEmpty())
+                                                    BountyManager.refundPlayer(setter.getUuid(), 0, setter.getItems());
+                                            }
+                                        }
                                         BountyManager.removeBounty(bounty.getUUID());
                                         ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.BUY_OWN, 1);
                                         reopenBountiesGUI();
@@ -1539,7 +1547,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                     // check if we can get the amount
                     double amount = 0;
-                    Map<Material, Integer> requestedItems = new HashMap<>();
+                    Map<Material, Integer> requestedItems = new EnumMap<>(Material.class);
                     List<ItemStack> items = new ArrayList<>();
                     boolean usingGUI = false;
                     if (bountyItemMode == BountyItemMode.ALLOW || bountyItemMode == BountyItemMode.EXCLUSIVE) {
@@ -1586,16 +1594,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (info.guiType().equals("bounty-item-select")) {
                                         usingGUI = true;
                                         // get items from data
-                                        for (int i = 1; i < info.data().length; i++) {
-                                            try {
-                                                ItemStack[] contents = SerializeInventory.itemStackArrayFromBase64(info.data()[i].toString());
-                                                for (ItemStack item : contents)
-                                                    if (item != null)
-                                                        items.add(item);
-                                            } catch (IOException e) {
-                                                Bukkit.getLogger().warning("[NotBounties] Could not deserialize items: " + info.data()[i].toString());
-                                                Bukkit.getLogger().warning(e.toString());
-                                            }
+                                        if (info.data().length > 1 && info.data()[1] instanceof ItemStack[][] allItems) {
+                                            // add all items to items arraylist
+                                            Arrays.stream(allItems).forEach(itemStacks -> Arrays.stream(itemStacks).filter(Objects::nonNull).forEach(items::add));
                                         }
                                     }
                                 }
@@ -1672,7 +1673,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
 
-                    if (amount < ConfigOptions.minBounty) {
+                    if (!(amount >= ConfigOptions.minBounty || (!items.isEmpty() && !bountyItemsUseItemValues))) {
                         if (!silent)
                             sender.sendMessage(parse(prefix + LanguageOptions.minBounty, ConfigOptions.minBounty, parser));
                         return false;
@@ -1729,7 +1730,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 // if there are items, open set-bounty-item gui
                                 if (!items.isEmpty()) {
                                     // format items to take up multiple pages if necessary
-                                    String[] serializedItems = NumberFormatting.serializeItems(new ArrayList<>(items), GUI.getGUI("bounty-item-select").getPlayerSlots().size() - 1);
+                                    ItemStack[][] serializedItems = NumberFormatting.separateItems(new ArrayList<>(items), GUI.getMaxBountyItemSlots());
+
                                     // take items from player if not using the GUI
                                     if (!usingGUI) {
                                         NumberFormatting.removeItems(parser, new ArrayList<>(items), true);

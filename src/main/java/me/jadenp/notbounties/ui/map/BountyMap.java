@@ -330,7 +330,14 @@ public class BountyMap implements Listener {
         ItemStack mapItem = new ItemStack(Material.FILLED_MAP);
         MapMeta meta = (MapMeta) mapItem.getItemMeta();
         assert meta != null;
-        meta.setMapView(mapView);
+        try {
+            meta.setMapView(mapView);
+        } catch (NullPointerException e) {
+            // error with the map id
+            NotBounties.debugMessage("Error setting map view for poster!", true);
+            NotBounties.debugMessage(e.toString(), true);
+            return null;
+        }
         meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, displayBounty, parser));
         ArrayList<String> lore = new ArrayList<>();
         for (String str : LanguageOptions.mapLore) {

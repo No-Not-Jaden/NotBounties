@@ -238,8 +238,10 @@ bounty-gui:
   # 2 : more expensive bounties at top
   # 3 : less expensive bounties at top
   sort-type: 2
-  # how many slots in the GUI
-  # looks best with multiples of 9
+  # What type of inventory this GUI has
+  inventory-type: CHEST
+  # how many slots in the GUI if you are using a chest
+  # must be multiples of 9
   size: 54
   # name of the gui
   # you can use {page} and {page_max} separately from the add-page option
@@ -540,21 +542,21 @@ confirm-bounty:
       item: yes-bounty
       slot: 41-43
 settings-gui:
-  size: 27
+  inventory-type: HOPPER
   gui-name: '&9&lSettings'
   layout:
     1:
       item: fill
-      slot: 0-26
+      slot: 0-4
     2:
       item: return
-      slot: 13
-    3:
-      item: toggle-whitelist
-      slot: 10
+      slot: 0
+    #3:
+    #  item: toggle-whitelist
+    #  slot: 2
     4:
       item: toggle-broadcast
-      slot: 16
+      slot: 4
 challenges:
   size: 27
   gui-name: '&c&lChallenges'

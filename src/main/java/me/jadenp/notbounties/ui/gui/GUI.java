@@ -36,6 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
@@ -66,6 +67,13 @@ public class GUI implements Listener {
         if (customGuis.containsKey(guiName))
             return customGuis.get(guiName);
         return null;
+    }
+
+    public static int getMaxBountyItemSlots() {
+        if (customGuis.containsKey("bounty-item-select")) {
+            return customGuis.get("bounty-item-select").getPlayerSlots().size() - 1;
+        }
+        return 54;
     }
 
     public static List<DisplayItem> getGUIValues(Player player, String name, long page, Object[] data) {
@@ -277,14 +285,9 @@ public class GUI implements Listener {
             case "bounty-item-select":
                 UUID uuid3 = data.length > 0 && data[0] instanceof UUID uuid ? uuid : player.getUniqueId();
                 double total = 0;
-                try {
-                    for (int i = 1; i < data.length; i++) {
-                        ItemStack[] contents = SerializeInventory.itemStackArrayFromBase64((String) data[i]);
-                        total+= NumberFormatting.getTotalValue(Arrays.asList(contents));
-                    }
-                } catch (IOException | ClassCastException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Error trying to open the bounty-item-select GUI.");
-                    Bukkit.getLogger().warning(e.toString());
+                ItemStack[][] items = data.length > 1 && data[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[1][getMaxBountyItemSlots()];
+                for (ItemStack[] item : items) {
+                    total += NumberFormatting.getTotalValue(Arrays.asList(item));
                 }
                 displayItems.add(new PlayerItem(uuid3, total, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
                 break;
@@ -453,41 +456,50 @@ public class GUI implements Listener {
         PlayerGUInfo guInfo = playerInfo.get(player.getUniqueId());
         if (guInfo.guiType().equals("bounty-item-select")){
             GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
+            if (guiOptions == null) {
+                Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not setup.");
+                return;
+            }
             // give back items
-            Object[] data = guInfo.data();
-            List<ItemStack[]> deserializedItems = new ArrayList<>();
-            for (int i = 1; i < data.length; i++) {
-                String serializedItems = data[i].toString();
-                try {
-                    ItemStack[] items = SerializeInventory.itemStackArrayFromBase64(serializedItems);
-                    deserializedItems.add(items);
-                } catch (IOException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Couldn't deserialize items: " + serializedItems);
-                    Bukkit.getLogger().warning(e.toString());
+            if (guInfo.data().length > 1 && guInfo.data()[1] instanceof ItemStack[][] allItems) {
+                // the data doesn't currently hold the correct items for the opened page
+                // update current contents
+                ItemStack[] currentContents = new ItemStack[getMaxBountyItemSlots()];
+                for (int i = 0; i < currentContents.length; i++) {
+                    currentContents[i] = inventory.getContents()[guiOptions.getPlayerSlots().get(i + 1)];
                 }
-            }
-            // the data doesn't currently hold the correct items for the opened page
-            // update current contents
-            ItemStack[] currentContents = new ItemStack[guiOptions.getPlayerSlots().size() - 1];
-            for (int i = 0; i < currentContents.length; i++) {
-                currentContents[i] = inventory.getContents()[guiOptions.getPlayerSlots().get(i + 1)];
-            }
-            if (deserializedItems.size() >= guInfo.page()) {
-                deserializedItems.set((int) (guInfo.page()-1), currentContents);
-            } else {
-                deserializedItems.add(currentContents);
-            }
+                if (allItems.length >= guInfo.page()) {
+                    // has space for the page
+                    allItems[(int) (guInfo.page() - 1)] = currentContents;
+                    currentContents = new ItemStack[0]; // clear contents because both lists will be added
+                }
 
+                // give items back
+                if (shutdown) {
+                    // plugin is shutting down, add to refund
+                    for (ItemStack[] items : allItems) {
+                        List<ItemStack> addedItems = Arrays.stream(items).filter(Objects::nonNull).toList();
+                        if (!addedItems.isEmpty())
+                            BountyManager.refundPlayer(player.getUniqueId(), 0, addedItems);
+                    }
 
-            // give items back
-            if (shutdown) {
-                // plugin is shutting down, add to refund
-                for (ItemStack[] items : deserializedItems)
-                    BountyManager.refundPlayer(player.getUniqueId(), 0, Arrays.asList(items));
-            } else {
-                // can give items
-                for (ItemStack[] items : deserializedItems)
-                    NumberFormatting.givePlayer(player, Arrays.asList(items), true);
+                    // add current items (maybe empty)
+                    List<ItemStack> addedItems = Arrays.stream(currentContents).filter(Objects::nonNull).toList();
+                    if (!addedItems.isEmpty())
+                        BountyManager.refundPlayer(player.getUniqueId(), 0, addedItems);
+                } else {
+                    // can give items
+                    for (ItemStack[] items : allItems) {
+                        List<ItemStack> addedItems = Arrays.stream(items).filter(Objects::nonNull).toList();
+                        if (!addedItems.isEmpty())
+                            NumberFormatting.givePlayer(player, addedItems, true);
+                    }
+
+                    // add current items (maybe empty)
+                    List<ItemStack> addedItems = Arrays.stream(currentContents).filter(Objects::nonNull).toList();
+                    if (!addedItems.isEmpty())
+                        NumberFormatting.givePlayer(player, addedItems, true);
+                }
             }
         }
     }
@@ -633,17 +645,18 @@ public class GUI implements Listener {
                                     if (info.page() == newOptions.page() && newOptions.guiType().equals(info.guiType())) {
                                         // page hasn't changed
                                         GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
+                                        if (guiOptions == null)
+                                            return; // this shouldn't be reached
                                         // read current inventory
-                                        ItemStack[] currentContents = new ItemStack[guiOptions.getPlayerSlots().size() - 1];
+                                        ItemStack[] currentContents = new ItemStack[GUI.getMaxBountyItemSlots()];
                                         for (int i = 0; i < currentContents.length; i++) {
                                             currentContents[i] = event.getInventory().getContents()[guiOptions.getPlayerSlots().get(i + 1)];
                                         }
-                                        // create new data
-                                        Object[] data = new Object[(int) Math.max(newOptions.data().length, newOptions.page() + 1)];
-                                        System.arraycopy(newOptions.data(), 0, data, 0, newOptions.data().length);
-                                        data[(int) (newOptions.page())] = SerializeInventory.itemStackArrayToBase64(currentContents);
+                                        // get all items
+                                        ItemStack[][] allItems = newOptions.data().length > 1 && newOptions.data()[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[GUI.getMaxBountyItemSlots()][(int) newOptions.page()];
+                                        allItems[(int) newOptions.page()-1] = currentContents; // set current content
                                         // open gui
-                                        openGUI((Player) event.getWhoClicked(), "bounty-item-select", newOptions.page(), data);
+                                        openGUI((Player) event.getWhoClicked(), "bounty-item-select", newOptions.page(), newOptions.data()[0], allItems);
                                     }
                                 }
                             }

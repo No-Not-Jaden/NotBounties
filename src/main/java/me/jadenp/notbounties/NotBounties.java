@@ -56,30 +56,8 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Redis - create and test after
  * Folia
  * Team bounties
- * can change levels and number formatting configuration sections - x
- * override-type - x
- * receive % of bounty when killing another bountied player (option to have bounty on urslef to activate) murdr bounties - x
- * display bountied items in a GUI - x
- * daily and weekly backup of bounties.yml file, check in save() function
- * added bounties in the queue are saved to the file - x
- * what to do if setter sets a bounty on the same person and is deleted on another server - x
- * fix sql to remove old bounties - x
- * bounty maps for offline players - x
- * edit is now a change instead of new value - x
- * Check sql for update before claiming a bounty & remove bounty instantly - x
- * push stat change when they are edited through a command - x
- * Does inserting new bounties keep the order? x
- * admins can remove/edit setters in view-bounty gui - x
  *
- * challenges work x
- * bedrock GUIs don't work x
- * tracker min bounty - x
- * can use different faction plugins -
- * contribution same for each x
- * requires java 17
- * view bounty with multiple pages x
  * test player specific challenges
- * bedrock open gui msg x
  */
 public final class NotBounties extends JavaPlugin {
 

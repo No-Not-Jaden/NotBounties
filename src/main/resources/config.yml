@@ -33,12 +33,13 @@ currency:
     # The bounty-item-select GUI will be opened by default instead of the price-select if this is true
     default-gui: false
     # the item values in item-values.yml will be used for tax and other features that use the total bounty
+    # you may want to override immunity if you disable this
     use-item-values: true
     # Players can set item bounties on people with immunity
     # The value of the items may not be mapped to a currency value which doesn't work well if you want to add high valued items like Netherite to the bounty
     override-immunity: false
     # When the player buys their own bounty, they will get any items set on them
-    # If this is false, the items will be deleted
+    # If this is false, the items will be sent back to the setter
     buy-items: true
     # Items from the player's inventory are tab completed when setting a bounty
     # This could cause some lag

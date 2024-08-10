@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui.gui.displayItems;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -38,7 +39,8 @@ public class CurrencyItem implements DisplayItem, AmountItem{
 
     @Override
     public String parseText(String text, Player player) {
-        return LanguageOptions.parse(text, amount, player);
+        text = text.replace("{items}", "");
+        return LanguageOptions.parse(text, amount, Bukkit.getOfflinePlayer(owningPlayer));
     }
 
     public CurrencyItem(UUID owningPlayer, double amount, List<String> additionalLore) {

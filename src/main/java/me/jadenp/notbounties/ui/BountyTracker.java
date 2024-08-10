@@ -86,7 +86,12 @@ public class BountyTracker implements Listener {
         TABPosition = configuration.getBoolean("action-bar.position");
         TABWorld = configuration.getBoolean("action-bar.world");
 
-        registerRecipes();
+        try {
+            registerRecipes();
+        } catch (UnsupportedOperationException e) {
+            Bukkit.getLogger().warning("[NotBounties] Bounty tracker recipe cannot be registered. This is probably due to an unsupported server type.");
+            NotBounties.debugMessage(e.toString(), true);
+        }
     }
 
     public static boolean isEnabled() {
@@ -97,24 +102,25 @@ public class BountyTracker implements Listener {
         return bountyTrackerRecipe;
     }
 
-    private static void registerRecipes(){
+    private static void registerRecipes() throws UnsupportedOperationException{
         bountyTrackerRecipe = new NamespacedKey(NotBounties.getInstance(),"bounty_tracker");
-        Bukkit.removeRecipe(bountyTrackerRecipe);
-        ShapedRecipe bountyTrackerCraftingPattern = new ShapedRecipe(
-                bountyTrackerRecipe,
-                getEmptyTracker()
-        );
-        bountyTrackerCraftingPattern.shape(" AS", "ACA", "AA ");
-        if (NotBounties.serverVersion >= 18)
-            bountyTrackerCraftingPattern.setIngredient('S', Material.SPYGLASS);
-        else
-            bountyTrackerCraftingPattern.setIngredient('S', Material.TRIPWIRE_HOOK);
-        if (NotBounties.serverVersion >= 17)
-            bountyTrackerCraftingPattern.setIngredient('A', Material.AMETHYST_SHARD);
-        else
-            bountyTrackerCraftingPattern.setIngredient('A', Material.PAPER);
-        bountyTrackerCraftingPattern.setIngredient('C', Material.COMPASS);
-        Bukkit.addRecipe(bountyTrackerCraftingPattern);
+        if (Bukkit.getRecipe(bountyTrackerRecipe) == null) {
+            ShapedRecipe bountyTrackerCraftingPattern = new ShapedRecipe(
+                    bountyTrackerRecipe,
+                    getEmptyTracker()
+            );
+            bountyTrackerCraftingPattern.shape(" AS", "ACA", "AA ");
+            if (NotBounties.serverVersion >= 18)
+                bountyTrackerCraftingPattern.setIngredient('S', Material.SPYGLASS);
+            else
+                bountyTrackerCraftingPattern.setIngredient('S', Material.TRIPWIRE_HOOK);
+            if (NotBounties.serverVersion >= 17)
+                bountyTrackerCraftingPattern.setIngredient('A', Material.AMETHYST_SHARD);
+            else
+                bountyTrackerCraftingPattern.setIngredient('A', Material.PAPER);
+            bountyTrackerCraftingPattern.setIngredient('C', Material.COMPASS);
+            Bukkit.addRecipe(bountyTrackerCraftingPattern);
+        }
     }
 
     public static ItemStack getEmptyTracker() {

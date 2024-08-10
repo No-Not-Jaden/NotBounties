@@ -54,7 +54,8 @@ public class PlayerItem implements DisplayItem, AmountItem{
             text = text.replace("{amount}", NumberFormatting.formatNumber(amount));
         }
         text = text.replace("{rank}", (index + 1) + "")
-                .replace("{leaderboard}", displayType.toString());
+                .replace("{leaderboard}", displayType.toString())
+                .replace("{items}", "");
         return LanguageOptions.parse(text, amount, time, LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(uuid));
     }
 

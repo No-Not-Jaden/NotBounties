@@ -5,9 +5,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIClicks;
-import me.jadenp.notbounties.ui.gui.displayItems.AmountItem;
-import me.jadenp.notbounties.ui.gui.displayItems.DisplayItem;
-import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
+import me.jadenp.notbounties.ui.gui.displayItems.*;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
@@ -192,7 +190,13 @@ public class BedrockGUIOptions {
         if (playerText == null)
             return text;
         for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * maxPlayers); i < Math.min(maxPlayers * page, displayItems.size()); i++) {
-            text.add(displayItems.get(i).parseText(playerText, player));
+            if (type.equals("view-bounty") && (displayItems.get(i) instanceof UnmodifiedItem || displayItems.get(i) instanceof CurrencyItem)) {
+                // override player-text
+                text.add(displayItems.get(i).parseText(listSetter, player).replace("\u202F", " "));
+            } else {
+                text.add(displayItems.get(i).parseText(playerText, player));
+            }
+
         }
         if (type.equalsIgnoreCase("challenges")) {
             GUIComponent[] items = ChallengeManager.getDisplayComponents(player);
@@ -381,7 +385,7 @@ public class BedrockGUIOptions {
                         break;
                 }
             }
-        }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 4);
+        }.runTaskTimer(NotBounties.getInstance(), 0, 4);
 
 
 
