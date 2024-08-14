@@ -1673,7 +1673,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
 
-                    if (!(amount >= ConfigOptions.minBounty || (!items.isEmpty() && !bountyItemsUseItemValues))) {
+                    if (amount < ConfigOptions.minBounty && (items.isEmpty() || bountyItemsUseItemValues != ItemValueMode.DISABLE)) {
                         if (!silent)
                             sender.sendMessage(parse(prefix + LanguageOptions.minBounty, ConfigOptions.minBounty, parser));
                         return false;

@@ -125,6 +125,28 @@ public enum Leaderboard {
         return top;
     }
 
+    public int getRank(UUID uuid){
+        int rank = 1;
+        if (this == Leaderboard.CURRENT) {
+            for (Bounty bounty : BountyManager.getPublicBounties(2)) {
+                if (bounty.getUUID().equals(uuid))
+                    return rank;
+                rank++;
+            }
+        } else {
+            LinkedHashMap<UUID, Double> map = sortByValue(getStatMap());
+            for (Map.Entry<UUID, Double> entry : map.entrySet()){
+                String name = NotBounties.getPlayerName(entry.getKey());
+                if (hiddenNames.contains(name))
+                    continue;
+                if (entry.getKey().equals(uuid))
+                    return rank;
+                rank++;
+            }
+        }
+        return rank;
+    }
+
     /**
      * Construct a map of this specific leaderboard stat.
      * Will not work for the CURRENT leaderboard

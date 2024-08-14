@@ -4,6 +4,7 @@ import com.google.common.primitives.Floats;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ItemValue;
+import me.jadenp.notbounties.utils.externalAPIs.EssentialsXClass;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import me.jadenp.notbounties.utils.externalAPIs.VaultClass;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -22,6 +23,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
@@ -68,9 +70,17 @@ public class NumberFormatting {
     public static boolean bountyItemsBuyItem = true;
     public static boolean tabCompleteItems = false;
     public static boolean bountyItemsDefaultGUI = false;
-    public static boolean bountyItemsUseItemValues = true;
+    public enum ItemValueMode {
+        AUTO, ESSENTIALS, FILE, DISABLE
+    }
+    public static ItemValueMode bountyItemsUseItemValues = ItemValueMode.AUTO;
+    private static boolean essentialsEnabled;
+    private static EssentialsXClass essentialsXClass;
 
     public static void loadConfiguration(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
+        essentialsEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Essentials");
+        if (essentialsEnabled)
+            essentialsXClass = new EssentialsXClass();
         vaultEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
         overrideVault = currencyOptions.getBoolean("override-vault");
         try {
@@ -268,8 +278,21 @@ public class NumberFormatting {
         if (currencyOptions.isSet("bounty-items.default-gui"))
             bountyItemsDefaultGUI = currencyOptions.getBoolean("bounty-items.default-gui");
 
-        if (currencyOptions.isSet("bounty-items.use-item-values"))
-            bountyItemsUseItemValues = currencyOptions.getBoolean("bounty-items.use-item-values");
+        ItemValueMode selectedMode;
+        try {
+            selectedMode = ItemValueMode.valueOf(currencyOptions.getString("bounty-items.item-values"));
+        } catch (IllegalArgumentException e) {
+            selectedMode = ItemValueMode.AUTO;
+            Bukkit.getLogger().warning("[NotBounties] Invalid item values mode!");
+        }
+        if (selectedMode == ItemValueMode.AUTO) {
+            if (essentialsEnabled)
+                bountyItemsUseItemValues = ItemValueMode.ESSENTIALS;
+            else
+                bountyItemsUseItemValues = ItemValueMode.FILE;
+        } else {
+            bountyItemsUseItemValues = selectedMode;
+        }
 
         File itemValuesFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "item-values.yml");
         if (!itemValuesFile.exists()) {
@@ -334,24 +357,37 @@ public class NumberFormatting {
     public static double getItemValue(ItemStack item) {
         if (item == null)
             return 0;
-        if (!bountyItemsUseItemValues)
-            return 0;
-        Material material = item.getType();
-        int customModelData = -1;
-        if (item.getItemMeta() != null && item.getItemMeta().hasCustomModelData())
-            customModelData = item.getItemMeta().getCustomModelData();
-        // check if material is a currency
-        for (String s : currency) {
-            if (material.toString().equalsIgnoreCase(s))
-                return (currencyValues.get(s) + getEnchantmentValue(item)) * item.getAmount();
+        switch (bountyItemsUseItemValues) {
+            case FILE -> {
+                Material material = item.getType();
+                int customModelData = -1;
+                if (item.getItemMeta() != null && item.getItemMeta().hasCustomModelData())
+                    customModelData = item.getItemMeta().getCustomModelData();
+                // check if material is a currency
+                for (String s : currency) {
+                    if (material.toString().equalsIgnoreCase(s))
+                        return (currencyValues.get(s) + getEnchantmentValue(item)) * item.getAmount();
+                }
+                // check if registered as an item value
+                if (itemValues.containsKey(material)) {
+                    double value = itemValues.get(material).getValue(customModelData);
+                    if (value != -1)
+                        return (value * itemValueMultiplier + getEnchantmentValue(item)) * item.getAmount();
+                }
+                return (defaultItemValue + getEnchantmentValue(item)) * item.getAmount();
+            }
+            case ESSENTIALS -> {
+                BigDecimal price = essentialsXClass.getItemValue(item);
+                if (price == null) {
+                    return defaultItemValue * item.getAmount();
+                }
+                return price.doubleValue() * item.getAmount();
+            }
+            default -> {
+                return 0;
+            }
         }
-        // check if registered as an item value
-        if (itemValues.containsKey(material)) {
-            double value = itemValues.get(material).getValue(customModelData);
-            if (value != -1)
-                return (value * itemValueMultiplier + getEnchantmentValue(item)) * item.getAmount();
-        }
-        return (defaultItemValue + getEnchantmentValue(item)) * item.getAmount();
+
     }
 
     private static double getEnchantmentValue(ItemStack item) {

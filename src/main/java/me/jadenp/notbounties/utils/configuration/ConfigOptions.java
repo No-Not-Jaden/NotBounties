@@ -277,6 +277,16 @@ public class ConfigOptions {
             bounties.getConfig().set("teams.saber-factions.ally", null);
         }
 
+        // convert use-item-values to item-vales
+        if (bounties.getConfig().isBoolean("currency.bounty-items.use-item-values")) {
+            if (bounties.getConfig().getBoolean("currency.bounty-items.use-item-values")) {
+                bounties.getConfig().set("currency.bounty-items.item-values", "FILE");
+            } else {
+                bounties.getConfig().set("currency.bounty-items.item-values", "DISABLE");
+            }
+            bounties.getConfig().set("currency.bounty-items.use-item-values", null);
+        }
+
         boolean saveChanges = true;
         if (bounties.getConfig().getKeys(true).size() <= 2) {
             saveChanges = false;

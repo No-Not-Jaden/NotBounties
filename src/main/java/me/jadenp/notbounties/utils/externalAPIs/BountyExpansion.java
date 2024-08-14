@@ -177,6 +177,10 @@ public class BountyExpansion extends PlaceholderExpansion {
             ending = 4;
             params = params.substring(0,params.lastIndexOf("_"));
         }
+        if (params.endsWith("_rank")) {
+            ending = 5;
+            params = params.substring(0,params.lastIndexOf("_"));
+        }
         if (params.startsWith("top_")) {
             params = params.substring(4);
             int rank;
@@ -232,6 +236,9 @@ public class BountyExpansion extends PlaceholderExpansion {
                 return LanguageOptions.parse(leaderboard.getFormattedStat(player.getUniqueId()),player);
             if (ending == 3)
                 return NumberFormatting.getValue(leaderboard.getStat(player.getUniqueId()));
+            if (ending == 5) {
+                return NumberFormatting.formatNumber(leaderboard.getRank(player.getUniqueId()));
+            }
             return NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId()));
         } catch (IllegalArgumentException ignored){
             // not a valid leaderboard
