@@ -294,7 +294,15 @@ public class BountyMap implements Listener {
         MapMeta meta = (MapMeta) itemStack.getItemMeta();
         if (meta == null || meta.getMapView() == null)
             return false;
-        return mapIDs.containsKey(meta.getMapView().getId());
+        try {
+            return mapIDs.containsKey(meta.getMapView().getId());
+        } catch (NullPointerException e) {
+            // error with the map id
+            NotBounties.debugMessage("Error getting map view from poster!", true);
+            NotBounties.debugMessage(e.toString(), true);
+            return false;
+        }
+
     }
 
     public static void loadFont() {

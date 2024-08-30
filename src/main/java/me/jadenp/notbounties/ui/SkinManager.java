@@ -253,7 +253,7 @@ public class SkinManager {
     public static URL getTextureURL(String texture) {
         try {
             String urlJson = new String(Base64.getDecoder().decode(texture));
-            JsonObject urlInput = NotBounties.serverVersion >= 18 ? JsonParser.parseString(urlJson).getAsJsonObject() : new JsonParser().parse(urlJson).getAsJsonObject();
+            JsonObject urlInput = new JsonParser().parse(urlJson).getAsJsonObject();
             JsonElement skinURL = urlInput.get("textures").getAsJsonObject().get("SKIN").getAsJsonObject().get("url");
             return new URI(skinURL.getAsString()).toURL();
         } catch (IOException | URISyntaxException e) {
@@ -340,7 +340,7 @@ class SkinResponseHandler {
                         StatusLine statusLine = new StatusLine(response);
                         NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
                         if (statusLine.getStatusCode() == 200 && response.getBodyText() != null) {
-                            JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseString(response.getBodyText()).getAsJsonObject() : new JsonParser().parse(response.getBodyText()).getAsJsonObject();
+                            JsonObject input = new JsonParser().parse(response.getBodyText()).getAsJsonObject();
                             String value = input.get("value").getAsString();
                             String id = input.get("texture_id").getAsString();
 
@@ -385,7 +385,7 @@ class SkinResponseHandler {
                         StatusLine statusLine = new StatusLine(response);
                         NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
                         if (statusLine.getStatusCode() == 200 && response.getBodyText() != null) {
-                            JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseString(response.getBodyText()).getAsJsonObject() : new JsonParser().parse(response.getBodyText()).getAsJsonObject();
+                            JsonObject input = new JsonParser().parse(response.getBodyText()).getAsJsonObject();
                             JsonObject textureProperty = input.get("properties").getAsJsonArray().get(0).getAsJsonObject();
                             String value = textureProperty.get("value").getAsString();
                             String id = input.get("id").getAsString();
@@ -444,7 +444,7 @@ class SkinResponseHandler {
                     @Override
                     public void completed(final SimpleHttpResponse response) {
                         NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
-                        JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseString(response.getBodyText()).getAsJsonObject() : new JsonParser().parse(response.getBodyText()).getAsJsonObject();
+                        JsonObject input = new JsonParser().parse(response.getBodyText()).getAsJsonObject();
                         if (input.has("errorMessage") && !input.get("errorMessage").isJsonNull()) {
                             failed(new InterruptedException("Failed to get skin for " + playerName + ": " + input.get("errorMessage").getAsString()));
                             return;

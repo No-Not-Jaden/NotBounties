@@ -122,6 +122,8 @@ see-player-list: false
 override-skinsrestorer: false
 # back up any locally stored data
 bounty-backups: true
+# How long a player has to wait before setting another bounty - measured in seconds
+bounty-cooldown: 2
 # The commands players can use to use bounties.
 # The first option is the one the plugin uses when forcing players to execute a command.
 # A restart is required after making changes.
@@ -267,6 +269,8 @@ wanted-tag:
 # commands to be executed when a bounty is claimed
 # see https://github.com/No-Not-Jaden/NotBounties/wiki/Action-Commands for a description of the special actions you can use here
 bounty-claim-commands: []
+# commands to be executed when a bounty is set
+bounty-set-commands: []
 # prompt feature settings for action commands
 prompts:
   # how many attempts the player gets before the prompt is canceled
@@ -524,5 +528,14 @@ database:
   # the id of the server used to get all players on the network
   # this needs to be different for all servers connected to the same database
   server-id: 1
+# Redis connection
+redis:
+  host: localhost
+  port: 3306
+  user: username
+  password: pass
+  database-number: -1
+  ssl: false
+  auto-connect: false
 # send server stats like most other plugins do
 send-bstats: true

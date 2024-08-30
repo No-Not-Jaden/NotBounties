@@ -58,6 +58,9 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Team bounties
  *
  * test player specific challenges
+ * sync redis with mysql or get redis faster
+ * bounty cooldown - x
+ * bounty set commands
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -191,11 +194,6 @@ public final class NotBounties extends JavaPlugin {
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new BountyExpansion().register();
-        }
-
-
-        if (!DataManager.tryToConnect()) {
-            Bukkit.getLogger().info("[NotBounties] Database not connected, using internal storage");
         }
 
         // load skins for bounties
@@ -473,6 +471,10 @@ public final class NotBounties extends JavaPlugin {
         for (Map.Entry<UUID, List<ItemStack>> entry : refundedItems.entrySet()) {
             configuration.set("data." + entry.getKey().toString() + ".refund-items", SerializeInventory.itemStackArrayToBase64(entry.getValue().toArray(new ItemStack[0])));
         }
+        if (bountyCooldown > 0)
+            for (Map.Entry<UUID, Long> entry : bountyCooldowns.entrySet()) {
+                configuration.set("data." + entry.getKey().toString() + ".last-set", entry.getValue());
+            }
         configuration.set("disable-broadcast", disableBroadcast.stream().map(UUID::toString).toList());
         i = 0;
         for (Map.Entry<UUID, List<RewardHead>> mapElement : headRewards.entrySet()) {
@@ -534,7 +536,6 @@ public final class NotBounties extends JavaPlugin {
             try {
                 if (today.createNewFile()) {
                     configuration.save(today);
-                    Bukkit.getLogger().info("[NotBounties] Created daily backup.");
                 }
             } catch (IOException e) {
                 Bukkit.getLogger().warning(e.toString());
@@ -625,6 +626,7 @@ public final class NotBounties extends JavaPlugin {
     public void onDisable() {
         // Plugin shutdown logic
         SkinManager.shutdown();
+        DataManager.shutdown();
         // close all GUIs
         for (Player player : Bukkit.getOnlinePlayers()) {
             GUI.safeCloseGUI(player, true);

@@ -6,6 +6,8 @@ import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.redis.RedisConnection;
+import me.jadenp.notbounties.redis.RedisGetter;
 import me.jadenp.notbounties.sql.MySQL;
 import me.jadenp.notbounties.sql.SQLGetter;
 import me.jadenp.notbounties.ui.BountyTracker;
@@ -46,6 +48,8 @@ import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 public class DataManager {
     private static MySQL sql;
     private static SQLGetter data;
+    private static RedisConnection redis;
+    private static RedisGetter redisData;
     private static final Map<UUID, Double[]> stats = new HashMap<>();
     private static final Map<UUID, Double[]> statChanges = new HashMap<>();
     private static final List<Bounty> activeBounties = new LinkedList<>(); // Collections.synchronizedList(new LinkedList<>()); // stored in descending order
@@ -143,6 +147,7 @@ public class DataManager {
                         stat[4] = configuration.getDouble("data." + i + ".immunity");
                     if (configuration.isSet("data." + i + ".all-claimed"))
                         stat[5] = configuration.getDouble("data." + i + ".all-claimed");
+
                     stats.put(uuid, stat);
                     if (configuration.isSet("data." + i + ".broadcast")) {
                         NotBounties.disableBroadcast.add(uuid);
@@ -191,7 +196,8 @@ public class DataManager {
                             }
                         if (configuration.isSet("data." + uuid + ".time-zone"))
                             LocalTime.addTimeZone(uuid, configuration.getString("data." + uuid + ".time-zone"));
-
+                        if (bountyCooldown > 0 && configuration.isSet("data." + uuid + ".last-set"))
+                            BountyManager.bountyCooldowns.put(uuid, configuration.getLong("data." + uuid + ".last-set"));
                     }
                 if (!timedBounties.isEmpty())
                     TimedBounties.setNextBounties(timedBounties);
@@ -256,7 +262,33 @@ public class DataManager {
         }
         activeBounties.addAll(bountyList);
         tryToConnect();
+        tryToConnectRedis();
         sortActiveBounties();
+    }
+
+    private static boolean tryToConnectRedis() {
+        if (!redis.isConnected())
+            redis.reconnect();
+        if (redis.isConnected()) {
+            // migrate data if any
+            if (!activeBounties.isEmpty()) {
+                List<Bounty> allBounties = new ArrayList<>(activeBounties);
+                activeBounties.clear();
+                Bukkit.getLogger().info(() -> "[NotBounties] Migrated " + allBounties.size() + " bounties to Redis.");
+                for (Bounty bounty : allBounties) {
+                    redisData.addBounty(bounty);
+                }
+            }
+            if (!stats.isEmpty()) {
+                Map<UUID, Double[]> stat = new HashMap<>(stats);
+                stats.clear();
+                for (Map.Entry<UUID, Double[]> entry : stat.entrySet()) {
+                    redisData.addStats(entry.getKey(), entry.getValue());
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -301,6 +333,8 @@ public class DataManager {
      *
      */
     public static void startAutoConnect() {
+        if (!firstConnect)
+            redis.reconnect();
         if (autoConnectTask != null) {
             autoConnectTask.cancel();
         }
@@ -335,36 +369,42 @@ public class DataManager {
             else
                 return 0;
         }
-        if (stats.containsKey(uuid)) {
-            Double[] stat = stats.get(uuid);
-            switch (leaderboard) {
-                case KILLS -> {
-                    return stat[0];
-                }
-                case SET -> {
-                    return stat[1];
-                }
-                case DEATHS -> {
-                    return stat[2];
-                }
-                case ALL -> {
-                    return stat[3];
-                }
-                case IMMUNITY -> {
-                    return stat[4];
-                }
-                case CLAIMED -> {
-                    return stat[5];
-                }
-                default -> {
-                    return 0;
-                }
+        Double[] stat;
+        if (redis.isConnected()) {
+            stat = redisData.getStats(uuid);
+        } else if (stats.containsKey(uuid)) {
+            stat = stats.get(uuid);
+        } else {
+            return 0;
+        }
+        switch (leaderboard) {
+            case KILLS -> {
+                return stat[0];
+            }
+            case SET -> {
+                return stat[1];
+            }
+            case DEATHS -> {
+                return stat[2];
+            }
+            case ALL -> {
+                return stat[3];
+            }
+            case IMMUNITY -> {
+                return stat[4];
+            }
+            case CLAIMED -> {
+                return stat[5];
+            }
+            default -> {
+                return 0;
             }
         }
-        return 0;
     }
 
    public static Map<UUID, Double[]> getAllStats() {
+        if (redis.isConnected())
+            return redisData.getAllStats();
         return stats;
    }
 
@@ -374,8 +414,8 @@ public class DataManager {
      * @param leaderboard Stat to change.
      * @param change The amount the stat should change by.
      */
-    public static synchronized void changeStat(UUID uuid, Leaderboard leaderboard, double change, boolean commit) {
-        Double[] stat = stats.containsKey(uuid) ? stats.get(uuid) : new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
+    public static void changeStat(UUID uuid, Leaderboard leaderboard, double change, boolean commit) {
+        Double[] stat = stats.containsKey(uuid) ? stats.get(uuid) : new Double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         Double[] prevChanges = statChanges.containsKey(uuid) && (!commit || !sql.isConnected()) ? statChanges.get(uuid) : new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
         switch (leaderboard) {
             case KILLS -> {
@@ -406,7 +446,31 @@ public class DataManager {
                 // current stat can't be changed with this method because it is based on their current bounty
             }
         }
-        stats.put(uuid, stat);
+        // redis
+        if (redis.isConnected())
+            redisData.addStats(uuid, stat);
+        else
+            stats.put(uuid, stat);
+        // mySQL
+        if (!commit || !sql.isConnected())
+            statChanges.put(uuid, prevChanges);
+        else
+            data.addData(uuid, prevChanges);
+    }
+
+    public static void changeStats(UUID uuid, Double[] changes, boolean commit) {
+        Double[] stat = stats.containsKey(uuid) ? stats.get(uuid) : new Double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        Double[] prevChanges = statChanges.containsKey(uuid) && (!commit || !sql.isConnected()) ? statChanges.get(uuid) : new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
+        for (int i = 0; i < stat.length; i++) {
+            stat[i]+= changes[i];
+            prevChanges[i]+= changes[i];
+        }
+        // redis
+        if (redis.isConnected())
+            redisData.addStats(uuid, stat);
+        else
+            stats.put(uuid, stat);
+        // mySQL
         if (!commit || !sql.isConnected())
             statChanges.put(uuid, prevChanges);
         else
@@ -416,7 +480,11 @@ public class DataManager {
     /**
      * Sorts the active bounties
      */
-    private static void sortActiveBounties() {
+    private static void sortActiveBounties()
+    {
+        if (redis.isConnected())
+            redisData.sortBounties();
+        else
             activeBounties.sort(Comparator.reverseOrder());
     }
 
@@ -442,15 +510,31 @@ public class DataManager {
     public static void loadDatabase(){
         sql = new MySQL(NotBounties.getInstance());
         data = new SQLGetter(sql);
+        redis = new RedisConnection(NotBounties.getInstance());
+        redisData = new RedisGetter(redis);
 
+        if (redis.isConnected()) {
+            Bukkit.getLogger().info("[NotBounties] Redis database is connected!");
+        }
     }
 
     public static @Nullable Bounty getBounty(UUID receiver) {
-        for (Bounty bounty : activeBounties) {
+        for (Bounty bounty : getActiveBounties()) {
             if (bounty.getUUID().equals(receiver))
                 return bounty;
         }
         return null;
+    }
+
+    /**
+     * A private method to get the raw bounties list.
+     * This will try to get the list from redis, otherwise, it will use the local storage.
+     * @return The current active bounties.
+     */
+    private static List<Bounty> getActiveBounties() {
+        if (redis.isConnected())
+            return redisData.getAllBounties(-1);
+        return activeBounties;
     }
 
     public static boolean hasBounty(UUID receiver) {
@@ -458,18 +542,22 @@ public class DataManager {
     }
 
     /**
-     * Replaces a stored bounty without updating the databases
+     * Replaces a stored bounty without updating the mySQL database
      * @param uuid uuid of the bounty to be replaced
      * @param bounty new bounty, or null to remove
      */
     private static void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
-        for (int i = 0; i < activeBounties.size(); i++) {
-            if (activeBounties.get(i).getUUID().equals(uuid)) {
-                if (bounty != null)
-                    activeBounties.set(i, bounty);
-                else
-                    activeBounties.remove(i);
-                break;
+        if (redis.isConnected()) {
+            redisData.replaceBounty(uuid, bounty);
+        } else {
+            for (int i = 0; i < activeBounties.size(); i++) {
+                if (activeBounties.get(i).getUUID().equals(uuid)) {
+                    if (bounty != null)
+                        activeBounties.set(i, bounty);
+                    else
+                        activeBounties.remove(i);
+                    break;
+                }
             }
         }
     }
@@ -577,7 +665,7 @@ public class DataManager {
     public static List<Bounty> sortBounties(int sortType) {
         // how bounties are sorted
         List<Bounty> sortedList;
-        sortedList = new ArrayList<>(activeBounties);
+        sortedList = new ArrayList<>(getActiveBounties());
         if (sortType == -1)
             return sortedList;
         if (sortType == 2)
@@ -608,13 +696,17 @@ public class DataManager {
      */
     public static void deleteBounty(UUID uuid) {
         Bounty removed = null;
-        ListIterator<Bounty> bountyListIterator = activeBounties.listIterator();
-        while (bountyListIterator.hasNext()) {
-            Bounty bounty = bountyListIterator.next();
-            if (bounty.getUUID().equals(uuid)) {
-                bountyListIterator.remove();
-                removed = bounty;
-                break;
+        if (redis.isConnected()) {
+            removed = redisData.removeBounty(uuid);
+        } else {
+            ListIterator<Bounty> bountyListIterator = activeBounties.listIterator();
+            while (bountyListIterator.hasNext()) {
+                Bounty bounty = bountyListIterator.next();
+                if (bounty.getUUID().equals(uuid)) {
+                    bountyListIterator.remove();
+                    removed = bounty;
+                    break;
+                }
             }
         }
         if (removed != null) {
@@ -624,12 +716,22 @@ public class DataManager {
     }
 
     /**
-     * Returns a bounty that is guaranteed to be active. This checks all connected databases for consistency
+     * Shuts down database connections
+     */
+    public static void shutdown() {
+        redis.shutdown();
+    }
+
+    /**
+     * Returns a bounty that is guaranteed to be active. This checks all connected databases
      * @param uuid UUID of the bountied player
      * @return The bounty for the player or null if the player doesn't have one
      */
     public static @Nullable Bounty getGuarrenteedBounty(UUID uuid) {
-        if (sql.isConnected()) {
+        // most up-to-date database
+        if (redis.isConnected()) {
+            return redisData.getBounty(uuid);
+        } else if (sql.isConnected()) {
             // grab bounty from sql database & apply queued changes
             List<BountyChange> completedChanges = new ArrayList<>();
             Bounty sqlBounty = data.getBounty(uuid);
@@ -795,6 +897,9 @@ public class DataManager {
             }
         }
         queuedChanges.addAll(changes);
+        // update value is redis
+        if (redis.isConnected())
+            redisData.replaceBounty(bounty.getUUID(), bounty);
         return bounty;
     }
 
@@ -815,8 +920,11 @@ public class DataManager {
                         queuedChanges.add(new BountyChange(BountyChange.ChangeType.NOTIFY, new UUID[]{player.getUniqueId(), setter.getUuid()})); // add notification changes to queue
                 }
             }
-            if (addedAmount > 0 && sql.isConnected()) {
-                data.notifyPlayer(player.getUniqueId(), lastSQLLoad);
+            if (addedAmount > 0) {
+                if (sql.isConnected())
+                    data.notifyPlayer(player.getUniqueId(), lastSQLLoad);
+                if (redis.isConnected())
+                    redisData.replaceBounty(player.getUniqueId(), bounty);
             }
             BigBounty.setBounty(player, bounty, addedAmount);
             if (bounty.getTotalDisplayBounty() > BigBounty.getThreshold()) {
@@ -859,6 +967,8 @@ public class DataManager {
             deleteBounty(bounty.getUUID());
         } else {
             Bounty removedBounty = new Bounty(bounty.getUUID(), setters, bounty.getName());
+            if (redis.isConnected())
+                redisData.removeBounty(bounty);
             if (!sql.isConnected() || !data.removeBounty(removedBounty))
                 queuedChanges.add(new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, removedBounty));
         }
@@ -877,25 +987,29 @@ public class DataManager {
             queuedChanges.add(new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, new Bounty(newBounty)));
         }
 
+        if (redis.isConnected()) {
+            redisData.addBounty(newBounty);
+            return getBounty(receiver.getUniqueId());
+        }
 
-            prevBounty = getBounty(receiver.getUniqueId());
-            if (prevBounty == null) {
-                // insert new bounty for this player
-                int index = Collections.binarySearch(activeBounties, newBounty, Collections.reverseOrder());
-                if (index < 0) {
-                    index = -index - 1;
-                }
-                activeBounties.add(index, newBounty);
-                prevBounty = newBounty;
-            } else {
-                // combine with previous bounty
-                if (setter == null) {
-                    prevBounty.addBounty(amount, items, whitelist);
-                } else {
-                    prevBounty.addBounty(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
-                }
-                sortActiveBounties();
+        prevBounty = getBounty(receiver.getUniqueId());
+        if (prevBounty == null) {
+            // insert new bounty for this player
+            int index = Collections.binarySearch(activeBounties, newBounty, Collections.reverseOrder());
+            if (index < 0) {
+                index = -index - 1;
             }
+            activeBounties.add(index, newBounty);
+            prevBounty = newBounty;
+        } else {
+            // combine with previous bounty
+            if (setter == null) {
+                prevBounty.addBounty(amount, items, whitelist);
+            } else {
+                prevBounty.addBounty(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
+            }
+            sortActiveBounties();
+        }
 
         return prevBounty;
     }
@@ -919,6 +1033,12 @@ public class DataManager {
         } else {
             queuedChanges.add(new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, new Bounty(bounty)));
         }
+
+        if (redis.isConnected()) {
+            redisData.addBounty(bounty);
+            return;
+        }
+
         Bounty prevBounty = getBounty(bounty.getUUID());
         if (prevBounty == null) {
             // insert new bounty for this player
@@ -1066,6 +1186,13 @@ public class DataManager {
             }
             stats.clear();
             stats.putAll(sqlStats);
+
+            // update redis
+            if (redis.isConnected()) {
+                redisData.setAllData(activeBounties, stats);
+                activeBounties.clear();
+                stats.clear();
+            }
 
             // push changes to the database
             if (!data.pushChanges(bountyChanges, queuedStatChanges, lastSQLLoad)) {

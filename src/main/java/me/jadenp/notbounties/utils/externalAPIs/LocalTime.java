@@ -17,7 +17,6 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -180,7 +179,7 @@ class ResponseHandler implements HttpClientResponseHandler<TimeZone> {
             String result = EntityUtils.toString(entity);
             classicHttpResponse.close();
 
-            JsonObject input = NotBounties.serverVersion >= 18 ? JsonParser.parseString(result).getAsJsonObject() : new JsonParser().parse(result).getAsJsonObject();
+            JsonObject input = new JsonParser().parse(result).getAsJsonObject();
             if (input.has("location")) {
                 JsonObject location = input.getAsJsonObject("location");
                 return TimeZone.getTimeZone(location.get("time_zone").getAsString());

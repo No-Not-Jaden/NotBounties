@@ -1495,6 +1495,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         return false;
                     }
+                    if (bountyCooldown > 0 && sender instanceof Player player1 && bountyCooldowns.containsKey(player1.getUniqueId()) && System.currentTimeMillis() - bountyCooldowns.get(player1.getUniqueId()) < bountyCooldown * 1000L) {
+                        // bounty cooldown
+                        if (!silent)
+                            sender.sendMessage(parse(prefix + bountySetCooldown, bountyCooldown * 1000L - (System.currentTimeMillis() - bountyCooldowns.get(player1.getUniqueId())), LocalTime.TimeFormat.RELATIVE, parser));
+                        return false;
+                    }
                     if (!selfSetting && sender instanceof Player && ((Player) sender).getUniqueId().equals(player.getUniqueId())) {
                         // own bounty
                         if (!silent)

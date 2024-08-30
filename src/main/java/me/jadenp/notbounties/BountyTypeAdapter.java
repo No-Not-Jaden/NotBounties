@@ -26,7 +26,7 @@ public class BountyTypeAdapter extends TypeAdapter<Bounty> {
         writer.name("uuid").value(bounty.getUUID().toString());
         writer.name("setters");
         writer.beginArray();
-        TypeAdapter<Setter> setterTypeAdapter = new Gson().getAdapter(Setter.class);
+        TypeAdapter<Setter> setterTypeAdapter = new SetterTypeAdapter();
         for (Setter setter : bounty.getSetters()) {
             setterTypeAdapter.write(writer, setter);
         }
@@ -40,6 +40,7 @@ public class BountyTypeAdapter extends TypeAdapter<Bounty> {
             reader.nextNull();
             return null;
         }
+        reader.beginObject();
         String playerName = null;
         UUID uuid = null;
         List<Setter> setters = null;
@@ -51,18 +52,18 @@ public class BountyTypeAdapter extends TypeAdapter<Bounty> {
                 case "setters" -> setters = readSetters(reader);
             }
         }
-        reader.close();
+        reader.endObject();
         return new Bounty(uuid, setters, playerName);
     }
 
     private List<Setter> readSetters(JsonReader reader) throws IOException {
         List<Setter> setters = new ArrayList<>();
         reader.beginArray();
-        TypeAdapter<Setter> setterTypeAdapter = new Gson().getAdapter(Setter.class);
+        TypeAdapter<Setter> setterTypeAdapter = new SetterTypeAdapter();
         while (reader.hasNext()) {
             setters.add(setterTypeAdapter.read(reader));
         }
-        reader.beginArray();
+        reader.endArray();
 
         return setters;
     }

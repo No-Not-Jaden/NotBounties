@@ -67,7 +67,7 @@ public class Bounty implements Comparable<Bounty>{
         this.name = name;
     }
 
-    public Bounty(JsonObject jsonObject) {
+    public Bounty(String jsonObject) {
         this(gson.fromJson(jsonObject, Bounty.class));
     }
 

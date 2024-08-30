@@ -116,6 +116,7 @@ public class ConfigOptions {
     public static List<String> pluginBountyCommands;
     public static boolean geyserEnabled;
     private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level"};
+    public static long bountyCooldown;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -309,7 +310,7 @@ public class ConfigOptions {
         MurderBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.murder-bounty")));
         RandomBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.random-bounties")));
         TimedBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("auto-bounties.timed-bounties")));
-        ActionCommands.loadConfiguration(bounties.getConfig().getStringList("bounty-claim-commands"), bounties.getConfig().getStringList("big-bounties.commands"));
+        ActionCommands.loadConfiguration(bounties.getConfig().getStringList("bounty-claim-commands"), bounties.getConfig().getStringList("big-bounties.commands"), bounties.getConfig().getStringList("bounty-set-commands"));
         Immunity.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("immunity")));
         BountyExpire.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-expire")));
         BigBounty.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("big-bounties")));
@@ -395,6 +396,7 @@ public class ConfigOptions {
             registerAliases(pluginBountyCommands);
         rewardHeadAnyKill = bounties.getConfig().getBoolean("reward-heads.any-kill");
         bountyBackups = bounties.getConfig().getBoolean("bounty-backups");
+        bountyCooldown = bounties.getConfig().getLong("bounty-cooldown");
 
 
 

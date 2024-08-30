@@ -44,6 +44,7 @@ public class BountyManager {
     public static final Map<UUID, Double> refundedBounties = new HashMap<>();
     public static final Map<UUID, List<ItemStack>> refundedItems = new HashMap<>();
     public static final Map<UUID, List<RewardHead>> headRewards = new HashMap<>();
+    public static final Map<UUID, Long> bountyCooldowns = new HashMap<>();
 
     private static final int length = 10;
 
@@ -173,8 +174,9 @@ public class BountyManager {
                 }
             }
         }
-
-
+        ActionCommands.executeBountySet(receiver.getUniqueId(), setter, bounty);
+        if (bountyCooldown > 0)
+            bountyCooldowns.put(setter.getUniqueId(), System.currentTimeMillis());
     }
 
     public static void addBounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {

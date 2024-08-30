@@ -132,6 +132,7 @@ public class LanguageOptions {
     public static String paused;
     public static String playerPrefix;
     public static String playerSuffix;
+    public static String bountySetCooldown;
 
     public static List<String> emptyTrackerLore;
     public static List<String> giveTrackerLore;
@@ -319,6 +320,7 @@ public class LanguageOptions {
         paused = configuration.getString("paused");
         playerPrefix = configuration.getString("player-prefix");
         playerSuffix = configuration.getString("player-suffix");
+        bountySetCooldown = configuration.getString("bounty-set-cooldown");
 
         emptyTrackerLore = configuration.getStringList("empty-tracker-lore");
         giveTrackerLore = configuration.getStringList("give-tracker-lore");

@@ -2,21 +2,29 @@ package me.jadenp.notbounties.redis;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
-public class JedisGetter {
-    private final JedisConnection jedisConnection;
+public class RedisGetter {
+    private final RedisConnection redisConnection;
+    
 
     private static final String BOUNTY_PREFIX = "bounty.";
     private static final String STAT_PREFIX = "stat.";
     private static final String BOUNTY_UUIDS_KEY = "bounties";
     private static final String STAT_UUIDS_KEY = "stats";
 
-    public JedisGetter(JedisConnection jedisConnection) {
-        this.jedisConnection = jedisConnection;
+    public RedisGetter(RedisConnection redisConnection) {
+        this.redisConnection = redisConnection;
+    }
+
+    private boolean isConnectionValid() {
+        return redisConnection.getData() != null;
     }
 
     /**
@@ -25,14 +33,18 @@ public class JedisGetter {
      * @param stats The stats to add
      */
     public void addStats(UUID uuid, Double[] stats) {
+        if (!isConnectionValid()) {
+            NotBounties.debugMessage("Redis has never connected! Cannot add stats to database.", true);
+            return;
+        }
         String key = STAT_PREFIX + uuid.toString();
-        if (!jedisConnection.getJedis().exists(key)) {
+        if (redisConnection.getData().exists(key) == 0) {
             // add key to recorded uuids
             String statUUIDs = getStatUUIDString();
             if (!statUUIDs.isEmpty())
                 statUUIDs += ",";
             statUUIDs += uuid.toString();
-            jedisConnection.getJedis().set(STAT_UUIDS_KEY, statUUIDs);
+            redisConnection.getData().set(STAT_UUIDS_KEY, statUUIDs);
         }
         Double[] previousStats =  getStats(uuid);
         StringBuilder builder = new StringBuilder();
@@ -41,7 +53,7 @@ public class JedisGetter {
                 builder.append(",");
             builder.append(previousStats[i] + stats[i]);
         }
-        jedisConnection.getJedis().set(key, builder.toString());
+        redisConnection.getData().set(key, builder.toString());
     }
 
     /**
@@ -52,8 +64,8 @@ public class JedisGetter {
     public Double[] getStats(UUID uuid) {
         String key = STAT_PREFIX + uuid.toString();
         Double[] stats = new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
-        if (jedisConnection.getJedis().exists(key)) {
-            String[] split = jedisConnection.getJedis().get(key).split(",");
+        if (isConnectionValid() && redisConnection.getData().exists(key) > 0) {
+            String[] split = redisConnection.getData().get(key).split(",");
             for (int i = 0; i < split.length; i++) {
                 stats[i] = Double.parseDouble(split[i]);
             }
@@ -67,6 +79,8 @@ public class JedisGetter {
      */
     public Map<UUID, Double[]> getAllStats() {
         Map<UUID, Double[]> stats = new HashMap<>();
+        if (!isConnectionValid())
+            return stats;
         for (UUID uuid : getStatUUIDs()) {
             stats.put(uuid, getStats(uuid));
         }
@@ -74,8 +88,8 @@ public class JedisGetter {
     }
 
     private String getStatUUIDString() {
-        if (jedisConnection.getJedis().exists(STAT_UUIDS_KEY)) {
-            return jedisConnection.getJedis().get(STAT_UUIDS_KEY);
+        if (isConnectionValid() && redisConnection.getData().exists(STAT_UUIDS_KEY) > 0) {
+            return redisConnection.getData().get(STAT_UUIDS_KEY);
         }
         return "";
     }
@@ -88,31 +102,100 @@ public class JedisGetter {
         return convertUUIDStringList(getStatUUIDString());
     }
 
+    public void setAllData(List<Bounty> bounties, Map<UUID, Double[]> stats) {
+        if (!isConnectionValid()) {
+            NotBounties.debugMessage("Cannot set all data to Redis!", false);
+            return;
+        }
+        // delete all data
+        for (String uuid : getBountyUUIDString().split(",")) {
+            redisConnection.getData().del(BOUNTY_PREFIX + uuid);
+        }
+
+        for (String uuid : getStatUUIDString().split(",")) {
+            redisConnection.getData().del(STAT_PREFIX + uuid);
+        }
+
+        // add new data
+        StringBuilder builder = new StringBuilder();
+        bounties.sort(Collections.reverseOrder());
+        for (Bounty bounty : bounties) {
+            if (!builder.isEmpty())
+                builder.append(",");
+            builder.append(bounty.getUUID());
+            redisConnection.getData().set(BOUNTY_PREFIX + bounty.getUUID(), bounty.toJson().toString());
+        }
+        redisConnection.getData().set(BOUNTY_UUIDS_KEY, builder.toString());
+
+        builder = new StringBuilder();
+        for (Map.Entry<UUID, Double[]> entry : stats.entrySet()) {
+            if (!builder.isEmpty())
+                builder.append(",");
+            builder.append(entry.getKey());
+            StringBuilder statBuilder = new StringBuilder();
+            for (int i = 0; i < entry.getValue().length; i++) {
+                if (i != 0)
+                    statBuilder.append(",");
+                statBuilder.append(entry.getValue()[i]);
+            }
+            redisConnection.getData().set(STAT_PREFIX + entry.getKey(), statBuilder.toString());
+        }
+        redisConnection.getData().set(STAT_UUIDS_KEY, builder.toString());
+    }
+
     /**
      * Add a bounty to the redis database
      * @param bounty Bounty to be added
      */
     public void addBounty(Bounty bounty) {
+        if (!isConnectionValid()) {
+            NotBounties.debugMessage("Redis has never been connected! Cannot add bounty to database.", true);
+            return;
+        }
         // key will be uuid of bounty
         String key = BOUNTY_PREFIX + bounty.getUUID().toString();
-        if (jedisConnection.getJedis().exists(key)) {
+        if (redisConnection.getData().exists(key) > 0) {
             // bounty already exists - add to existing json
-            JsonObject jsonObject = (JsonObject) jedisConnection.getJedis().jsonGet(key);
+            JsonObject jsonObject = new JsonParser().parse(redisConnection.getData().get(key)).getAsJsonObject();
             JsonArray settersArray = jsonObject.getAsJsonArray("setters");
             for (Setter setter : bounty.getSetters()) {
                 settersArray.add(setter.toJson());
             }
-            jedisConnection.getJedis().jsonSet(key, jsonObject);
+            redisConnection.getData().set(key, jsonObject.toString());
         } else {
             // new bounty
-            jedisConnection.getJedis().jsonSet(key, bounty.toJson());
+            redisConnection.getData().set(key, bounty.toJson().toString());
             String bountyUUIDs = getBountyUUIDString();
             if (!bountyUUIDs.isEmpty())
                 bountyUUIDs += ",";
             bountyUUIDs += bounty.getUUID().toString();
-            jedisConnection.getJedis().set(BOUNTY_UUIDS_KEY, bountyUUIDs);
+            redisConnection.getData().set(BOUNTY_UUIDS_KEY, bountyUUIDs);
         }
         sortBounties();
+    }
+
+    /**
+     * Replaces a bounty in the jedis database
+     *
+     * @param uuid   UUID of the bounty to be replaced
+     * @param bounty Replacement bounty. A null value will remove the bounty.
+     */
+    public void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
+        String key = BOUNTY_PREFIX + uuid.toString();
+        if (isConnectionValid() && redisConnection.getData().exists(key) > 0) {
+            if (bounty != null)
+                redisConnection.getData().set(key, bounty.toJson().toString());
+            else
+                removeBounty(uuid);
+        }
+    }
+
+    public @Nullable Bounty getBounty(UUID uuid) {
+        String key = BOUNTY_PREFIX + uuid.toString();
+        if (isConnectionValid() && redisConnection.getData().exists(key) > 0) {
+            return new Bounty(redisConnection.getData().get(key));
+        }
+        return null;
     }
 
     /**
@@ -122,16 +205,16 @@ public class JedisGetter {
      */
     public boolean removeBounty(Bounty bounty) {
         String key = BOUNTY_PREFIX + bounty.getUUID().toString();
-        if (jedisConnection.getJedis().exists(key)) {
-            Bounty currentBounty = new Bounty((JsonObject) jedisConnection.getJedis().jsonGet(key));
+        if (isConnectionValid() && redisConnection.getData().exists(key) > 0) {
+            Bounty currentBounty = new Bounty(redisConnection.getData().get(key));
             // delete if uuid and time created match in any setter from the two bounties
             currentBounty.getSetters().removeIf(setter -> bounty.getSetters().stream().anyMatch(toDeleteSetter -> setter.getUuid().equals(toDeleteSetter.getUuid()) && setter.getTimeCreated() == toDeleteSetter.getTimeCreated()));
             if (currentBounty.getSetters().isEmpty()) {
                 // bounty should be deleted
-                return removeBounty(bounty.getUUID());
+                redisConnection.getData().del(key);
             } else {
                 // replace bounty
-                jedisConnection.getJedis().jsonSet(key, currentBounty.toJson());
+                redisConnection.getData().set(key, currentBounty.toJson().toString());
                 sortBounties();
             }
             return true;
@@ -142,26 +225,32 @@ public class JedisGetter {
     /**
      * Remove a player's bounty from the database
      * @param uuid UUID of the player
-     * @return True if a bounty was removed, false if no bounty was found
+     * @return The bounty that was removed, or null if no bounty was removed.
      */
-    public boolean removeBounty(UUID uuid) {
-        jedisConnection.getJedis().del(BOUNTY_PREFIX + uuid.toString());
-        String bountyUUIDs = getBountyUUIDString();
-        if (bountyUUIDs.contains(uuid.toString())) {
-            if (bountyUUIDs.indexOf(uuid.toString()) == 0) {
-                bountyUUIDs = bountyUUIDs.substring(uuid.toString().length());
-            } else {
-                bountyUUIDs = bountyUUIDs.substring(0, bountyUUIDs.indexOf(uuid.toString()) - 1) + bountyUUIDs.substring(bountyUUIDs.indexOf(uuid.toString()) + uuid.toString().length());
+    public @Nullable Bounty removeBounty(UUID uuid) {
+        if (!isConnectionValid())
+            return null;
+        String key = BOUNTY_PREFIX + uuid.toString();
+        String bountyJson = redisConnection.getData().get(key);
+        if (bountyJson != null) {
+            redisConnection.getData().del(key);
+            String bountyUUIDs = getBountyUUIDString();
+            if (bountyUUIDs.contains(uuid.toString())) {
+                if (bountyUUIDs.indexOf(uuid.toString()) == 0) {
+                    bountyUUIDs = bountyUUIDs.substring(uuid.toString().length());
+                } else {
+                    bountyUUIDs = bountyUUIDs.substring(0, bountyUUIDs.indexOf(uuid.toString()) - 1) + bountyUUIDs.substring(bountyUUIDs.indexOf(uuid.toString()) + uuid.toString().length());
+                }
+                redisConnection.getData().set(BOUNTY_UUIDS_KEY, bountyUUIDs);
             }
-            jedisConnection.getJedis().set(BOUNTY_UUIDS_KEY, bountyUUIDs);
-            return true;
+            return new Bounty(bountyJson);
         }
-        return false;
+        return null;
     }
 
     private String getBountyUUIDString() {
-        if (jedisConnection.getJedis().exists(BOUNTY_UUIDS_KEY)) {
-            return jedisConnection.getJedis().get(BOUNTY_UUIDS_KEY);
+        if (isConnectionValid() && redisConnection.getData().exists(BOUNTY_UUIDS_KEY) > 0) {
+            return redisConnection.getData().get(BOUNTY_UUIDS_KEY);
         }
         return "";
     }
@@ -190,8 +279,9 @@ public class JedisGetter {
     public List<Bounty> getAllBounties(int sortType) {
         List<Bounty> bounties = new ArrayList<>();
         for (String uuid : getBountyUUIDString().split(",")) {
-            JsonObject bountyJson = (JsonObject) jedisConnection.getJedis().jsonGet(uuid);
-            bounties.add(new Bounty(bountyJson));
+            String data = redisConnection.getData().get(BOUNTY_PREFIX + uuid);
+            if (data != null)
+                bounties.add(new Bounty(data));
         }
         // bounties should be in descending order already
         if (sortType == -1 || sortType == 2)
@@ -229,6 +319,6 @@ public class JedisGetter {
                 builder.append(",");
             builder.append(bounties.get(i).getUUID());
         }
-        jedisConnection.getJedis().set(BOUNTY_UUIDS_KEY, builder.toString());
+        redisConnection.getData().set(BOUNTY_UUIDS_KEY, builder.toString());
     }
 }

@@ -9,7 +9,6 @@ import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.CommandPrompt;
-import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -23,7 +22,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.*;
 
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
@@ -35,10 +33,12 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 public class ActionCommands {
     private static List<String> bountyClaimCommands;
     private static List<String> bigBountyCommands;
+    private static List<String> bountySetCommands;
 
-    public static void loadConfiguration(List<String> bountyClaimCommands, List<String> bigBountyCommands) {
+    public static void loadConfiguration(List<String> bountyClaimCommands, List<String> bigBountyCommands, List<String> bountySetCommands) {
         ActionCommands.bountyClaimCommands = bountyClaimCommands;
         ActionCommands.bigBountyCommands = bigBountyCommands;
+        ActionCommands.bountySetCommands = bountySetCommands;
     }
 
     public static void executeBountyClaim(Player player, Player killer, Bounty bounty) {
@@ -47,6 +47,18 @@ public class ActionCommands {
             public void run() {
                 for (String command : bountyClaimCommands) {
                     execute(player, killer, bounty, command);
+                }
+            }
+        }.runTaskLater(NotBounties.getInstance(), 10);
+    }
+
+    public static void executeBountySet(UUID receiver, Player setter, Bounty bounty) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (String command : bountySetCommands) {
+                    command = command.replace("{receiever}", NotBounties.getPlayerName(receiver));
+                    execute(setter, setter, bounty, command);
                 }
             }
         }.runTaskLater(NotBounties.getInstance(), 10);
@@ -80,9 +92,10 @@ public class ActionCommands {
         double bountyCurrency = bounty != null ? bounty.getTotalBounty() : 0;
         double bountyItemValues = bounty != null ? NumberFormatting.getTotalValue(bounty.getTotalItemBounty()) : 0;
         String bountyItems = bounty != null ? NumberFormatting.listItems(bounty.getTotalItemBounty(), ':') : "";
+        String killerName = killer != null ? killer.getName() : "";
 
         command = command.replace("{player}", (player.getName()));
-        command = command.replace("{killer}", (killer.getName()));
+        command = command.replace("{killer}", (killerName));
         command = command.replace("{amount}", (NumberFormatting.getValue(totalBounty)));
         command = command.replace("{bounty}", (NumberFormatting.formatNumber(totalBounty)));
         command = command.replace("{bounty_currency}", (NumberFormatting.formatNumber(bountyCurrency)));

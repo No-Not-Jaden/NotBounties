@@ -144,6 +144,7 @@ challenge-claim-deny: '&cYou can''t claim this challenge!'
 trickle-bounty: '&2{amount}&e of &6{player}''s &ebounty has been transferred to yours.'
 bedrock-open-gui: '&eOpening Form...' # set to: '' if you don't want this message sent
 paused: '&cNotBounties is paused. To use this feature again, do &a/bounty unpause' #
+bounty-set-cooldown: '&cPlease wait {time} before you can set another bounty.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
