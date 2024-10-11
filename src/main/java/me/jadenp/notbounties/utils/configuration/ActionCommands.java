@@ -9,6 +9,7 @@ import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.CommandPrompt;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -459,6 +460,8 @@ public class ActionCommands {
                 } else {
                     openGUI(player, guiName, amount);
                 }
+            } else if (guiName.equalsIgnoreCase("select-price") && command.contains(" ")) {
+                openGUI(player, guiName, amount, command.substring(0, command.indexOf(" ")));
             } else {
                 if (!command.isEmpty())
                     openGUI(player, guiName, amount, command);
@@ -489,7 +492,7 @@ public class ActionCommands {
                         uuid = ((PlayerItem) info.displayItems().get(0)).getUuid().toString();
                     else
                         // select-price GUI hasn't been set up
-                        uuid = new UUID(0,0).toString();
+                        uuid = DataManager.GLOBAL_SERVER_ID.toString();
                 }
                 openGUI(player, info.guiType(), info.page() + amount, uuid);
             } else if (info.guiType().equals("leaderboard")) {

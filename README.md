@@ -42,7 +42,7 @@ Run /bounty currency in-game to change your currency type. The currency can be a
 <ul>/bounty bdc - Toggles the bounty broadcast message. no permission.</ul>
 <ul>/bounty check (player) - Checks a bounty.notbounties.view</ul>
 <ul>/bounty list - Lists all bounties. notbounties.view</ul>
-<ul>/bounty top (all/kills/claimed/deaths/set/immunity) <list> - Lists the top 10 players with the respective stats. notbounties.view</ul>
+<ul>/bounty top (all/kills/claimed/deaths/set/immunity) (list) - Lists the top 10 players with the respective stats. notbounties.view </ul>
 <ul>/bounty stat (all/kills/claimed/deaths/set/immunity) - View your bounty stats. notbounties.view</ul>
 <ul>/bounty - Opens bounty GUI. notbounties.view</ul>
 <ul>/bounty (player) (amount) - Adds a bounty to a player. notbounties.set</ul>
@@ -60,7 +60,7 @@ Run /bounty currency in-game to change your currency type. The currency can be a
 <ul>/bounty reload - Reloads the config and language. notbounties.admin</ul>
 <ul>/bounty currency - Starts setup for the currency - notbounties.admin</ul>
 <ul>/bounty whitelist (add/remove/set) (whitelisted players) - Change the players that can claim the bounties you set. notbounties.whitelist</ul>
-<ul>/bounty whitelist <offline> - Opens the set whitelist GUI. notbounties.whitelist</ul>
+<ul>/bounty whitelist (offline) - Opens the set whitelist GUI. notbounties.whitelist</ul>
 <ul>/bounty whitelist reset - Resets your whitelisted players. notbounties.whitelist</ul>
 <ul>/bounty whitelist view - Displays your whitelisted players in chat. notbounties.whitelist</ul>
 <ul>/bounty poster (player) - Gives you a poster of a player's bounty. notbounties.admin</ul>

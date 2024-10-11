@@ -22,6 +22,7 @@ import org.geysermc.cumulus.component.impl.DropdownComponentImpl;
 import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.cumulus.form.ModalForm;
 import org.geysermc.cumulus.form.SimpleForm;
+import org.geysermc.cumulus.form.util.FormBuilder;
 import org.geysermc.cumulus.response.CustomFormResponse;
 import org.geysermc.cumulus.response.ModalFormResponse;
 import org.geysermc.cumulus.response.SimpleFormResponse;
@@ -286,18 +287,7 @@ public class BedrockGUIOptions {
                         }
                         simpleBuilder.content(content.toString());
                         simpleBuilder.validResultHandler(simpleFormResponse -> doClickActions(player, simpleFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                if (player.isOnline()) {
-                                    if (floodgateEnabled) {
-                                        new FloodGateClass().sendForm(player.getUniqueId(), simpleBuilder);
-                                    } else if (geyserEnabled) {
-                                        new GeyserMCClass().sendForm(player.getUniqueId(), simpleBuilder);
-                                    }
-                                }
-                            }
-                        }.runTask(NotBounties.getInstance());
+                        sendForm(player, simpleBuilder);
 
                         break;
                     case MODAL:
@@ -326,18 +316,7 @@ public class BedrockGUIOptions {
                         }
                         modalBuilder.content(modalContent.toString());
                         modalBuilder.validResultHandler(modalFormResponse -> doClickActions(player, modalFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                if (player.isOnline()) {
-                                    if (floodgateEnabled) {
-                                        new FloodGateClass().sendForm(player.getUniqueId(), modalBuilder);
-                                    } else if (geyserEnabled) {
-                                        new GeyserMCClass().sendForm(player.getUniqueId(), modalBuilder);
-                                    }
-                                }
-                            }
-                        }.runTask(NotBounties.getInstance());
+                        sendForm(player, modalBuilder);
 
                         break;
                     case CUSTOM:
@@ -369,26 +348,23 @@ public class BedrockGUIOptions {
                             customBuilder.component(component.getComponent());
                         }
                         customBuilder.validResultHandler(customFormResponse -> doClickActions(player, customFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                if (player.isOnline()) {
-                                    if (floodgateEnabled) {
-                                        new FloodGateClass().sendForm(player.getUniqueId(), customBuilder);
-                                    } else if (geyserEnabled) {
-                                        new GeyserMCClass().sendForm(player.getUniqueId(), customBuilder);
-                                    }
-                                }
-                            }
-                        }.runTask(NotBounties.getInstance());
+                        sendForm(player, customBuilder);
 
                         break;
                 }
             }
         }.runTaskTimer(NotBounties.getInstance(), 0, 4);
 
+    }
 
-
+    private void sendForm(Player player, FormBuilder<?, ?, ?> formBuilder) {
+        if (player.isOnline()) {
+            if (floodgateEnabled) {
+                new FloodGateClass().sendForm(player.getUniqueId(), formBuilder);
+            } else if (geyserEnabled) {
+                new GeyserMCClass().sendForm(player.getUniqueId(), formBuilder);
+            }
+        }
     }
 
     private boolean skipItem(List<String> commands, long page, long maxSize) {
@@ -463,6 +439,14 @@ public class BedrockGUIOptions {
         } catch (NumberFormatException ignored) {}
         actions.addAll(parseCompletionCommands(component.getButtonComponent().text(), quantity, new ArrayList<>()));
         ActionCommands.executeCommands(player, actions);
+    }
+
+    private void sendLoadingForm(Player player) {
+        ModalForm.Builder form = ModalForm.builder()
+                .content("Click continue if this form doesn't close automatically.")
+                .title("Loading...")
+                .button1("Continue");
+        sendForm(player, ModalForm.builder());
     }
 
     // custom

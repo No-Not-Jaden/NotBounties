@@ -6,6 +6,7 @@ import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.ui.gui.bedrock.GUIComponent;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
@@ -211,7 +212,7 @@ public class Challenge {
                     double consoleAmount = 0;
                     if (BountyManager.hasBounty(player.getUniqueId()))
                         for (Setter setter : Objects.requireNonNull(BountyManager.getBounty(player.getUniqueId())).getSetters())
-                            if (setter.getUuid().equals(new UUID(0,0)))
+                            if (setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID))
                                 consoleAmount+= setter.getAmount();
                     return consoleAmount;
                 }

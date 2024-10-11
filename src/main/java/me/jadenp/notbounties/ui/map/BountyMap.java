@@ -328,7 +328,7 @@ public class BountyMap implements Listener {
     }
 
     public static ItemStack getMap(Bounty bounty) {
-        return getMap(bounty.getUUID(), bounty.getTotalDisplayBounty(), bounty.getLatestSetter());
+        return getMap(bounty.getUUID(), bounty.getTotalDisplayBounty(), bounty.getLatestUpdate());
     }
 
     public static ItemStack getMap(UUID uuid, double displayBounty, long updateTime) {

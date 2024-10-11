@@ -3,6 +3,7 @@ package me.jadenp.notbounties;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public class Setter implements Comparable<Setter>{
+public class Setter implements Comparable<Setter>, Inconsistent {
     private final String name;
     private final UUID uuid;
     private final double amount;
@@ -143,4 +144,29 @@ public class Setter implements Comparable<Setter>{
         return Objects.hash(uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime);
     }
 
+    @Override
+    public String getID() {
+        return uuid.toString() + ":" + timeCreated;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Inconsistent> T copy() {
+        return (T) new Setter(name, uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime, displayBounty);
+    }
+
+    @Override
+    public long getLatestUpdate() {
+        return getTimeCreated();
+    }
+
+    @Override
+    public List<Inconsistent> getSubElements() {
+        return List.of();
+    }
+
+    @Override
+    public void setSubElements(List<Inconsistent> subElements) {
+        // do nothing because a setter doesn't contain any important inconsistent sub elements
+    }
 }

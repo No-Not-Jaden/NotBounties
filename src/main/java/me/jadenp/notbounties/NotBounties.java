@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
@@ -61,6 +62,29 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * sync redis with mysql or get redis faster
  * bounty cooldown - x
  * bounty set commands
+ * disconnect redis while running
+ * database update rate
+ * bounty edits?
+ * try to connect for all databases method
+ *
+ * on database connect:
+ * read all db bounties and read the last sync time
+ * if no last sync time, add local bounties (matching server-id)
+ * check for changes against bounties
+ * If a bounty is added
+ * last database sync stored in file
+ *
+ * 1. what if the database reset, but another server already put their data in it - add stats with their server id, if server ids don't match for a player, add together
+ * push stat changes - if the database is empty, set to current stats
+ * stat changes will be logged between database syncs -
+ * if a database has connected before, stat changes will be logged and reset on sync
+ * database lock for first connection
+ *
+ * only show wanted tags when not moving option
+ * make update notification editable
+ * open modal form for a split second after any custom
+ * add whitelist msg for view-bounty GUI
+ * put online players at top of active bounties and enchant them
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -434,21 +458,21 @@ public final class NotBounties extends JavaPlugin {
                 i++;
             }
             // save stats
-            for (Map.Entry<UUID, Double[]> entry : DataManager.getLocalStats().entrySet()) {
+            for (Map.Entry<UUID, PlayerStat> entry : DataManager.getLocalStats()) {
                 String uuid = entry.getKey().toString();
-                Double[] stat = entry.getValue();
-                if (stat[0] != 0.0)
-                    configuration.set("data." + uuid + ".kills", stat[0].longValue());
-                if (stat[1] != 0.0)
-                    configuration.set("data." + uuid + ".set", stat[1].longValue());
-                if (stat[2] != 0.0)
-                    configuration.set("data." + uuid + ".deaths", stat[2].longValue());
-                if (stat[3] != 0.0)
-                    configuration.set("data." + uuid + ".all-time", stat[3]);
-                if (stat[4] != 0.0)
-                    configuration.set("data." + uuid + ".immunity", stat[4]);
-                if (stat[5] != 0.0)
-                    configuration.set("data." + uuid + ".all-claimed", stat[5]);
+                PlayerStat stat = entry.getValue();
+                if (stat.kills() != 0.0)
+                    configuration.set("data." + uuid + ".kills", stat.kills());
+                if (stat.set() != 0.0)
+                    configuration.set("data." + uuid + ".set", stat.set());
+                if (stat.deaths() != 0.0)
+                    configuration.set("data." + uuid + ".deaths", stat.deaths());
+                if (stat.all() != 0.0)
+                    configuration.set("data." + uuid + ".all-time", stat.all());
+                if (stat.immunity() != 0.0)
+                    configuration.set("data." + uuid + ".immunity", stat.immunity());
+                if (stat.claimed() != 0.0)
+                    configuration.set("data." + uuid + ".all-claimed", stat.claimed());
             }
 
         for (Map.Entry<UUID, Long> entry : TimedBounties.getNextBounties().entrySet()) {
@@ -492,6 +516,10 @@ public final class NotBounties extends JavaPlugin {
             configuration.set("tracked-bounties." + i + ".uuid", mapElement.getValue().toString());
             i++;
         }
+        for (AsyncDatabaseWrapper database : DataManager.getDatabases()) {
+            if (!database.isPermDatabase() && System.currentTimeMillis() - database.getLastSync() < DataManager.CONNECTION_REMEMBRANCE_MS)
+                configuration.set("database-sync-times." + database.getName(), database.getLastSync());
+        }
         if (RandomBounties.isEnabled())
             configuration.set("next-random-bounty", RandomBounties.getNextRandomBounty());
         i = 0;
@@ -511,6 +539,7 @@ public final class NotBounties extends JavaPlugin {
             i++;
         }
         configuration.set("next-challenge-change", ChallengeManager.getNextChallengeChange());
+        configuration.set("server-id", DataManager.getDatabaseServerID(false).toString());
         if (NotBounties.isPaused())
             configuration.set("paused", true);
         File bounties = new File(NotBounties.getInstance().getDataFolder() + File.separator + "bounties.yml");
@@ -616,7 +645,6 @@ public final class NotBounties extends JavaPlugin {
                     }
                 }
             }.runTaskLater(NotBounties.getInstance(), 40);
-            DataManager.startAutoConnect();
         }
 
 
@@ -710,9 +738,11 @@ public final class NotBounties extends JavaPlugin {
 
     public void sendDebug(CommandSender sender) throws SQLException {
         sender.sendMessage(parse(prefix + ChatColor.WHITE + "NotBounties debug info:", null));
-        String connected = DataManager.isSQLConnected() ? ChatColor.GREEN + "true" : ChatColor.RED + "false";
+        long numConnected = DataManager.getDatabases().stream().filter(AsyncDatabaseWrapper::isConnected).count();
+        String connected = numConnected > 0 ? ChatColor.GREEN + "" + numConnected : ChatColor.RED + "" + numConnected;
+        String numConfigured = ChatColor.WHITE + "" + DataManager.getDatabases().size();
         int bounties = BountyManager.getAllBounties(-1).size();
-        sender.sendMessage(ChatColor.GOLD + "SQL > " + ChatColor.YELLOW + "Connected: " + connected + ChatColor.YELLOW + " Type: " + ChatColor.WHITE + DataManager.getSQLDatabaseType() + ChatColor.YELLOW + " ID: " + ChatColor.WHITE + DataManager.getServerID());
+        sender.sendMessage(ChatColor.GOLD + "Databases > " + ChatColor.YELLOW + "Configured: " + numConfigured + ChatColor.YELLOW + " Connected: " + connected);
         sender.sendMessage(ChatColor.GOLD + "General > " + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden" + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion() + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + "1." + serverVersion + "." + serverSubVersion + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug);
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + BountyTracker.getTrackedBounties().size() + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + bountyBoards.size());
         String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
@@ -799,7 +829,7 @@ public final class NotBounties extends JavaPlugin {
         return rewardHead.uuid().toString() + ",name," + NumberFormatting.getValue(rewardHead.amount());
     }
 
-    public static List<OfflinePlayer> getNetworkPlayers() {
+    public static Map<UUID, String> getNetworkPlayers() {
         return DataManager.getNetworkPlayers();
     }
 

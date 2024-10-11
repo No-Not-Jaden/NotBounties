@@ -4,6 +4,7 @@ import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -79,7 +80,7 @@ public class Renderer extends MapRenderer {
                                         Bukkit.getLogger().warning("[NotBounties] Timed out getting skin from \"" + name + "\" for a bounty poster. A question mark will be displayed instead.");
                                     }
                                 }.runTask(NotBounties.getInstance());
-                            renderPoster(SkinManager.getPlayerFace(new UUID(0,0)), name, false);
+                            renderPoster(SkinManager.getPlayerFace(DataManager.GLOBAL_SERVER_ID), name, false);
                             return;
                         }
                         maxRequests--;

@@ -113,9 +113,9 @@ public class BountyManager {
             setter.discoverRecipe(BountyTracker.getBountyTrackerRecipe());
 
         // add stat
-        DataManager.changeStat(setter.getUniqueId(), Leaderboard.SET, 1, false);
+        DataManager.changeStat(setter.getUniqueId(), Leaderboard.SET, 1);
 
-        DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount, false);
+        DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount);
         Bounty bounty = DataManager.insertBounty(setter, receiver, amount, items, whitelist);
 
         if (receiver.isOnline()) {
@@ -192,7 +192,7 @@ public class BountyManager {
             return;
         }
 
-        DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount, false);
+        DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount);
         Bounty bounty = DataManager.insertBounty(null, receiver, amount, items, whitelist);
 
         if (receiver.isOnline()) {
@@ -251,6 +251,8 @@ public class BountyManager {
     }
 
     public static void refundPlayer(UUID uuid, double amount, List<ItemStack> items) {
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
+            return;
         items = new ArrayList<>(items); // make the arraylist modifiable
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         if (amount > 0) {
@@ -280,10 +282,12 @@ public class BountyManager {
     }
 
     private static void addRefund(UUID uuid, double amount) {
-        if (refundedBounties.containsKey(uuid)){
-            refundedBounties.replace(uuid, refundedBounties.get(uuid) + amount);
-        } else {
-            refundedBounties.put(uuid, amount);
+        if (!uuid.equals(DataManager.GLOBAL_SERVER_ID)) {
+            if (refundedBounties.containsKey(uuid)) {
+                refundedBounties.replace(uuid, refundedBounties.get(uuid) + amount);
+            } else {
+                refundedBounties.put(uuid, amount);
+            }
         }
     }
 
@@ -544,7 +548,7 @@ public class BountyManager {
             if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
                 if (debug)
                     Bukkit.getLogger().info("[NotBountiesDebug] Directly giving auto-bounty reward.");
-                NumberFormatting.doAddCommands(killer, rewardedBounty.getBounty(new UUID(0,0)).getTotalBounty(killer));
+                NumberFormatting.doAddCommands(killer, rewardedBounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(killer));
             } else {
                 if (debug)
                     Bukkit.getLogger().info("[NotBountiesDebug] Directly giving total claimed bounty.");
@@ -559,7 +563,7 @@ public class BountyManager {
             // give voucher
             if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
                 // auto bounty reward
-                NumberFormatting.doAddCommands(killer, rewardedBounty.getBounty(new UUID(0,0)).getTotalBounty(killer));
+                NumberFormatting.doAddCommands(killer, rewardedBounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(killer));
             }
             if (RRLVoucherPerSetter) {
                 if (debug)
@@ -570,7 +574,7 @@ public class BountyManager {
                         continue;
                     if (setter.getAmount() <= 0.01)
                         continue;
-                    if (setter.getUuid().equals(new UUID(0,0)) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL)
+                    if (setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL)
                         continue;
                     ItemStack item = new ItemStack(Material.PAPER);
                     ItemMeta meta = item.getItemMeta();
@@ -606,7 +610,7 @@ public class BountyManager {
                 meta.setDisplayName(parse(bountyVoucherName, killer, rewardedBounty.getTotalBounty(killer), player));
                 if (!RRLSetterLoreAddition.isEmpty()) {
                     for (Setter setter : rewardedBounty.getSetters()) {
-                        if (!setter.canClaim(killer) || setter.getAmount() <= 0.01 || (setter.getUuid().equals(new UUID(0,0)) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL))
+                        if (!setter.canClaim(killer) || setter.getAmount() <= 0.01 || (setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL))
                             continue;
                         lore.add(parse(RRLSetterLoreAddition, setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
                     }
@@ -618,14 +622,13 @@ public class BountyManager {
                 NumberFormatting.givePlayer(killer, item, 1);
             }
         }
-        DataManager.changeStat(player.getUniqueId(), Leaderboard.ALL, bounty.getTotalDisplayBounty(killer), false);
-        DataManager.changeStat(player.getUniqueId(), Leaderboard.DEATHS, 1, false);
-        DataManager.changeStat(killer.getUniqueId(), Leaderboard.KILLS, 1, false);
-        DataManager.changeStat(killer.getUniqueId(), Leaderboard.CLAIMED, bounty.getTotalDisplayBounty(killer), false);
+        DataManager.changeStat(player.getUniqueId(), Leaderboard.ALL, bounty.getTotalDisplayBounty(killer));
+        DataManager.changeStat(player.getUniqueId(), Leaderboard.DEATHS, 1);
+        DataManager.changeStat(killer.getUniqueId(), Leaderboard.KILLS, 1);
+        DataManager.changeStat(killer.getUniqueId(), Leaderboard.CLAIMED, bounty.getTotalDisplayBounty(killer));
         if (debug)
             Bukkit.getLogger().info("[NotBountiesDebug] stats. ");
         TrickleBounties.transferBounty(bounty, killer);
-        //bounty.claimBounty(killer);
         removeSetters(bounty.getUUID(), claimedBounties);
 
 

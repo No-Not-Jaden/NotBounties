@@ -16,11 +16,12 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Bounty implements Comparable<Bounty>{
+public class Bounty implements Comparable<Bounty>, Inconsistent{
     private final UUID uuid;
     private String name;
     private List<Setter> setters = new ArrayList<>();
     private static final Gson gson;
+    private UUID serverID; // id used to identify which server should save the value
     static {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(Bounty.class, new BountyTypeAdapter());
@@ -28,20 +29,30 @@ public class Bounty implements Comparable<Bounty>{
         gson = builder.create();
     }
 
-    public Bounty(Player setter, OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist){
+    public Bounty(Player setter, OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist, UUID serverID){
         // save player
         this.uuid = receiver.getUniqueId();
         name = NotBounties.getPlayerName(receiver.getUniqueId());
         // add to the total bounty
         setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
+        this.serverID = serverID;
     }
 
-    public Bounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist){
+    public Bounty(Player setter, OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
+        this(setter, receiver, amount, items, whitelist, DataManager.getDatabaseServerID(true));
+    }
+
+    public Bounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist, UUID serverID){
         // save player
         this.uuid = receiver.getUniqueId();
         name = NotBounties.getPlayerName(receiver.getUniqueId());
         // add to the total bounty
-        setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
+        setters.add(new Setter(ConfigOptions.consoleName, DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
+        this.serverID = serverID;
+    }
+
+    public Bounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
+        this(receiver, amount, items, whitelist, DataManager.getDatabaseServerID(true));
     }
 
     public Bounty(Bounty bounty) {
@@ -50,6 +61,7 @@ public class Bounty implements Comparable<Bounty>{
         for (Setter setter : bounty.getSetters()) {
             setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime()));
         }
+        serverID = bounty.serverID;
     }
 
     public Bounty(Bounty bounty, UUID claimer) {
@@ -59,12 +71,18 @@ public class Bounty implements Comparable<Bounty>{
             if (setter.canClaim(claimer))
                 setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime()));
         }
+        serverID = bounty.serverID;
     }
 
-    public Bounty(UUID uuid, List<Setter> setters, String name){
+    public Bounty(UUID uuid, List<Setter> setters, String name, UUID serverID){
         this.uuid = uuid;
         this.setters = setters;
         this.name = name;
+        this.serverID = serverID;
+    }
+
+    public Bounty(UUID uuid, List<Setter> setters, String name) {
+        this(uuid, setters, name, DataManager.getDatabaseServerID(true));
     }
 
     public Bounty(String jsonObject) {
@@ -94,13 +112,19 @@ public class Bounty implements Comparable<Bounty>{
 
     public void addBounty(Setter setter){
         // add a new setter
-        setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, setter.getWhitelist(), BountyExpire.getTimePlayed(uuid), setter.getDisplayAmount()));
+        setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), setter.getTimeCreated(), Bukkit.getPlayer(uuid) != null, setter.getWhitelist(), BountyExpire.getTimePlayed(uuid), setter.getDisplayAmount()));
+    }
+
+    public void notifyBounty() {
+        for (Setter setter : setters) {
+            setter.setNotified(true);
+        }
     }
 
     // console set bounty
     public void addBounty(double amount, List<ItemStack> items, Whitelist whitelist){
         // add a new setter
-        setters.add(new Setter(ConfigOptions.consoleName, new UUID(0,0), amount, items, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
+        setters.add(new Setter(ConfigOptions.consoleName, DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
     }
 
 
@@ -140,12 +164,23 @@ public class Bounty implements Comparable<Bounty>{
      * Get the latest time that a bounty was set
      * @return The time in milliseconds
      */
-    public long getLatestSetter() {
+    public long getLatestUpdate() {
         return setters.stream().mapToLong(Setter::getTimeCreated).filter(setter -> setter >= 0).max().orElse(0);
     }
 
+    @Override
+    public List<Inconsistent> getSubElements() {
+        return new ArrayList<>(setters);
+    }
+
+    @Override
+    public void setSubElements(List<Inconsistent> subElements) {
+        setters.clear();
+        subElements.stream().filter(Setter.class::isInstance).map(Setter.class::cast).forEach(setter -> setters.add(setter));
+    }
+
     public Setter getLastSetter() {
-        long latest = getLatestSetter();
+        long latest = getLatestUpdate();
         for (Setter setter : setters) {
             if (setter.getTimeCreated() == latest)
                 return setter;
@@ -236,15 +271,14 @@ public class Bounty implements Comparable<Bounty>{
             return false;
         if (w1.isBlacklist() != w2.isBlacklist())
             return false;
-        for (UUID uuid : w1.getList()) {
-            if (!w2.getList().contains(uuid))
+        for (UUID whiteListUUID : w1.getList()) {
+            if (!w2.getList().contains(whiteListUUID))
                 return false;
         }
         return true;
     }
 
     public Map<UUID, List<UUID>> getWhitelists(){
-        //combineSetters();
         return setters.stream().filter(setter -> !setter.getWhitelist().getList().isEmpty()).collect(Collectors.toMap(Setter::getUuid, setter -> setter.getWhitelist().getList(), (a, b) -> b));
     }
 
@@ -275,6 +309,13 @@ public class Bounty implements Comparable<Bounty>{
         return new Bounty(uuid, matchingSetters, name);
     }
 
+    public UUID getServerID() {
+        return serverID;
+    }
+    
+    public void setServerID(UUID serverID) {
+        this.serverID = serverID;
+    }
 
     @Override
     public String toString() {
@@ -322,5 +363,16 @@ public class Bounty implements Comparable<Bounty>{
     @Override
     public int hashCode() {
         return Objects.hash(uuid, setters);
+    }
+
+    @Override
+    public String getID() {
+        return uuid.toString();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Inconsistent> T copy() {
+        return (T) new Bounty(this);
     }
 }

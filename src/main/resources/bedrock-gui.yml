@@ -349,8 +349,7 @@ settings-gui:
   enabled: true
   gui-name: '&9&lSettings'
   components:
-    -1: return-selection
-    1: toggle-whitelist
+    #1: toggle-whitelist
     2: toggle-broadcast
 challenges:
   enabled: true

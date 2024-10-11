@@ -2,19 +2,17 @@ package me.jadenp.notbounties.utils;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.Leaderboard;
-import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
-import me.jadenp.notbounties.redis.RedisConnection;
-import me.jadenp.notbounties.redis.RedisGetter;
-import me.jadenp.notbounties.sql.MySQL;
-import me.jadenp.notbounties.sql.SQLGetter;
+import me.jadenp.notbounties.*;
+import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.databases.LocalData;
+import me.jadenp.notbounties.databases.NotBountiesDatabase;
+import me.jadenp.notbounties.databases.TempDatabase;
+import me.jadenp.notbounties.databases.redis.RedisConnection;
+import me.jadenp.notbounties.databases.sql.MySQL;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.BigBounty;
-import me.jadenp.notbounties.utils.configuration.BountyExpire;
 import me.jadenp.notbounties.utils.configuration.RewardHead;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
@@ -29,52 +27,71 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.NotBounties.bountyBoards;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.autoConnect;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class DataManager {
-    private static MySQL sql;
-    private static SQLGetter data;
-    private static RedisConnection redis;
-    private static RedisGetter redisData;
-    private static final Map<UUID, Double[]> stats = new HashMap<>();
-    private static final Map<UUID, Double[]> statChanges = new HashMap<>();
-    private static final List<Bounty> activeBounties = new LinkedList<>(); // Collections.synchronizedList(new LinkedList<>()); // stored in descending order
-    // changes to be made to the database on reconnect
-    // only added bounties will be saved if the server restarts
-    private static final List<BountyChange> queuedChanges = new ArrayList<>();
 
-    private static BukkitTask autoConnectTask = null;
-    private static boolean firstConnect = true;
+    private static final List<AsyncDatabaseWrapper> databases = new ArrayList<>();
 
-    private static long lastSQLLoad = 0;
-
+    private static LocalData localData; // locally stored bounties and stats
+    private static UUID databaseServerID = UUID.randomUUID();
+    public static final long CONNECTION_REMEMBRANCE_MS = (long) 2.592e+8; // how long before databases stop storing changes if no connection was made (3 days)
+    public static final UUID GLOBAL_SERVER_ID = new UUID(0,0);
+    
     private DataManager(){}
 
-    public static long getLastSQLLoad() {
-        return lastSQLLoad;
+    public static LocalData getLocalData() {
+        return localData;
+    }
+
+    public static void loadDatabaseConfig(ConfigurationSection configuration) {
+        for (String databaseName : configuration.getKeys(false)) {
+            boolean newDatabase = true;
+            for (NotBountiesDatabase database : databases) {
+                if (database.getName().equals(databaseName)) {
+                    database.reloadConfig();
+                    newDatabase = false;
+                    break;
+                }
+            }
+            if (newDatabase) {
+                String type = configuration.isSet(databaseName + ".type") ? configuration.getString(databaseName + ".type") : "You need to set your database type for: " + databaseName;
+                assert type != null; // isSet() assures that type != null
+                NotBountiesDatabase database;
+                switch (type.toUpperCase()) {
+                    case "SQL" -> database = new MySQL(NotBounties.getInstance(), databaseName);
+                    case "REDIS" -> database = new RedisConnection(NotBounties.getInstance(), databaseName);
+                    default -> {
+                        Bukkit.getLogger().warning(() -> "[NotBounties] Unknown database type for " + databaseName + ": " + type);
+                        continue;
+                    }
+                }
+                databases.add(new AsyncDatabaseWrapper(database));
+            }
+        }
+        Collections.sort(databases);
+        tryDatabaseConnections();
     }
 
     /**
      * Loads bounties from the
      */
     public static void loadBounties(){
-        loadDatabase();
+        localData = new LocalData(); // initialize local data storage
         File bounties = new File(NotBounties.getInstance().getDataFolder() + File.separator + "bounties.yml");
         List<Bounty> bountyList = new ArrayList<>();
+        Map<UUID, PlayerStat> stats = new HashMap<>();
         // create bounties file if one doesn't exist
         try {
             if (bounties.createNewFile()) {
@@ -82,6 +99,10 @@ public class DataManager {
             } else {
                 // get existing bounties file
                 YamlConfiguration configuration = YamlConfiguration.loadConfiguration(bounties);
+                if (configuration.isSet("server-id"))
+                    databaseServerID = UUID.fromString(Objects.requireNonNull(configuration.getString("server-id")));
+                else
+                    databaseServerID = UUID.randomUUID();
                 // add all previously logged on players to a map
                 int i = 0;
                 while (configuration.getString("logged-players." + i + ".name") != null) {
@@ -120,48 +141,13 @@ public class DataManager {
                     }
                     i++;
                 }
-                // go through player logs - old version
-                i = 0;
-                while (configuration.isSet("data." + i + ".uuid")) {
-                    UUID uuid = UUID.fromString(Objects.requireNonNull(configuration.getString("data." + i + ".uuid")));
-                    Double[] stat = new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
-                    if (configuration.isSet("data." + i + ".claimed"))
-                        stat[0] = (double) configuration.getLong("data." + i + ".claimed");
-                    if (configuration.isSet("data." + i + ".set"))
-                        stat[1] = (double) configuration.getLong("data." + i + ".set");
-                    if (configuration.isSet("data." + i + ".received"))
-                        stat[2] = (double) configuration.getLong("data." + i + ".received");
-                    if (configuration.isSet("data." + i + ".all-time")) {
-                        stat[3] = configuration.getDouble("data." + i + ".all-time");
-                    } else {
-                        for (Bounty bounty : bountyList) {
-                            // if they have a bounty already
-                            if (bounty.getUUID().equals(uuid)) {
-                                stat[3] = bounty.getTotalDisplayBounty();
-                                Bukkit.getLogger().info("Missing all time bounty for " + bounty.getName() + ". Setting as current bounty.");
-                                break;
-                            }
-                        }
-                    }
-                    if (configuration.isSet("data." + i + ".immunity"))
-                        stat[4] = configuration.getDouble("data." + i + ".immunity");
-                    if (configuration.isSet("data." + i + ".all-claimed"))
-                        stat[5] = configuration.getDouble("data." + i + ".all-claimed");
-
-                    stats.put(uuid, stat);
-                    if (configuration.isSet("data." + i + ".broadcast")) {
-                        NotBounties.disableBroadcast.add(uuid);
-                    }
-                    i++;
-                }
-                // end old version ^^^
                 // new version vvv
                 Map<UUID, Long> timedBounties = new HashMap<>();
                 if (configuration.isConfigurationSection("data"))
                     for (String uuidString : Objects.requireNonNull(configuration.getConfigurationSection("data")).getKeys(false)) {
                         UUID uuid = UUID.fromString(uuidString);
                         // old data protection
-                        if (uuidString.length() < 10)
+                        if (uuidString.length() < 10 || uuid.equals(DataManager.GLOBAL_SERVER_ID))
                             continue;
                         Double[] stat = new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
                         if (configuration.isSet("data." + uuid + ".kills"))
@@ -176,7 +162,7 @@ public class DataManager {
                             stat[4] = configuration.getDouble("data." + uuid + ".immunity");
                         if (configuration.isSet("data." + uuid + ".all-claimed"))
                             stat[5] = configuration.getDouble("data." + uuid + ".all-claimed");
-                        stats.put(uuid, stat);
+                        stats.put(uuid, new PlayerStat(stat[0].longValue(), stat[1].longValue(), stat[2].longValue(), stat[3], stat[4], stat[5], databaseServerID));
                         if (configuration.isSet("data." + uuid + ".next-bounty"))
                             timedBounties.put(uuid, configuration.getLong("data." + uuid + ".next-bounty"));
                         if (variableWhitelist && configuration.isSet("data." + uuid + ".whitelist"))
@@ -255,111 +241,48 @@ public class DataManager {
                 }
                 if (configuration.isBoolean("paused"))
                     NotBounties.setPaused(configuration.getBoolean("paused"));
+                // load database sync times
+                if (configuration.isConfigurationSection("database-sync-times")) {
+                    for (String key : Objects.requireNonNull(configuration.getConfigurationSection("database-sync-times")).getKeys(false)) {
+                        for (NotBountiesDatabase database : databases) {
+                            if (database.getName().equals(key)) {
+                                database.setLastSync(configuration.getLong("database-sync-times." + key));
+                            }
+                        }
+                    }
+                }
             }
         } catch (IOException e) {
             Bukkit.getLogger().severe("[NotBounties] Error loading saved data!");
             Bukkit.getLogger().severe(e.toString());
         }
-        activeBounties.addAll(bountyList);
-        tryToConnect();
-        tryToConnectRedis();
-        sortActiveBounties();
-    }
-
-    private static boolean tryToConnectRedis() {
-        if (!redis.isConnected())
-            redis.reconnect();
-        if (redis.isConnected()) {
-            // migrate data if any
-            if (!activeBounties.isEmpty()) {
-                List<Bounty> allBounties = new ArrayList<>(activeBounties);
-                activeBounties.clear();
-                Bukkit.getLogger().info(() -> "[NotBounties] Migrated " + allBounties.size() + " bounties to Redis.");
-                for (Bounty bounty : allBounties) {
-                    redisData.addBounty(bounty);
-                }
-            }
-            if (!stats.isEmpty()) {
-                Map<UUID, Double[]> stat = new HashMap<>(stats);
-                stats.clear();
-                for (Map.Entry<UUID, Double[]> entry : stat.entrySet()) {
-                    redisData.addStats(entry.getKey(), entry.getValue());
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Check if NotBounties is connected to an SQL database
-     * @return True if NotBounties is connected to an SQL database
-     */
-    public static boolean isSQLConnected() {
-        return sql.isConnected();
-    }
-
-    /**
-     * Get the SQL database type
-     * @return The SQL database type or N/A if a database isn't connected
-     */
-    public static String getSQLDatabaseType() {
-        try {
-            return sql.getDatabaseType();
-        } catch (SQLException e) {
-            return "N/A";
-        }
+        localData.addBounty(bountyList);
+        localData.addStats(stats);
     }
 
     /**
      * Get the server ID that was set in the config for the SQL Database.
+     * @param newData If the serverID is for new data generation.
      * @return The set server ID for NotBounties.
      */
-    public static int getServerID() {
-        return sql.getServerID();
+    public static UUID getDatabaseServerID(boolean newData) {
+        if (newData && isPermDatabaseConnected())
+            return GLOBAL_SERVER_ID;
+        return databaseServerID;
     }
 
     /**
      * Get players on the network
      * @return All players online in the SQL database, or all server players if the database isn't connected
      */
-    public static List<OfflinePlayer> getNetworkPlayers() {
-        if (sql.isConnected())
-            return data.getOnlinePlayers();
-        return Bukkit.getOnlinePlayers().stream().filter(player -> !isVanished(player)).collect(Collectors.toList());
+    public static Map<UUID, String> getNetworkPlayers() {
+        for (AsyncDatabaseWrapper database : databases) {
+            if (database.isConnected())
+                return database.getOnlinePlayers();
+        }
+        return localData.getOnlinePlayers();
     }
 
-    /**
-     *
-     */
-    public static void startAutoConnect() {
-        if (!firstConnect)
-            redis.reconnect();
-        if (autoConnectTask != null) {
-            autoConnectTask.cancel();
-        }
-        try {
-            if (!firstConnect && (sql.isConnected() || autoConnect)) {
-                sql.reconnect();
-                loadSQLData(false);
-            }
-        } catch (SQLException ignored) {
-            // error connecting
-            // errors are expected if autoConnect is enabled and a database isn't set up
-        }
-        if (firstConnect) {
-            firstConnect = false;
-        }
-        if (autoConnect) {
-            autoConnectTask = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    tryToConnect();
-                }
-            }.runTaskTimer(NotBounties.getInstance(), 600, 600);
-        }
-
-    }
 
     public static double getStat(UUID uuid, Leaderboard leaderboard) {
         if (leaderboard == Leaderboard.CURRENT) {
@@ -369,43 +292,20 @@ public class DataManager {
             else
                 return 0;
         }
-        Double[] stat;
-        if (redis.isConnected()) {
-            stat = redisData.getStats(uuid);
-        } else if (stats.containsKey(uuid)) {
-            stat = stats.get(uuid);
+        Map<UUID, PlayerStat> stats = getAllStats();
+        if (stats.containsKey(uuid)) {
+            return stats.get(uuid).leaderboardType(leaderboard);
         } else {
             return 0;
         }
-        switch (leaderboard) {
-            case KILLS -> {
-                return stat[0];
-            }
-            case SET -> {
-                return stat[1];
-            }
-            case DEATHS -> {
-                return stat[2];
-            }
-            case ALL -> {
-                return stat[3];
-            }
-            case IMMUNITY -> {
-                return stat[4];
-            }
-            case CLAIMED -> {
-                return stat[5];
-            }
-            default -> {
-                return 0;
-            }
-        }
     }
 
-   public static Map<UUID, Double[]> getAllStats() {
-        if (redis.isConnected())
-            return redisData.getAllStats();
-        return stats;
+    public static List<AsyncDatabaseWrapper> getDatabases() {
+        return databases;
+    }
+
+    public static Map<UUID, PlayerStat> getAllStats() {
+        return localData.getAllStats();
    }
 
     /**
@@ -414,78 +314,19 @@ public class DataManager {
      * @param leaderboard Stat to change.
      * @param change The amount the stat should change by.
      */
-    public static void changeStat(UUID uuid, Leaderboard leaderboard, double change, boolean commit) {
-        Double[] stat = stats.containsKey(uuid) ? stats.get(uuid) : new Double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        Double[] prevChanges = statChanges.containsKey(uuid) && (!commit || !sql.isConnected()) ? statChanges.get(uuid) : new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
-        switch (leaderboard) {
-            case KILLS -> {
-                stat[0]+= change;
-                prevChanges[0] += change;
-            }
-            case SET -> {
-                stat[1]+= change;
-                prevChanges[1]+=change;
-            }
-            case DEATHS -> {
-                stat[2]+= change;
-                prevChanges[2]+=change;
-            }
-            case ALL -> {
-                stat[3]+= change;
-                prevChanges[3]+=change;
-            }
-            case IMMUNITY -> {
-                stat[4]+= change;
-                prevChanges[4]+=change;
-            }
-            case CLAIMED -> {
-                stat[5]+= change;
-                prevChanges[5]+=change;
-            }
-            default -> {
-                // current stat can't be changed with this method because it is based on their current bounty
-            }
+    public static void changeStat(UUID uuid, Leaderboard leaderboard, double change) {
+        PlayerStat statChange = PlayerStat.fromLeaderboard(leaderboard, change);
+        localData.addStats(uuid, statChange);
+        for (AsyncDatabaseWrapper database : databases) {
+            database.addStats(uuid, statChange);
         }
-        // redis
-        if (redis.isConnected())
-            redisData.addStats(uuid, stat);
-        else
-            stats.put(uuid, stat);
-        // mySQL
-        if (!commit || !sql.isConnected())
-            statChanges.put(uuid, prevChanges);
-        else
-            data.addData(uuid, prevChanges);
     }
 
-    public static void changeStats(UUID uuid, Double[] changes, boolean commit) {
-        Double[] stat = stats.containsKey(uuid) ? stats.get(uuid) : new Double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        Double[] prevChanges = statChanges.containsKey(uuid) && (!commit || !sql.isConnected()) ? statChanges.get(uuid) : new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
-        for (int i = 0; i < stat.length; i++) {
-            stat[i]+= changes[i];
-            prevChanges[i]+= changes[i];
+    public static void changeStats(UUID uuid, PlayerStat changes) {
+        localData.addStats(uuid, changes);
+        for (AsyncDatabaseWrapper database : databases) {
+            database.addStats(uuid, changes);
         }
-        // redis
-        if (redis.isConnected())
-            redisData.addStats(uuid, stat);
-        else
-            stats.put(uuid, stat);
-        // mySQL
-        if (!commit || !sql.isConnected())
-            statChanges.put(uuid, prevChanges);
-        else
-            data.addData(uuid, prevChanges);
-    }
-
-    /**
-     * Sorts the active bounties
-     */
-    private static void sortActiveBounties()
-    {
-        if (redis.isConnected())
-            redisData.sortBounties();
-        else
-            activeBounties.sort(Comparator.reverseOrder());
     }
 
     private static @Nullable Location deserializeLocation(ConfigurationSection configuration) {
@@ -507,59 +348,17 @@ public class DataManager {
         }
     }
 
-    public static void loadDatabase(){
-        sql = new MySQL(NotBounties.getInstance());
-        data = new SQLGetter(sql);
-        redis = new RedisConnection(NotBounties.getInstance());
-        redisData = new RedisGetter(redis);
-
-        if (redis.isConnected()) {
-            Bukkit.getLogger().info("[NotBounties] Redis database is connected!");
-        }
-    }
-
     public static @Nullable Bounty getBounty(UUID receiver) {
-        for (Bounty bounty : getActiveBounties()) {
-            if (bounty.getUUID().equals(receiver))
+        for (Bounty bounty : localData.getAllBounties(-1)) {
+            if (bounty.getUUID().equals(receiver)) {
                 return bounty;
+            }
         }
         return null;
     }
 
-    /**
-     * A private method to get the raw bounties list.
-     * This will try to get the list from redis, otherwise, it will use the local storage.
-     * @return The current active bounties.
-     */
-    private static List<Bounty> getActiveBounties() {
-        if (redis.isConnected())
-            return redisData.getAllBounties(-1);
-        return activeBounties;
-    }
-
     public static boolean hasBounty(UUID receiver) {
             return getBounty(receiver) != null;
-    }
-
-    /**
-     * Replaces a stored bounty without updating the mySQL database
-     * @param uuid uuid of the bounty to be replaced
-     * @param bounty new bounty, or null to remove
-     */
-    private static void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
-        if (redis.isConnected()) {
-            redisData.replaceBounty(uuid, bounty);
-        } else {
-            for (int i = 0; i < activeBounties.size(); i++) {
-                if (activeBounties.get(i).getUUID().equals(uuid)) {
-                    if (bounty != null)
-                        activeBounties.set(i, bounty);
-                    else
-                        activeBounties.remove(i);
-                    break;
-                }
-            }
-        }
     }
 
     /**
@@ -573,121 +372,40 @@ public class DataManager {
      * @return A copy of all bounties on the server.
      */
     public static List<Bounty> getAllBounties(int sortType) {
-        // Check if the SQL object has been loaded
-        // If not, no bounties should be loaded locally either
-        if (sql == null)
-            return new ArrayList<>();
         return sortBounties(sortType);
     }
 
+    private static void readPriorityDatabase() {
+        // load data from priority database
+        // store bounties & stats with a server id
+        for (AsyncDatabaseWrapper database : databases) {
+            if (database.isConnected()) {
+                // highest priority database
+                database.readDatabaseData(true);
+                break;
+            }
+        }
+    }
     /**
      * Get the stats that are only stored locally. This will load sql data if possible.
      * @return Stats to be stored locally.
      */
-    public static Map<UUID, Double[]> getLocalStats(){
-        if (sql.isConnected()) {
-            loadSQLData(true);
-        }
-        if (sql.hasConnectedBefore()) {
-            // only return stats from stat changes
-            return statChanges;
-        } else {
-            return stats;
-        }
+    public static Set<Map.Entry<UUID, PlayerStat>> getLocalStats(){
+        readPriorityDatabase();
+        return getAllStats().entrySet().stream().filter(entry -> entry.getValue().serverID().equals(databaseServerID)).collect(Collectors.toUnmodifiableSet());
     }
 
     /**
      * Get a list of bounties that are only stored locally. This will load sql data if possible.
      * @return Bounties to be stored locally.
      */
-    public static List<Bounty> getLocalBounties() {
-        if (sql.isConnected()) {
-            loadSQLData(true);
-        }
-        if (sql.hasConnectedBefore()) {
-            // only returned bounties created from queued changes
-            // this will only preserve added bounties and other changes if they were to a recently added bounty
-            // queuedChanges is likely to be empty unless the database lost connection
-            List<Bounty> createdBounties = new ArrayList<>();
-            for (BountyChange bountyChange : queuedChanges) {
-                switch (bountyChange.changeType()) {
-                    case ADD_BOUNTY -> createdBounties.add((Bounty) bountyChange.change());
-                    case DELETE_BOUNTY -> {
-                        Bounty toRemove = (Bounty) bountyChange.change();
-                        ListIterator<Bounty> bountyListIterator = createdBounties.listIterator();
-                        while (bountyListIterator.hasNext()) {
-                            Bounty createdBounty = bountyListIterator.next();
-                            if (createdBounty.getUUID().equals(toRemove.getUUID())) {
-                                deleteSetters(createdBounty, toRemove.getSetters());
-                                if (createdBounty.getSetters().isEmpty())
-                                    bountyListIterator.remove();
-                            }
-                        }
-                    }
-                    case EDIT_BOUNTY -> {
-                        Bounty toEdit = (Bounty) bountyChange.change();
-                        Setter original = toEdit.getSetters().get(0);
-                        Setter change = toEdit.getSetters().get(1);
-                        boolean madeEdit = false;
-                        for (Bounty createdBounty : createdBounties) {
-                            if (createdBounty.getUUID().equals(toEdit.getUUID())) {
-                                createdBounty.editBounty(original.getUuid(), change.getAmount());
-                                madeEdit = true;
-                                break;
-                            }
-                        }
-                        // could not find bounty to edit in queue
-                        if (!madeEdit)
-                            createdBounties.add(new Bounty(toEdit.getUUID(), new ArrayList<>(List.of(new Setter(original.getName(), original.getUuid(), original.getAmount() + change.getAmount(), original.getItems(), original.getTimeCreated(), original.isNotified(), original.getWhitelist(), original.getReceiverPlaytime(), original.getDisplayAmount() + change.getAmount()))), toEdit.getName()));
-                    }
-                    case NOTIFY -> {
-                        // 0: bounty uuid
-                        // 1: setter uuid
-                        UUID[] uuids = (UUID[]) bountyChange.change();
-                        for (Bounty createdBounty : createdBounties) {
-                            if (createdBounty.getUUID().equals(uuids[0])) {
-                                for (Setter setter : createdBounty.getSetters()) {
-                                    if (setter.getUuid().equals(uuids[1]))
-                                        setter.setNotified(true);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return createdBounties;
-        } else {
-            // return all active bounties
-            return activeBounties;
-        }
+    public static Set<Bounty> getLocalBounties() {
+        readPriorityDatabase();
+        return getAllBounties(-1).stream().filter(bounty -> bounty.getServerID().equals(databaseServerID)).collect(Collectors.toUnmodifiableSet());
     }
 
     public static List<Bounty> sortBounties(int sortType) {
-        // how bounties are sorted
-        List<Bounty> sortedList;
-        sortedList = new ArrayList<>(getActiveBounties());
-        if (sortType == -1)
-            return sortedList;
-        if (sortType == 2)
-            return sortedList;
-        if (sortType == 3) {
-            Collections.reverse(sortedList);
-            return sortedList;
-        }
-        if (sortedList.isEmpty())
-            return sortedList;
-        Bounty temp;
-        for (int i = 0; i < sortedList.size(); i++) {
-            for (int j = i + 1; j < sortedList.size(); j++) {
-                if ((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
-                        (sortedList.get(i).getSetters().get(0).getTimeCreated() < sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 1)){// newest bounties at top
-                    temp = sortedList.get(i);
-                    sortedList.set(i, sortedList.get(j));
-                    sortedList.set(j, temp);
-                }
-            }
-        }
-        return sortedList;
+        return localData.getAllBounties(sortType);
     }
 
     /**
@@ -695,31 +413,18 @@ public class DataManager {
      * @param uuid UUID of the player to remove
      */
     public static void deleteBounty(UUID uuid) {
-        Bounty removed = null;
-        if (redis.isConnected()) {
-            removed = redisData.removeBounty(uuid);
-        } else {
-            ListIterator<Bounty> bountyListIterator = activeBounties.listIterator();
-            while (bountyListIterator.hasNext()) {
-                Bounty bounty = bountyListIterator.next();
-                if (bounty.getUUID().equals(uuid)) {
-                    bountyListIterator.remove();
-                    removed = bounty;
-                    break;
-                }
-            }
+        for (AsyncDatabaseWrapper database : databases) {
+            database.removeBounty(uuid);
         }
-        if (removed != null) {
-            if (!sql.isConnected() || !data.removeBounty(uuid))
-                queuedChanges.add(new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, removed));
-        }
+        localData.removeBounty(uuid);
     }
 
     /**
      * Shuts down database connections
      */
     public static void shutdown() {
-        redis.shutdown();
+        for (AsyncDatabaseWrapper database : databases)
+            database.shutdown();
     }
 
     /**
@@ -729,100 +434,14 @@ public class DataManager {
      */
     public static @Nullable Bounty getGuarrenteedBounty(UUID uuid) {
         // most up-to-date database
-        if (redis.isConnected()) {
-            return redisData.getBounty(uuid);
-        } else if (sql.isConnected()) {
-            // grab bounty from sql database & apply queued changes
-            List<BountyChange> completedChanges = new ArrayList<>();
-            Bounty sqlBounty = data.getBounty(uuid);
-            synchronized (queuedChanges) {
-                ListIterator<BountyChange> changesIterator = queuedChanges.listIterator();
-                while (changesIterator.hasNext()) {
-                    BountyChange bountyChange = changesIterator.next();
-                    switch (bountyChange.changeType()) {
-                        case ADD_BOUNTY -> {
-                            Bounty toAdd = (Bounty) bountyChange.change();
-                            if (toAdd.getUUID().equals(uuid)) {
-                                if (sqlBounty != null) {
-                                    for (Setter setter : toAdd.getSetters())
-                                        sqlBounty.addBounty(setter);
-                                } else {
-                                    sqlBounty = new Bounty(toAdd);
-                                }
-                                completedChanges.add(bountyChange);
-                                changesIterator.remove();
-                            }
-                        }
-                        case EDIT_BOUNTY -> {
-                            Bounty toEdit = (Bounty) bountyChange.change();
-                            Setter original = toEdit.getSetters().get(0);
-                            Setter change = toEdit.getSetters().get(1);
-                            if (toEdit.getUUID().equals(uuid)) {
-                                if (sqlBounty != null) {
-                                    sqlBounty.editBounty(original.getUuid(), change.getAmount());
-                                } else {
-                                    sqlBounty = new Bounty(toEdit.getUUID(), new ArrayList<>(List.of(new Setter(original.getName(), original.getUuid(), original.getAmount() + change.getAmount(), original.getItems(), original.getTimeCreated(), original.isNotified(), original.getWhitelist(), original.getReceiverPlaytime(), original.getDisplayAmount() + change.getAmount()))), toEdit.getName());
-                                }
-                                completedChanges.add(bountyChange);
-                                changesIterator.remove();
-                            }
-                        }
-                        case DELETE_BOUNTY -> {
-                            Bounty toDelete = (Bounty) bountyChange.change();
-                            if (toDelete.getUUID().equals(uuid) && sqlBounty != null) {
-                                deleteSetters(sqlBounty, toDelete.getSetters());
-                                // remove bounty if setter list is empty
-                                if (sqlBounty.getSetters().isEmpty())
-                                    sqlBounty = null;
-                                completedChanges.add(bountyChange);
-                                changesIterator.remove();
-                            }
-                        }
-                        case NOTIFY -> {
-                            // 0: bounty uuid
-                            // 1: setter uuid
-                            UUID[] uuids = (UUID[]) bountyChange.change();
-                            if (uuids[0].equals(uuid) && sqlBounty != null) {
-                                for (Setter setter : sqlBounty.getSetters()) {
-                                    if (setter.getUuid().equals(uuids[1]) && setter.getTimeCreated() < lastSQLLoad) {
-                                        setter.setNotified(true);
-                                    }
-                                }
-                                completedChanges.add(bountyChange);
-                                changesIterator.remove();
-                            }
-                        }
-                    }
-                }
-            }
-            // apply changes to the database
-            if (!data.pushChanges(completedChanges, new HashMap<>(), lastSQLLoad))
-                queuedChanges.addAll(completedChanges);
-            replaceBounty(uuid, sqlBounty);
-            return sqlBounty;
-        } else {
-            return getBounty(uuid);
-        }
-    }
-
-    /**
-     * Removes setters from a bounty. This only checks if the setters uuid matches and the time was before lastSQLLoad.
-     * This does not commit the change to any database.
-     * @param original Original bounty to modify.
-     * @param toRemove Setters to remove
-     */
-    private static void deleteSetters(Bounty original, List<Setter> toRemove) {
-        ListIterator<Setter> setterListIterator = original.getSetters().listIterator();
-        while (setterListIterator.hasNext()) {
-            Setter setter = setterListIterator.next();
-            // remove setter if any setter uuids match and they were created before last sql load
-            for (Setter toRemoveSetter : toRemove) {
-                if (setter.getUuid().equals(toRemoveSetter.getUuid()) && setter.getTimeCreated() < lastSQLLoad && setter.getWhitelist().equals(toRemoveSetter.getWhitelist())) {
-                    setterListIterator.remove();
-                    break;
-                }
+        for (AsyncDatabaseWrapper database : databases) {
+            if (database.isConnected()) {
+                Bounty bounty = database.getBounty(uuid);
+                localData.replaceBounty(uuid, bounty);
+                return bounty;
             }
         }
+        return localData.getBounty(uuid);
     }
 
     /**
@@ -833,12 +452,6 @@ public class DataManager {
      * @return The new bounty or null if the bounty is not active
      */
     public static Bounty editBounty(@NotNull Bounty bounty, @Nullable UUID setterUUID, double change) {
-        if (!activeBounties.contains(bounty)) {
-            bounty = getBounty(bounty.getUUID());
-            if (bounty == null)
-                return null;
-        }
-        List<BountyChange> changes = new ArrayList<>();
         Setter lastSetter = null;
         if (setterUUID != null) {
             // edit a specific setter
@@ -853,7 +466,6 @@ public class DataManager {
                         // remove if change causes that and there are no items
                         if (setter.getDisplayAmount() + change < 0 && setter.getItems().isEmpty()) {
                             setterListIterator.remove();
-                            changes.add(new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, new Bounty(bounty.getUUID(), new ArrayList<>(List.of(setter)), bounty.getName())));
                             lastSetter = setter;
                         } else if (setter.getAmount() > 0) {
                             // update amount (minimum 0)
@@ -861,14 +473,12 @@ public class DataManager {
                             change+= setter.getAmount() - newAmount; // update amount needed to be changed
                             Setter newSetter = new Setter(setter.getName(), setterUUID, newAmount, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() - (setter.getAmount() - newAmount));
                             setterListIterator.set(newSetter);
-                            changes.add(new BountyChange(BountyChange.ChangeType.EDIT_BOUNTY, new Bounty(bounty.getUUID(), new ArrayList<>(List.of(setter, new Setter(consoleName, new UUID(0,0), setter.getAmount() - newAmount, new ArrayList<>(), System.currentTimeMillis(), true, new Whitelist(new ArrayList<>(), false), BountyExpire.getTimePlayed(bounty.getUUID())))), bounty.getName())));
                             lastSetter = setter;
                         }
                     } else {
                         // setter amount won't go negative
                         // update setter amount
                         Setter newSetter = new Setter(setter.getName(), setterUUID, setter.getAmount() + change, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() + change);
-                        changes.add(new BountyChange(BountyChange.ChangeType.EDIT_BOUNTY, new Bounty(bounty.getUUID(), new ArrayList<>(List.of(setter, new Setter(consoleName, new UUID(0,0), change, new ArrayList<>(), System.currentTimeMillis(), true, new Whitelist(new ArrayList<>(), false), BountyExpire.getTimePlayed(bounty.getUUID())))), bounty.getName())));
                         change = 0;
                         setterListIterator.set(newSetter);
                         lastSetter = setter;
@@ -883,23 +493,17 @@ public class DataManager {
                 // either no setter uuid was specified, or the specified uuid was not in the bounty
                 // add a new setter
                 bounty.addBounty(change, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
-                changes.add(new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, new Bounty(bounty.getUUID(), new ArrayList<>(List.of(bounty.getLastSetter())), bounty.getName())));
             } else {
                 // edit last setter with the remaining change
                 // this may cause the amount to be negative
                 bounty.getSetters().remove(lastSetter);
                 bounty.getSetters().add(new Setter(lastSetter.getName(), setterUUID, lastSetter.getAmount() + change, lastSetter.getItems(), lastSetter.getTimeCreated(), lastSetter.isNotified(), lastSetter.getWhitelist(), lastSetter.getReceiverPlaytime(), lastSetter.getDisplayAmount() + change));
-                // get the previous changes to be made and update them
-                BountyChange bountyChange = changes.remove(changes.size()-1);
-                Setter previousSetter = bountyChange.changeType() == BountyChange.ChangeType.DELETE_BOUNTY ? ((Bounty) bountyChange.change()).getLastSetter() : ((Bounty) bountyChange.change()).getSetters().get(0);
-                double prevChange = bountyChange.changeType() == BountyChange.ChangeType.DELETE_BOUNTY ? previousSetter.getDisplayAmount() : ((Bounty) bountyChange.change()).getSetters().get(1).getDisplayAmount();
-                changes.add(new BountyChange(BountyChange.ChangeType.EDIT_BOUNTY, new Bounty(bounty.getUUID(), new ArrayList<>(List.of(previousSetter, new Setter(consoleName, new UUID(0,0), change + prevChange, new ArrayList<>(), System.currentTimeMillis(), true, new Whitelist(new ArrayList<>(), false), BountyExpire.getTimePlayed(bounty.getUUID())))), bounty.getName())));
             }
         }
-        queuedChanges.addAll(changes);
-        // update value is redis
-        if (redis.isConnected())
-            redisData.replaceBounty(bounty.getUUID(), bounty);
+        for (AsyncDatabaseWrapper database : databases) {
+            database.replaceBounty(bounty.getUUID(), bounty);
+        }
+        localData.replaceBounty(bounty.getUUID(), bounty);
         return bounty;
     }
 
@@ -916,15 +520,13 @@ public class DataManager {
                     player.sendMessage(parse(prefix + offlineBounty, setter.getDisplayAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
                     setter.setNotified(true);
                     addedAmount += setter.getAmount();
-                    if (!sql.isConnected())
-                        queuedChanges.add(new BountyChange(BountyChange.ChangeType.NOTIFY, new UUID[]{player.getUniqueId(), setter.getUuid()})); // add notification changes to queue
                 }
             }
             if (addedAmount > 0) {
-                if (sql.isConnected())
-                    data.notifyPlayer(player.getUniqueId(), lastSQLLoad);
-                if (redis.isConnected())
-                    redisData.replaceBounty(player.getUniqueId(), bounty);
+                for (AsyncDatabaseWrapper database : databases) {
+                    database.notifyBounty(player.getUniqueId());
+                }
+                localData.notifyBounty(player.getUniqueId());
             }
             BigBounty.setBounty(player, bounty, addedAmount);
             if (bounty.getTotalDisplayBounty() > BigBounty.getThreshold()) {
@@ -934,43 +536,104 @@ public class DataManager {
     }
 
     public static void login(@NotNull Player player) {
-        if (sql.isConnected()) {
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    data.login(player);
-                }
-            }.runTaskAsynchronously(NotBounties.getInstance());
-        }
+        for (AsyncDatabaseWrapper database : databases)
+            database.login(player.getUniqueId(), player.getName());
     }
 
     public static void logout(@NotNull Player player) {
-        if (sql.isConnected()) {
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    data.logout(player);
+        for (AsyncDatabaseWrapper database : databases)
+            database.logout(player.getUniqueId());
+    }
+
+    /**
+     * A utility to modify both parameters to remove any setters that are similar.
+     * For any setter with the same uuid and whitelist, amounts will be canceled out, and similar items will be removed.
+     */
+   public static void removeSimilarSetters(List<Setter> masterSetterList, List<Setter> setterList) {
+        // iterate through setters
+        ListIterator<Setter> masterSetters = masterSetterList.listIterator();
+        while (masterSetters.hasNext()) {
+            Setter masterSetter = masterSetters.next();
+            ListIterator<Setter> setters = setterList.listIterator();
+            while (setters.hasNext()) {
+                Setter setter = setters.next();
+                // if master setters match, remove matching amount and items from both lists
+                if (setter.getUuid().equals(masterSetter.getUuid()) && setter.getWhitelist().equals(masterSetter.getWhitelist())) {
+                    double newSetterAmount = 0;
+                    double newMasterAmount = masterSetter.getAmount() - setter.getAmount();
+                    if (newMasterAmount < 0) {
+                        // trying to remove too much from this setter
+                        newSetterAmount = -1 * newMasterAmount;
+                        newMasterAmount = 0;
+                    }
+                    removeSimilarItems(masterSetter.getItems(), setter.getItems());
+                    // if setter is empty, remove
+                    if (newSetterAmount == 0 && setter.getItems().isEmpty()) {
+                        // empty setter
+                        setters.remove();
+                    } else {
+                        // replace with new setter
+                        setters.set(new Setter(setter.getName(), setter.getUuid(), newSetterAmount, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), 0)); // display bounty doesn't matter because this setter will no longer exist outside this loop
+                    }
+                    if (newMasterAmount == 0 && masterSetter.getItems().isEmpty()) {
+                        // empty setter
+                        masterSetters.remove();
+                        break;
+                    } else {
+                        // replace with new setter
+                        masterSetters.set(new Setter(masterSetter.getName(), masterSetter.getUuid(), newMasterAmount, masterSetter.getItems(), masterSetter.getTimeCreated(), masterSetter.isNotified(), masterSetter.getWhitelist(), masterSetter.getReceiverPlaytime(), 0));
+                    }
                 }
-            }.runTaskAsynchronously(NotBounties.getInstance());
+            }
         }
     }
 
-    public static void removeSetters(@NotNull Bounty bounty, List<Setter> setters) {
-        if (!activeBounties.contains(bounty)) {
-            // get the stored bounty
-            bounty = getBounty(bounty.getUUID());
-            if (bounty == null)
-                return;
+    private static void removeSimilarItems(List<ItemStack> masterItemsList, List<ItemStack> setterItemsList) {
+        ListIterator<ItemStack> masterItems = masterItemsList.listIterator();
+        while (masterItems.hasNext()) {
+            ItemStack masterItem = masterItems.next();
+            ListIterator<ItemStack> setterItems = setterItemsList.listIterator();
+            while (setterItems.hasNext()) {
+                ItemStack setterItem = setterItems.next();
+                if (masterItem.isSimilar(setterItem)) {
+                    int setterAmount = 0;
+                    int masterAmount = masterItem.getAmount() - setterItem.getAmount();
+                    if (masterAmount < 0) {
+                        setterAmount = -1 * masterAmount;
+                        masterAmount = 0;
+                    }
+                    if (setterAmount == 0) {
+                        setterItems.remove();
+                    } else {
+                        setterItem.setAmount(setterAmount);
+                        setterItems.set(setterItem);
+                    }
+                    if (masterAmount == 0) {
+                        masterItems.remove();
+                        break;
+                    } else {
+                        masterItem.setAmount(masterAmount);
+                        masterItems.set(masterItem);
+                    }
+                }
+            }
         }
+    }
+
+    /**
+     * Removes setters from all databases.
+     * @param bounty Bounty that contains the setters.
+     * @param setters Setters to be removed.
+     */
+    public static void removeSetters(@NotNull Bounty bounty, List<Setter> setters) {
         bounty.getSetters().removeIf(setters::contains);
         if (bounty.getSetters().isEmpty()) {
             deleteBounty(bounty.getUUID());
         } else {
-            Bounty removedBounty = new Bounty(bounty.getUUID(), setters, bounty.getName());
-            if (redis.isConnected())
-                redisData.removeBounty(bounty);
-            if (!sql.isConnected() || !data.removeBounty(removedBounty))
-                queuedChanges.add(new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, removedBounty));
+            Bounty removedBounty = new Bounty(bounty.getUUID(), setters, bounty.getName(), bounty.getServerID());
+            for (AsyncDatabaseWrapper database : databases)
+                database.removeBounty(removedBounty);
+            localData.removeBounty(removedBounty);
         }
     }
 
@@ -979,48 +642,14 @@ public class DataManager {
      * @return The new bounty. This bounty will be the combination of all bounties on the same person.
      */
     public static Bounty insertBounty(@Nullable Player setter, @NotNull OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
-        Bounty prevBounty;
         Bounty newBounty = setter == null ? new Bounty(receiver, amount, items, whitelist) : new Bounty(setter, receiver, amount, items, whitelist);
-        if (sql.isConnected()) {
-            data.addBounty(newBounty);
-        } else {
-            queuedChanges.add(new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, new Bounty(newBounty)));
-        }
 
-        if (redis.isConnected()) {
-            redisData.addBounty(newBounty);
-            return getBounty(receiver.getUniqueId());
+        for (AsyncDatabaseWrapper database : databases) {
+            database.addBounty(newBounty);
         }
+        return localData.addBounty(newBounty);
 
-        prevBounty = getBounty(receiver.getUniqueId());
-        if (prevBounty == null) {
-            // insert new bounty for this player
-            int index = Collections.binarySearch(activeBounties, newBounty, Collections.reverseOrder());
-            if (index < 0) {
-                index = -index - 1;
-            }
-            activeBounties.add(index, newBounty);
-            prevBounty = newBounty;
-        } else {
-            // combine with previous bounty
-            if (setter == null) {
-                prevBounty.addBounty(amount, items, whitelist);
-            } else {
-                prevBounty.addBounty(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
-            }
-            sortActiveBounties();
-        }
 
-        return prevBounty;
-    }
-
-    public static void expireSQLBounties(boolean offlineTracking) {
-        if (sql.isConnected()) {
-            if (offlineTracking)
-                data.removeOldBounties();
-            else
-                data.removeOldPlaytimeBounties();
-        }
     }
 
     /**
@@ -1028,252 +657,142 @@ public class DataManager {
      * @param bounty Bounty to be added
      */
     public static void addBounty(Bounty bounty) {
-        if (sql.isConnected()) {
-            data.addBounty(bounty);
-        } else {
-            queuedChanges.add(new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, new Bounty(bounty)));
+        for (AsyncDatabaseWrapper database : databases) {
+            database.addBounty(bounty);
         }
+        localData.addBounty(bounty);
+    }
 
-        if (redis.isConnected()) {
-            redisData.addBounty(bounty);
-            return;
+    private static boolean isPermDatabaseConnected() {
+        for (AsyncDatabaseWrapper database : databases) {
+            if (database.isPermDatabase() && database.isConnected())
+                return true;
         }
-
-        Bounty prevBounty = getBounty(bounty.getUUID());
-        if (prevBounty == null) {
-            // insert new bounty for this player
-            int index = Collections.binarySearch(activeBounties, bounty, Collections.reverseOrder());
-            if (index < 0) {
-                index = -index - 1;
-            }
-            activeBounties.add(index, bounty);
-        } else {
-            // combine with previous bounty
-            for (Setter setter : bounty.getSetters())
-                prevBounty.addBounty(setter);
-            sortActiveBounties();
-        }
+        return false;
     }
 
     /**
-     * First, loads all the bounties on the SQL database.
-     * Next, queued changes are edited on the loaded bounties.
-     * Then, queued changes are pushed to the database.
-     * This way, the bounties can be obtained immediately.
-     * Stats are also updated from the database
+     * Called when a database connects.
+     * A database could connect when:
+     * - The server first starts. This is probably not the only server connected to the database.
+     * - Lost connection to the database. Perm data would be saved, Temp data maybe not.
+     * - The server restarted with an active temp database. Perm database will fall into the category above.
+     * @param database
      */
-    private static void loadSQLData(boolean sync) {
-        if (sql.isConnected() && System.currentTimeMillis() - lastSQLLoad > 20000L) {
-            lastSQLLoad = System.currentTimeMillis();
-            if (sync) {
-                updateSQLData();
-            } else {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        updateSQLData();
+    public static void databaseConnect(NotBountiesDatabase database) {
+        // hasConnectedBefore will be false if this is the first time connecting
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                AsyncDatabaseWrapper databaseWrapper = null;
+                for (AsyncDatabaseWrapper asyncDatabaseWrapper : databases) {
+                    if (asyncDatabaseWrapper.getName().equals(database.getName())) {
+                        databaseWrapper = asyncDatabaseWrapper;
+                        break;
                     }
-                }.runTaskAsynchronously(NotBounties.getInstance());
-            }
-        }
-    }
-
-    private static void updateSQLData(){
-        // check if sql is connected and last load was more than 5 seconds ago
-
-            NotBounties.debugMessage("Sending SQL Request", false);
-            List<BountyChange> bountyChanges = new ArrayList<>(queuedChanges); // grab a copy of queued changes
-            queuedChanges.clear(); // clear the list
-            List<Bounty> sqlBounties = data.getTopBounties(-1); // not sorted
-            for (BountyChange bountyChange : bountyChanges) {
-                switch (bountyChange.changeType()) {
-                    case NOTIFY:
-                        // 0: bounty uuid
-                        // 1: setter uuid
-                        UUID[] uuids = (UUID[]) bountyChange.change();
-                        // uuids must match and set time must be before lastSQLLoad
-                        for (Bounty bounty : sqlBounties) {
-                            if (bounty.getUUID().equals(uuids[0])) {
-                                for (Setter setter : bounty.getSetters()) {
-                                    if (setter.getUuid().equals(uuids[1]) && setter.getTimeCreated() < lastSQLLoad) {
-                                        setter.setNotified(true);
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    case DELETE_BOUNTY:
-                        // bounty to be deleted
-                        Bounty toRemove = (Bounty) bountyChange.change();
-                        // iterate through all bounties
-                        ListIterator<Bounty> bountyListIterator = sqlBounties.listIterator();
-                        while (bountyListIterator.hasNext()) {
-                            Bounty bounty = bountyListIterator.next();
-                            // check if bounty uuids match
-                            if (bounty.getUUID().equals(toRemove.getUUID())) {
-                                // iterate through setters
-                                ListIterator<Setter> setterListIterator = bounty.getSetters().listIterator();
-                                while (setterListIterator.hasNext()) {
-                                    Setter setter = setterListIterator.next();
-                                    // remove setter if any setter uuids match and they were created before last sql load
-                                    for (Setter toRemoveSetter : toRemove.getSetters()) {
-                                        if (setter.getUuid().equals(toRemoveSetter.getUuid()) && setter.getTimeCreated() < lastSQLLoad)
-                                            setterListIterator.remove();
-                                    }
-                                }
-                                // remove bounty if setter list is empty
-                                if (bounty.getSetters().isEmpty())
-                                    bountyListIterator.remove();
-                            }
-                        }
-                        break;
-                    case ADD_BOUNTY:
-                        Bounty toAdd = (Bounty) bountyChange.change();
-                        sqlBounties.add(toAdd);
-                        break;
-                    case EDIT_BOUNTY:
-                        Bounty toEdit = (Bounty) bountyChange.change();
-                        Setter prevSetter = toEdit.getSetters().get(0);
-                        Setter change = toEdit.getSetters().get(1);
-                        boolean madeEdit = false;
-                        // find bounty
-                        for (Bounty bounty : sqlBounties) {
-                            if (bounty.getUUID().equals(toEdit.getUUID())) {
-                                // same bounty - check for setter match
-                                ListIterator<Setter> setterListIterator = bounty.getSetters().listIterator();
-                                while (setterListIterator.hasNext()) {
-                                    Setter setter = setterListIterator.next();
-                                    if (setter.getUuid().equals(prevSetter.getUuid()) && setter.getTimeCreated() == prevSetter.getTimeCreated()) {
-                                        double newAmount = setter.getAmount() + change.getAmount();
-                                        Setter newSetter = new Setter(setter.getName(), setter.getUuid(), newAmount, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() + prevSetter.getAmount());
-                                        setterListIterator.set(newSetter);
-                                        madeEdit = true;
-                                        break;
-                                    }
-                                }
-                                if (!madeEdit) {
-                                    // did not find a matching setter - create new one
-                                    bounty.getSetters().add(new Setter(prevSetter.getName(), prevSetter.getUuid(), change.getAmount(), new ArrayList<>(), prevSetter.getTimeCreated(), prevSetter.isNotified(), prevSetter.getWhitelist(), prevSetter.getReceiverPlaytime()));
-                                }
-                                break;
-                            }
-                        }
-                        break;
-
                 }
-            }
-            // sort bounties in descending order
-            sqlBounties.sort(Comparator.reverseOrder());
-            activeBounties.clear();
-            for (Bounty bounty : sqlBounties) {
-                activeBounties.add(bounty);
-                if (!loggedPlayers.containsValue(bounty.getUUID()))
-                    loggedPlayers.put(bounty.getName().toLowerCase(Locale.ROOT), bounty.getUUID());
-            }
-
-            // update stats
-            Map<UUID, Double[]> queuedStatChanges = new HashMap<>(statChanges);
-            statChanges.clear();
-
-            Map<UUID, Double[]> sqlStats = data.getAllStats();
-            // apply changes to received stats
-            for (Map.Entry<UUID, Double[]> entry : queuedStatChanges.entrySet()) {
-                Double[] stat = sqlStats.containsKey(entry.getKey()) ? sqlStats.get(entry.getKey()) : new Double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-                for (int i = 0; i < stat.length; i++) {
-                    stat[i] += entry.getValue()[i];
+                if (databaseWrapper == null) {
+                    // unknown database
+                    Bukkit.getLogger().warning("[NotBounties] Unknown database \"" + database.getName() + "\" tried to connect!");
+                    return;
                 }
-                sqlStats.put(entry.getKey(), stat);
-            }
-            stats.clear();
-            stats.putAll(sqlStats);
 
-            // update redis
-            if (redis.isConnected()) {
-                redisData.setAllData(activeBounties, stats);
-                activeBounties.clear();
-                stats.clear();
-            }
+                List<Bounty> localBounties = getAllBounties(2);
+                Map<UUID, PlayerStat> localStats = getAllStats();
 
-            // push changes to the database
-            if (!data.pushChanges(bountyChanges, queuedStatChanges, lastSQLLoad)) {
-                // add changes back if push failed
-                queuedChanges.addAll(bountyChanges);
-                statChanges.putAll(queuedStatChanges);
-            }
-    }
-
-
-    /**
-     * This method attempts to connect to the MySQL database.
-     * If a connection is successful, local storage will be migrated
-     *
-     * @return true if a connection was successful
-     */
-    public static boolean tryToConnect() {
-        if (!sql.isConnected()) {
-            try {
-                sql.connect();
-            } catch (SQLException e) {
-                //e.printStackTrace();
-                return false;
-            }
-            if (sql.isConnected()) {
-                if (!sql.hasConnectedBefore()) {
-                    // first time connection
-                    // migrate local data
-                    Bukkit.getLogger().info("[NotBounties] Database is connected!");
-                    data.createTable();
-                    data.createDataTable();
-                    data.createOnlinePlayerTable();
-                    if (!stats.isEmpty()) {
-                        // add entries to database
-                            statChanges.clear();
-                            for (Map.Entry<UUID, Double[]> entry : stats.entrySet()) {
-                                Double[] values = entry.getValue();
-                                data.addData(String.valueOf(entry.getKey()), values[0].longValue(), values[1].longValue(), values[2].longValue(), values[3], values[4], values[5]);
-                            }
-                            stats.clear();
-
+                if (database instanceof TempDatabase tempDatabase && isPermDatabaseConnected()) {
+                    tempDatabase.replaceWithDefaultServerID();
+                } else if (!(database instanceof TempDatabase)) {
+                    // remove local server ID from local data
+                    localData.syncPermData();
+                    // remove server ID of connected temp databases
+                    for (AsyncDatabaseWrapper otherDatabase : databases) {
+                        if (otherDatabase.isConnected() && otherDatabase.getDatabase() instanceof TempDatabase tempDatabase) {
+                            tempDatabase.replaceWithDefaultServerID();
+                        }
                     }
-                        if (!activeBounties.isEmpty()) {
-                            Bukkit.getLogger().info("[NotBounties] Migrating local storage to database");
-                            // add entries to database
+                }
 
-                            queuedChanges.clear(); // all queued changes are in the current migrating bounties
-                            for (Bounty bounty : activeBounties) {
-                                if (bounty.getTotalDisplayBounty() != 0) {
-                                    for (Setter setter : bounty.getSetters()) {
-                                        data.addBounty(bounty, setter);
-                                    }
-                                }
-                            }
+                List<Bounty> databaseBounties = database.getAllBounties(2);
+                Map<UUID, PlayerStat> databaseStats = database.getAllStats();
+                long lastSyncTime = database.getLastSync();// get last sync time
+                database.setLastSync(System.currentTimeMillis());
 
-                        }
+                List<Bounty>[] dataChanges = Inconsistent.getAsyncronousObjects(localBounties, databaseBounties, lastSyncTime);
+                // these bounties should be added/removed to local data
+                List<Bounty> databaseAdded = dataChanges[0];
+                List<Bounty> databaseRemoved = dataChanges[1];
+                // these bounties should be added/removed to the local data
+                List<Bounty> localAdded = dataChanges[2];
+                List<Bounty> localRemoved = dataChanges[3];
+                // apply consistency changes
+                localData.addBounty(databaseAdded);
+                localData.removeBounty(databaseRemoved);
+                database.addBounty(localAdded);
+                database.removeBounty(localRemoved);
 
+                NotBounties.debugMessage("Since last sync: databaseAdded=" + databaseAdded.size() + " databaseRemoved=" + databaseRemoved.size() + " localAdded=" + localAdded.size() + " localRemoved=" + localRemoved.size(), false);
 
-                    // load bounties & stats from database
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            loadSQLData(false);
-                        }
-                    }.runTaskLater(NotBounties.getInstance(), 100L); // 5 seconds
-
-                    // remove data with all stats of 0
-                    int cleanedRows = data.removeExtraData();
-                    if (cleanedRows > 0)
-                        Bukkit.getLogger().info(() -> "[NotBounties] Cleared up " + cleanedRows + " unused rows in the database!");
-
-                    data.refreshOnlinePlayers(); // add current online players on this server to the database
+                if (lastSyncTime == 0) {
+                    // never sunk
+                    // doesn't have local data
+                    // combine both local and database stats
+                    database.addStats(localStats);
+                    localData.addStats(databaseStats);
                 } else {
-                    // reconnected
-                    // migrate queuedChanges
-                    loadSQLData(false);
+                    // database has connected before
+
+                    if (databaseStats.isEmpty()) {
+                        // nothing in the database yet
+                        // if the database restarted, this will add old stats in
+                        // add all local stats
+                        database.addStats(localStats);
+                    } else {
+
+                        // check if this server's stats are in the db already
+                        // if the database is a TempDatabase, their bounties will contain the local server id if the data is in the db already
+                        // if the database isn't a TempDatabase, all local data with a local server id needs to be migrated
+                        if (database instanceof TempDatabase tempDatabase && tempDatabase.getStoredServerIds().contains(DataManager.getDatabaseServerID(false))) {
+                            // db is a temp database that has this server's data
+                            // push stat changes since last connect
+                            Map<UUID, PlayerStat> pushedChanges = databaseWrapper.getStatChanges();
+                            database.addStats(pushedChanges);
+                        } else {
+                            // db is a temp database that hasn't received this server's data before or a perm database
+                            // migrate local stats with the local server-id
+                            // push stat changes that weren't in the migrated local stats
+                            Map<UUID, PlayerStat> pushedChanges = databaseWrapper.getStatChanges();
+                            // remove any stats without the server-id
+                            localStats.entrySet().removeIf(entry -> !entry.getValue().serverID().equals(DataManager.databaseServerID));
+                            // add any pushed changes to the local stats
+                            for (Map.Entry<UUID, PlayerStat> entry : pushedChanges.entrySet()) {
+                                if (!localStats.containsKey(entry.getKey())) {
+                                    localStats.put(entry.getKey(), entry.getValue());
+                                }
+                            }
+                            // add changes to database
+                            database.addStats(localStats);
+                            // add changes to the local data
+                            for (Map.Entry<UUID, PlayerStat> entry : localStats.entrySet()) {
+                                if (databaseStats.containsKey(entry.getKey()))
+                                    databaseStats.replace(entry.getKey(), databaseStats.get(entry.getKey()).combineStats(entry.getValue()));
+                                else
+                                    databaseStats.put(entry.getKey(), entry.getValue());
+                            }
+                            localData.setStats(databaseStats);
+                        }
+                    }
                 }
-            } else {
-                return false;
+                // log any unknown names in the database bounties
+                databaseAdded.stream().filter(bounty -> !loggedPlayers.containsKey(bounty.getName()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)).forEach(bounty -> loggedPlayers.put(bounty.getName(), bounty.getUUID()));
             }
+        }.runTaskAsynchronously(NotBounties.getInstance());
+    }
+
+    private static void tryDatabaseConnections() {
+        for (NotBountiesDatabase database : databases) {
+            if (!database.isConnected())
+                database.connect();
         }
-        return true;
     }
 }

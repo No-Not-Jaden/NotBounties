@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils.challenges;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
 import me.jadenp.notbounties.bountyEvents.BountySetEvent;
+import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -44,7 +45,7 @@ public class ChallengeListener implements Listener {
         ChallengeManager.updateChallengeProgress(event.getBounty().getUUID(), ChallengeType.RECEIVE_BOUNTY, 1);
         if (!event.getBounty().getLastSetter().getWhitelist().getList().isEmpty())
             ChallengeManager.updateChallengeProgress(event.getBounty().getLastSetter().getUuid(), ChallengeType.WHITELISTED_BOUNTY_SET, event.getBounty().getLastSetter().getWhitelist().getList().size());
-        if (event.getBounty().getLastSetter().getUuid().equals(new UUID(0,0)))
+        if (event.getBounty().getLastSetter().getUuid().equals(DataManager.GLOBAL_SERVER_ID))
             ChallengeManager.updateChallengeProgress(event.getBounty().getUUID(), ChallengeType.AUTO_BOUNTY, event.getBounty().getTotalDisplayBounty());
     }
 

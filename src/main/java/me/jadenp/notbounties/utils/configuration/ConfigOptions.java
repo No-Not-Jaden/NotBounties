@@ -13,6 +13,7 @@ import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.BountyClaimRequirements;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.TrickleBounties;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
@@ -35,7 +36,6 @@ import java.text.DateFormat;
 import java.util.*;
 
 public class ConfigOptions {
-    public static boolean autoConnect;
     public static int minBroadcast;
     public static int minBounty;
     public static double bountyTax;
@@ -115,7 +115,7 @@ public class ConfigOptions {
     public static boolean stealBounties;
     public static List<String> pluginBountyCommands;
     public static boolean geyserEnabled;
-    private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level"};
+    private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level", "databases"};
     public static long bountyCooldown;
 
     public static void reloadOptions() throws IOException {
@@ -288,6 +288,20 @@ public class ConfigOptions {
             bounties.getConfig().set("currency.bounty-items.use-item-values", null);
         }
 
+        // convert database to databases
+        if (bounties.getConfig().isSet("database")) {
+            bounties.getConfig().set("databases.example-sql.type", "SQL");
+            bounties.getConfig().set("databases.example-sql.host", bounties.getConfig().getString("database.host"));
+            bounties.getConfig().set("databases.example-sql.port", bounties.getConfig().getInt("database.port"));
+            bounties.getConfig().set("databases.example-sql.database", bounties.getConfig().getString("database.database"));
+            bounties.getConfig().set("databases.example-sql.user", bounties.getConfig().getString("database.user"));
+            bounties.getConfig().set("databases.example-sql.password", bounties.getConfig().getString("database.password"));
+            bounties.getConfig().set("databases.example-sql.ssl", bounties.getConfig().getBoolean("database.use-ssl"));
+            bounties.getConfig().set("databases.example-sql.refresh-interval", 300);
+            bounties.getConfig().set("databases.example-sql.priority", 1);
+            bounties.getConfig().set("database", null);
+        }
+
         boolean saveChanges = true;
         if (bounties.getConfig().getKeys(true).size() <= 2) {
             saveChanges = false;
@@ -298,7 +312,7 @@ public class ConfigOptions {
         if (NotBounties.getInstance().getResource("config.yml") != null) {
             bounties.getConfig().setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("config.yml")))));
             for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
-                if (Arrays.stream(modifiableSections).anyMatch(key::contains))
+                if (Arrays.stream(modifiableSections).anyMatch(key::startsWith))
                     continue;
                 if (!bounties.getConfig().isSet(key))
                     bounties.getConfig().set(key, bounties.getConfig().getDefaults().get(key));
@@ -318,6 +332,7 @@ public class ConfigOptions {
         Prompt.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("prompts")));
         TrickleBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("trickle-bounties")));
         GUIClicks.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-gui-clicks")));
+        DataManager.loadDatabaseConfig(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("databases")));
 
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
@@ -329,7 +344,6 @@ public class ConfigOptions {
         RRLVoucherPerSetter = bounties.getConfig().getBoolean("redeem-reward-later.voucher-per-setter");
         RRLSetterLoreAddition = bounties.getConfig().getString("redeem-reward-later.setter-lore-addition");
         minBroadcast = bounties.getConfig().getInt("minimum-broadcast");
-        autoConnect = bounties.getConfig().getBoolean("database.auto-connect");
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
         updateNotification = bounties.getConfig().getBoolean("update-notification");
         npcClaim = bounties.getConfig().getBoolean("npc-claim");
@@ -693,10 +707,9 @@ public class ConfigOptions {
     }
 
     public static String getWantedDisplayText(OfflinePlayer player) {
-        if (!BountyManager.hasBounty(player.getUniqueId()))
-            return "";
         Bounty bounty = BountyManager.getBounty(player.getUniqueId());
-        assert bounty != null;
+        if (bounty == null)
+            return "";
         String levelReplace = "";
         for (Map.Entry<Integer, String> entry : wantedLevels.entrySet()) {
             if (entry.getKey() <= bounty.getTotalDisplayBounty()) {

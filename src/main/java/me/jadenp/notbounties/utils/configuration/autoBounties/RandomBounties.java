@@ -57,7 +57,7 @@ public class RandomBounties {
                 setNextRandomBounty();
                 return;
             }
-            UUID uuid = randomBountyOfflineSet ? (UUID) NotBounties.loggedPlayers.values().toArray()[random.nextInt(NotBounties.loggedPlayers.values().size())] : ((OfflinePlayer) NotBounties.getNetworkPlayers().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())]).getUniqueId();
+            UUID uuid = randomBountyOfflineSet ? (UUID) NotBounties.loggedPlayers.values().toArray()[random.nextInt(NotBounties.loggedPlayers.values().size())] : ((OfflinePlayer) NotBounties.getNetworkPlayers().keySet().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())]).getUniqueId();
             final double[] price = {randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice)};
             try {
                 OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);

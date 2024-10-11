@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils.challenges;
 import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.bedrock.GUIComponent;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
@@ -56,6 +57,8 @@ public class ChallengeManager implements Listener {
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(challengeFile);
         // load configuration options
         enabled = configuration.isSet("enabled") && configuration.getBoolean("enabled"); // default false
+        if (!enabled)
+            return;
         concurrentChallenges = configuration.isSet("concurrent-challenges") ? configuration.getInt("concurrent-challenges") : 3;
         globalChallenges = !configuration.isSet("global-challenges") || configuration.getBoolean("global-challenges"); // default true
 
@@ -117,7 +120,7 @@ public class ChallengeManager implements Listener {
         }
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(challengeDataFile);
         // check if a console uuid exists - all challenges are the same for everyone
-        String consoleUUID = new UUID(0,0).toString();
+        String consoleUUID = DataManager.GLOBAL_SERVER_ID.toString();
 
         // iterate through every top level key
         for (String key : configuration.getKeys(false)) {
@@ -215,7 +218,7 @@ public class ChallengeManager implements Listener {
             Bukkit.getLogger().info("[NotBounties] Created new challenge data file.");
         }
         YamlConfiguration configuration = new YamlConfiguration();
-        UUID consoleUUID = new UUID(0,0);
+        UUID consoleUUID = DataManager.GLOBAL_SERVER_ID;
         if (globalChallenges) {
             // active challenges are only stored for the console uuid
             if (!activeChallenges.containsKey(consoleUUID))
@@ -311,14 +314,14 @@ public class ChallengeManager implements Listener {
     private static void generateProgress(Player player) {
         if (!globalChallenges) {
             generateChallenges(player.getUniqueId()); // generate new challenges
-        } else if (!activeChallenges.containsKey(new UUID(0,0))) {
-            generateChallenges(new UUID(0,0)); // generate challenges for the console
+        } else if (!activeChallenges.containsKey(DataManager.GLOBAL_SERVER_ID)) {
+            generateChallenges(DataManager.GLOBAL_SERVER_ID); // generate challenges for the console
         }
         // create progress and goal list
         LinkedList<ChallengeData> challengeDataList = new LinkedList<>();
 
         // get created challenges
-        LinkedList<ActiveChallenge> createdChallenges = globalChallenges ? activeChallenges.get(new UUID(0,0)) : activeChallenges.get(player.getUniqueId());
+        LinkedList<ActiveChallenge> createdChallenges = globalChallenges ? activeChallenges.get(DataManager.GLOBAL_SERVER_ID) : activeChallenges.get(player.getUniqueId());
         // get the progress and goal for each challenge
         for (ActiveChallenge createdChallenge : createdChallenges) {
             Challenge challenge = createdChallenge.getChallenge();
@@ -439,7 +442,7 @@ public class ChallengeManager implements Listener {
         activeChallenges.clear();
         challengeDataMap.clear();
         if (globalChallenges) {
-            generateChallenges(new UUID(0,0));
+            generateChallenges(DataManager.GLOBAL_SERVER_ID);
         } else {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 generateChallenges(player.getUniqueId());
@@ -549,7 +552,7 @@ public class ChallengeManager implements Listener {
     private static double getVariation(UUID uuid, int challengeIndex) {
         if (globalChallenges) {
             // return the active challenge variation for console uuid
-            return activeChallenges.get(new UUID(0,0)).get(challengeIndex).getChallenge().getVariations().get(activeChallenges.get(new UUID(0,0)).get(challengeIndex).getVariationIndex());
+            return activeChallenges.get(DataManager.GLOBAL_SERVER_ID).get(challengeIndex).getChallenge().getVariations().get(activeChallenges.get(DataManager.GLOBAL_SERVER_ID).get(challengeIndex).getVariationIndex());
         } else {
             if (!activeChallenges.containsKey(uuid))
                 return 0;

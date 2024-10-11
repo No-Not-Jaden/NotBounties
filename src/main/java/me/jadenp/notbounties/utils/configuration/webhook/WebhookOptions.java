@@ -8,6 +8,7 @@ import me.jadenp.notbounties.bountyEvents.BountyRemoveEvent;
 import me.jadenp.notbounties.bountyEvents.BountySetEvent;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -79,7 +80,7 @@ public class WebhookOptions implements Listener {
         Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
         double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
         total = total - event.getBounty().getTotalDisplayBounty();
-        UUID removerUUID = event.getRemover() instanceof Player player ? player.getUniqueId() : new UUID(0,0);
+        UUID removerUUID = event.getRemover() instanceof Player player ? player.getUniqueId() : DataManager.GLOBAL_SERVER_ID;
         buildWebhook(webhook, event.getBounty().getUUID(), removerUUID, event.getBounty().getTotalDisplayBounty(), total);
     }
 
@@ -88,7 +89,7 @@ public class WebhookOptions implements Listener {
         if (link.equals(UNSET_LINK) || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
-        UUID editorUUID = event.getEditor() instanceof Player player ? player.getUniqueId() : new UUID(0,0);
+        UUID editorUUID = event.getEditor() instanceof Player player ? player.getUniqueId() : DataManager.GLOBAL_SERVER_ID;
         buildWebhook(webhook, event.getBeforeEdit().getUUID(), editorUUID, event.getBeforeEdit().getTotalDisplayBounty(), event.getAfterEdit().getTotalBounty());
     }
     

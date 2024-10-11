@@ -23,6 +23,9 @@ public class BountyExpire {
     private static boolean rewardReceiver;
     private static final Map<UUID, Long> playTimes = new HashMap<>();
     private static final Map<UUID, Long> logonTimes = new HashMap<>();
+
+    private BountyExpire(){}
+
     public static void loadConfiguration(ConfigurationSection configuration) {
         time = configuration.getDouble("time");
         offlineTracking = configuration.getBoolean("offline-tracking");
@@ -61,7 +64,7 @@ public class BountyExpire {
         // offlineTracking = true -> time since the bounty was created
         // offlineTracking = false -> change in playtime of receiver since the bounty was set
         long compareTime = offlineTracking ? System.currentTimeMillis() - setter.getTimeCreated() : getTimePlayed(receiver) - setter.getReceiverPlaytime();
-        return isExpired(compareTime, setter.getUuid().equals(new UUID(0,0)));
+        return isExpired(compareTime, setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID));
     }
 
     public static long getExpireTime(UUID receiver, Setter setter) {
@@ -69,7 +72,7 @@ public class BountyExpire {
         // offlineTracking = true -> time since the bounty was created
         // offlineTracking = false -> change in playtime of receiver since the bounty was set
         long compareTime = offlineTracking ? System.currentTimeMillis() - setter.getTimeCreated() : getTimePlayed(receiver) - setter.getReceiverPlaytime();
-        return getExpireTime(compareTime, setter.getUuid().equals(new UUID(0,0)));
+        return getExpireTime(compareTime, setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID));
     }
 
     public static long getLowestExpireTime(Bounty bounty) {
@@ -127,8 +130,6 @@ public class BountyExpire {
         }
         boolean change = false;
         // go through all the bounties and remove setters if it has been more than expire time
-
-        DataManager.expireSQLBounties(offlineTracking);
 
             Map<UUID, List<Setter>> settersToRemove = new HashMap<>();
             for (Bounty bounty : BountyManager.getAllBounties(-1)) {

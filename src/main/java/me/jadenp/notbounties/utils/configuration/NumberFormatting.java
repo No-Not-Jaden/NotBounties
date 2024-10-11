@@ -99,7 +99,7 @@ public class NumberFormatting {
         currencyValues = new LinkedHashMap<>();
         customModelDatas = new ArrayList<>();
         if (currencyOptions.isString("object")){
-            currency = Collections.singletonList(currencyOptions.getString("object"));
+            currency = new ArrayList<>(Collections.singletonList(currencyOptions.getString("object")));
         } else if (currencyOptions.isList("object")){
             currency = currencyOptions.getStringList("object");
         }

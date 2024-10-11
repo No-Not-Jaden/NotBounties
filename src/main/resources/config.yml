@@ -501,6 +501,8 @@ bounty-tracker:
   # this is also how many blocks away until the tracked player gets a message about being tracked
   glow: 10
   # information to show when a player is holding a tracker
+  # with everything enabled it would look something like:
+  # Not_Jaden - 25m - 13x 63y 20z - world
   action-bar:
     enabled: true
     # always show when holding - false only shows when they right-click
@@ -513,29 +515,36 @@ bounty-tracker:
     position: false
     # show the world of your target
     world: false
-    # with everything enabled it would look something like:
-    # Not_Jaden - 25m - 13x 63y 20z - world
-# MySQL connection - you don't have to change anything if you don't want to use it
-database:
-  host: localhost
-  port: 3306
-  database: db
-  user: username
-  password: pass
-  use-ssl: false
-  # automatically try to connect to the database if a connection was lost
-  auto-connect: false
-  # the id of the server used to get all players on the network
-  # this needs to be different for all servers connected to the same database
-  server-id: 1
-# Redis connection
-redis:
-  host: localhost
-  port: 3306
-  user: username
-  password: pass
-  database-number: -1
-  ssl: false
-  auto-connect: false
+# Optional database connections for storing bounties and player stats
+# You can add as many as you want
+databases:
+  # you can change 'example-sql' to a different name if it helps you keep track of it
+  example-sql:
+    # the type of database: SQL or REDIS
+    type: SQL
+    # all the regular database options
+    host: localhost
+    port: 3306
+    database: db # SQL specific: name of the database
+    user: username
+    password: pass
+    ssl: false
+    # how long between database refreshes in seconds
+    refresh-interval: 300
+    # higher priority means that this database will be used more
+    priority: 1
+  # the redis config is very similar to SQL
+  example-redis:
+    type: REDIS
+    host: localhost
+    port: 3306
+    user: username
+    password: pass
+    ssl: false
+    database-number: -1 # Redis specific: database number, -1 disables it
+    # how long between database refreshes in seconds
+    refresh-interval: 300
+    # higher priority means that this database will be used more
+    priority: 2
 # send server stats like most other plugins do
 send-bstats: true

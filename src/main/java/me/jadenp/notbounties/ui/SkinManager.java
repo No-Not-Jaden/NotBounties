@@ -4,25 +4,25 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import org.apache.hc.client5.http.async.methods.*;
-import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
-import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
-import org.apache.hc.core5.concurrent.FutureCallback;
+import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.StatusLine;
-import org.apache.hc.core5.io.CloseMode;
-import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.util.Timeout;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.*;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SkinManager {
     private static final Map<UUID, PlayerSkin> savedSkins = new HashMap<>();
@@ -39,7 +39,7 @@ public class SkinManager {
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
-        savedSkins.put(new UUID(0,0), missingSkin); // console
+        savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin); // console
     }
 
     private SkinManager(){}
@@ -47,7 +47,7 @@ public class SkinManager {
     public static void refreshSkinRequests() {
         requestCooldown.clear(); // clear request times
         try {
-            savedSkins.entrySet().removeIf(pair -> isMissingSkin(pair.getValue()) && !pair.getKey().equals(new UUID(0,0))); // remove any skins that are set to missing
+            savedSkins.entrySet().removeIf(pair -> isMissingSkin(pair.getValue()) && !pair.getKey().equals(DataManager.GLOBAL_SERVER_ID)); // remove any skins that are set to missing
         } catch (ConcurrentModificationException ignored) {
             // skins are still being processed
             Bukkit.getLogger().warning("[NotBounties] Failed to refresh skin cache.");
@@ -69,7 +69,7 @@ public class SkinManager {
     public static boolean isSkinLoaded(UUID uuid) {
         if (savedSkins.containsKey(uuid)) {
             // check if the skin is missing
-            if (isMissingSkin(savedSkins.get(uuid)) && !uuid.equals(new UUID(0,0)) && (!requestCooldown.containsKey(uuid) || requestCooldown.get(uuid) < System.currentTimeMillis())) {
+            if (isMissingSkin(savedSkins.get(uuid)) && !uuid.equals(DataManager.GLOBAL_SERVER_ID) && (!requestCooldown.containsKey(uuid) || requestCooldown.get(uuid) < System.currentTimeMillis())) {
                 // Skin is missing. Send a request to load the skin again if the uuid isn't on a cooldown
                 savedSkins.remove(uuid);
                 saveSkin(uuid);
@@ -106,28 +106,14 @@ public class SkinManager {
         NotBounties.debugMessage("Attempting to save skin for: " + uuid, false);
         if (savedSkins.containsKey(uuid))
             return;
-        if (ConfigOptions.skinsRestorerEnabled) {
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    ConfigOptions.skinsRestorerClass.saveSkin(uuid);
-                }
-            }.runTaskAsynchronously(NotBounties.getInstance());
-        } else {
-            requestSkin(uuid);
-        }
+        requestSkin(uuid, true);
     }
 
-    public static void requestSkin(UUID uuid) {
-
+    public static void requestSkin(UUID uuid, boolean firstAttempt) {
         if (isSafeToRequest()) {
-            try {
-                new SkinResponseHandler(uuid).saveSkin();
-            } catch (ExecutionException | InterruptedException e) {
-                NotBounties.debugMessage("[NotBountiesDebug] Could not save a java skin for: " + NotBounties.getPlayerName(uuid), true);
-                NotBounties.debugMessage(e.toString(), true);
-            }
+            SkinResponseHandler.webRequestSkin(uuid, firstAttempt);
         } else {
+            NotBounties.debugMessage("Too many requests to save skins! Delaying some... ", false);
             requestLater(uuid);
         }
     }
@@ -264,12 +250,16 @@ public class SkinManager {
     }
 }
 
+enum SkinType {
+    JAVA, BEDROCK, SKINSRESTORER, USERNAME
+}
+
+record SkinRequestType(UUID uuid, SkinType skinType) {}
+
 class SkinResponseHandler {
-    private final UUID uuid;
-    public SkinResponseHandler(UUID uuid){
-        this.uuid = uuid;
-    }
-    private static CloseableHttpAsyncClient client = null;
+    private SkinResponseHandler() {}
+    private static BukkitTask client = null;
+    private static final Queue<SkinRequestType> requestQueue = new ConcurrentLinkedQueue<>();
 
     private static long lastRequest = System.currentTimeMillis();
     private static final long SLEEP_TIME = 10 * 60 * 1000L; // 10 minutes
@@ -285,199 +275,160 @@ class SkinResponseHandler {
 
     public static void closeClient(){
         if (client != null) {
-            client.close(CloseMode.GRACEFUL);
+            client.cancel();
             client = null;
             NotBounties.debugMessage("Http client has been closed.", false);
         }
     }
 
-    private static void createHttpClient() {
-        if (client == null) {
-            final IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
-                    .setSoTimeout(Timeout.ofSeconds(5))
-                    .build();
+    private static void createClient() {
+        if (client != null)
+            return;
+        NotBounties.debugMessage("Creating new skin request client.", false);
+        client = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (requestQueue.isEmpty())
+                    return;
+                UUID uuid = null;
+                try (final CloseableHttpClient httpclient = HttpClients.createDefault()) {
+                    SkinRequestType skinRequestType = requestQueue.poll();
+                    while (skinRequestType != null) {
+                        uuid = skinRequestType.uuid();
+                        PlayerSkin playerSkin = requestPlayerSkin(skinRequestType, httpclient);
+                        // a null player skin means it was requested using skinsrestorer
+                        if (playerSkin != null) {
+                            SkinManager.saveSkin(uuid, playerSkin);
+                        }
+                        skinRequestType = requestQueue.poll();
+                    }
+                } catch(IOException e){
+                    // skin request fail
+                    SkinManager.failRequest(uuid);
+                    NotBounties.debugMessage("Failed to request skin: " + uuid, true);
+                    NotBounties.debugMessage(e.toString(), true);
+                }
+                setLastRequest();
+            }
+        }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 3);
+    }
 
-            client = HttpAsyncClients.custom()
-                    .setIOReactorConfig(ioReactorConfig)
-                    .build();
-
-            client.start();
+    private static @Nullable PlayerSkin requestPlayerSkin(SkinRequestType skinRequestType, CloseableHttpClient httpClient) throws IOException {
+        UUID uuid = skinRequestType.uuid();
+        switch (skinRequestType.skinType()) {
+            case JAVA -> {
+                return saveJavaSkin(httpClient, uuid, true);
+            }
+            case BEDROCK -> {
+                return saveGeyserSkin(httpClient, NotBounties.getXuid(uuid));
+            }
+            case USERNAME -> {
+                return saveNamedSkin(httpClient, uuid);
+            }
+            case SKINSRESTORER -> new SkinsRestorerClass().saveSkin(uuid);
         }
+        return null;
     }
 
     private static void setLastRequest() {
         lastRequest = System.currentTimeMillis();
     }
 
-    public void saveSkin() throws ExecutionException, InterruptedException {
-        if (NotBounties.isBedrockPlayer(uuid)) {
-            saveGeyserSkin(NotBounties.getXuid(uuid));
+    protected static void webRequestSkin(UUID uuid, boolean firstAttempt){
+        if (client == null)
+            createClient();
+        if (ConfigOptions.skinsRestorerEnabled && firstAttempt) {
+            requestQueue.add(new SkinRequestType(uuid, SkinType.SKINSRESTORER));
+        } else if (NotBounties.isBedrockPlayer(uuid)) {
+            requestQueue.add(new SkinRequestType(uuid, SkinType.BEDROCK));
         } else {
             if (uuid.version() == 4)
-                saveMojangSkin(uuid, true);
+                requestQueue.add(new SkinRequestType(uuid, SkinType.JAVA));
             else
-                saveNamedSkin();
+                requestQueue.add(new SkinRequestType(uuid, SkinType.USERNAME));
         }
     }
 
-    private void saveGeyserSkin(String xUID) throws ExecutionException, InterruptedException {
+    private static PlayerSkin saveGeyserSkin(CloseableHttpClient httpClient, String xUID) throws IOException {
         NotBounties.debugMessage("Attempting to get bedrock skin from xuid: " + xUID, false);
-        setLastRequest();
 
-        final SimpleHttpRequest request = SimpleRequestBuilder.get("https://api.geysermc.org/v2/skin/" + xUID)
-                .build();
+        final HttpGet request = new HttpGet("https://api.geysermc.org/v2/skin/" + xUID);
 
-        if (client == null)
-            createHttpClient();
+        return httpClient.execute(request, response -> {
+            StatusLine statusLine = new StatusLine(response);
+            NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
 
-        final Future<SimpleHttpResponse> future = client.execute(
-                SimpleRequestProducer.create(request),
-                SimpleResponseConsumer.create(),
-                new FutureCallback<SimpleHttpResponse>() {
+            if (statusLine.getStatusCode() == 200 && response.getEntity() != null) {
+                String text = EntityUtils.toString(response.getEntity());
+                JsonObject input = new JsonParser().parse(text).getAsJsonObject();
+                String value = input.get("value").getAsString();
+                String id = input.get("texture_id").getAsString();
 
-                    @Override
-                    public void completed(final SimpleHttpResponse response) {
-                        StatusLine statusLine = new StatusLine(response);
-                        NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
-                        if (statusLine.getStatusCode() == 200 && response.getBodyText() != null) {
-                            JsonObject input = new JsonParser().parse(response.getBodyText()).getAsJsonObject();
-                            String value = input.get("value").getAsString();
-                            String id = input.get("texture_id").getAsString();
+                return new PlayerSkin(SkinManager.getTextureURL(value), id);
+            } else {
+                throw new IOException("Couldn't get a skin from this xuid.");
+            }
 
-                            SkinManager.saveSkin(uuid, new PlayerSkin(SkinManager.getTextureURL(value), id));
-                        } else {
-                            failed(new IllegalArgumentException("Couldn't get a skin from this xuid."));
-                        }
-                    }
-
-                    @Override
-                    public void failed(final Exception ex) {
-                        NotBounties.debugMessage(request + "->" + ex, true);
-                        SkinManager.failRequest(uuid);
-                    }
-
-                    @Override
-                    public void cancelled() {
-                        NotBounties.debugMessage(request + " cancelled", true);
-                    }
-
-                });
-        future.get();
+        });
     }
 
-    private void saveMojangSkin(UUID requestUUID, boolean tryNamed) throws ExecutionException, InterruptedException {
+    private static PlayerSkin saveJavaSkin(CloseableHttpClient httpClient, UUID requestUUID, boolean tryNamed) throws IOException {
         SkinManager.incrementMojangRate();
-        setLastRequest();
 
-        final SimpleHttpRequest request = SimpleRequestBuilder.get("https://sessionserver.mojang.com/session/minecraft/profile/" + requestUUID)
-                .build();
+        final HttpGet request = new HttpGet("https://sessionserver.mojang.com/session/minecraft/profile/" + requestUUID);
 
-        if (client == null)
-            createHttpClient();
+        return httpClient.execute(request, response -> {
+            StatusLine statusLine = new StatusLine(response);
+            NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
+            if (statusLine.getStatusCode() == 200 && response.getEntity() != null) {
+                String text = EntityUtils.toString(response.getEntity());
+                JsonObject input = new JsonParser().parse(text).getAsJsonObject();
+                JsonObject textureProperty = input.get("properties").getAsJsonArray().get(0).getAsJsonObject();
+                String value = textureProperty.get("value").getAsString();
+                String id = input.get("id").getAsString();
 
-        final Future<SimpleHttpResponse> future = client.execute(
-                SimpleRequestProducer.create(request),
-                SimpleResponseConsumer.create(),
-                new FutureCallback<SimpleHttpResponse>() {
-
-                    @Override
-                    public void completed(final SimpleHttpResponse response) {
-                        StatusLine statusLine = new StatusLine(response);
-                        NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
-                        if (statusLine.getStatusCode() == 200 && response.getBodyText() != null) {
-                            JsonObject input = new JsonParser().parse(response.getBodyText()).getAsJsonObject();
-                            JsonObject textureProperty = input.get("properties").getAsJsonArray().get(0).getAsJsonObject();
-                            String value = textureProperty.get("value").getAsString();
-                            String id = input.get("id").getAsString();
-                            SkinManager.saveSkin(uuid, new PlayerSkin(SkinManager.getTextureURL(value), id));
-                            if (!requestUUID.equals(uuid))
-                                SkinManager.saveSkin(requestUUID,  new PlayerSkin(SkinManager.getTextureURL(value), id));
-                        } else {
-                            failed(new IllegalArgumentException("Couldn't get profile from this uuid."));
-                        }
-                    }
-
-                    @Override
-                    public void failed(final Exception ex) {
-                        NotBounties.debugMessage(request + "->" + ex, true);
-                        if (tryNamed) {
-                            NotBounties.debugMessage("Saving named skin", false);
-                            try {
-                                saveNamedSkin();
-                            } catch (ExecutionException | InterruptedException e) {
-                                NotBounties.debugMessage("Failed to save named skin.", true);
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void cancelled() {
-                        NotBounties.debugMessage(request + " cancelled", true);
-                    }
-
-                });
-        future.get();
+                return new PlayerSkin(SkinManager.getTextureURL(value), id);
+            } else {
+                if (tryNamed) {
+                    NotBounties.debugMessage("Saving named skin", false);
+                    return saveNamedSkin(httpClient, requestUUID);
+                }
+                throw new IOException("Failed to save java skin for: " + requestUUID);
+            }
+        });
     }
 
 
-    private void saveNamedSkin() throws ExecutionException, InterruptedException {
+    private static PlayerSkin saveNamedSkin(CloseableHttpClient httpClient, UUID uuid) throws IOException {
         SkinManager.incrementMojangRate();
-        setLastRequest();
         String playerName = NotBounties.getPlayerName(uuid);
         if (playerName.length() > 24) {
             // not a valid length
-            SkinManager.failRequest(uuid);
-            return;
+            throw new IOException("Recorded player name is not of a valid length. (May not be recorded): " + uuid.toString());
         }
 
-        final SimpleHttpRequest request = SimpleRequestBuilder.get("https://api.mojang.com/users/profiles/minecraft/" + playerName)
-                .build();
+        final HttpGet request = new HttpGet("https://api.mojang.com/users/profiles/minecraft/" + playerName);
 
-        if (client == null)
-            createHttpClient();
+        return httpClient.execute(request, response -> {
+            NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
+            if (response.getEntity() == null) {
+                throw new IOException("Failed to get skin for " + playerName + ": Null contents");
+            }
+            String text = EntityUtils.toString(response.getEntity());
+            JsonObject input = new JsonParser().parse(text).getAsJsonObject();
+            if (input.has("errorMessage") && !input.get("errorMessage").isJsonNull()) {
+                throw new IOException("Failed to get skin for " + playerName + ": " + input.get("errorMessage").getAsString());
+            }
 
-        final Future<SimpleHttpResponse> future = client.execute(
-                SimpleRequestProducer.create(request),
-                SimpleResponseConsumer.create(),
-                new FutureCallback<SimpleHttpResponse>() {
-
-                    @Override
-                    public void completed(final SimpleHttpResponse response) {
-                        NotBounties.debugMessage(request + "->" + new StatusLine(response), false);
-                        JsonObject input = new JsonParser().parse(response.getBodyText()).getAsJsonObject();
-                        if (input.has("errorMessage") && !input.get("errorMessage").isJsonNull()) {
-                            failed(new InterruptedException("Failed to get skin for " + playerName + ": " + input.get("errorMessage").getAsString()));
-                            return;
-                        }
-
-                        // convert uuid without dashes to one with
-                        // https://stackoverflow.com/questions/18986712/creating-a-uuid-from-a-string-with-no-dashes
-                        UUID onlineUUID =  java.util.UUID.fromString(
-                                input.get("id").getAsString()
-                                        .replaceFirst(
-                                                "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5"
-                                        )
-                        );
-                        try {
-                            saveMojangSkin(onlineUUID, false);
-                        } catch (ExecutionException | InterruptedException e) {
-                            NotBounties.debugMessage("Failed to get skin for " + playerName, true);
-                            failed(e);
-                        }
-                    }
-
-                    @Override
-                    public void failed(final Exception ex) {
-                        NotBounties.debugMessage(request + "->" + ex, true);
-                        SkinManager.failRequest(uuid);
-                    }
-
-                    @Override
-                    public void cancelled() {
-                        NotBounties.debugMessage(request + " cancelled", true);
-                    }
-
-                });
-        future.get();
+            // convert uuid without dashes to one with
+            // https://stackoverflow.com/questions/18986712/creating-a-uuid-from-a-string-with-no-dashes
+            UUID onlineUUID =  java.util.UUID.fromString(
+                    input.get("id").getAsString()
+                            .replaceFirst(
+                                    "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5"
+                            )
+            );
+            return saveJavaSkin(httpClient, onlineUUID, false);
+        });
     }
 }

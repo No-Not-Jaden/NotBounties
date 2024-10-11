@@ -43,7 +43,7 @@ public class SkinsRestorerClass {
                     public void run() {
                         firstConnect = false;
                     }
-                }.runTaskLaterAsynchronously(NotBounties.getInstance(), 5 * 20L);
+                }.runTaskLater(NotBounties.getInstance(), 5 * 20L);
             }
             if (!firstConnect && lastHookError < System.currentTimeMillis()) {
                     Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
@@ -124,13 +124,7 @@ public class SkinsRestorerClass {
         try {
             Optional<SkinProperty> skinProperty = playerStorage.getSkinForPlayer(uuid, name);
             if (skinProperty.isEmpty()) {
-                if (NotBounties.debug)
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            Bukkit.getLogger().warning("[NotBountiesDebug] Skin property not present from SkinsRestorer for " + name + ".");
-                        }
-                    }.runTask(NotBounties.getInstance());
+                NotBounties.debugMessage("[NotBountiesDebug] Skin property not present from SkinsRestorer for " + name + ".", true);
                 requestSkinManually(uuid);
                 return;
             }
@@ -138,24 +132,14 @@ public class SkinsRestorerClass {
             String identifier = PropertyUtils.getSkinProfileData(skinProperty.get()).getProfileId();
             SkinManager.saveSkin(uuid, new PlayerSkin(new URL(skinUrl), identifier));
         } catch (MalformedURLException | DataRequestException e) {
-            if (NotBounties.debug)
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        Bukkit.getLogger().warning("[NotBountiesDebug] Error getting skin from SkinsRestorer.");
-                        Bukkit.getLogger().warning(e.toString());
-                    }
-                }.runTask(NotBounties.getInstance());
+            NotBounties.debugMessage("[NotBountiesDebug] Error getting skin from SkinsRestorer.", true);
+            NotBounties.debugMessage(e.toString(), true);
             requestSkinManually(uuid);
         }
     }
 
     private static void requestSkinManually(UUID uuid) {
-        try {
-            SkinManager.requestSkin(uuid);
-        } catch (Exception e2) {
-            NotBounties.debugMessage("[NotBountiesDebug] Unable to obtain a skin for " + uuid + ".", true);
-        }
+        SkinManager.requestSkin(uuid, false);
     }
 
 

@@ -8,7 +8,6 @@ import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUIOptions;
 import me.jadenp.notbounties.ui.gui.displayItems.*;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
@@ -34,9 +33,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
@@ -85,7 +82,7 @@ public class GUI implements Listener {
             page = 1;
 
         boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
-        List<UUID> onlinePlayers = getNetworkPlayers().stream().map(OfflinePlayer::getUniqueId).toList();
+        Set<UUID> onlinePlayers = getNetworkPlayers().keySet();
         switch (name) {
             case "bounty-gui":
                 List<Bounty> sortedList = BountyManager.getAllBounties(gui.getSortType());
@@ -107,7 +104,7 @@ public class GUI implements Listener {
                                 }
                             }
                         }
-                        displayItems.add(new PlayerItem(bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestSetter(), additionalLore));
+                        displayItems.add(new PlayerItem(bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestUpdate(), additionalLore));
                     }
                     if (reducePageCalculations && displayItems.size() > gui.getPlayerSlots().size() * page)
                         break;

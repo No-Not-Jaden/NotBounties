@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.PlayerStat;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -11,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.hiddenNames;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
@@ -157,22 +159,7 @@ public enum Leaderboard {
         if (this == Leaderboard.CURRENT) {
             return map;
         }
-        for (Map.Entry<UUID, Double[]> entry : DataManager.getAllStats().entrySet()) {
-            double value = 0;
-            switch (this) {
-                case KILLS -> value = entry.getValue()[0];
-                case SET -> value = entry.getValue()[1];
-                case DEATHS -> value = entry.getValue()[2];
-                case ALL -> value = entry.getValue()[3];
-                case IMMUNITY -> value = entry.getValue()[4];
-                case CLAIMED -> value = entry.getValue()[5];
-                default -> {
-                    // will never be reached unless a new stat is added, then value defaults to 0
-                }
-            }
-            map.put(entry.getKey(), value);
-        }
-        return map;
+        return DataManager.getAllStats().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().leaderboardType(this), (a, b) -> b, LinkedHashMap::new));
     }
 
     public void displayTopStat(CommandSender sender, int amount){
