@@ -436,9 +436,13 @@ public class DataManager {
         // most up-to-date database
         for (AsyncDatabaseWrapper database : databases) {
             if (database.isConnected()) {
-                Bounty bounty = database.getBounty(uuid);
-                localData.replaceBounty(uuid, bounty);
-                return bounty;
+                try {
+                    Bounty bounty = database.getBounty(uuid);
+                    localData.replaceBounty(uuid, bounty);
+                    return bounty;
+                } catch (IOException e) {
+                    // database not connected
+                }
             }
         }
         return localData.getBounty(uuid);
@@ -713,8 +717,16 @@ public class DataManager {
                     }
                 }
 
-                List<Bounty> databaseBounties = database.getAllBounties(2);
-                Map<UUID, PlayerStat> databaseStats = database.getAllStats();
+                List<Bounty> databaseBounties;
+                Map<UUID, PlayerStat> databaseStats;
+
+                try {
+                    databaseBounties = database.getAllBounties(2);
+                    databaseStats = database.getAllStats();
+                } catch (IOException e) {
+                    Bukkit.getLogger().warning("[NotBounties] Incomplete connection to " + database.getName());
+                    return;
+                }
                 long lastSyncTime = database.getLastSync();// get last sync time
                 database.setLastSync(System.currentTimeMillis());
 

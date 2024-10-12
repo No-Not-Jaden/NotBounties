@@ -5,6 +5,7 @@ import me.jadenp.notbounties.utils.PlayerStat;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,14 +27,16 @@ public interface NotBountiesDatabase extends Comparable<NotBountiesDatabase>{
      * Get stats of a player.
      * @param uuid UUID of the player
      * @return The stats of the player
+     * @throws IOException When the database isn't connected.
      */
-    @NotNull PlayerStat getStats(UUID uuid);
+    @NotNull PlayerStat getStats(UUID uuid) throws IOException;
 
     /**
      * Get all the stats in the database
      * @return All recorded player stats
+     * @throws IOException When the database isn't connected.
      */
-    Map<UUID, PlayerStat> getAllStats();
+    Map<UUID, PlayerStat> getAllStats() throws IOException;
 
     /**
      * Adds multiple stats to the database.
@@ -60,8 +63,9 @@ public interface NotBountiesDatabase extends Comparable<NotBountiesDatabase>{
      * Add a bounty to the database
      * @param bounty Bounty to be added
      * @return A bounty that is the combination of all the bounties on the same person which includes the supplied bounty.
+     * @throws IOException When the database isn't connected.
      */
-    Bounty addBounty(@NotNull Bounty bounty);
+    Bounty addBounty(@NotNull Bounty bounty) throws IOException;
 
     /**
      * Replaces a bounty in the database
@@ -69,31 +73,34 @@ public interface NotBountiesDatabase extends Comparable<NotBountiesDatabase>{
      * @param bounty Replacement bounty. A null value will remove the bounty.
      */
     default void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
-        removeBounty(uuid);
-        if (bounty != null)
-            addBounty(bounty);
+        try {
+            removeBounty(uuid);
+            if (bounty != null)
+                addBounty(bounty);
+        } catch (IOException ignored) {
+            // couldn't replace bounty because database isn't connected
+        }
     }
 
     /**
      * Get a bounty from the database.
      * @param uuid UUID of the player the bounty is set on.
      * @return A stored bounty, or null if no bounty exists.
+     * @throws IOException When the database isn't connected.
      */
-    @Nullable Bounty getBounty(UUID uuid);
+    @Nullable Bounty getBounty(UUID uuid) throws IOException;
 
     /**
      * Remove a player's bounty from the database.
      * @param uuid UUID of the player.
-     * @return True if a bounty was removed.
      */
-    boolean removeBounty(UUID uuid);
+    void removeBounty(UUID uuid);
 
     /**
      * Remove a specific bounty from the database.
      * @param bounty Bounty to be removed.
-     * @return True if the entire bounty was removed from the database. False if the bounty doesn't exist.
      */
-    boolean removeBounty(Bounty bounty);
+    void removeBounty(Bounty bounty);
 
     /**
      * Get all the bounties in the database
@@ -104,8 +111,9 @@ public interface NotBountiesDatabase extends Comparable<NotBountiesDatabase>{
      *                 <p> 2  = Most expensive bounties first</p>
      *                 <p> 3  = Least expensive bounties first</p>
      * @return A list of all the bounties in the redis database
+     * @throws IOException When the database isn't connected.
      */
-    List<Bounty> getAllBounties(int sortType);
+    List<Bounty> getAllBounties(int sortType) throws IOException;
 
     /**
      * Get a configurable name for this database
@@ -125,6 +133,11 @@ public interface NotBountiesDatabase extends Comparable<NotBountiesDatabase>{
      * @return True if the connection was successful.
      */
     boolean connect();
+
+    /**
+     * Disconnects the server from the database.
+     */
+    void disconnect();
 
     /**
      * Check if the database has ever been connected with this plugin instance.
@@ -153,12 +166,46 @@ public interface NotBountiesDatabase extends Comparable<NotBountiesDatabase>{
      */
     void setLastSync(long lastSync);
 
-    Map<UUID, String> getOnlinePlayers();
+    /**
+     * Get the players on servers connected to the database.
+     * @return A Map of player's uuids and usernames.
+     * @throws IOException When the database isn't connected.
+     */
+    Map<UUID, String> getOnlinePlayers() throws IOException;
+
+    /**
+     * Get the priority of the database.
+     * @return The priority of the database set in the config.
+     */
     int getPriority();
+
+    /**
+     * Reload the database config
+     */
     void reloadConfig();
+
+    /**
+     * Shut down the connection to the database
+     */
     void shutdown();
+
+    /**
+     * Record that a player was notified.
+     * @param uuid UUID of the player that was notified.
+     */
     void notifyBounty(UUID uuid);
+
+    /**
+     * Record that a player logged in.
+     * @param uuid UUID of the player that logged in.
+     * @param playerName Username of the player that logged in.
+     */
     void login(UUID uuid, String playerName);
+
+    /**
+     * Record a player that logged out.
+     * @param uuid UUID of the player that logged out.
+     */
     void logout(UUID uuid);
 
     @Override

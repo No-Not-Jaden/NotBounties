@@ -115,7 +115,7 @@ public class MySQL implements NotBountiesDatabase {
     }
 
     @Override
-    public @NotNull PlayerStat getStats(UUID uuid) {
+    public @NotNull PlayerStat getStats(UUID uuid) throws IOException {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("SELECT claimed, sets, received, alltime, immunity, allclaimed FROM bounty_data WHERE uuid = ?;")) {
                 ps.setString(1, uuid.toString());
@@ -133,11 +133,11 @@ public class MySQL implements NotBountiesDatabase {
                 }
             }
         }
-        return new PlayerStat(0,0,0,0,0,0, DataManager.GLOBAL_SERVER_ID);
+        throw new IOException("Database is not connected!");
     }
 
     @Override
-    public Map<UUID, PlayerStat> getAllStats() {
+    public Map<UUID, PlayerStat> getAllStats() throws IOException{
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, claimed, sets, received, alltime, immunity, allclaimed FROM bounty_data;")) {
                 ResultSet rs = ps.executeQuery();
@@ -161,7 +161,7 @@ public class MySQL implements NotBountiesDatabase {
                 }
             }
         }
-        return new HashMap<>();
+        throw new IOException("Database is not connected!");
     }
 
     @Override
@@ -285,7 +285,7 @@ public class MySQL implements NotBountiesDatabase {
     }
 
     @Override
-    public Bounty addBounty(@NotNull Bounty bounty) {
+    public Bounty addBounty(@NotNull Bounty bounty) throws IOException {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, created, whitelist, playtime, items, display) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")) {
                 for (Setter setter : bounty.getSetters()) {
@@ -306,11 +306,16 @@ public class MySQL implements NotBountiesDatabase {
 
             } catch (SQLException e) {
                 if (reconnect(e)) {
-                    addBounty(bounty);
+                    return addBounty(bounty);
                 }
             }
+            try {
+                return getBounty(bounty.getUUID());
+            } catch (IOException ignored) {
+                // database has lost connection
+            }
         }
-        return getBounty(bounty.getUUID());
+        throw new IOException("Database is not connected!");
     }
 
     /**
@@ -335,7 +340,7 @@ public class MySQL implements NotBountiesDatabase {
     }
 
     @Override
-    public @Nullable Bounty getBounty(UUID uuid) {
+    public @Nullable Bounty getBounty(UUID uuid) throws IOException{
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("SELECT * FROM `notbounties` WHERE uuid = ?;")) {
                 ps.setString(1, uuid.toString());
@@ -363,27 +368,25 @@ public class MySQL implements NotBountiesDatabase {
                 }
             }
         }
-        return null;
+        throw new IOException("Database not connected!");
     }
 
     @Override
-    public boolean removeBounty(UUID uuid) {
+    public void removeBounty(UUID uuid) {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ?")) {
                 ps.setString(1, uuid.toString());
                 ps.executeUpdate();
-                return true;
             } catch (SQLException e) {
                 if (reconnect(e)) {
-                    return removeBounty(uuid);
+                    removeBounty(uuid);
                 }
             }
         }
-        return false;
     }
 
     @Override
-    public boolean removeBounty(Bounty bounty) {
+    public void removeBounty(Bounty bounty) {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("DELETE FROM notbounties WHERE uuid = ? AND suuid = ? AND created = ?;")) {
                 ps.setString(1, bounty.getUUID().toString());
@@ -393,18 +396,16 @@ public class MySQL implements NotBountiesDatabase {
                     ps.addBatch();
                 }
                 ps.executeBatch();
-                return true;
             } catch (SQLException e) {
                 if (reconnect(e)) {
-                    return removeBounty(bounty);
+                    removeBounty(bounty);
                 }
             }
         }
-        return false;
     }
 
     @Override
-    public List<Bounty> getAllBounties(int sortType) {
+    public List<Bounty> getAllBounties(int sortType) throws IOException {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, name, setter, suuid, amount, notified, created, whitelist, playtime, items, display FROM notbounties;")) {
                 ResultSet resultSet = ps.executeQuery();
@@ -457,7 +458,7 @@ public class MySQL implements NotBountiesDatabase {
                 }
             }
         }
-        return new ArrayList<>();
+        throw new IOException("Database is not connected!");
     }
 
     @Override
@@ -524,9 +525,6 @@ public class MySQL implements NotBountiesDatabase {
         if (System.currentTimeMillis() > nextReconnectAttempt) {
             reconnectAttempts++;
             disconnect();
-            if (reconnectAttempts < 2) {
-                Bukkit.getLogger().warning(() -> "Lost connection with " + name + ", will try to reconnect.");
-            }
             if (reconnectAttempts >= 3) {
                 reconnectAttempts = 0;
                 nextReconnectAttempt = System.currentTimeMillis() + 5000L;

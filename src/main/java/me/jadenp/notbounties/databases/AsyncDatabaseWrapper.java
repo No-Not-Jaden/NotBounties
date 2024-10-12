@@ -11,6 +11,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.*;
 
 public class AsyncDatabaseWrapper implements NotBountiesDatabase {
@@ -110,28 +111,37 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
     private void updateData() {
         if (database.isConnected()) {
             NotBounties.debugMessage("Receiving " + database.getName() + " data.", false);
-            List<Bounty> databaseBounties = database.getAllBounties(2);
-            Map<UUID, PlayerStat> databaseStats = database.getAllStats();
-            LocalData localData = DataManager.getLocalData();
-            localData.setStats(databaseStats);
+            try {
+                List<Bounty> databaseBounties = database.getAllBounties(2);
+                Map<UUID, PlayerStat> databaseStats = database.getAllStats();
+                LocalData localData = DataManager.getLocalData();
+                localData.setStats(databaseStats);
 
-            List<Bounty>[] dataChanges = Inconsistent.getAsyncronousObjects(localData.getAllBounties(2), databaseBounties, database.getLastSync());
-            // these bounties should be added/removed to local data
-            List<Bounty> databaseAdded = dataChanges[0];
-            List<Bounty> databaseRemoved = dataChanges[1];
-            // these bounties should be added/removed to the database
-            List<Bounty> localAdded = dataChanges[2];
-            List<Bounty> localRemoved = dataChanges[3];
-            // apply consistency changes
-            localData.addBounty(databaseAdded);
-            localData.removeBounty(databaseRemoved);
-            // these should be empty
-            Bukkit.getLogger().info(localAdded.size() + " " + localRemoved.size() + " inconsistent local changes");
-            addBounty(localAdded);
-            removeBounty(localRemoved);
+                List<Bounty>[] dataChanges = Inconsistent.getAsyncronousObjects(localData.getAllBounties(2), databaseBounties, database.getLastSync());
+                // these bounties should be added/removed to local data
+                List<Bounty> databaseAdded = dataChanges[0];
+                List<Bounty> databaseRemoved = dataChanges[1];
+                // these bounties should be added/removed to the database
+                List<Bounty> localAdded = dataChanges[2];
+                List<Bounty> localRemoved = dataChanges[3];
+                // apply consistency changes
+                localData.addBounty(databaseAdded);
+                localData.removeBounty(databaseRemoved);
+                // these should be empty
+                //Bukkit.getLogger().info(localAdded.size() + " " + localRemoved.size() + " inconsistent local changes");
+                addBounty(localAdded);
+                removeBounty(localRemoved);
 
-            database.setLastSync(System.currentTimeMillis());
+                database.setLastSync(System.currentTimeMillis());
+            } catch (IOException e) {
+                disconnect();
+            }
         }
+    }
+
+    public void disconnect() {
+        database.disconnect();
+        Bukkit.getLogger().warning(() -> "Lost connection with " + database.getName() + ".");
     }
 
     public NotBountiesDatabase getDatabase() {
@@ -167,12 +177,12 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
     }
 
     @Override
-    public @NotNull PlayerStat getStats(UUID uuid) {
+    public @NotNull PlayerStat getStats(UUID uuid) throws IOException {
         return database.getStats(uuid);
     }
 
     @Override
-    public Map<UUID, PlayerStat> getAllStats() {
+    public Map<UUID, PlayerStat> getAllStats() throws IOException {
         return database.getAllStats();
     }
 
@@ -226,10 +236,14 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
             public void run() {
                 if (isPermDatabase())
                     bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
-                Bounty newbounty = database.addBounty(bounty);
-                if (newbounty != null && !newbounty.equals(bounty)) {
-                    bounty.getSetters().clear();
-                    bounty.getSetters().addAll(newbounty.getSetters());
+                try {
+                    Bounty newbounty = database.addBounty(bounty);
+                    if (newbounty != null && !newbounty.equals(bounty)) {
+                        bounty.getSetters().clear();
+                        bounty.getSetters().addAll(newbounty.getSetters());
+                    }
+                } catch (IOException e) {
+                    disconnect();
                 }
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
@@ -247,35 +261,43 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
     }
 
     @Override
-    public @Nullable Bounty getBounty(UUID uuid) {
-        return database.getBounty(uuid);
+    public @Nullable Bounty getBounty(UUID uuid) throws IOException{
+        try {
+            return database.getBounty(uuid);
+        } catch (IOException e) {
+            disconnect();
+            throw e;
+        }
     }
 
     @Override
-    public boolean removeBounty(UUID uuid) {
+    public void removeBounty(UUID uuid) {
         new BukkitRunnable() {
             @Override
             public void run() {
                 database.removeBounty(uuid);
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
-        return true;
     }
 
     @Override
-    public boolean removeBounty(Bounty bounty) {
+    public void removeBounty(Bounty bounty) {
         new BukkitRunnable() {
             @Override
             public void run() {
                 database.removeBounty(bounty);
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
-        return true;
     }
 
     @Override
     public List<Bounty> getAllBounties(int sortType) {
-        return database.getAllBounties(sortType);
+        try {
+            return database.getAllBounties(sortType);
+        } catch (IOException e) {
+            disconnect();
+            return DataManager.getLocalData().getAllBounties(sortType);
+        }
     }
 
     public Map<UUID, PlayerStat> getStatChanges() {
@@ -334,13 +356,18 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
 
     @Override
     public Map<UUID, String> getOnlinePlayers() {
-        onlinePlayers.clear();
         if (System.currentTimeMillis() - lastOnlinePlayerRequest > MIN_UPDATE_INTERVAL) {
-            onlinePlayers = database.getOnlinePlayers();
-            lastOnlinePlayerRequest = System.currentTimeMillis();
+            try {
+                onlinePlayers = database.getOnlinePlayers();
+                lastOnlinePlayerRequest = System.currentTimeMillis();
+            } catch (IOException e) {
+                onlinePlayers.clear();
+                disconnect();
+            }
         }
-        Bukkit.getOnlinePlayers().forEach(player -> onlinePlayers.put(player.getUniqueId(), player.getName()));
-        return onlinePlayers;
+        Map<UUID, String> currentPlayers = new HashMap<>(onlinePlayers);
+        Bukkit.getOnlinePlayers().forEach(player -> currentPlayers.put(player.getUniqueId(), player.getName()));
+        return currentPlayers;
     }
 
     @Override

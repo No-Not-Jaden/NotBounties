@@ -16,6 +16,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -83,12 +84,13 @@ public class RedisConnection implements NotBountiesDatabase {
     }
 
     @Override
-    public Map<UUID, String> getOnlinePlayers() {
+    public Map<UUID, String> getOnlinePlayers() throws IOException {
         Map<UUID, String> players = new HashMap<>();
         if (getData() != null) {
             getData().hgetall(ONLINE_PLAYERS_KEY).forEach((key, value) -> players.put(UUID.fromString(key), value.substring(value.indexOf(":") + 1)));
+            return players;
         }
-        return players;
+        throw new IOException("Database is not connected!");
     }
 
     @Override
@@ -143,6 +145,13 @@ public class RedisConnection implements NotBountiesDatabase {
         return makeConnection();
     }
 
+    public void disconnect() {
+        if (getData() != null) {
+            connection.close();
+            data = null;
+        }
+    }
+
     private boolean makeConnection() {
         if (redis == null)
             return false;
@@ -191,10 +200,14 @@ public class RedisConnection implements NotBountiesDatabase {
     @Override
     public void notifyBounty(UUID uuid) {
         if (getData() != null) {
-            Bounty bounty = getBounty(uuid);
-            if (bounty != null) {
-                bounty.notifyBounty();
-                replaceBounty(uuid, bounty);
+            try {
+                Bounty bounty = getBounty(uuid);
+                if (bounty != null) {
+                    bounty.notifyBounty();
+                    replaceBounty(uuid, bounty);
+                }
+            } catch (IOException e) {
+                // database not connected
             }
         }
     }
@@ -223,8 +236,12 @@ public class RedisConnection implements NotBountiesDatabase {
      * @param stats The stats to add
      */
     public void addStats(UUID uuid, PlayerStat stats) {
-        PlayerStat previousStats = getStats(uuid);
-        getData().hset(STATS_KEY, uuid.toString(), previousStats.combineStats(stats).toJson().toString());
+        try {
+            PlayerStat previousStats = getStats(uuid);
+            getData().hset(STATS_KEY, uuid.toString(), previousStats.combineStats(stats).toJson().toString());
+        } catch (IOException e) {
+            // database not connected
+        }
     }
 
     /**
@@ -232,23 +249,24 @@ public class RedisConnection implements NotBountiesDatabase {
      * @param uuid UUID of the player
      * @return A 6 element array of the player's recorded stats
      */
-    public @NotNull PlayerStat getStats(UUID uuid) {
+    public @NotNull PlayerStat getStats(UUID uuid) throws IOException {
         if (getData() != null) {
             String jsonResult = getData().hget(STATS_KEY, uuid.toString());
             if (jsonResult != null)
                 return new PlayerStat(jsonResult);
+            return new PlayerStat(0,0,0,0,0,0, DataManager.GLOBAL_SERVER_ID);
         }
-        return new PlayerStat(0,0,0,0,0,0, DataManager.GLOBAL_SERVER_ID);
+        throw new IOException("Database is not connected!");
     }
 
     /**
      * Get all the stats in the redis database
      * @return All recorded player stats
      */
-    public Map<UUID, PlayerStat> getAllStats() {
-        Map<UUID, PlayerStat> stats = new HashMap<>();
+    public Map<UUID, PlayerStat> getAllStats() throws IOException {
         if (getData() == null)
-            return stats;
+            throw new IOException("Database is not connected!");
+        Map<UUID, PlayerStat> stats = new HashMap<>();
         for (Map.Entry<String, String> entry : getData().hgetall(STATS_KEY).entrySet()) {
             stats.put(UUID.fromString(entry.getKey()), new PlayerStat(entry.getValue()));
         }
@@ -258,17 +276,25 @@ public class RedisConnection implements NotBountiesDatabase {
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) {
         if (getData() != null) {
-            for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
-                PlayerStat previousStats = getStats(entry.getKey());
-                getData().hset(STATS_KEY, entry.getKey().toString(), previousStats.combineStats(entry.getValue()).toJson().toString());
+            try {
+                for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
+                    PlayerStat previousStats = getStats(entry.getKey());
+                    getData().hset(STATS_KEY, entry.getKey().toString(), previousStats.combineStats(entry.getValue()).toJson().toString());
+                }
+            } catch (IOException ignored) {
+                // database isn't connected
             }
         }
     }
 
     @Override
     public void addBounty(List<Bounty> bounties) {
-        for (Bounty bounty : bounties)
-            addBounty(bounty);
+        try {
+            for (Bounty bounty : bounties)
+                addBounty(bounty);
+        } catch (IOException e) {
+            // database not connected
+        }
     }
 
     @Override
@@ -283,10 +309,9 @@ public class RedisConnection implements NotBountiesDatabase {
      * @param bounty Bounty to be added
      * @return The bounty after it was added to the existing bounty of the player.
      */
-    public Bounty addBounty(@NotNull Bounty bounty) {
+    public Bounty addBounty(@NotNull Bounty bounty) throws IOException {
         if (getData() == null) {
-            NotBounties.debugMessage("Redis has never been connected! Cannot add bounty to database.", true);
-            return null;
+            throw new IOException("Database is not connected!");
         }
         Bounty prevBounty = getBounty(bounty.getUUID());
         if (prevBounty != null) {
@@ -312,50 +337,51 @@ public class RedisConnection implements NotBountiesDatabase {
         }
     }
 
-    public @Nullable Bounty getBounty(UUID uuid) {
+    public @Nullable Bounty getBounty(UUID uuid) throws IOException {
         if (getData() != null) {
             String jsonBounty = getData().hget(BOUNTIES_KEY, uuid.toString());
             if (jsonBounty != null) {
                 return new Bounty(jsonBounty);
             }
+            return null;
         }
-        return null;
+        throw new IOException("Database is not connected!");
     }
 
     /**
      * Remove bounty from the redis database
      * @param bounty Bounty to be removed
-     * @return True if the bounty was removed, false if no bounty was found
      */
-    public boolean removeBounty(Bounty bounty) {
+    public void removeBounty(Bounty bounty) {
         if (getData() != null) {
-            Bounty currentBounty = getBounty(bounty.getUUID());
-            if (currentBounty == null)
-                // bounty doesn't exist
-                return false;
-            // delete if uuid and time created match in any setter from the two bounties
-            currentBounty.getSetters().removeIf(setter -> bounty.getSetters().stream().anyMatch(toDeleteSetter -> setter.getUuid().equals(toDeleteSetter.getUuid()) && setter.getTimeCreated() == toDeleteSetter.getTimeCreated()));
-            if (currentBounty.getSetters().isEmpty()) {
-                // bounty should be deleted
-                return removeBounty(bounty.getUUID());
-            } else {
-                // replace bounty
-                getData().hset(BOUNTIES_KEY, bounty.getUUID().toString(), currentBounty.toJson().toString());
+            try {
+                Bounty currentBounty = getBounty(bounty.getUUID());
+                if (currentBounty == null)
+                    // bounty doesn't exist
+                    return;
+                // delete if uuid and time created match in any setter from the two bounties
+                currentBounty.getSetters().removeIf(setter -> bounty.getSetters().stream().anyMatch(toDeleteSetter -> setter.getUuid().equals(toDeleteSetter.getUuid()) && setter.getTimeCreated() == toDeleteSetter.getTimeCreated()));
+                if (currentBounty.getSetters().isEmpty()) {
+                    // bounty should be deleted
+                    removeBounty(bounty.getUUID());
+                } else {
+                    // replace bounty
+                    getData().hset(BOUNTIES_KEY, bounty.getUUID().toString(), currentBounty.toJson().toString());
+                }
+            } catch (IOException e) {
+                // database not connected
             }
-            return true;
         }
-        return false;
     }
 
     /**
      * Remove a player's bounty from the database
      * @param uuid UUID of the player
-     * @return True if the bounty was removed
      */
-    public boolean removeBounty(UUID uuid) {
+    public void removeBounty(UUID uuid) {
         if (getData() == null)
-            return false;
-        return getData().hdel(BOUNTIES_KEY, uuid.toString()) > 0;
+            return;
+        getData().hdel(BOUNTIES_KEY, uuid.toString());
     }
 
     /**
@@ -363,10 +389,10 @@ public class RedisConnection implements NotBountiesDatabase {
      * @param sortType How the returned list should be sorted
      * @return A list of all the bounties in the redis database
      */
-    public List<Bounty> getAllBounties(int sortType) {
-        List<Bounty> bounties = new ArrayList<>();
+    public List<Bounty> getAllBounties(int sortType) throws IOException{
         if (getData() == null)
-            return bounties;
+            throw new IOException("Database is not connected!");
+        List<Bounty> bounties = new ArrayList<>();
         for (Map.Entry<String, String> entry : getData().hgetall(BOUNTIES_KEY).entrySet()) {
             bounties.add(new Bounty(entry.getValue()));
         }

@@ -113,10 +113,10 @@ public class LocalData implements NotBountiesDatabase {
     }
 
     @Override
-    public boolean removeBounty(Bounty bounty) {
+    public void removeBounty(Bounty bounty) {
         Bounty masterBounty = getBounty(bounty.getUUID());
         if (masterBounty == null)
-            return false;
+            return;
         synchronized (masterBounty) {
             DataManager.removeSimilarSetters(masterBounty.getSetters(), bounty.getSetters());
         }
@@ -126,21 +126,19 @@ public class LocalData implements NotBountiesDatabase {
         }
 
         // bounty.getSetters() contains the leftover setters that couldn't be removed
-        return true;
     }
 
 
     @Override
-    public boolean removeBounty(UUID uuid) {
+    public void removeBounty(UUID uuid) {
         ListIterator<Bounty> bountyListIterator = activeBounties.listIterator();
         while (bountyListIterator.hasNext()) {
             Bounty bounty = bountyListIterator.next();
             if (bounty.getUUID().equals(uuid)) {
                 bountyListIterator.remove();
-                return  true;
+                return;
             }
         }
-        return false;
     }
 
     @Override
@@ -184,6 +182,11 @@ public class LocalData implements NotBountiesDatabase {
     @Override
     public boolean connect() {
         return true;
+    }
+
+    @Override
+    public void disconnect() {
+        // cannot disconnect from local data
     }
 
     @Override

@@ -114,7 +114,7 @@ public enum Leaderboard {
                 String name = NotBounties.getPlayerName(entry.getKey());
                 if (hiddenNames.contains(name))
                     continue;
-                if (amount == 0)
+                if (amount <= 0.01)
                     return top;
                 if (skip == 0) {
                     top.put(entry.getKey(), entry.getValue());

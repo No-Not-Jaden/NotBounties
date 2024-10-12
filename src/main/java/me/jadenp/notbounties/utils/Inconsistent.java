@@ -137,7 +137,7 @@ public interface Inconsistent {
      */
     @SuppressWarnings("unchecked")
     static <T extends Inconsistent> List<T>[] getAsyncronousObjects(List<T> list1, List<T> list2, long lastSync) {
-        Bukkit.getLogger().info("last sync: " + lastSync);
+        //Bukkit.getLogger().info("last sync: " + lastSync);
         ArrayList<T> list2Added = new ArrayList<>();
         ArrayList<T> list2Removed = new ArrayList<>();
         ArrayList<T> list1Added = new ArrayList<>();
@@ -145,11 +145,11 @@ public interface Inconsistent {
         int searchIndex = 0;
         for (int i = 0; i < list1.size(); i++) {
             T item1 = list1.get(i);
-            Bukkit.getLogger().info("i1: " + item1.getID() + " " + item1.getLatestUpdate());
+            //Bukkit.getLogger().info("i1: " + item1.getID() + " " + item1.getLatestUpdate());
             // search for item1 in list2
             searchIndex = indexSearch(item1.getID(), list2, searchIndex == -1 ? i : searchIndex); // searchIndex should have the index of the last item in list2, or -1 if the last item didn't exist in list2
             if (searchIndex == -1) {
-                Bukkit.getLogger().info("no match");
+                //Bukkit.getLogger().info("no match");
                 // item1 doesn't exist in list2
                 if (item1.getLatestUpdate() > lastSync) {
                     // item1 was added to list1 after last sync
@@ -190,7 +190,7 @@ public interface Inconsistent {
 
         // any items left in list2 do not exist in list1
         for (T item2 : list2) {
-            Bukkit.getLogger().info("i2: " + item2.getID() + " " + item2.getLatestUpdate());
+            //Bukkit.getLogger().info("i2: " + item2.getID() + " " + item2.getLatestUpdate());
             if (item2.getLatestUpdate() > lastSync) {
                 // item2 was added to list2 after the last update
                 list2Added.add(item2);

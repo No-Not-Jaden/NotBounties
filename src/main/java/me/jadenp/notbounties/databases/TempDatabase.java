@@ -3,6 +3,7 @@ package me.jadenp.notbounties.databases;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.utils.PlayerStat;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,7 +21,7 @@ public interface TempDatabase extends NotBountiesDatabase{
      * @param serverID ID of the server that the bounties are saved on.
      * @return All the bounties that have the serverID in their data.
      */
-    default List<Bounty> getServerBounties(UUID serverID) {
+    default List<Bounty> getServerBounties(UUID serverID) throws IOException {
         List<Bounty> bounties = getAllBounties(-1);
         bounties.removeIf(bounty -> bounty.getServerID() != serverID);
         return bounties;
@@ -31,7 +32,7 @@ public interface TempDatabase extends NotBountiesDatabase{
      * @param serverID ID of the server that the stats are saved on.
      * @return All the stats that have the serverID Vin their data.
      */
-    default Map<UUID, PlayerStat> getServerStats(UUID serverID) {
+    default Map<UUID, PlayerStat> getServerStats(UUID serverID) throws IOException{
         Map<UUID, PlayerStat> stats = getAllStats();
         stats.entrySet().removeIf(entry -> entry.getValue().serverID() != serverID);
         return stats;
