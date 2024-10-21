@@ -28,7 +28,7 @@ import java.util.*;
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.playerInfo;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.papiEnabled;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.prefix;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.getPrefix;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 
 public class ActionCommands {
@@ -308,15 +308,15 @@ public class ActionCommands {
             Bukkit.dispatchCommand(killer, command.substring(9));
         } else if (command.startsWith("[message_player] ")) {
             String message = command.substring(17);
-            player.sendMessage(LanguageOptions.parse(prefix + message, player));
+            player.sendMessage(LanguageOptions.parse(getPrefix() + message, player));
         } else if (command.startsWith("[message_killer] ")) {
             String message = command.substring(17);
-            killer.sendMessage(LanguageOptions.parse(prefix + message, killer));
+            killer.sendMessage(LanguageOptions.parse(getPrefix() + message, killer));
         } else if (command.startsWith("[broadcast] ")) {
             String message = command.substring(12);
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (!NotBounties.disableBroadcast.contains(p.getUniqueId())) {
-                    p.sendMessage(LanguageOptions.parse(prefix + message, killer));
+                    p.sendMessage(LanguageOptions.parse(getPrefix() + message, killer));
                 }
             }
         } else if (command.startsWith("[sound_player] ")) {

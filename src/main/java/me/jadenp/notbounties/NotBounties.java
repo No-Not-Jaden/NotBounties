@@ -80,11 +80,12 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * if a database has connected before, stat changes will be logged and reset on sync
  * database lock for first connection
  *
- * only show wanted tags when not moving option
- * make update notification editable
+ * only show wanted tags when not moving option - does not ever show -
+ * make update notification editable - x
  * open modal form for a split second after any custom
  * add whitelist msg for view-bounty GUI
  * put online players at top of active bounties and enchant them
+ * bounty list doesn't show hidden players
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -107,7 +108,7 @@ public final class NotBounties extends JavaPlugin {
 
 
     public static final List<UUID> displayParticle = new ArrayList<>();
-    public static final Map<UUID, AboveNameText> wantedText = new HashMap<>();
+    public static final Map<UUID, WantedTags> wantedText = new HashMap<>();
     private static NotBounties instance;
     public static boolean latestVersion = true;
     public static final List<BountyBoard> bountyBoards = new ArrayList<>();
@@ -228,6 +229,11 @@ public final class NotBounties extends JavaPlugin {
         this.getServer().getMessenger().registerOutgoingPluginChannel(this, "notbounties:main");
         this.getServer().getMessenger().registerIncomingPluginChannel(this, "notbounties:main", new ProxyMessaging());
 
+        // force login players that are already on the server - this will happen if the plugin is loaded without a restart
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Events.login(player);
+        }
+
         // update checker
         if (updateNotification) {
             new UpdateChecker(this, 104484).getVersion(version -> {
@@ -265,8 +271,7 @@ public final class NotBounties extends JavaPlugin {
                 latestVersion = !needsUpdate;
 
                 if (needsUpdate) {
-                    Bukkit.getLogger().info("[NotBounties] A new update is available. Current version: " + getDescription().getVersion() + " Latest version: " + version);
-                    Bukkit.getLogger().info("[NotBounties] Download a new version here:" + " https://www.spigotmc.org/resources/104484/");
+                    Bukkit.getLogger().info("[NotBounties] " + parse(getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", version), null));
                 }
             });
         }
@@ -401,7 +406,7 @@ public final class NotBounties extends JavaPlugin {
                         }
                     }
                     long startTime = System.currentTimeMillis();
-                    for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
+                    for (Map.Entry<UUID, WantedTags> entry : wantedText.entrySet()) {
                         entry.getValue().updateArmorStand();
                     }
                     lastUpdateTime = (int) (System.currentTimeMillis() - startTime);
@@ -660,7 +665,7 @@ public final class NotBounties extends JavaPlugin {
             GUI.safeCloseGUI(player, true);
         }
         // remove wanted tags
-        for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
+        for (Map.Entry<UUID, WantedTags> entry : wantedText.entrySet()) {
             entry.getValue().removeStand();
         }
         wantedText.clear();
@@ -737,7 +742,7 @@ public final class NotBounties extends JavaPlugin {
 
 
     public void sendDebug(CommandSender sender) throws SQLException {
-        sender.sendMessage(parse(prefix + ChatColor.WHITE + "NotBounties debug info:", null));
+        sender.sendMessage(parse(getPrefix() + ChatColor.WHITE + "NotBounties debug info:", null));
         long numConnected = DataManager.getDatabases().stream().filter(AsyncDatabaseWrapper::isConnected).count();
         String connected = numConnected > 0 ? ChatColor.GREEN + "" + numConnected : ChatColor.RED + "" + numConnected;
         String numConfigured = ChatColor.WHITE + "" + DataManager.getDatabases().size();
@@ -881,7 +886,7 @@ public final class NotBounties extends JavaPlugin {
                 GUI.safeCloseGUI(player, true);
             }
             // remove wanted tags
-            for (Map.Entry<UUID, AboveNameText> entry : wantedText.entrySet()) {
+            for (Map.Entry<UUID, WantedTags> entry : wantedText.entrySet()) {
                 entry.getValue().removeStand();
             }
             for (Player player : Bukkit.getOnlinePlayers())

@@ -121,7 +121,7 @@ public class Challenge {
             List<String> lore = meta.getLore() != null ? meta.getLore() : new ArrayList<>();
             assert lore != null;
             lore.add("");
-            lore.add(LanguageOptions.parse(LanguageOptions.challengeGUIClaim, player));
+            lore.add(LanguageOptions.parse(LanguageOptions.getMessage("challenge-gui-claim"), player));
             meta.setLore(lore);
         }
         itemStack.setItemMeta(meta);

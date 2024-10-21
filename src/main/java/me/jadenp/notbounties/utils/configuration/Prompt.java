@@ -36,7 +36,7 @@ public class Prompt implements Listener {
             }
             if (cancelWords.contains(event.getMessage().replaceAll(" ", "").toLowerCase())) {
                 removePrompt(event.getPlayer().getUniqueId());
-                event.getPlayer().sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.promptCancel, event.getPlayer()));
+                event.getPlayer().sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("prompt-cancel"), event.getPlayer()));
                 event.setCancelled(true);
                 return;
             }

@@ -23,9 +23,7 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,141 +33,11 @@ import static net.md_5.bungee.api.ChatColor.COLOR_CHAR;
 
 public class LanguageOptions {
 
-    public static String prefix;
-    public static String unknownNumber;
-    public static String bountySuccess;
-    public static String unknownPlayer;
-    public static String bountyBroadcast;
-    public static String noPermission;
-    public static String broke;
-    public static String claimBountyBroadcast;
-    public static String noBounty;
-    public static String checkBounty;
-    public static String listSetter;
-    public static String listTotal;
-    public static String offlineBounty;
-    public static String whitelistedPlayers;
-    public static String successRemoveBounty;
-    public static String successEditBounty;
-    public static String noSetter;
-    public static String repeatCommandBounty;
-    public static String permanentImmunity;
-    public static String scalingImmunity;
-    public static String buyPermanentImmunity;
-    public static String buyScalingImmunity;
-    public static String gracePeriod;
-    public static String minBounty;
-    public static String unknownCommand;
-    public static String alreadyBoughtPerm;
-    public static String removedImmunity;
-    public static String removedOtherImmunity;
-    public static String noImmunity;
-    public static String noImmunityOther;
-    public static String repeatCommandImmunity;
-    public static String expiredBounty;
-    public static String bountyTrackerName;
-    public static String trackerGive;
-    public static String trackerReceive;
-    public static String trackedNotify;
-    public static String bountyTop;
-    public static String bountyTopTitle;
-    public static String enableBroadcast;
-    public static String disableBroadcast;
-    public static String bountyVoucherName;
-    public static String redeemVoucher;
-    public static String bountyReceiver;
-    public static String bigBounty;
-    public static String bountyStatDeathsLong;
-    public static String bountyStatKillsLong;
-    public static String bountyStatClaimedLong;
-    public static String bountyStatSetLong;
-    public static String bountyStatImmunityLong;
-    public static String bountyStatAllLong;
-    public static String bountyStatAllShort;
-    public static String bountyStatKillsShort;
-    public static String bountyStatClaimedShort;
-    public static String bountyStatImmunityShort;
-    public static String bountyStatDeathsShort;
-    public static String bountyStatSetShort;
-    public static String whitelistMax;
-    public static String whitelistReset;
-    public static String whitelistChange;
-    public static String murder;
-    public static String immunityExpire;
-    public static String buyTimeImmunity;
-    public static String timeImmunity;
-    public static String whitelistToggle;
-    public static String deathTax;
-    public static String maxSetters;
-    public static String mapName;
-    public static String mapGive;
-    public static String mapReceive;
-    public static String blacklistToggle;
-    public static String rewardHeadName;
-    public static String helpTitle;
-    public static String updateStat;
-    public static String selfSetDeny;
-    public static String entityRemove;
-    public static String promptCancel;
-    public static String promptExpire;
-    public static String combatTag;
-    public static String combatSafe;
-    public static String waitCommand;
-    public static String emptyTrackerName;
-    public static String trackerOffline;
-    public static String trackerNoPermission;
-    public static String trackerReceiveEmpty;
-    public static String unknownMaterial;
-    public static String noEmptyTracker;
-    public static String stolenBounty;
-    public static String stolenBountyBroadcast;
-    public static String challengeCompletion;
-    public static String challengeGUIClaim;
-    public static String challengeChatClaim;
-    public static String challengeClaimDeny;
-    public static String trickleBounty;
-    public static String bedrockOpenGUI;
-    public static String paused;
-    public static String playerPrefix;
-    public static String playerSuffix;
-    public static String bountySetCooldown;
+    private static String prefix;
 
-    public static List<String> emptyTrackerLore;
-    public static List<String> giveTrackerLore;
-    public static List<String> givePosterLore;
-    public static List<String> trackerLore;
-    public static List<String> voucherLore;
-    public static List<String> notWhitelistedLore;
-    public static List<String> mapLore;
-    public static List<String> whitelistNotify;
-    public static List<String> whitelistLore;
-    public static List<String> adminEditLore;
-    public static List<String> blacklistLore;
-    public static List<String> rewardHeadLore;
-    public static List<String> buyBackLore;
-    public static List<String> helpBasic;
-    public static List<String> helpView;
-    public static List<String> helpSet;
-    public static List<String> helpWhitelist;
-    public static List<String> helpBlacklist;
-    public static List<String> helpBuyOwn;
-    public static List<String> helpBuyImmunityPermanent;
-    public static List<String> helpBuyImmunityScaling;
-    public static List<String> helpBuyImmunityTime;
-    public static List<String> helpRemoveImmunity;
-    public static List<String> helpTrackerOwn;
-    public static List<String> helpTrackerOther;
-    public static List<String> helpAdmin;
-    public static List<String> helpImmune;
-    public static List<String> helpPosterOwn;
-    public static List<String> helpPosterOther;
-    public static List<String> helpRemoveSet;
-    public static List<String> helpChallenges;
-    public static List<String> viewBountyLore;
-    public static List<String> removeBountyLore;
-    public static List<String> editBountyLore;
-    public static String nextPage;
-    public static String previousPage;
+
+    private static final Map<String, String> messages = new HashMap<>();
+    private static final Map<String, List<String>> listMessages = new HashMap<>();
 
     public static File getLanguageFile() {
         return new File(NotBounties.getInstance().getDataFolder() + File.separator + "language.yml");
@@ -222,142 +90,34 @@ public class LanguageOptions {
                 configuration.save(language);
         }
 
+        for (String key : configuration.getKeys(true)) {
+            if (configuration.isList(key)) {
+                listMessages.put(key, configuration.getStringList(key));
+            } else {
+                messages.put(key, configuration.getString(key));
+            }
+        }
+
 
         prefix = configuration.getString("prefix");
-        unknownNumber = configuration.getString("unknown-number");
-        bountySuccess = configuration.getString("bounty-success");
-        unknownPlayer = configuration.getString("unknown-player");
-        bountyBroadcast = configuration.getString("bounty-broadcast");
-        noPermission = configuration.getString("no-permission");
-        broke = configuration.getString("broke");
-        claimBountyBroadcast = configuration.getString("claim-bounty-broadcast");
-        noBounty = configuration.getString("no-bounty");
-        checkBounty = configuration.getString("check-bounty");
-        listSetter = configuration.getString("list-setter");
-        listTotal = configuration.getString("list-total");
-        offlineBounty = configuration.getString("offline-bounty");
-        whitelistedPlayers = configuration.getString("whitelisted-players");
-        successRemoveBounty = configuration.getString("success-remove-bounty");
-        successEditBounty = configuration.getString("success-edit-bounty");
-        noSetter = configuration.getString("no-setter");
-        repeatCommandBounty = configuration.getString("repeat-command-bounty");
-        permanentImmunity = configuration.getString("permanent-immunity");
-        scalingImmunity = configuration.getString("scaling-immunity");
-        buyPermanentImmunity = configuration.getString("buy-permanent-immunity");
-        buyScalingImmunity = configuration.getString("buy-scaling-immunity");
-        gracePeriod = configuration.getString("grace-period");
-        minBounty = configuration.getString("min-bounty");
-        unknownCommand = configuration.getString("unknown-command");
-        alreadyBoughtPerm = configuration.getString("already-bought-perm");
-        removedImmunity = configuration.getString("removed-immunity");
-        removedOtherImmunity = configuration.getString("removed-other-immunity");
-        noImmunity = configuration.getString("no-immunity");
-        noImmunityOther = configuration.getString("no-immunity-other");
-        repeatCommandImmunity = configuration.getString("repeat-command-immunity");
-        expiredBounty = configuration.getString("expired-bounty");
-        bountyTrackerName = configuration.getString("bounty-tracker-name");
-        trackerGive = configuration.getString("tracker-give");
-        trackerReceive = configuration.getString("tracker-receive");
-        trackedNotify = configuration.getString("tracked-notify");
-        bountyTop = configuration.getString("bounty-top");
-        bountyTopTitle = configuration.getString("bounty-top-title");
-        enableBroadcast = configuration.getString("enable-broadcast");
-        disableBroadcast = configuration.getString("disable-broadcast");
-        bountyVoucherName = configuration.getString("bounty-voucher-name");
-        redeemVoucher = configuration.getString("redeem-voucher");
-        bountyReceiver = configuration.getString("bounty-receiver");
-        bigBounty = configuration.getString("big-bounty");
-        bountyStatAllLong = configuration.getString("bounty-stat.all.long");
-        bountyStatKillsLong = configuration.getString("bounty-stat.kills.long");
-        bountyStatClaimedLong = configuration.getString("bounty-stat.claimed.long");
-        bountyStatDeathsLong = configuration.getString("bounty-stat.deaths.long");
-        bountyStatSetLong = configuration.getString("bounty-stat.set.long");
-        bountyStatImmunityLong = configuration.getString("bounty-stat.immunity.long");
-        bountyStatAllShort = configuration.getString("bounty-stat.all.short");
-        bountyStatKillsShort = configuration.getString("bounty-stat.kills.short");
-        bountyStatClaimedShort = configuration.getString("bounty-stat.claimed.short");
-        bountyStatDeathsShort = configuration.getString("bounty-stat.deaths.short");
-        bountyStatSetShort = configuration.getString("bounty-stat.set.short");
-        bountyStatImmunityShort = configuration.getString("bounty-stat.immunity.short");
-        whitelistMax = configuration.getString("whitelist-max");
-        whitelistReset = configuration.getString("whitelist-reset");
-        whitelistChange = configuration.getString("whitelist-change");
-        murder = configuration.getString("murder");
-        immunityExpire = configuration.getString("immunity-expire");
-        buyTimeImmunity = configuration.getString("buy-time-immunity");
-        timeImmunity = configuration.getString("time-immunity");
-        whitelistToggle = configuration.getString("whitelist-toggle");
-        deathTax = configuration.getString("death-tax");
-        maxSetters = configuration.getString("max-setters");
-        mapName = configuration.getString("map-name");
-        mapGive = configuration.getString("map-give");
-        mapReceive = configuration.getString("map-receive");
-        blacklistToggle = configuration.getString("blacklist-toggle");
-        rewardHeadName = configuration.getString("reward-head-name");
-        helpTitle = configuration.getString("help.title");
-        updateStat = configuration.getString("update-stat");
-        selfSetDeny = configuration.getString("self-set-deny");
-        entityRemove = configuration.getString("entity-remove");
-        promptCancel = configuration.getString("prompt-cancel");
-        promptExpire = configuration.getString("prompt-expire");
-        combatTag = configuration.getString("combat-tag");
-        combatSafe = configuration.getString("combat-safe");
-        waitCommand = configuration.getString("wait-command");
-        emptyTrackerName = configuration.getString("empty-tracker-name");
-        trackerOffline = configuration.getString("tracker-offline");
-        trackerNoPermission = configuration.getString("tracker-no-permission");
-        trackerReceiveEmpty = configuration.getString("tracker-receive-empty");
-        unknownMaterial = configuration.getString("unknown-material");
-        noEmptyTracker = configuration.getString("no-empty-tracker");
-        stolenBounty = configuration.getString("stolen-bounty");
-        stolenBountyBroadcast = configuration.getString("stolen-bounty-broadcast");
-        challengeCompletion = configuration.getString("challenge-completion");
-        challengeGUIClaim = configuration.getString("challenge-gui-claim");
-        challengeChatClaim = configuration.getString("challenge-chat-claim");
-        challengeClaimDeny = configuration.getString("challenge-claim-deny");
-        trickleBounty = configuration.getString("trickle-bounty");
-        bedrockOpenGUI = configuration.getString("bedrock-open-gui");
-        paused = configuration.getString("paused");
-        playerPrefix = configuration.getString("player-prefix");
-        playerSuffix = configuration.getString("player-suffix");
-        bountySetCooldown = configuration.getString("bounty-set-cooldown");
 
-        emptyTrackerLore = configuration.getStringList("empty-tracker-lore");
-        giveTrackerLore = configuration.getStringList("give-tracker-lore");
-        givePosterLore = configuration.getStringList("give-poster-lore");
-        voucherLore = configuration.getStringList("bounty-voucher-lore");
-        trackerLore = configuration.getStringList("bounty-tracker-lore");
-        notWhitelistedLore = configuration.getStringList("not-whitelisted");
-        mapLore = configuration.getStringList("map-lore");
-        buyBackLore = configuration.getStringList("buy-back-lore");
-        adminEditLore = configuration.getStringList("admin-edit-lore");
-        whitelistNotify = configuration.getStringList("whitelist-notify");
-        whitelistLore = configuration.getStringList("whitelist-lore");
-        blacklistLore = configuration.getStringList("blacklist-lore");
-        rewardHeadLore = configuration.getStringList("reward-head-lore");
-        helpBasic = configuration.getStringList("help.basic");
-        helpSet = configuration.getStringList("help.set");
-        helpView = configuration.getStringList("help.view");
-        helpWhitelist = configuration.getStringList("help.whitelist");
-        helpBlacklist = configuration.getStringList("help.blacklist");
-        helpBuyOwn = configuration.getStringList("help.buy-own");
-        helpBuyImmunityPermanent = configuration.getStringList("help.buy-immunity.permanent");
-        helpBuyImmunityScaling = configuration.getStringList("help.buy-immunity.scaling");
-        helpBuyImmunityTime = configuration.getStringList("help.buy-immunity.time");
-        helpRemoveImmunity = configuration.getStringList("help.remove-immunity");
-        helpTrackerOwn = configuration.getStringList("help.tracker-own");
-        helpTrackerOther = configuration.getStringList("help.tracker-other");
-        helpAdmin = configuration.getStringList("help.admin");
-        helpImmune = configuration.getStringList("help.immune");
-        helpPosterOwn = configuration.getStringList("help.poster-own");
-        helpPosterOther = configuration.getStringList("help.poster-other");
-        helpRemoveSet = configuration.getStringList("help.remove-set");
-        helpChallenges = configuration.getStringList("help.challenges");
-        viewBountyLore = configuration.getStringList("view-bounty-lore");
-        editBountyLore = configuration.getStringList("edit-bounty-lore");
-        removeBountyLore = configuration.getStringList("remove-bounty-lore");
-        previousPage = configuration.getString("help.previous-page");
-        nextPage = configuration.getString("help.next-page");
+
+    }
+
+    public static String getMessage(String key) {
+        if (messages.containsKey(key))
+            return messages.get(key);
+        if (listMessages.containsKey(key))
+            return String.join("\n", listMessages.get(key));
+        return "&cInvalid Message! There may be YAML errors in the language.yml file, or this is a bug!";
+    }
+
+    public static List<String> getListMessage(String key) {
+        if (listMessages.containsKey(key))
+            return listMessages.get(key);
+        if (messages.containsKey(key))
+            return new ArrayList<>(Arrays.stream(key.split("\n")).toList());
+        return new ArrayList<>(List.of("&cInvalid Message! There may be YAML errors in the language.yml file, or this is a bug!"));
     }
 
     private static int getAdjustedPage(CommandSender sender, int page) {
@@ -386,62 +146,62 @@ public class LanguageOptions {
 
     public static void sendHelpMessage(CommandSender sender) {
         Player parser = sender instanceof Player player ? player : null;
-        sender.sendMessage(parse(prefix + helpTitle, parser));
-        sendHelpMessage(sender, helpBasic);
+        sender.sendMessage(parse(getPrefix() + getMessage("help.title"), parser));
+        sendHelpMessage(sender, getListMessage("help.basic"));
         if (sender.hasPermission("notbounties.view")) {
-            sendHelpMessage(sender, helpView);
+            sendHelpMessage(sender, getListMessage("help.view"));
         }
         if (sender.hasPermission("notbounties.set")) {
-            sendHelpMessage(sender, helpSet);
+            sendHelpMessage(sender, getListMessage("help.set"));
         }
         if (sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled) {
-            sendHelpMessage(sender, helpWhitelist);
+            sendHelpMessage(sender, getListMessage("help.whitelist"));
             if (enableBlacklist) {
-                sendHelpMessage(sender, helpBlacklist);
+                sendHelpMessage(sender, getListMessage("help.blacklist"));
             }
         }
         if (sender.hasPermission("notbounties.buyown") & buyBack) {
-            sendHelpMessage(sender, helpBuyOwn);
+            sendHelpMessage(sender, getListMessage("help.buy-own"));
         }
         if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
             switch (Immunity.immunityType) {
                 case PERMANENT:
-                    sendHelpMessage(sender, helpBuyImmunityPermanent);
+                    sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                     break;
                 case SCALING:
-                    sendHelpMessage(sender, helpBuyImmunityScaling);
+                    sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
                     break;
                 case TIME:
-                    sendHelpMessage(sender, helpBuyImmunityTime);
+                    sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
                     break;
             }
         }
         if (sender.hasPermission("notbounties.removeimmunity")) {
-            sendHelpMessage(sender, helpRemoveImmunity);
+            sendHelpMessage(sender, getListMessage("help.remove-immunity"));
         }
         if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())) {
-            sendHelpMessage(sender, helpRemoveSet);
+            sendHelpMessage(sender, getListMessage("help.remove-set"));
         }
         if (sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap) {
-            sendHelpMessage(sender, helpPosterOwn);
+            sendHelpMessage(sender, getListMessage("help.poster-own"));
             if (sender.hasPermission(NotBounties.getAdminPermission()))
-                sendHelpMessage(sender, helpPosterOther);
+                sendHelpMessage(sender, getListMessage("help.poster-other"));
         }
         if (BountyTracker.isEnabled())
             if (sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
-                sendHelpMessage(sender, helpTrackerOwn);
+                sendHelpMessage(sender, getListMessage("help.tracker-own"));
                 if (sender.hasPermission(NotBounties.getAdminPermission()))
-                    sendHelpMessage(sender, helpTrackerOther);
+                    sendHelpMessage(sender, getListMessage("help.tracker-other"));
             }
         if (sender.hasPermission("notbounties.challenges") && ChallengeManager.isEnabled()) {
-            sendHelpMessage(sender, helpChallenges);
+            sendHelpMessage(sender, getListMessage("help.challenges"));
         }
         if (sender.hasPermission(NotBounties.getAdminPermission())) {
-            sendHelpMessage(sender, helpAdmin);
+            sendHelpMessage(sender, getListMessage("help.admin"));
         }
 
         if (sender.hasPermission("notbounties.immune")) {
-            sendHelpMessage(sender, helpImmune);
+            sendHelpMessage(sender, getListMessage("help.immune"));
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
     }
@@ -451,47 +211,47 @@ public class LanguageOptions {
             sendHelpMessage(sender);
             return;
         }
-        sender.sendMessage(parse(helpTitle, parser));
+        sender.sendMessage(parse(getMessage("help.title"), parser));
         page = getAdjustedPage(sender, page);
 
 
         switch (page) {
             case 1:
                 // basic
-                sendHelpMessage(sender, helpBasic);
+                sendHelpMessage(sender, getListMessage("help.basic"));
                 if (sender.hasPermission("notbounties.immune")) {
-                    sendHelpMessage(sender, helpImmune);
+                    sendHelpMessage(sender, getListMessage("help.immune"));
                 }
                 break;
             case 2:
                 // view
-                sendHelpMessage(sender, helpView);
+                sendHelpMessage(sender, getListMessage("help.view"));
                 break;
             case 3:
                 // set
-                sendHelpMessage(sender, helpSet);
+                sendHelpMessage(sender, getListMessage("help.set"));
                 break;
             case 4:
                 // whitelist
-                sendHelpMessage(sender, helpWhitelist);
+                sendHelpMessage(sender, getListMessage("help.whitelist"));
                 if (enableBlacklist)
-                    sendHelpMessage(sender, helpBlacklist);
+                    sendHelpMessage(sender, getListMessage("help.blacklist"));
                 break;
             case 5:
                 // buy
                 if (sender.hasPermission("notbounties.buyown") & buyBack) {
-                    sendHelpMessage(sender, helpBuyOwn);
+                    sendHelpMessage(sender, getListMessage("help.buy-own"));
                 }
                 if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
                     switch (Immunity.immunityType) {
                         case PERMANENT:
-                            sendHelpMessage(sender, helpBuyImmunityPermanent);
+                            sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                             break;
                         case SCALING:
-                            sendHelpMessage(sender, helpBuyImmunityScaling);
+                            sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
                             break;
                         case TIME:
-                            sendHelpMessage(sender, helpBuyImmunityTime);
+                            sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
                             break;
                     }
                 }
@@ -499,30 +259,30 @@ public class LanguageOptions {
             case 6:
                 // remove
                 if (sender.hasPermission("notbounties.removeimmunity"))
-                    sendHelpMessage(sender, helpRemoveImmunity);
+                    sendHelpMessage(sender, getListMessage("help.remove-immunity"));
                 if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission()))
-                    sendHelpMessage(sender, helpRemoveSet);
+                    sendHelpMessage(sender, getListMessage("help.remove-set"));
                 break;
             case 7:
                 // item
                 if (sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap) {
-                    sendHelpMessage(sender, helpPosterOwn);
+                    sendHelpMessage(sender, getListMessage("help.poster-own"));
                     if (sender.hasPermission(NotBounties.getAdminPermission()))
-                        sendHelpMessage(sender, helpPosterOther);
+                        sendHelpMessage(sender, getListMessage("help.poster-other"));
                 }
                 if (BountyTracker.isEnabled())
                     if (sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
-                        sendHelpMessage(sender, helpTrackerOwn);
+                        sendHelpMessage(sender, getListMessage("help.tracker-own"));
                         if (sender.hasPermission(NotBounties.getAdminPermission()))
-                            sendHelpMessage(sender, helpTrackerOther);
+                            sendHelpMessage(sender, getListMessage("help.tracker-other"));
                     }
                 break;
             case 8:
-                sendHelpMessage(sender, helpChallenges);
+                sendHelpMessage(sender, getListMessage("help.challenges"));
                 break;
             case 9:
                 // admin
-                sendHelpMessage(sender, helpAdmin);
+                sendHelpMessage(sender, getListMessage("help.admin"));
                 break;
             default:
                 sender.sendMessage("You're not supposed to be here...");
@@ -546,8 +306,8 @@ public class LanguageOptions {
         TextComponent back = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋘⋘⋘");
         TextComponent middle = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "             " + ChatColor.GRAY + "[" + currentPage + "]" + ChatColor.STRIKETHROUGH + "              ");
         TextComponent next = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋙⋙⋙");
-        back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.previousPage, null))));
-        next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.nextPage, null))));
+        back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
+        next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
         back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + previousPage));
         next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + nextPage));
         BaseComponent[] baseComponents = new BaseComponent[]{space, space, back, middle, next, space, space};
@@ -603,11 +363,11 @@ public class LanguageOptions {
                 str = str.replace("{max_expire}", "");
             }
             if (receiver.getName() != null) {
-                str = str.replace("{player}", playerPrefix + receiver.getName() + playerSuffix);
-                str = str.replace("{receiver}", playerPrefix + receiver.getName() + playerSuffix);
+                str = str.replace("{player}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
+                str = str.replace("{receiver}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
             } else {
-                str = str.replace("{player}", playerPrefix + NotBounties.getPlayerName(receiver.getUniqueId()) + playerPrefix);
-                str = str.replace("{receiver}", playerPrefix + NotBounties.getPlayerName(receiver.getUniqueId()) + playerSuffix);
+                str = str.replace("{player}", getMessage("player-prefix") + NotBounties.getPlayerName(receiver.getUniqueId()) + getMessage("player-prefix"));
+                str = str.replace("{receiver}", getMessage("player-prefix") + NotBounties.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"));
             }
             if (str.contains("{balance}"))
                 str = str.replace("{balance}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
@@ -701,7 +461,7 @@ public class LanguageOptions {
             } else {
                 replacement = NotBounties.getPlayerName(player.getUniqueId());
             }
-            replacement = playerPrefix + replacement + playerSuffix;
+            replacement = getMessage("player-prefix") + replacement + getMessage("player-suffix");
             if (papiEnabled)
                 replacement = new PlaceholderAPIClass().parse(player, replacement);
             str = str.replace("{player}", replacement);
@@ -717,7 +477,7 @@ public class LanguageOptions {
             } else {
                 replacement = NotBounties.getPlayerName(player.getUniqueId());
             }
-            replacement = playerPrefix + replacement + playerSuffix;
+            replacement = getMessage("player-prefix") + replacement + getMessage("player-suffix");
             if (papiEnabled)
                 replacement = new PlaceholderAPIClass().parse(player, replacement);
             str = str.replace("{player}", replacement);
@@ -751,5 +511,7 @@ public class LanguageOptions {
     }
 
 
-
+    public static String getPrefix() {
+        return prefix;
+    }
 }

@@ -97,13 +97,13 @@ public class PVPRestrictions implements Listener {
             if (historyMap.containsKey(player.getUniqueId())) {
                 PVPHistory history = historyMap.get(player.getUniqueId());
                 if (history.isCombatSafe() && localCombatTime > 0 && combatLoggingSendMessage) {
-                    player.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatTag.replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
+                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-tag").replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
                 }
                 history.setLastHit(damager.getUniqueId());
             } else {
                 historyMap.put(player.getUniqueId(), new PVPHistory(damager.getUniqueId()));
                 if (localCombatTime > 0 && combatLoggingSendMessage) {
-                    player.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatTag.replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
+                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-tag").replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
                 }
 
             }
@@ -125,7 +125,7 @@ public class PVPRestrictions implements Listener {
                     // send safe message
                     Player player = Bukkit.getPlayer(entry.getKey());
                     if (player != null)
-                        player.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatSafe, player));
+                        player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-safe"), player));
                 }
                 pvpHistory.setCombatSafe(true);
             }
@@ -194,7 +194,7 @@ public class PVPRestrictions implements Listener {
         if (localCombatLoggingTime == -1)
             localCombatLoggingTime = combatLoggingTime;
         if (!pvpHistory.isCombatSafe() && timeSinceLastHit < localCombatLoggingTime * 1000L) {
-            receiver.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.combatSafe, receiver));
+            receiver.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-safe"), receiver));
             historyMap.remove(receiver.getUniqueId());
         }
     }

@@ -92,14 +92,14 @@ public class GUI implements Listener {
                     if (bountyAmount > 0) {
                         List<String> additionalLore = GUIClicks.getClickLore(player, buyBack && bounty.getUUID().equals(player.getUniqueId()), (bounty.getTotalDisplayBounty() * buyBackInterest));
                         if (bounty.getAllWhitelists().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
-                            additionalLore.addAll(whitelistNotify);
+                            additionalLore.addAll(getListMessage("whitelist-notify"));
                         } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
-                            additionalLore.addAll(whitelistNotify);
+                            additionalLore.addAll(getListMessage("whitelist-notify"));
                         } else if (showWhitelistedBounties || player.hasPermission(NotBounties.getAdminPermission())) {
                             // not whitelisted
                             for (Setter setter : bounty.getSetters()) {
                                 if (!setter.canClaim(player)) {
-                                    additionalLore.addAll(notWhitelistedLore);
+                                    additionalLore.addAll(getListMessage("not-whitelisted"));
                                     break;
                                 }
                             }
@@ -115,7 +115,7 @@ public class GUI implements Listener {
                     Bounty viewedBounty = BountyManager.getBounty(uuid);
                     if (viewedBounty != null) {
                         List<Setter> setters = new ArrayList<>(viewedBounty.getSetters());
-                        List<String> additionalLore = player.hasPermission(NotBounties.getAdminPermission()) ? new ArrayList<>(adminEditLore) : new ArrayList<>();
+                        List<String> additionalLore = player.hasPermission(NotBounties.getAdminPermission()) ? new ArrayList<>(getListMessage("admin-edit-lore")) : new ArrayList<>();
                         setters.sort(Comparator.comparing(Setter::getUuid)); // same setters will be next to each other
                         List<ItemStack> concurrentItems = new ArrayList<>();
                         double concurrentAmount = 0;
@@ -241,7 +241,7 @@ public class GUI implements Listener {
                 List<UUID> playersAdded = new ArrayList<>();
                 Whitelist whitelist = NotBounties.getPlayerWhitelist(player.getUniqueId());
                 for (UUID uuid : whitelist.getList()) {
-                    List<String> additionalLore = whitelist.isBlacklist() ? blacklistLore : whitelistLore;
+                    List<String> additionalLore = whitelist.isBlacklist() ? getListMessage("blacklist-lore") : getListMessage("whitelist-lore");
                     displayItems.add(new WhitelistedPlayerItem(uuid, Leaderboard.IMMUNITY.getStat(uuid), Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), additionalLore));
                     playersAdded.add(uuid);
                 }
@@ -316,7 +316,7 @@ public class GUI implements Listener {
             }
             if (!allowed) {
                 if (player.hasPermission(NotBounties.getAdminPermission()))
-                    player.sendMessage(parse(prefix + paused, player));
+                    player.sendMessage(parse(getPrefix() + getMessage("paused"), player));
                 return;
             }
         }
@@ -573,7 +573,7 @@ public class GUI implements Listener {
                         } else {
                             // no longer has a bounty
                             openGUI((Player) event.getWhoClicked(), "bounty-gui", 1);
-                            event.getWhoClicked().sendMessage(LanguageOptions.parse(prefix + noBounty, Bukkit.getOfflinePlayer(uuid)));
+                            event.getWhoClicked().sendMessage(LanguageOptions.parse(getPrefix() + getMessage("no-bounty"), Bukkit.getOfflinePlayer(uuid)));
                         }
                     }
                     break;
@@ -590,7 +590,7 @@ public class GUI implements Listener {
                         if (whitelist.size() < 10)
                             whitelist.add(playerUUID);
                         else
-                            event.getWhoClicked().sendMessage(parse(prefix + whitelistMax, (Player) event.getWhoClicked()));
+                            event.getWhoClicked().sendMessage(parse(getPrefix() + getMessage("whitelist-max"), (Player) event.getWhoClicked()));
                     }
                     openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, info.data());
                     break;

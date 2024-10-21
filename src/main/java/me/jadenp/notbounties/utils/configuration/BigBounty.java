@@ -46,7 +46,7 @@ public class BigBounty {
         }
         if (newBounty.getTotalDisplayBounty() >= threshold && newBounty.getTotalDisplayBounty() - amountAdded < threshold) {
             displayParticle.add(receiver.getUniqueId());
-            receiver.sendMessage(parse(prefix + bigBounty, receiver));
+            receiver.sendMessage(parse(getPrefix() + getMessage("big-bounty"), receiver));
         }
     }
 

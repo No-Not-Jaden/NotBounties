@@ -127,9 +127,9 @@ public class BountyTracker implements Listener {
         ItemStack item = new ItemStack(Material.COMPASS);
         ItemMeta meta = item.getItemMeta();
         assert meta != null;
-        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.emptyTrackerName, null));
+        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.getMessage("empty-tracker-name"), null));
         List<String> lore = new ArrayList<>();
-        LanguageOptions.emptyTrackerLore.forEach(str -> lore.add(LanguageOptions.parse(str, null)));
+        LanguageOptions.getListMessage("empty-tracker-lore").forEach(str -> lore.add(LanguageOptions.parse(str, null)));
         lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@-1");
         meta.setLore(lore);
         item.setItemMeta(meta);
@@ -143,9 +143,9 @@ public class BountyTracker implements Listener {
         ItemStack compass = new ItemStack(Material.COMPASS, 1);
         ItemMeta meta = compass.getItemMeta();
         assert meta != null;
-        meta.setDisplayName(parse(bountyTrackerName, player));
+        meta.setDisplayName(parse(getMessage("bounty-tracker-name"), player));
 
-        ArrayList<String> lore = trackerLore.stream().map(str -> parse(str, player)).collect(Collectors.toCollection(ArrayList::new));
+        ArrayList<String> lore = getListMessage("bounty-tracker-lore").stream().map(str -> parse(str, player)).collect(Collectors.toCollection(ArrayList::new));
 
         int id = registerTrackedUUID(uuid);
 
@@ -336,7 +336,7 @@ public class BountyTracker implements Listener {
             }
             if (id != -1) // not an empty tracker
                 if (trackerActionBar && (TABShowAlways || force)) {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(trackerNoPermission, player)));
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(getMessage("tracker-no-permission"), player)));
                 }
 
             if (previousLocation == null || !Objects.equals(previousLocation.getWorld(), Objects.requireNonNull(compassMeta.getLodestone()).getWorld())) {
@@ -370,7 +370,7 @@ public class BountyTracker implements Listener {
                 if (p.getWorld().equals(player.getWorld())) {
                     if (player.getLocation().distance(p.getLocation()) < trackerGlow) {
                         p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 45, 0));
-                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(trackedNotify, p)));
+                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(getMessage("tracked-notify"), p)));
                     }
                 }
             }
@@ -400,7 +400,7 @@ public class BountyTracker implements Listener {
         } else {
             // player offline -
             if (trackerActionBar && (TABShowAlways || force)) {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(trackerOffline, player)));
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(getMessage("tracker-offline"), player)));
             }
             if (Bukkit.getWorlds().size() > 1) {
                 for (World world : Bukkit.getWorlds()) {
@@ -496,7 +496,7 @@ public class BountyTracker implements Listener {
         removeEmptyTracker(event.getPlayer(), true); // remove one empty tracker
         NumberFormatting.givePlayer(event.getPlayer(), getTracker(posterPlayerUUID), 1); // give tracker
         // you have been given
-        event.getPlayer().sendMessage(parse(prefix + trackerReceive, event.getPlayer()));
+        event.getPlayer().sendMessage(parse(getPrefix() + getMessage("tracker-receive"), event.getPlayer()));
     }
 
     // check for tracking crafting

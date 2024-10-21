@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.utils.configuration;
 
 
-import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.SkinManager;
@@ -12,7 +11,6 @@ import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.BountyClaimRequirements;
-import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.TrickleBounties;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
@@ -22,7 +20,6 @@ import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
@@ -76,13 +73,7 @@ public class ConfigOptions {
     public static boolean saveTemplates;
     public static String nameLine;
     public static boolean alwaysUpdate;
-    public static boolean wanted;
-    public static double wantedOffset;
-    public static String wantedText;
-    public static long wantedTextUpdateInterval;
-    public static long wantedVisibilityUpdateInterval;
-    public static double minWanted;
-    public static boolean hideWantedWhenSneaking;
+
     public static LinkedHashMap<Integer, String> wantedLevels = new LinkedHashMap<>();
     public static int boardType;
     public static long boardUpdate;
@@ -333,6 +324,7 @@ public class ConfigOptions {
         TrickleBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("trickle-bounties")));
         GUIClicks.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-gui-clicks")));
         DataManager.loadDatabaseConfig(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("databases")));
+        WantedTags.loadConfiguration(bounties.getConfig().getConfigurationSection("wanted-tag"));
 
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");
@@ -369,11 +361,6 @@ public class ConfigOptions {
         saveTemplates = bounties.getConfig().getBoolean("bounty-posters.save-templates");
         nameLine = bounties.getConfig().getString("bounty-posters.name-line");
         alwaysUpdate = bounties.getConfig().getBoolean("bounty-posters.always-update");
-        wanted = bounties.getConfig().getBoolean("wanted-tag.enabled");
-        wantedOffset = bounties.getConfig().getDouble("wanted-tag.offset");
-        wantedText = bounties.getConfig().getString("wanted-tag.text");
-        minWanted = bounties.getConfig().getDouble("wanted-tag.min-bounty");
-        hideWantedWhenSneaking = bounties.getConfig().getBoolean("wanted-tag.hide-when-sneaking");
         boardType = bounties.getConfig().getInt("bounty-board.type");
         boardUpdate = bounties.getConfig().getInt("bounty-board.update-interval");
         boardGlow = bounties.getConfig().getBoolean("bounty-board.glow");
@@ -391,8 +378,6 @@ public class ConfigOptions {
         autoBountyExpireTime = bounties.getConfig().getDouble("auto-bounties.expire-time");
         autoBountyOverrideImmunity = bounties.getConfig().getBoolean("auto-bounties.override-immunity");
         autoTimezone = bounties.getConfig().getBoolean("auto-timezone");
-        wantedTextUpdateInterval = bounties.getConfig().getLong("wanted-tag.text-update-interval");
-        wantedVisibilityUpdateInterval = bounties.getConfig().getLong("wanted-tag.visibility-update-interval");
         reducePageCalculations = bounties.getConfig().getBoolean("reduce-page-calculations");
         seePlayerList = bounties.getConfig().getBoolean("see-player-list");
         overrideSkinsRestorer = bounties.getConfig().getBoolean("override-skinsrestorer");
@@ -704,20 +689,5 @@ public class ConfigOptions {
             temp.put(aa.getKey(), aa.getValue());
         }
         return temp;
-    }
-
-    public static String getWantedDisplayText(OfflinePlayer player) {
-        Bounty bounty = BountyManager.getBounty(player.getUniqueId());
-        if (bounty == null)
-            return "";
-        String levelReplace = "";
-        for (Map.Entry<Integer, String> entry : wantedLevels.entrySet()) {
-            if (entry.getKey() <= bounty.getTotalDisplayBounty()) {
-                levelReplace = entry.getValue();
-            } else {
-                break;
-            }
-        }
-        return LanguageOptions.parse(wantedText.replace("{level}", (levelReplace)), bounty.getTotalDisplayBounty(), player);
     }
 }

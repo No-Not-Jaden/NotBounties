@@ -1,35 +1,99 @@
 package me.jadenp.notbounties.utils.configuration;
 
+import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.BountyManager;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 
+import java.util.Map;
+
 import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
-public class AboveNameText {
+public class WantedTags {
+    private static boolean wanted;
+    private static double wantedOffset;
+    private static String wantedText;
+    private static long wantedTextUpdateInterval;
+    private static long wantedVisibilityUpdateInterval;
+    private static double minWanted;
+    private static boolean hideWantedWhenSneaking;
+    private static boolean hideWantedWhenMoving;
+
+    public static void loadConfiguration(ConfigurationSection configuration) {
+        wanted = configuration.getBoolean("enabled");
+        wantedOffset = configuration.getDouble("offset");
+        wantedText = configuration.getString("text");
+        minWanted = configuration.getDouble("min-bounty");
+        hideWantedWhenSneaking = configuration.getBoolean("hide-when-sneaking");
+        wantedTextUpdateInterval = configuration.getLong("text-update-interval");
+        wantedVisibilityUpdateInterval = configuration.getLong("visibility-update-interval");
+        hideWantedWhenMoving = configuration.getBoolean("hide-when-moving");
+    }
+
+    public static String getWantedDisplayText(OfflinePlayer player) {
+        Bounty bounty = BountyManager.getBounty(player.getUniqueId());
+        if (bounty == null)
+            return "";
+        String levelReplace = "";
+        for (Map.Entry<Integer, String> entry : wantedLevels.entrySet()) {
+            if (entry.getKey() <= bounty.getTotalDisplayBounty()) {
+                levelReplace = entry.getValue();
+            } else {
+                break;
+            }
+        }
+        return LanguageOptions.parse(wantedText.replace("{level}", (levelReplace)), bounty.getTotalDisplayBounty(), player);
+    }
+
+    public static boolean isEnabled() {
+        return wanted;
+    }
+
+    public static double getMinWanted() {
+        return minWanted;
+    }
+
     private final Player player;
     private ArmorStand armorStand = null;
     private long nextTextUpdateTime = 0;
     private long nextVisibilityUpdateTime = 0;
     private boolean enabled = true;
-    public AboveNameText(Player player) {
+    private Location lastPlayerLocation;
+    
+    public WantedTags(Player player) {
         this.player = player;
+        lastPlayerLocation = player.getLocation();
         if (!BountyManager.hasBounty(player.getUniqueId()))
             return;
         spawnWantedTag();
+    }
+
+    private boolean hasMoved() {
+        boolean moved = player.getWorld().equals(lastPlayerLocation.getWorld()) && player.getLocation().distance(lastPlayerLocation) > 0.1;
+        lastPlayerLocation = player.getLocation();
+        return moved;
     }
 
     public void updateArmorStand(){
         if (enabled && player != null && player.isOnline()) {
             if (nextVisibilityUpdateTime < System.currentTimeMillis()) {
                 // conditions if the tag should be removed/invisible
-                if (!BountyManager.hasBounty(player.getUniqueId()) || (hideWantedWhenSneaking && player.isSneaking()) || player.getGameMode().equals(GameMode.SPECTATOR) || player.isInvisible() || isVanished(player)) {
+                if (!BountyManager.hasBounty(player.getUniqueId())
+                        || (hideWantedWhenSneaking && player.isSneaking())
+                        || (hideWantedWhenMoving && hasMoved())
+                        || player.getGameMode().equals(GameMode.SPECTATOR)
+                        || player.isInvisible()
+                        || isVanished(player)) {
                     if (armorStand != null)
                         removeStand();
                     return;
@@ -75,7 +139,7 @@ public class AboveNameText {
         }
     }
 
-    private void teleport(){
+    private void teleport() {
         armorStand.teleport(player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
     }
 

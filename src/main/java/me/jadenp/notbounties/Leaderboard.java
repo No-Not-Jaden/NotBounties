@@ -2,7 +2,6 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.PlayerStat;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -52,7 +51,7 @@ public enum Leaderboard {
      * @param player Player to display to
      */
     public void displayStats(OfflinePlayer player, boolean shorten){
-        String msg = parseStats(prefix + getStatMsg(shorten), player);
+        String msg = parseStats(getPrefix() + getStatMsg(shorten), player);
         if (player.isOnline()) {
             Player p = player.getPlayer();
             assert p != null;
@@ -62,7 +61,7 @@ public enum Leaderboard {
     }
 
     public void displayStats(OfflinePlayer statOwner, OfflinePlayer receiver, boolean shorten) {
-        String msg = parseStats(prefix + getStatMsg(shorten), statOwner);
+        String msg = parseStats(getPrefix() + getStatMsg(shorten), statOwner);
         if (receiver.isOnline()) {
             Player p = receiver.getPlayer();
             assert p != null;
@@ -80,13 +79,13 @@ public enum Leaderboard {
 
     public String getStatMsg(boolean shorten){
         return switch (this) {
-            case ALL -> shorten ? bountyStatAllShort : bountyStatAllLong;
-            case KILLS -> shorten ? bountyStatKillsShort : bountyStatKillsLong;
-            case CLAIMED -> shorten ? bountyStatClaimedShort : bountyStatClaimedLong;
-            case DEATHS -> shorten ? bountyStatDeathsShort : bountyStatDeathsLong;
-            case SET -> shorten ? bountyStatSetShort : bountyStatSetLong;
-            case IMMUNITY -> shorten ? bountyStatImmunityShort : bountyStatImmunityLong;
-            case CURRENT -> shorten ? listTotal : checkBounty;
+            case ALL -> shorten ? getMessage("bounty-stat.all.short") : getMessage("bounty-stat.all.long");
+            case KILLS -> shorten ? getMessage("bounty-stat.kills.short") : getMessage("bounty-stat.kills.long");
+            case CLAIMED -> shorten ? getMessage("bounty-stat.claimed.short") : getMessage("bounty-stat.claimed.long");
+            case DEATHS -> shorten ? getMessage("bounty-stat.deaths.short") : getMessage("bounty-stat.deaths.long");
+            case SET -> shorten ? getMessage("bounty-stat.set.short") : getMessage("bounty-stat.set.long");
+            case IMMUNITY -> shorten ? getMessage("bounty-stat.immunity.short") : getMessage("bounty-stat.immunity.long");
+            case CURRENT -> shorten ? getMessage("list-total") : getMessage("check-bounty");
         };
     }
 
@@ -164,9 +163,9 @@ public enum Leaderboard {
 
     public void displayTopStat(CommandSender sender, int amount){
         if (sender instanceof Player player)
-            sender.sendMessage(parse(bountyTopTitle, player));
+            sender.sendMessage(parse(getMessage("bounty-top-title"), player));
         else
-            sender.sendMessage(parse(bountyTopTitle, null));
+            sender.sendMessage(parse(getMessage("bounty-top-title"), null));
         boolean useCurrency = this == Leaderboard.IMMUNITY || this == Leaderboard.CLAIMED || this == Leaderboard.ALL;
         Map<UUID, Double> map = getTop(0, amount);
         int i = 0;
@@ -217,7 +216,7 @@ public enum Leaderboard {
     }
 
     public static String parseBountyTopString(int rank, @NotNull String playerName, double amount, boolean useCurrency, OfflinePlayer player){
-        String text = bountyTop;
+        String text = getMessage("bounty-top");
         text = text.replace("{rank}", rank + "");
         text = text.replace("{player}", playerName);
         if (useCurrency)

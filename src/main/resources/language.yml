@@ -139,12 +139,13 @@ stolen-bounty: '&aYou stole &2{player}''s&a bounty on you for {amount}&a!'
 stolen-bounty-broadcast: '&e{receiver}&6 has stolen &e{player}''s&6 bounty set on them for &f{amount}&6! New Bounty: &f{bounty}'
 challenge-completion: '&5You''ve completed a challenge. Use &d/bounty challenges &5to view.'
 challenge-gui-claim: '&5Click to claim your reward'
-challenge-chat-claim: '&5Do &d/bounty challenges claim &5to claim your reward.'
 challenge-claim-deny: '&cYou can''t claim this challenge!'
 trickle-bounty: '&2{amount}&e of &6{player}''s &ebounty has been transferred to yours.'
 bedrock-open-gui: '&eOpening Form...' # set to: '' if you don't want this message sent
 paused: '&cNotBounties is paused. To use this feature again, do &a/bounty unpause' #
 bounty-set-cooldown: '&cPlease wait {time} before you can set another bounty.'
+update-notification: "&eA new update is available. Current version: &6{current} &eLatest Version: &a{latest} \n&eDownload a new version here: &7https://www.spigotmc.org/resources/104484/"
+disable-update-notification: '&7&o&nClick here to disable this notification.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.utils.configuration;
 
 import me.jadenp.notbounties.Leaderboard;
-import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -158,7 +157,7 @@ public class Immunity {
         for (UUID uuid : expiredImmunity) {
             OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
             if (player.isOnline())
-                Objects.requireNonNull(player.getPlayer()).sendMessage(parse(prefix + immunityExpire, player));
+                Objects.requireNonNull(player.getPlayer()).sendMessage(parse(getPrefix() + getMessage("immunity-expire"), player));
             immunityTimeTracker.remove(uuid);
             DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStat(uuid, Leaderboard.IMMUNITY) * -1);
         }

@@ -346,9 +346,9 @@ public class BountyMap implements Listener {
             NotBounties.debugMessage(e.toString(), true);
             return null;
         }
-        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.mapName, displayBounty, parser));
+        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.getMessage("map-name"), displayBounty, parser));
         ArrayList<String> lore = new ArrayList<>();
-        for (String str : LanguageOptions.mapLore) {
+        for (String str : LanguageOptions.getListMessage("map-lore")) {
             lore.add(LanguageOptions.parse(str, displayBounty, updateTime, LocalTime.TimeFormat.SERVER, parser));
         }
         meta.setLore(lore);

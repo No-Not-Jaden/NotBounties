@@ -63,7 +63,7 @@ public class BountyManager {
         List<Bounty> sortedList = getPublicBounties(sortType);
         for (int i = page * length; i < (page * length) + length; i++) {
             if (sortedList.size() > i) {
-                sender.sendMessage(parse(listTotal, sortedList.get(i).getTotalDisplayBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));
+                sender.sendMessage(parse(getMessage("list-total"), sortedList.get(i).getTotalDisplayBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));
             } else {
                 break;
             }
@@ -124,7 +124,7 @@ public class BountyManager {
             // check for big bounty
             BigBounty.setBounty(onlineReceiver, bounty, displayAmount);
             // send messages
-            onlineReceiver.sendMessage(parse(prefix + bountyReceiver, displayAmount, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(setter.getUniqueId())));
+            onlineReceiver.sendMessage(parse(getPrefix() + getMessage("bounty-receiver"), displayAmount, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(setter.getUniqueId())));
 
             if (serverVersion <= 16) {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
@@ -132,14 +132,14 @@ public class BountyManager {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
             }
             // add wanted tag
-            if (wanted && bounty.getTotalDisplayBounty() >= minWanted) {
+            if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
                 if (!NotBounties.wantedText.containsKey(onlineReceiver.getUniqueId())) {
-                    NotBounties.wantedText.put(onlineReceiver.getUniqueId(), new AboveNameText(onlineReceiver));
+                    NotBounties.wantedText.put(onlineReceiver.getUniqueId(), new WantedTags(onlineReceiver));
                 }
             }
         }
         // send messages
-        setter.sendMessage(parse(prefix + bountySuccess, displayAmount, bounty.getTotalDisplayBounty(), receiver));
+        setter.sendMessage(parse(getPrefix() + getMessage("bounty-success"), displayAmount, bounty.getTotalDisplayBounty(), receiver));
 
         if (serverVersion <= 16) {
             setter.playSound(setter.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
@@ -147,7 +147,7 @@ public class BountyManager {
             setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1, 1);
         }
 
-        String message = parse(prefix + bountyBroadcast, setter, displayAmount, bounty.getTotalDisplayBounty(), receiver);
+        String message = parse(getPrefix() + getMessage("bounty-broadcast"), setter, displayAmount, bounty.getTotalDisplayBounty(), receiver);
 
         Bukkit.getConsoleSender().sendMessage(message);
         if (whitelist.getList().isEmpty()) {
@@ -162,7 +162,7 @@ public class BountyManager {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (player.getUniqueId().equals(receiver.getUniqueId()) || player.getUniqueId().equals(setter.getUniqueId()) || whitelist.getList().contains(player.getUniqueId()))
                         continue;
-                    whitelistNotify.stream().filter(str -> !str.isEmpty()).forEach(str -> player.sendMessage(parse(prefix + str, player)));
+                    getListMessage("whitelist-notify").stream().filter(str -> !str.isEmpty()).forEach(str -> player.sendMessage(parse(getPrefix() + str, player)));
                 }
             } else {
                 for (UUID uuid : whitelist.getList()) {
@@ -170,7 +170,7 @@ public class BountyManager {
                     if (player == null || player.getUniqueId().equals(receiver.getUniqueId()) || player.getUniqueId().equals(setter.getUniqueId()))
                         continue;
                     player.sendMessage(message);
-                    whitelistNotify.stream().filter(str -> !str.isEmpty()).forEach(str -> player.sendMessage(parse(prefix + str, player)));
+                    getListMessage("whitelist-notify").stream().filter(str -> !str.isEmpty()).forEach(str -> player.sendMessage(parse(getPrefix() + str, player)));
                 }
             }
         }
@@ -201,7 +201,7 @@ public class BountyManager {
             // check for big bounty
             BigBounty.setBounty(onlineReceiver, bounty, displayAmount);
             // send messages
-            onlineReceiver.sendMessage(parse(prefix + bountyReceiver, consoleName, displayAmount, bounty.getTotalDisplayBounty(), receiver));
+            onlineReceiver.sendMessage(parse(getPrefix() + getMessage("bounty-receiver"), consoleName, displayAmount, bounty.getTotalDisplayBounty(), receiver));
 
             if (serverVersion <= 16) {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
@@ -209,14 +209,14 @@ public class BountyManager {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
             }
             // add wanted tag
-            if (wanted && bounty.getTotalDisplayBounty() >= minWanted) {
+            if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
                 if (!NotBounties.wantedText.containsKey(onlineReceiver.getUniqueId())) {
-                    NotBounties.wantedText.put(onlineReceiver.getUniqueId(), new AboveNameText(onlineReceiver));
+                    NotBounties.wantedText.put(onlineReceiver.getUniqueId(), new WantedTags(onlineReceiver));
                 }
             }
         }
         // send messages
-        String message = parse(prefix + bountyBroadcast, consoleName, displayAmount, bounty.getTotalDisplayBounty(), receiver);
+        String message = parse(getPrefix() + getMessage("bounty-broadcast"), consoleName, displayAmount, bounty.getTotalDisplayBounty(), receiver);
         Bukkit.getConsoleSender().sendMessage(message);
         if (whitelist.getList().isEmpty()) {
             if (displayAmount >= minBroadcast)
@@ -231,7 +231,7 @@ public class BountyManager {
                 if (player == null || player.getUniqueId().equals(receiver.getUniqueId()))
                     continue;
                 player.sendMessage(message);
-                player.sendMessage(parse(prefix + whitelistToggle, player));
+                player.sendMessage(parse(getPrefix() + getMessage("whitelist-toggle"), player));
             }
         }
 
@@ -402,9 +402,9 @@ public class BountyManager {
                     NumberFormatting.givePlayer(killer, bounty.getTotalItemBounty(), false);
                 }
                 // send messages
-                killer.sendMessage(parse(prefix + LanguageOptions.stolenBounty, stolenBounty.getTotalDisplayBounty(), player));
+                killer.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("stolen-bounty"), stolenBounty.getTotalDisplayBounty(), player));
                 // send messages
-                String message = parse(prefix + stolenBountyBroadcast, player, stolenBounty.getTotalDisplayBounty(), bounty.getTotalDisplayBounty(), killer);
+                String message = parse(getPrefix() + getMessage("stolen-bounty-broadcast"), player, stolenBounty.getTotalDisplayBounty(), bounty.getTotalDisplayBounty(), killer);
                 Bukkit.getConsoleSender().sendMessage(message);
                 if (stolenBounty.getTotalDisplayBounty() >= minBroadcast)
                     for (Player p : Bukkit.getOnlinePlayers()) {
@@ -454,7 +454,7 @@ public class BountyManager {
         displayParticle.remove(player.getUniqueId());
 
         // broadcast message
-        String message = parse(prefix + claimBountyBroadcast, killer, bounty.getTotalDisplayBounty(killer), player);
+        String message = parse(getPrefix() + getMessage("claim-bounty-broadcast"), killer, bounty.getTotalDisplayBounty(killer), player);
         Bukkit.getConsoleSender().sendMessage(message);
         for (Player p : Bukkit.getOnlinePlayers()) {
             if ((!NotBounties.disableBroadcast.contains(p.getUniqueId()) && bounty.getTotalDisplayBounty(killer) >= minBroadcast) || p.getUniqueId().equals(player.getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(killer).getUniqueId())) {
@@ -516,7 +516,7 @@ public class BountyManager {
                 if (totalLoss > 0) {
                     if (debug)
                         Bukkit.getLogger().info("[NotBountiesDebug] Removing " + totalLoss + " currency for the death tax.");
-                    player.sendMessage(parse(prefix + LanguageOptions.deathTax.replace("{items}", (builder.toString())), player));
+                    player.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("death-tax").replace("{items}", (builder.toString())), player));
                     // modify drops
                     if (forceEditDrops)
                         for (Map.Entry<Material, Long> entry : removedItems.entrySet())
@@ -580,11 +580,11 @@ public class BountyManager {
                     ItemMeta meta = item.getItemMeta();
                     assert meta != null;
                     ArrayList<String> lore = new ArrayList<>();
-                    for (String str : voucherLore) {
+                    for (String str : getListMessage("bounty-voucher-lore")) {
                         lore.add(parse(str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), Bukkit.getOfflinePlayer(setter.getUuid()),setter.getAmount(), player));
                     }
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                    meta.setDisplayName(parse(bountyVoucherName.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), killer, setter.getAmount(), player));
+                    meta.setDisplayName(parse(getMessage("bounty-voucher-name").replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.currencySuffix)), killer, setter.getAmount(), player));
                     ArrayList<String> setterLore = new ArrayList<>(lore);
                     if (!RRLSetterLoreAddition.isEmpty()) {
                         setterLore.add(parse(RRLSetterLoreAddition, setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
@@ -603,11 +603,11 @@ public class BountyManager {
                 ItemMeta meta = item.getItemMeta();
                 assert meta != null;
                 ArrayList<String> lore = new ArrayList<>();
-                for (String str : voucherLore) {
+                for (String str : getListMessage("bounty-voucher-lore")) {
                     lore.add(parse(str, player.getKiller(), rewardedBounty.getTotalBounty(killer), player));
                 }
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                meta.setDisplayName(parse(bountyVoucherName, killer, rewardedBounty.getTotalBounty(killer), player));
+                meta.setDisplayName(parse(getMessage("bounty-voucher-name"), killer, rewardedBounty.getTotalBounty(killer), player));
                 if (!RRLSetterLoreAddition.isEmpty()) {
                     for (Setter setter : rewardedBounty.getSetters()) {
                         if (!setter.canClaim(killer) || setter.getAmount() <= 0.01 || (setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID) && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL))
@@ -632,7 +632,7 @@ public class BountyManager {
         removeSetters(bounty.getUUID(), claimedBounties);
 
 
-        if (bounty.getTotalDisplayBounty() < minWanted) {
+        if (bounty.getTotalDisplayBounty() < WantedTags.getMinWanted()) {
             // remove bounty tag
             NotBounties.removeWantedTag(bounty.getUUID());
             if (debug)

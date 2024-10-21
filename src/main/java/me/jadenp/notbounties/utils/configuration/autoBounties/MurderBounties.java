@@ -12,9 +12,7 @@ import java.util.*;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.BountyManager.getBounty;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.parse;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.murder;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.prefix;
+import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class MurderBounties {
     private static int murderCooldown;
@@ -53,7 +51,7 @@ public class MurderBounties {
                     playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) && (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01)) {
                 // increase
                 addBounty(killer, murderBountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
-                killer.sendMessage(parse(prefix + murder, Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), player));
+                killer.sendMessage(parse(getPrefix() + getMessage("murder"), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), player));
                 Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
                 kills.put(player.getUniqueId(), System.currentTimeMillis());
                 playerKills.put(killer.getUniqueId(), kills);

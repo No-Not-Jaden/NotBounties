@@ -75,7 +75,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (!allow) {
                     if (sender.hasPermission(NotBounties.getAdminPermission()))
-                        sender.sendMessage(parse(prefix + paused, null));
+                        sender.sendMessage(parse(getPrefix() + getMessage("paused"), null));
                     return true;
                 }
             }
@@ -135,8 +135,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 } catch (NumberFormatException e) {
                                     // unknown command
                                     if (!silent) {
-                                        sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                        sender.sendMessage(parse(prefix + helpChallenges, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                        sender.sendMessage(parse(getPrefix() + getListMessage("help.challenges"), parser));
                                     }
                                     return false;
                                 }
@@ -164,8 +164,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 } catch (NumberFormatException e) {
                                     // unknown command
                                     if (!silent) {
-                                        sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                        sender.sendMessage(parse(prefix + helpChallenges, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                        sender.sendMessage(parse(getPrefix() + getListMessage("help.challenges"), parser));
                                     }
                                     return false;
                                 }
@@ -173,21 +173,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                         } else {
                             // unknown command
                             if (!silent) {
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sender.sendMessage(parse(prefix + helpChallenges, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                sender.sendMessage(parse(getPrefix() + getListMessage("help.challenges"), parser));
                             }
                             return false;
                         }
                     }
                 } else {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                 }
                 return false;
             } else if (args[0].equalsIgnoreCase("update-notification")) {
                 if (!sender.hasPermission(NotBounties.getAdminPermission())) {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + unknownCommand, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                     return false;
                 }
                 if (args.length == 1) {
@@ -200,15 +200,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                 NotBounties.getInstance().saveConfig();
                 if (updateNotification) {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + ChatColor.YELLOW + "The update notification is now " + ChatColor.GREEN + "enabled" + ChatColor.YELLOW + ".", parser));
+                        sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now " + ChatColor.GREEN + "enabled" + ChatColor.YELLOW + ".", parser));
                 } else {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + ChatColor.YELLOW + "The update notification is now " + ChatColor.RED + "disabled" + ChatColor.YELLOW + ".", parser));
+                        sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now " + ChatColor.RED + "disabled" + ChatColor.YELLOW + ".", parser));
                 }
             } else if (args[0].equalsIgnoreCase("cleanEntities")) {
                 if (!sender.hasPermission(NotBounties.getAdminPermission())) {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
                 if (!(sender instanceof Player)) {
@@ -224,7 +224,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         radius = Double.parseDouble(args[1]);
                     } catch (NumberFormatException e) {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownNumber, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                         return false;
                     }
                 }
@@ -232,20 +232,20 @@ public class Commands implements CommandExecutor, TabCompleter {
                 return true;
             } else if (args[0].equalsIgnoreCase("pause") && sender.hasPermission(NotBounties.getAdminPermission())) {
                 if (NotBounties.isPaused()) {
-                    sender.sendMessage(LanguageOptions.parse(prefix + ChatColor.RED + "NotBounties is already paused.", parser));
+                    sender.sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.RED + "NotBounties is already paused.", parser));
                     return false;
                 } else {
                     NotBounties.setPaused(true);
-                    sender.sendMessage(parse(prefix + ChatColor.RED + "NotBounties is now paused. Players will only be able to view previous bounties. Run " + ChatColor.GREEN + "/" + pluginBountyCommands.get(0) + " unpause " + ChatColor.RED + " to use all features again.", parser));
+                    sender.sendMessage(parse(getPrefix() + ChatColor.RED + "NotBounties is now paused. Players will only be able to view previous bounties. Run " + ChatColor.GREEN + "/" + pluginBountyCommands.get(0) + " unpause " + ChatColor.RED + " to use all features again.", parser));
                     return true;
                 }
             } else if (args[0].equalsIgnoreCase("unpause") && sender.hasPermission(NotBounties.getAdminPermission())) {
                 if (NotBounties.isPaused()) {
                     NotBounties.setPaused(false);
-                    sender.sendMessage(parse(prefix + ChatColor.GREEN + "NotBounties is no longer paused.", parser));
+                    sender.sendMessage(parse(getPrefix() + ChatColor.GREEN + "NotBounties is no longer paused.", parser));
                     return true;
                 } else {
-                    sender.sendMessage(parse(prefix + ChatColor.GREEN + "NotBounties is already unpaused.", parser));
+                    sender.sendMessage(parse(getPrefix() + ChatColor.GREEN + "NotBounties is already unpaused.", parser));
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("debug") && sender.hasPermission(NotBounties.getAdminPermission())) {
@@ -262,12 +262,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                         debug = newValue;
                         if (debug)
                             if (!silent)
-                                sender.sendMessage(parse(prefix + ChatColor.GREEN + "Debug messages will now be sent in console.", parser));
+                                sender.sendMessage(parse(getPrefix() + ChatColor.GREEN + "Debug messages will now be sent in console.", parser));
                             else if (!silent)
-                                sender.sendMessage(parse(prefix + ChatColor.RED + "Debug messages will no longer be sent in console.", parser));
+                                sender.sendMessage(parse(getPrefix() + ChatColor.RED + "Debug messages will no longer be sent in console.", parser));
                     } else {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + ChatColor.YELLOW + "Debug mode is already set this way.", parser));
+                            sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "Debug mode is already set this way.", parser));
                     }
                 }
                 return true;
@@ -281,14 +281,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (args.length > 1) {
                     if (args[1].equalsIgnoreCase("clear")) {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + ChatColor.DARK_RED + "Removed " + bountyBoards.size() + " bounty boards.", parser));
+                            sender.sendMessage(parse(getPrefix() + ChatColor.DARK_RED + "Removed " + bountyBoards.size() + " bounty boards.", parser));
                         removeBountyBoard();
 
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("remove")) {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + ChatColor.RED + "Right click the bounty board to remove.", parser));
+                            sender.sendMessage(parse(getPrefix() + ChatColor.RED + "Right click the bounty board to remove.", parser));
                         NotBounties.boardSetup.put(parser.getUniqueId(), -1);
                         return true;
                     }
@@ -296,7 +296,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         rank = Integer.parseInt(args[1]);
                     } catch (NumberFormatException e) {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownNumber, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                     }
                 } else {
                     for (BountyBoard board : bountyBoards) {
@@ -308,7 +308,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (rank < 1)
                     rank = 1;
                 if (!silent)
-                    sender.sendMessage(parse(prefix + ChatColor.DARK_AQUA + ChatColor.BOLD + "<Rank " + rank + "> " + ChatColor.AQUA + "Punch a block to place the bounty board on.", parser));
+                    sender.sendMessage(parse(getPrefix() + ChatColor.DARK_AQUA + ChatColor.BOLD + "<Rank " + rank + "> " + ChatColor.AQUA + "Punch a block to place the bounty board on.", parser));
                 NotBounties.boardSetup.put(parser.getUniqueId(), rank);
                 return true;
             } else if (args[0].equalsIgnoreCase("tutorial") && sender.hasPermission("notbounties.basic")) {
@@ -318,7 +318,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender instanceof Player) {
                     if (!sender.hasPermission("notbounties.whitelist")) {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + noPermission, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                         return false;
                     }
                     if (args.length == 1) {
@@ -332,7 +332,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args[1].equalsIgnoreCase("reset")) {
                         getPlayerWhitelist(parser.getUniqueId()).setList(new ArrayList<>());
                         if (!silent)
-                            sender.sendMessage(parse(prefix + whitelistReset, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("whitelist-reset"), parser));
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("view")) {
@@ -347,7 +347,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             names.append("<none>");
                         }
                         if (!silent)
-                            sender.sendMessage(parse(prefix + whitelistedPlayers + names, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("whitelisted-players") + names, parser));
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("toggle")) {
@@ -355,10 +355,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                             // toggle
                             if (getPlayerWhitelist(((Player) sender).getUniqueId()).toggleBlacklist()) {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + blacklistToggle, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("blacklist-toggle"), parser));
                             } else {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + whitelistToggle, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("whitelist-toggle"), parser));
                             }
                         } else {
                             List<String> toggleOptions = List.of("blacklist", "false", "off", "whitelist", "true", "on");
@@ -373,10 +373,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (change)
                                     if (blacklist) {
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + blacklistToggle, parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("blacklist-toggle"), parser));
                                     } else {
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + whitelistToggle, parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("whitelist-toggle"), parser));
                                     }
                             } else {
                                 // try to find player
@@ -384,20 +384,20 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (player == null) {
                                     // unknown player
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + unknownPlayer, args[2], parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[2], parser));
                                     return false;
                                 }
                                 Whitelist whitelist = getPlayerWhitelist(((Player) sender).getUniqueId());
                                 if (whitelist.getList().remove(player.getUniqueId())) {
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + whitelistChange, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
                                 } else if (whitelist.getList().size() < 10) {
                                     whitelist.getList().add(player.getUniqueId());
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + whitelistChange, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
                                 } else {
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + whitelistMax, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("whitelist-max"), parser));
                                 }
                             }
                         }
@@ -411,7 +411,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (player == null) {
                                 // unknown player
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownPlayer, args[i], parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[i], parser));
                                 return false;
                             }
                             if (!whitelist.contains(player.getUniqueId()))
@@ -424,10 +424,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 previousWhitelist.remove(10);
                             getPlayerWhitelist(parser.getUniqueId()).setList(previousWhitelist);
                             if (!silent)
-                                sender.sendMessage(parse(prefix + whitelistChange, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
                             if (previousWhitelist.size() == 10)
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + whitelistMax, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("whitelist-max"), parser));
                             return true;
                         }
                         if (args[1].equalsIgnoreCase("remove")) {
@@ -438,36 +438,36 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     builder.append(", ").append(args[i]);
                                 }
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownPlayer, builder.toString(), parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), builder.toString(), parser));
                                 return true;
                             }
                             getPlayerWhitelist(parser.getUniqueId()).setList(previousWhitelist);
                             if (!silent)
-                                sender.sendMessage(parse(prefix + whitelistChange, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
                             return true;
                         }
                         if (args[1].equalsIgnoreCase("set")) {
                             getPlayerWhitelist(parser.getUniqueId()).setList(whitelist);
                             if (!silent)
-                                sender.sendMessage(parse(prefix + whitelistChange, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
                             return true;
                         }
                     }
                     // usage
                     if (!silent) {
-                        sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sendHelpMessage(sender, helpWhitelist);
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        sendHelpMessage(sender, getListMessage("help.whitelist"));
                     }
                     return false;
                 } else {
                     if (!silent)
-                        sender.sendMessage(prefix + ChatColor.RED + "Only players can use this command.");
+                        sender.sendMessage(getPrefix() + ChatColor.RED + "Only players can use this command.");
                 }
                 return false;
             } else if (args[0].equalsIgnoreCase("currency")) {
                 if (!sender.hasPermission(NotBounties.getAdminPermission())) {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
                 CurrencySetup.onCommand(sender, args);
@@ -481,14 +481,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                             openGUI(parser, "set-bounty", 1);
                     } else {
                         if (!silent)
-                            sender.sendMessage(prefix + ChatColor.RED + "Only players can use this command.");
+                            sender.sendMessage(getPrefix() + ChatColor.RED + "Only players can use this command.");
                         return false;
                     }
                     return true;
                 } else {
                     // no permission
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("bdc") && sender.hasPermission("notbounties.basic")) {
@@ -499,25 +499,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                             // enable
                             NotBounties.disableBroadcast.remove((parser).getUniqueId());
                             if (!silent)
-                                sender.sendMessage(parse(prefix + enableBroadcast, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
                         } else {
                             // disable
                             if (!NotBounties.disableBroadcast.contains((parser).getUniqueId()))
                                 NotBounties.disableBroadcast.add(parser.getUniqueId());
                             if (!silent)
-                                sender.sendMessage(parse(prefix + LanguageOptions.disableBroadcast, parser));
+                                sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("disable-broadcast"), parser));
                         }
                     } else {
                         if (NotBounties.disableBroadcast.contains((parser).getUniqueId())) {
                             // enable
                             NotBounties.disableBroadcast.remove((parser).getUniqueId());
                             if (!silent)
-                                sender.sendMessage(parse(prefix + enableBroadcast, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
                         } else {
                             // disable
                             NotBounties.disableBroadcast.add((parser).getUniqueId());
                             if (!silent)
-                                sender.sendMessage(parse(prefix + LanguageOptions.disableBroadcast, parser));
+                                sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("disable-broadcast"), parser));
                         }
                     }
                 } else {
@@ -528,7 +528,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             } else if (args[0].equalsIgnoreCase("stat")) {
                 if (!sender.hasPermission("notbounties.view")) {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
                 if (args.length == 1) {
@@ -538,8 +538,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (args.length > 3 && !sender.hasPermission(NotBounties.getAdminPermission()) || args.length > 5) {
                     // usage
                     if (!silent)
-                        sender.sendMessage(parse(prefix + unknownCommand, parser));
-                    sendHelpMessage(sender, helpView);
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                    sendHelpMessage(sender, getListMessage("help.view"));
                     return false;
                 }
                 Leaderboard leaderboard;
@@ -548,8 +548,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } catch (IllegalArgumentException e) {
                     // more usage
                     if (!silent) {
-                        sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sendHelpMessage(sender, helpView);
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        sendHelpMessage(sender, getListMessage("help.view"));
                     }
                     return false;
                 }
@@ -566,7 +566,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (player == null) {
                         // unknown player
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownPlayer, args[2], parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[2], parser));
                         return false;
                     }
                     if (args.length == 3) {
@@ -576,14 +576,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // admin part to edit or setValue
                     if (!sender.hasPermission(NotBounties.getAdminPermission())) {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + noPermission, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                         return false;
                     }
                     if (args.length != 5 || (!args[3].equalsIgnoreCase("edit") && !args[3].equalsIgnoreCase("setValue"))) {
                         // usage
                         if (!silent) {
-                            sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sendHelpMessage(sender, helpAdmin);
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                            sendHelpMessage(sender, getListMessage("help.admin"));
                         }
                         return false;
                     }
@@ -596,8 +596,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } catch (NumberFormatException e) {
                         // usage
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sendHelpMessage(sender, helpAdmin);
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        sendHelpMessage(sender, getListMessage("help.admin"));
                         return false;
                     }
                     if (!leaderboard.isMoney())
@@ -607,7 +607,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // value is now the to-be-updated value
                     DataManager.changeStat(player.getUniqueId(), leaderboard, value);
                     if (!silent)
-                        sender.sendMessage(parse(prefix + updateStat.replace("{leaderboard}", (leaderboard.toString())), leaderboard.getStat(player.getUniqueId()), player));
+                        sender.sendMessage(parse(getPrefix() + getMessage("update-stat").replace("{leaderboard}", (leaderboard.toString())), leaderboard.getStat(player.getUniqueId()), player));
                 }
 
                 return true;
@@ -619,8 +619,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                             leaderboard = Leaderboard.valueOf(args[1].toUpperCase());
                         } catch (IllegalArgumentException e) {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sendHelpMessage(sender, helpView);
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                            sendHelpMessage(sender, getListMessage("help.view"));
                             return false;
                         }
                     } else {
@@ -634,7 +634,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else {
                     // no permission
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
                 return true;
@@ -647,10 +647,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                     reopenBountiesGUI();
                     if (!silent)
-                        sender.sendMessage(parse(prefix, parser) + ChatColor.GREEN + "Reloaded NotBounties version " + NotBounties.getInstance().getDescription().getVersion());
+                        sender.sendMessage(parse(getPrefix(), parser) + ChatColor.GREEN + "Reloaded NotBounties version " + NotBounties.getInstance().getDescription().getVersion());
                 } else {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + unknownCommand, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                     return false;
                 }
                 return true;
@@ -663,12 +663,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 // remove immunity
                                 if (Immunity.removeImmunity(parser.getUniqueId())) {
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + removedImmunity, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("removed-immunity"), parser));
                                     return true;
                                 } else {
                                     // doesn't have immunity
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + noImmunity, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("no-immunity"), parser));
                                     return false;
                                 }
                             } else {
@@ -680,21 +680,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (sender instanceof Player)
                                 if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + unknownCommand, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                                     switch (Immunity.immunityType) {
                                         case PERMANENT:
-                                            sendHelpMessage(sender, helpBuyImmunityPermanent);
+                                            sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                                             break;
                                         case SCALING:
-                                            sendHelpMessage(sender, helpBuyImmunityScaling);
+                                            sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
                                             break;
                                         case TIME:
-                                            sendHelpMessage(sender, helpBuyImmunityTime);
+                                            sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
                                             break;
                                     }
                                 } else {
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + unknownCommand, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                                 }
                             return false;
                         }
@@ -704,41 +704,41 @@ public class Commands implements CommandExecutor, TabCompleter {
                             OfflinePlayer p = getPlayer(args[2]);
                             if (p == null) {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownPlayer, args[0], parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[0], parser));
                                 return false;
                             }
                             if (Immunity.removeImmunity(p.getUniqueId())) {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + removedOtherImmunity, p));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("removed-other-immunity"), p));
                                 return true;
                             } else {
                                 // doesn't have immunity
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + noImmunityOther, p));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("no-immunity-other"), p));
                                 return false;
                             }
                         } else {
                             if (sender.hasPermission("notbounties.removeimmunity")) {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sendHelpMessage(sender, helpRemoveImmunity);
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                sendHelpMessage(sender, getListMessage("help.remove-immunity"));
                             } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownCommand, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                                 switch (Immunity.immunityType) {
                                     case PERMANENT:
-                                        sendHelpMessage(sender, helpBuyImmunityPermanent);
+                                        sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                                         break;
                                     case SCALING:
-                                        sendHelpMessage(sender, helpBuyImmunityScaling);
+                                        sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
                                         break;
                                     case TIME:
-                                        sendHelpMessage(sender, helpBuyImmunityTime);
+                                        sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
                                         break;
                                 }
                             } else {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownCommand, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                             }
                             return false;
                         }
@@ -746,29 +746,29 @@ public class Commands implements CommandExecutor, TabCompleter {
                         // usage
                         if (sender.hasPermission(NotBounties.getAdminPermission())) {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sendHelpMessage(sender, helpAdmin);
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                            sendHelpMessage(sender, getListMessage("help.admin"));
                         } else if (sender.hasPermission("notbounties.removeimmunity")) {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sendHelpMessage(sender, helpRemoveImmunity);
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                            sendHelpMessage(sender, getListMessage("help.remove-immunity"));
                         } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                             switch (Immunity.immunityType) {
                                 case PERMANENT:
-                                    sendHelpMessage(sender, helpBuyImmunityPermanent);
+                                    sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                                     break;
                                 case SCALING:
-                                    sendHelpMessage(sender, helpBuyImmunityScaling);
+                                    sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
                                     break;
                                 case TIME:
-                                    sendHelpMessage(sender, helpBuyImmunityTime);
+                                    sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
                                     break;
                             }
                         } else {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                         }
                         return false;
                     }
@@ -788,11 +788,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.PURCHASE_IMMUNITY, Immunity.getPermanentCost());
                                                 DataManager.changeStat((parser).getUniqueId(), Leaderboard.IMMUNITY, Immunity.getPermanentCost());
                                                 if (!silent)
-                                                    sender.sendMessage(parse(prefix + buyPermanentImmunity, Leaderboard.IMMUNITY.getStat((parser).getUniqueId()), parser));
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("buy-permanent-immunity"), Leaderboard.IMMUNITY.getStat((parser).getUniqueId()), parser));
                                                 return true;
                                             } else {
                                                 if (!silent)
-                                                    sender.sendMessage(parse(prefix + broke, Immunity.getPermanentCost(), parser));
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("broke"), Immunity.getPermanentCost(), parser));
                                                 return false;
                                             }
 
@@ -800,13 +800,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             // ask to repeat
                                             repeatBuyCommand2.put((parser).getUniqueId().toString(), System.currentTimeMillis());
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + repeatCommandImmunity, Immunity.getPermanentCost(), parser));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("repeat-command-immunity"), Immunity.getPermanentCost(), parser));
                                             return true;
                                         }
                                     } else {
                                         // already bought immunity
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + alreadyBoughtPerm, parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("already-bought-perm"), parser));
                                         return false;
                                     }
                                 } else {
@@ -817,7 +817,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             amount = tryParse(args[1]);
                                         } catch (NumberFormatException ignored) {
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + unknownNumber, parser));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                                             return false;
                                         }
                                         if ((repeatBuyCommand2.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyCommand2.get((parser).getUniqueId().toString()) < 30000) || args.length > 2 && args[2].equalsIgnoreCase("--confirm")) {
@@ -830,46 +830,46 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.PURCHASE_IMMUNITY, amount);
                                                 if (Immunity.immunityType == Immunity.ImmunityType.SCALING) {
                                                     if (!silent)
-                                                        sender.sendMessage(parse(prefix + buyScalingImmunity, Immunity.getImmunity(parser.getUniqueId()) * Immunity.getScalingRatio(), parser));
+                                                        sender.sendMessage(parse(getPrefix() + getMessage("buy-scaling-immunity"), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getScalingRatio(), parser));
                                                 } else {
                                                     if (!silent)
-                                                        sender.sendMessage(parse(prefix + buyTimeImmunity.replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(parser), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getTime(), parser));
+                                                        sender.sendMessage(parse(getPrefix() + getMessage("buy-time-immunity").replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(parser), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getTime(), parser));
                                                 }
                                                 return true;
                                             } else {
                                                 // broke
                                                 if (!silent)
-                                                    sender.sendMessage(parse(prefix + broke, amount, parser));
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("broke"), amount, parser));
                                                 return false;
                                             }
                                         } else {
                                             // ask to repeat
                                             repeatBuyCommand2.put((parser).getUniqueId().toString(), System.currentTimeMillis());
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + repeatCommandImmunity, amount, parser));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("repeat-command-immunity"), amount, parser));
                                             return true;
                                         }
                                     } else {
                                         // usage
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + unknownCommand, parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                                         if (Immunity.immunityType == Immunity.ImmunityType.SCALING)
-                                            sendHelpMessage(sender, helpBuyImmunityScaling);
+                                            sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
                                         else if (Immunity.immunityType == Immunity.ImmunityType.TIME)
-                                            sendHelpMessage(sender, helpBuyImmunityTime);
+                                            sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
                                         return false;
                                     }
                                 }
                             } else {
                                 // no permission
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + noPermission, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                                 return false;
                             }
                         } else {
                             // unknown command
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                             return false;
                         }
                     } else {
@@ -907,12 +907,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.BUY_OWN, 1);
                                         reopenBountiesGUI();
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + successRemoveBounty, parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("success-remove-bounty"), parser));
                                         return true;
                                     } else {
                                         // broke
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + broke, (bounty.getTotalDisplayBounty() * buyBackInterest), parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("broke"), (bounty.getTotalDisplayBounty() * buyBackInterest), parser));
                                         return false;
                                     }
                                 } else {
@@ -923,17 +923,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 }
                             } else {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + noBounty, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), parser));
                                 return false;
                             }
                         } else {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + noPermission, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                             return false;
                         }
                     } else {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownCommand, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                         return false;
                     }
                 } else {
@@ -947,12 +947,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                         OfflinePlayer p = getPlayer(args[1]);
                         if (p == null) {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownPlayer, args[1], parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[1], parser));
                             return false;
                         }
                         if (!hasBounty(p.getUniqueId())) {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + noBounty, p));
+                                sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), p));
                             return false;
                         }
                         Bounty bounty = getBounty(p.getUniqueId());
@@ -960,7 +960,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         double bountyAmount = showWhitelistedBounties || sender.hasPermission(NotBounties.getAdminPermission()) || !(sender instanceof Player) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(parser);
                         if (bountyAmount == 0) {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + noBounty, p));
+                                sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), p));
                             return false;
                         }
 
@@ -968,28 +968,28 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (args[2].equalsIgnoreCase("list")) {
                                 if (silent)
                                     return true;
-                                sender.sendMessage(parse(prefix + checkBounty, bountyAmount, bounty.getLatestUpdate(), LocalTime.TimeFormat.PLAYER, p));
+                                sender.sendMessage(parse(getPrefix() + getMessage("check-bounty"), bountyAmount, bounty.getLatestUpdate(), LocalTime.TimeFormat.PLAYER, p));
                                 for (Setter setters : bounty.getSetters()) {
                                     if (showWhitelistedBounties || sender.hasPermission(NotBounties.getAdminPermission()) || !(sender instanceof Player) || setters.canClaim(parser)) {
-                                        if (listSetter.contains("{items}") && !setters.getItems().isEmpty()) {
+                                        if (getMessage("list-setter").contains("{items}") && !setters.getItems().isEmpty()) {
                                             BaseComponent[] components = new BaseComponent[setters.getItems().size() + 2];
-                                            components[0] = new TextComponent(parse(prefix + listSetter.substring(0, listSetter.indexOf("{items}")), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
+                                            components[0] = new TextComponent(parse(getPrefix() + getMessage("list-setter").substring(0, getMessage("list-setter").indexOf("{items}")), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
                                             BaseComponent[] itemComponents = NumberFormatting.listHoverItems(setters.getItems(), 'x');
                                             System.arraycopy(itemComponents, 0, components, 1, itemComponents.length);
-                                            components[components.length - 1] = new TextComponent(parse(listSetter.substring(listSetter.indexOf("{items}") + 7), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
+                                            components[components.length - 1] = new TextComponent(parse(getMessage("list-setter").substring(getMessage("list-setter").indexOf("{items}") + 7), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
                                             sender.spigot().sendMessage(components);
                                         } else {
-                                            sender.sendMessage(parse(prefix + listSetter.replace("{items}", ""), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("list-setter").replace("{items}", ""), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
                                         }
                                         if (!setters.canClaim(parser))
-                                            notWhitelistedLore.stream().filter(s -> !s.isEmpty()).map(s -> parse(s, p)).forEach(sender::sendMessage);
+                                            getListMessage("not-whitelisted").stream().filter(s -> !s.isEmpty()).map(s -> parse(s, p)).forEach(sender::sendMessage);
                                     }
                                 }
                                 return true;
                             } else {
                                 if (!silent) {
-                                    sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                    sendHelpMessage(sender, helpView);
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                    sendHelpMessage(sender, getListMessage("help.view"));
                                 }
                                 return false;
                             }
@@ -1000,14 +1000,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     } else {
                         if (!silent) {
-                            sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sendHelpMessage(sender, helpView);
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                            sendHelpMessage(sender, getListMessage("help.view"));
                         }
                         return false;
                     }
                 } else {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("list")) {
@@ -1023,7 +1023,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     listBounties(sender, page - 1);
                 } else {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
                 return true;
@@ -1033,7 +1033,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         OfflinePlayer bountyPlayer = NotBounties.getPlayer(args[1]);
                         if (bountyPlayer == null) {
                             if (!silent)
-                                sender.sendMessage(LanguageOptions.parse(prefix + unknownPlayer, args[1], parser));
+                                sender.sendMessage(LanguageOptions.parse(getPrefix() + getMessage("unknown-player"), args[1], parser));
                             return false;
                         }
                         Bounty toRemove = DataManager.getGuarrenteedBounty(bountyPlayer.getUniqueId());
@@ -1052,7 +1052,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 NotBounties.removeWantedTag(toRemove.getUUID());
                                 OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + successRemoveBounty, player));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("success-remove-bounty"), player));
                                 return true;
                             } else if (args.length == 4) {
                                 if (args[2].equalsIgnoreCase("from")) {
@@ -1071,54 +1071,54 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         // reopen gui for everyone
                                         reopenBountiesGUI();
                                         // successfully removed
-                                        if (toRemove.getTotalDisplayBounty() < minWanted)
+                                        if (toRemove.getTotalDisplayBounty() < WantedTags.getMinWanted())
                                             NotBounties.removeWantedTag(toRemove.getUUID());
 
                                         OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + successRemoveBounty, player));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("success-remove-bounty"), player));
                                         return true;
                                     } else {
                                         // couldn't find setter
                                         OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + noSetter, args[3], player));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("no-setter"), args[3], player));
                                         return false;
                                     }
 
                                 } else {
                                     // usage
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                    sendHelpMessage(sender, helpAdmin);
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                    sendHelpMessage(sender, getListMessage("help.admin"));
                                     return false;
                                 }
                             } else {
                                 // usage
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sendHelpMessage(sender, helpAdmin);
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                sendHelpMessage(sender, getListMessage("help.admin"));
                                 return false;
                             }
                         } else {
                             // could not find bounty
                             if (!silent)
-                                sender.sendMessage(parse(prefix + noBounty, args[1], parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), args[1], parser));
                             return false;
                         }
                     } else {
                         // usage
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sendHelpMessage(sender, helpAdmin);
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        sendHelpMessage(sender, getListMessage("help.admin"));
                         return false;
                     }
                 } else if (sender.hasPermission("notbounties.removeset") && sender instanceof Player) {
                     if (args.length != 2) {
                         // usage
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sendHelpMessage(sender, helpRemoveSet);
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        sendHelpMessage(sender, getListMessage("help.remove-set"));
                         return false;
                     }
                     Bounty toRemove = null;
@@ -1132,7 +1132,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (toRemove == null) {
                         // could not find bounty
                         if (!silent)
-                            sender.sendMessage(parse(prefix + noBounty, args[1], parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), args[1], parser));
                         return false;
                     }
                     Setter actualRemove = null;
@@ -1147,7 +1147,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         // couldnt find setter
                         OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                         if (!silent)
-                            sender.sendMessage(parse(prefix + noSetter, sender.getName(), player));
+                            sender.sendMessage(parse(getPrefix() + getMessage("no-setter"), sender.getName(), player));
                         return false;
                     }
                     Bounty bounty = new Bounty(toRemove.getUUID(), Collections.singletonList(actualRemove), toRemove.getName());
@@ -1163,17 +1163,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // reopen gui for everyone
                     reopenBountiesGUI();
                     // successfully removed
-                    if (toRemove.getTotalDisplayBounty() < minWanted)
+                    if (toRemove.getTotalDisplayBounty() < WantedTags.getMinWanted())
                         NotBounties.removeWantedTag(toRemove.getUUID());
 
                     OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                     if (!silent)
-                        sender.sendMessage(parse(prefix + successRemoveBounty, player));
+                        sender.sendMessage(parse(getPrefix() + getMessage("success-remove-bounty"), player));
                     return true;
                 } else {
                     // no permission
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("edit")) {
@@ -1195,7 +1195,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 } catch (NumberFormatException ignored) {
                                     // unknown number - 2?
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + unknownNumber, parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
 
                                     return false;
                                 }
@@ -1209,11 +1209,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (BountyManager.editBounty(toEdit, null, amount)) {
                                     // successfully edited bounty
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + successEditBounty, Bukkit.getOfflinePlayer(toEdit.getUUID())));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("success-edit-bounty"), Bukkit.getOfflinePlayer(toEdit.getUUID())));
                                 } else {
                                     // unsuccessful edit
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + noBounty, Bukkit.getOfflinePlayer(toEdit.getUUID())));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), Bukkit.getOfflinePlayer(toEdit.getUUID())));
                                 }
                                 return true;
                             } else if (args.length == 5) {
@@ -1232,7 +1232,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         } catch (NumberFormatException ignored) {
                                             // unknown number - 2?
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + unknownNumber, parser));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                                             return false;
                                         }
                                         Bounty before = new Bounty(toEdit);
@@ -1245,64 +1245,64 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                                         if (BountyManager.editBounty(toEdit, actualEdit.getUuid(), amount)) {
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + successEditBounty, Bukkit.getOfflinePlayer(toEdit.getUUID())));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("success-edit-bounty"), Bukkit.getOfflinePlayer(toEdit.getUUID())));
                                         } else {
                                             // unsuccessful edit
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + noBounty, Bukkit.getOfflinePlayer(toEdit.getUUID())));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), Bukkit.getOfflinePlayer(toEdit.getUUID())));
                                         }
                                         return true;
                                     } else {
                                         // couldnt find setter
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + noSetter, args[3], Bukkit.getOfflinePlayer(toEdit.getUUID())));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("no-setter"), args[3], Bukkit.getOfflinePlayer(toEdit.getUUID())));
                                         return false;
                                     }
                                 } else {
                                     // usage
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                    sendHelpMessage(sender, helpAdmin);
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                    sendHelpMessage(sender, getListMessage("help.admin"));
                                     return false;
                                 }
                             } else {
                                 // usage
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownCommand, parser));
-                                sendHelpMessage(sender, helpAdmin);
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                sendHelpMessage(sender, getListMessage("help.admin"));
                                 return false;
                             }
                         } else {
                             // couldn't find bounty
                             if (!silent)
-                                sender.sendMessage(parse(prefix + noBounty, args[1], parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), args[1], parser));
                             return false;
 
                         }
                     } else {
                         // usage
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sendHelpMessage(sender, helpAdmin);
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        sendHelpMessage(sender, getListMessage("help.admin"));
                         return false;
                     }
                 } else {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("poster")) {
                 if (!(giveOwnMap || sender.hasPermission(NotBounties.getAdminPermission()))) {
                     // no permission
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
                 if (!sender.hasPermission(NotBounties.getAdminPermission()) && sender instanceof Player) {
                     if (giveOwnCooldown.containsKey(parser.getUniqueId()) && giveOwnCooldown.get(parser.getUniqueId()) > System.currentTimeMillis()) {
                         // cooldown
                         if (!silent)
-                            sender.sendMessage(parse(prefix + waitCommand, giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("wait-command"), giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
                         return false;
                     }
                     giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + cooldownTime);
@@ -1310,10 +1310,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (args.length == 1) {
                     // usage
                     if (!silent)
-                        sender.sendMessage(parse(prefix + unknownCommand, parser));
-                    sendHelpMessage(sender, helpPosterOwn);
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                    sendHelpMessage(sender, getListMessage("help.poster-own"));
                     if (sender.hasPermission(NotBounties.getAdminPermission()))
-                        sendHelpMessage(sender, helpPosterOther);
+                        sendHelpMessage(sender, getListMessage("help.poster-other"));
 
                     return false;
                 }
@@ -1321,7 +1321,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (player == null) {
                     // unknown player
                     if (!silent)
-                        sender.sendMessage(parse(prefix + unknownPlayer, args[1], parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[1], parser));
                     return false;
                 }
                 Bounty bounty = getBounty(player.getUniqueId());
@@ -1332,11 +1332,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (receiver == null) {
                         // can't find player
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownPlayer, args[2], parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[2], parser));
                         return false;
                     }
                     if (!silent)
-                        sender.sendMessage(parse(prefix + mapGive, player, receiver));
+                        sender.sendMessage(parse(getPrefix() + getMessage("map-give"), player, receiver));
                 } else if (sender instanceof Player) {
                     receiver = parser;
                 } else {
@@ -1346,7 +1346,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 ItemStack mapItem = bounty != null ? BountyMap.getMap(bounty) : BountyMap.getMap(player.getUniqueId(), 0, System.currentTimeMillis());
                 NumberFormatting.givePlayer(receiver, mapItem, 1);
-                receiver.sendMessage(parse(prefix + mapReceive, player));
+                receiver.sendMessage(parse(getPrefix() + getMessage("map-receive"), player));
                 return true;
             } else if (args[0].equalsIgnoreCase("tracker")) {
                 // give a tracker that points toward a certain player with a bounty
@@ -1357,7 +1357,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (giveOwnCooldown.containsKey(parser.getUniqueId()) && giveOwnCooldown.get(parser.getUniqueId()) > System.currentTimeMillis()) {
                                 // cooldown
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + waitCommand, giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("wait-command"), giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
                                 return false;
                             }
                             giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + cooldownTime);
@@ -1368,14 +1368,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (player == null && !giveEmpty) {
                                 // unknown player
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownPlayer, args[0], parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[0], parser));
                                 return false;
                             }
 
                             if (giveEmpty || hasBounty(player.getUniqueId())) {
                                 if (!giveEmpty && getBounty(player.getUniqueId()).getTotalDisplayBounty() < BountyTracker.getMinBounty()) {
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + LanguageOptions.minBounty, BountyTracker.getMinBounty(),  parser));
+                                        sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("min-bounty"), BountyTracker.getMinBounty(),  parser));
                                     return false;
                                 }
 
@@ -1383,7 +1383,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     // /bounty tracker (player) (receiver)
                                     if (!sender.hasPermission(NotBounties.getAdminPermission())) {
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + noPermission, parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                                         return false;
                                     }
                                     // find player to give to
@@ -1394,22 +1394,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         // you have been given & you have received
                                         if (!silent)
                                             if (giveEmpty) {
-                                                sender.sendMessage(parse(prefix + trackerGive, ChatColor.RED + "X", receiver));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-give"), ChatColor.RED + "X", receiver));
                                             } else {
-                                                sender.sendMessage(parse(prefix + trackerGive, player, receiver));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-give"), player, receiver));
                                             }
-
                                         if (giveEmpty) {
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + trackerReceiveEmpty, player));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive-empty"), player));
                                         } else {
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + trackerReceive, player));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive"), player));
                                         }
                                         return true;
                                     } else {
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + unknownPlayer, args[2], parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[2], parser));
                                         return false;
                                     }
                                 } else {
@@ -1418,7 +1417,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         if (!sender.hasPermission("notbounties.tracker") && !sender.hasPermission(NotBounties.getAdminPermission())) {
                                             // no permission
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + noPermission, parser));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                                             return false;
                                         }
                                         ItemStack tracker = giveEmpty ? BountyTracker.getEmptyTracker() : BountyTracker.getTracker(player.getUniqueId());
@@ -1434,21 +1433,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (BountyTracker.isWriteEmptyTrackers()) {
                                                 // Does not have an empty tracker
                                                 if (!silent)
-                                                    sender.sendMessage(parse(prefix + noEmptyTracker, parser));
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("no-empty-tracker"), parser));
                                             } else {
                                                 // no permission
                                                 if (!silent)
-                                                    sender.sendMessage(parse(prefix + noPermission, parser));
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                                             }
                                             return false;
                                         }
                                         // you have been given
                                         if (giveEmpty) {
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + trackerReceiveEmpty, player));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive-empty"), player));
                                         } else {
                                             if (!silent)
-                                                sender.sendMessage(parse(prefix + trackerReceive, player));
+                                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive"), player));
                                         }
                                         return true;
                                     } else {
@@ -1460,21 +1459,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                             } else {
                                 // couldn't find bounty
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + noBounty, player));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), player));
                                 return false;
                             }
                         } else {
                             // usage
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sendHelpMessage(sender, helpTrackerOwn);
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                            sendHelpMessage(sender, getListMessage("help.tracker-own"));
                             if (sender.hasPermission(NotBounties.getAdminPermission()))
-                                sendHelpMessage(sender, helpTrackerOther);
+                                sendHelpMessage(sender, getListMessage("help.tracker-other"));
                             return false;
                         }
                     } else {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + noPermission, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                         return false;
                     }
                 return true;
@@ -1485,24 +1484,24 @@ public class Commands implements CommandExecutor, TabCompleter {
                         // can't find player
                         if (args.length == 1) {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownCommand, parser));
-                            sendHelpMessage(sender, helpSet);
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                            sendHelpMessage(sender, getListMessage("help.set"));
                         } else {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + unknownPlayer, args[0], parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[0], parser));
                         }
                         return false;
                     }
                     if (bountyCooldown > 0 && sender instanceof Player player1 && bountyCooldowns.containsKey(player1.getUniqueId()) && System.currentTimeMillis() - bountyCooldowns.get(player1.getUniqueId()) < bountyCooldown * 1000L) {
                         // bounty cooldown
                         if (!silent)
-                            sender.sendMessage(parse(prefix + bountySetCooldown, bountyCooldown * 1000L - (System.currentTimeMillis() - bountyCooldowns.get(player1.getUniqueId())), LocalTime.TimeFormat.RELATIVE, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("bounty-set-cooldown"), bountyCooldown * 1000L - (System.currentTimeMillis() - bountyCooldowns.get(player1.getUniqueId())), LocalTime.TimeFormat.RELATIVE, parser));
                         return false;
                     }
                     if (!selfSetting && sender instanceof Player && ((Player) sender).getUniqueId().equals(player.getUniqueId())) {
                         // own bounty
                         if (!silent)
-                            sender.sendMessage(parse(prefix + selfSetDeny, parser));
+                            sender.sendMessage(parse(getPrefix() + getMessage("self-set-deny"), parser));
                         return false;
                     }
                     if (args.length == 1) {
@@ -1527,7 +1526,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (p == null) {
                                 // unknown player
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownPlayer, args[i], parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[i], parser));
                                 return false;
                             }
                             newWhitelist.add(p.getUniqueId());
@@ -1542,7 +1541,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             assert bounty != null;
                             if (bounty.getSetters().size() >= ConfigOptions.maxSetters) {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + LanguageOptions.maxSetters, args[0], parser));
+                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("max-setters"), args[0], parser));
                                 return false;
                             }
                         }
@@ -1568,7 +1567,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (commaSeparated.length > 1 || entry.contains(":")) {
                                     // probably an attempt for a material
                                     if (!silent)
-                                        sender.sendMessage(parse(prefix + unknownMaterial.replace("{material}", (materialString)), parser));
+                                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-material").replace("{material}", (materialString)), parser));
                                     return false;
                                 }
                                 continue;
@@ -1580,7 +1579,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     throw new NumberFormatException("Number needs to be positive!");
                             } catch (NumberFormatException e) {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownNumber, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                                 return false;
                             }
                             if (requestedItems.containsKey(material))
@@ -1643,7 +1642,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         // send message
                                         if (!silent)
-                                            sender.sendMessage(parse(prefix + broke.replace("{amount}", (brokeAmount.toString())), parser));
+                                            sender.sendMessage(parse(getPrefix() + getMessage("broke").replace("{amount}", (brokeAmount.toString())), parser));
                                         return false;
                                     }
                                     // don't update inventory until the bounty will be set
@@ -1665,21 +1664,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 amount = tryParse(args[1]);
                             } catch (NumberFormatException ignored) {
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + unknownNumber, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                                 return false;
                             }
                     } else if (items.isEmpty()) {
                         // exclusive mode is enabled but player didn't specify any items
                         // unknown command
                         if (!silent)
-                            sender.sendMessage(parse(prefix + unknownCommand, parser));
-                        sendHelpMessage(sender, helpSet);
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        sendHelpMessage(sender, getListMessage("help.set"));
                         return true;
                     }
 
                     if (amount < ConfigOptions.minBounty && (items.isEmpty() || bountyItemsUseItemValues != ItemValueMode.DISABLE)) {
                         if (!silent)
-                            sender.sendMessage(parse(prefix + LanguageOptions.minBounty, ConfigOptions.minBounty, parser));
+                            sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("min-bounty"), ConfigOptions.minBounty, parser));
                         return false;
                     }
                     // total cost to place this bounty in currency
@@ -1695,28 +1694,28 @@ public class Commands implements CommandExecutor, TabCompleter {
                         switch (Immunity.getAppliedImmunity(player, amount)) {
                             case GRACE_PERIOD:
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + LanguageOptions.gracePeriod.replace("{time}", (LocalTime.formatTime(Immunity.getGracePeriod(player.getUniqueId()), LocalTime.TimeFormat.RELATIVE))), player));
+                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("grace-period").replace("{time}", (LocalTime.formatTime(Immunity.getGracePeriod(player.getUniqueId()), LocalTime.TimeFormat.RELATIVE))), player));
                                 usingImmunity = true;
                                 break;
                             case PERMANENT:
                                 if (bountyItemsOverrideImmunity && !items.isEmpty())
                                     break;
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + permanentImmunity, Immunity.getImmunity(player.getUniqueId()), player));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("permanent-immunity"), Immunity.getImmunity(player.getUniqueId()), player));
                                 usingImmunity = true;
                                 break;
                             case SCALING:
                                 if (bountyItemsOverrideImmunity && !items.isEmpty())
                                     break;
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + scalingImmunity, Immunity.getImmunity(player.getUniqueId()), player));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("scaling-immunity"), Immunity.getImmunity(player.getUniqueId()), player));
                                 usingImmunity = true;
                                 break;
                             case TIME:
                                 if (bountyItemsOverrideImmunity && !items.isEmpty())
                                     break;
                                 if (!silent)
-                                    sender.sendMessage(parse(prefix + LanguageOptions.timeImmunity.replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(player), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(player.getUniqueId()), player));
+                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("time-immunity").replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(player), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(player.getUniqueId()), player));
                                 usingImmunity = true;
                                 break;
                             default:
@@ -1761,7 +1760,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             public void run() {
                                                 // has permanent immunity
                                                 if (!finalSilent)
-                                                    sender.sendMessage(parse(prefix + permanentImmunity, Immunity.getImmunity(player.getUniqueId()), player));
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("permanent-immunity"), Immunity.getImmunity(player.getUniqueId()), player));
                                             }
                                         }.runTask(NotBounties.getInstance());
                                     } else {
@@ -1789,7 +1788,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                     if (!result.isEmpty()) {
                                                         // didn't have all the items
                                                         if (!finalSilent)
-                                                            sender.sendMessage(parse(prefix + broke.replace("{amount}", result), parser));
+                                                            sender.sendMessage(parse(getPrefix() + getMessage("broke").replace("{amount}", result), parser));
                                                         return;
                                                     }
                                                 }
@@ -1804,7 +1803,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }.runTaskAsynchronously(NotBounties.getInstance());
                         } else {
                             if (!silent)
-                                sender.sendMessage(parse(prefix + broke, total, parser));
+                                sender.sendMessage(parse(getPrefix() + getMessage("broke"), total, parser));
                             return false;
                         }
 
@@ -1815,7 +1814,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                 } else {
                     if (!silent)
-                        sender.sendMessage(parse(prefix + noPermission, parser));
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
             }
@@ -1826,7 +1825,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     openGUI(parser, "bounty-gui", 1);
                 } else {
                     if (!silent)
-                        sender.sendMessage(parse(noPermission, parser));
+                        sender.sendMessage(parse(getMessage("no-permission"), parser));
                     return false;
                 }
             } else {

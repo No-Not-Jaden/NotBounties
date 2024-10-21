@@ -256,6 +256,8 @@ wanted-tag:
   min-bounty: 100
   # hide the tag when sneaking
   hide-when-sneaking: true
+  # hide the tag when moving
+  hide-when-moving: false
   # milliseconds between updating the text of the tag
   text-update-interval: 2000
   # milliseconds between updating the visibility of the tag

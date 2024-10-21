@@ -140,8 +140,10 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
     }
 
     public void disconnect() {
-        database.disconnect();
-        Bukkit.getLogger().warning(() -> "Lost connection with " + database.getName() + ".");
+        if (database.isConnected()) {
+            database.disconnect();
+            Bukkit.getLogger().warning(() -> "Lost connection with " + database.getName() + ".");
+        }
     }
 
     public NotBountiesDatabase getDatabase() {
@@ -231,22 +233,24 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
      */
     @Override
     public Bounty addBounty(@NotNull Bounty bounty) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (isPermDatabase())
-                    bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
-                try {
-                    Bounty newbounty = database.addBounty(bounty);
-                    if (newbounty != null && !newbounty.equals(bounty)) {
-                        bounty.getSetters().clear();
-                        bounty.getSetters().addAll(newbounty.getSetters());
+        if (database.isConnected()) {
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    try {
+                        Bounty newbounty = database.addBounty(bounty);
+                        if (newbounty != null && !newbounty.equals(bounty)) {
+                            bounty.getSetters().clear();
+                            bounty.getSetters().addAll(newbounty.getSetters());
+                        }
+                        if (isPermDatabase())
+                            bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
+                    } catch (IOException e) {
+                        disconnect();
                     }
-                } catch (IOException e) {
-                    disconnect();
                 }
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+            }.runTaskAsynchronously(NotBounties.getInstance());
+        }
         return bounty;
     }
 

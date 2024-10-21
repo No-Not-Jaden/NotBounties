@@ -62,7 +62,7 @@ public class CommandPrompt {
                 expired = true;
                 if (!silentCancel)
                     if (player.isOnline())
-                        player.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.promptExpire, player));
+                        player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("prompt-expire"), player));
             }
         }.runTaskLater(NotBounties.getInstance(), Prompt.timeLimit * 20L);
     }

@@ -6,6 +6,7 @@ import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
+import me.jadenp.notbounties.utils.configuration.WantedTags;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
@@ -16,8 +17,6 @@ import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class BountyExpansion extends PlaceholderExpansion {
 
@@ -79,7 +78,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             Bounty bounty = BountyManager.getBounty(uuid);
             if (bounty == null)
                 return "";
-            return getWantedDisplayText(player);
+            return WantedTags.getWantedDisplayText(player);
         }
         if (params.startsWith("bounty")){
             Bounty bounty = BountyManager.getBounty(uuid);

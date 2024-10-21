@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.utils.configuration.WantedTags;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -19,13 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static me.jadenp.notbounties.NotBounties.*;
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.wanted;
 
 public class RemovePersistentEntitiesEvent implements Listener {
     private static final List<Chunk> completedChunks = new ArrayList<>();
     @EventHandler
     public void onEntitiesLoad(EntitiesLoadEvent event) {
-        if (wanted || !bountyBoards.isEmpty())
+        if (WantedTags.isEnabled() || !bountyBoards.isEmpty())
             for (Entity entity : event.getEntities()) {
                 if (entity == null)
                     return;
@@ -98,7 +98,7 @@ public class RemovePersistentEntitiesEvent implements Listener {
                             }
                             if (sender != null) {
                                 Player parser = sender instanceof Player ? (Player) sender : null;
-                                sender.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.entityRemove.replace("{amount}", NumberFormatting.formatNumber(toRemove.size())), parser));
+                                sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("entity-remove").replace("{amount}", NumberFormatting.formatNumber(toRemove.size())), parser));
                             }
                         }
                     }.runTask(NotBounties.getInstance());

@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.utils.challenges;
 
-import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.bedrock.GUIComponent;
 import me.jadenp.notbounties.utils.DataManager;
@@ -376,7 +375,7 @@ public class ChallengeManager implements Listener {
             // player is online
             challengeData.setNotified(true);
             player.playSound(player, Sound.ENTITY_ARROW_HIT_PLAYER, 1, 1);
-            player.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.challengeCompletion.replace("{challenge}", getChallengeTitle(player, challengeIndex)), player));
+            player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("challenge-completion").replace("{challenge}", getChallengeTitle(player, challengeIndex)), player));
         }
     }
 
@@ -703,7 +702,7 @@ public class ChallengeManager implements Listener {
             challengeData.setRewarded(true);
             return true;
         } else {
-            player.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.challengeClaimDeny, player));
+            player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("challenge-claim-deny"), player));
             player.playSound(player.getEyeLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return false;
         }

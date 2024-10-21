@@ -193,7 +193,7 @@ public class BedrockGUIOptions {
         for (int i = type.equals("select-price") || type.equals("confirm-bounty") ? 0 : (int) ((page - 1) * maxPlayers); i < Math.min(maxPlayers * page, displayItems.size()); i++) {
             if (type.equals("view-bounty") && (displayItems.get(i) instanceof UnmodifiedItem || displayItems.get(i) instanceof CurrencyItem)) {
                 // override player-text
-                text.add(displayItems.get(i).parseText(listSetter, player).replace("\u202F", " "));
+                text.add(displayItems.get(i).parseText(getMessage("list-setter"), player).replace("\u202F", " "));
             } else {
                 text.add(displayItems.get(i).parseText(playerText, player));
             }
@@ -209,8 +209,8 @@ public class BedrockGUIOptions {
     }
 
     public void openInventory(Player player, long page, List<DisplayItem> displayItems, String title, Object[] data) {
-        if (!LanguageOptions.bedrockOpenGUI.isEmpty() && !GUI.playerInfo.containsKey(player.getUniqueId())) {
-            player.sendMessage(LanguageOptions.parse(prefix + bedrockOpenGUI.replace("{page}", page + ""), player));
+        if (!LanguageOptions.getMessage("bedrock-open-gui").isEmpty() && !GUI.playerInfo.containsKey(player.getUniqueId())) {
+            player.sendMessage(LanguageOptions.parse(getPrefix() + getMessage("bedrock-open-gui").replace("{page}", page + ""), player));
         }
         player.getOpenInventory().close();
         new BukkitRunnable() {

@@ -3,7 +3,6 @@ package me.jadenp.notbounties.ui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
-import me.jadenp.notbounties.Setter;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.DataManager;
@@ -128,7 +127,7 @@ public class Events implements Listener {
                         }
                         NumberFormatting.doAddCommands(player, amount * item.getAmount());
                         player.getInventory().remove(item);
-                        player.sendMessage(parse(prefix + redeemVoucher, amount * item.getAmount(), player));
+                        player.sendMessage(parse(getPrefix() + getMessage("redeem-voucher"), amount * item.getAmount(), player));
                     }
                 }
             }
@@ -137,12 +136,12 @@ public class Events implements Listener {
             event.setCancelled(true);
             if (NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1) {
                 NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
-                event.getPlayer().sendMessage(parse(prefix + ChatColor.RED + "Canceled board removal.", event.getPlayer()));
+                event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.RED + "Canceled board removal.", event.getPlayer()));
                 return;
             }
             Location location = Objects.requireNonNull(event.getClickedBlock()).getRelative(event.getBlockFace()).getLocation();
             addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
-            event.getPlayer().sendMessage(parse(prefix + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
+            event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
             NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
         }
     }
@@ -155,40 +154,63 @@ public class Events implements Listener {
             event.setCancelled(true);
             int removes = removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
             NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
-            event.getPlayer().sendMessage(parse(prefix + ChatColor.GREEN + "Removed " + removes + " bounty boards.", event.getPlayer()));
+            event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.GREEN + "Removed " + removes + " bounty boards.", event.getPlayer()));
         }
     }
 
-
-    @EventHandler
-    public void onJoin(PlayerJoinEvent event) {
-        if (NotBounties.isPaused())
-            return;
-        TimedBounties.login(event.getPlayer());
-        Immunity.login(event.getPlayer());
-        BountyExpire.login(event.getPlayer());
-        ChallengeManager.login(event.getPlayer());
-        DataManager.login(event.getPlayer());
-
+    public static void logPlayer(Player player) {
         // check if they are logged yet
-        if (!loggedPlayers.containsValue(event.getPlayer().getUniqueId())) {
+        if (!loggedPlayers.containsValue(player.getUniqueId())) {
             // if not, add them
-            loggedPlayers.put(event.getPlayer().getName().toLowerCase(Locale.ROOT), event.getPlayer().getUniqueId());
+            loggedPlayers.put(player.getName().toLowerCase(Locale.ROOT), player.getUniqueId());
         } else {
             // if they are, check if their username has changed, and update it
-            if (!loggedPlayers.containsKey(event.getPlayer().getName().toLowerCase(Locale.ROOT))) {
+            if (!loggedPlayers.containsKey(player.getName().toLowerCase(Locale.ROOT))) {
                 String nameToRemove = "";
                 for (Map.Entry<String, UUID> entry : loggedPlayers.entrySet()) {
-                    if (entry.getValue().equals(event.getPlayer().getUniqueId())) {
+                    if (entry.getValue().equals(player.getUniqueId())) {
                         nameToRemove = entry.getKey();
                     }
                 }
                 if (!Objects.equals(nameToRemove, "")) {
                     loggedPlayers.remove(nameToRemove);
                 }
-                loggedPlayers.put(event.getPlayer().getName().toLowerCase(Locale.ROOT), event.getPlayer().getUniqueId());
+                loggedPlayers.put(player.getName().toLowerCase(Locale.ROOT), player.getUniqueId());
             }
         }
+    }
+
+    public static void login(Player player) {
+        TimedBounties.login(player);
+        Immunity.login(player);
+        BountyExpire.login(player);
+        ChallengeManager.login(player);
+        DataManager.login(player);
+
+        logPlayer(player);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // make sure they are online still
+                if (!player.isOnline())
+                    return;
+
+                // log timezone
+                LocalTime.formatTime(0, LocalTime.TimeFormat.PLAYER, player);
+
+                // get skin info
+                SkinManager.isSkinLoaded(player.getUniqueId());
+            }
+        }.runTaskLater(NotBounties.getInstance(), 40L);
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        if (NotBounties.isPaused())
+            return;
+
+        login(event.getPlayer());
 
         if (hasBounty(event.getPlayer().getUniqueId())) {
             Bounty bounty = getBounty(event.getPlayer().getUniqueId());
@@ -196,8 +218,8 @@ public class Events implements Listener {
             bounty.setDisplayName(event.getPlayer().getName());
             DataManager.notifyBounty(event.getPlayer());
             // check if player should be given a wanted tag
-            if (wanted && bounty.getTotalDisplayBounty() >= minWanted && !NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
-                NotBounties.wantedText.put(event.getPlayer().getUniqueId(), new AboveNameText(event.getPlayer()));
+            if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted() && !NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
+                NotBounties.wantedText.put(event.getPlayer().getUniqueId(), new WantedTags(event.getPlayer()));
             }
         }
 
@@ -218,14 +240,12 @@ public class Events implements Listener {
                         return;
                     if (NotBounties.getInstance().getDescription().getVersion().equals(version))
                         return;
-                    event.getPlayer().sendMessage(parse(prefix, event.getPlayer()) + ChatColor.YELLOW + "A new update is available. Current version: " + ChatColor.GOLD + NotBounties.getInstance().getDescription().getVersion() + ChatColor.YELLOW + " Latest version: " + ChatColor.GREEN + version);
-                    event.getPlayer().sendMessage(ChatColor.YELLOW + "Download a new version here:" + ChatColor.GRAY + " https://www.spigotmc.org/resources/104484/");
-                    TextComponent prefixMsg = new TextComponent(parse(prefix, event.getPlayer()));
-                    TextComponent click = new TextComponent(ChatColor.GOLD + "" + ChatColor.BOLD + "Click here ");
-                    TextComponent msg = new TextComponent(ChatColor.YELLOW + "to disable this message in the future.");
-                    click.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "Set update-notification to false")));
-                    click.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "bounty update-notification false"));
-                    BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg, click, msg};
+                    event.getPlayer().sendMessage(parse(getPrefix() + getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", version), event.getPlayer()));
+                    TextComponent prefixMsg = new TextComponent(parse(getPrefix(), event.getPlayer()));
+                    TextComponent msg = new TextComponent(parse(getMessage("disable-update-notification"), event.getPlayer()));
+                    msg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: false")));
+                    msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + pluginBountyCommands.get(0) + " update-notification false"));
+                    BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg, msg};
                     event.getPlayer().spigot().sendMessage(baseComponents);
                 });
             }
@@ -244,23 +264,8 @@ public class Events implements Listener {
         }
 
         // remove persistent bounty entities in chunk
-        if (wanted || !bountyBoards.isEmpty())
+        if (WantedTags.isEnabled() || !bountyBoards.isEmpty())
             RemovePersistentEntitiesEvent.cleanChunk(event.getPlayer().getLocation());
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                // make sure they are online still
-                if (!event.getPlayer().isOnline())
-                    return;
-
-                // log timezone
-                LocalTime.formatTime(0, LocalTime.TimeFormat.PLAYER, event.getPlayer());
-
-                // get skin info
-                SkinManager.isSkinLoaded(event.getPlayer().getUniqueId());
-            }
-        }.runTaskLater(NotBounties.getInstance(), 40L);
 
 
     }
@@ -272,7 +277,7 @@ public class Events implements Listener {
             return;
         // remove persistent entities (wanted tags & bounty boards)
         if (serverVersion <= 16)
-            if (wanted || !bountyBoards.isEmpty())
+            if (WantedTags.isEnabled() || !bountyBoards.isEmpty())
                 for (Entity entity : event.getChunk().getEntities()) {
                     if (entity == null)
                         return;

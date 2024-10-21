@@ -61,17 +61,17 @@ public class GUIClicks {
         List<String> lore = new ArrayList<>();
         boolean admin = player.hasPermission(NotBounties.getAdminPermission());
         if (admin && usingActions(ClickAction.REMOVE, false, true))
-            removeBountyLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+            getListMessage("remove-bounty-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if (admin && usingActions(ClickAction.EDIT, false, true))
-            editBountyLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+            getListMessage("edit-bounty-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if (buyBack && !admin && usingActions(ClickAction.REMOVE, false, false)) // only add buy back if there isn't an admin remove action
-            buyBackLore.stream().map(bbLore -> parse(bbLore, buyBackPrice, player)).forEach(lore::add);
+            getListMessage("buy-back-lore").stream().map(bbLore -> parse(bbLore, buyBackPrice, player)).forEach(lore::add);
         if (ConfigOptions.giveOwnMap && usingActions(ClickAction.POSTER, buyBack, admin))
-            givePosterLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+            getListMessage("give-poster-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if ((BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || admin) && player.hasPermission("notbounties.tracker")) && usingActions(ClickAction.TRACKER, buyBack, admin))
-            giveTrackerLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+            getListMessage("give-tracker-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if (usingActions(ClickAction.VIEW, buyBack, admin))
-            viewBountyLore.stream().map(str -> parse(str, player)).forEach(lore::add);
+            getListMessage("view-bounty-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         return lore;
 
     }
@@ -161,7 +161,7 @@ public class GUIClicks {
                     if (balance >= (int) (bounty.getTotalDisplayBounty() * buyBackInterest)) {
                         GUI.openGUI(player, "confirm", 1, bounty.getUUID(), (buyBackInterest * bounty.getTotalDisplayBounty()));
                     } else {
-                        player.sendMessage(parse(prefix + broke, (bounty.getTotalDisplayBounty() * buyBackInterest), player));
+                        player.sendMessage(parse(getPrefix() + getMessage("broke"), (bounty.getTotalDisplayBounty() * buyBackInterest), player));
                     }
                 }
             }

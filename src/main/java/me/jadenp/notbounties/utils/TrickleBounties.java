@@ -68,7 +68,7 @@ public class TrickleBounties {
                 }
             }
             // send message to claimer
-            claimer.sendMessage(LanguageOptions.parse(LanguageOptions.prefix + LanguageOptions.trickleBounty, transferedBounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+            claimer.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("trickle-bounty"), transferedBounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
             DataManager.addBounty(transferedBounty);
         }
     }
