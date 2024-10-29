@@ -210,7 +210,7 @@ public class GUI implements Listener {
                 List<UUID> addedPlayers = new ArrayList<>();
                 for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
                     OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
-                    if (online && (!onlinePlayers.contains(entry.getKey()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && seePlayerList && !player.canSee(player1.getPlayer())))))) {
+                    if (online && canSeePlayer(player, onlinePlayers, player1)) {
                         // skip if offline or vanished
                         continue;
                     }
@@ -222,7 +222,7 @@ public class GUI implements Listener {
                         break;
                     if (!addedPlayers.contains(entry.getValue())) {
                         OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getValue());
-                        if (online && (!onlinePlayers.contains(entry.getValue()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && seePlayerList && !player.canSee(player1.getPlayer())))))) {
+                        if (online && canSeePlayer(player, onlinePlayers, player1)) {
                             // skip if offline or vanished
                             continue;
                         }
@@ -248,7 +248,7 @@ public class GUI implements Listener {
                 for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
                     if (!playersAdded.contains(entry.getKey())) {
                         OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
-                        if (online && (!onlinePlayers.contains(entry.getKey()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && seePlayerList && !player.canSee(player1.getPlayer())))))) {
+                        if (online && canSeePlayer(player, onlinePlayers, player1)) {
                             // skip if offline or vanished
                             continue;
                         }
@@ -261,7 +261,7 @@ public class GUI implements Listener {
                         break;
                     if (!playersAdded.contains(entry.getValue())) {
                         OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getValue());
-                        if (online && (!onlinePlayers.contains(entry.getValue()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player1.getPlayer())) || (NotBounties.serverVersion >= 17 && seePlayerList && !player.canSee(player1.getPlayer())))))) {
+                        if (online && canSeePlayer(player, onlinePlayers, player1)) {
                             // skip if offline or vanished
                             continue;
                         }
@@ -303,6 +303,10 @@ public class GUI implements Listener {
         }
     return displayItems;
 
+    }
+
+    private static boolean canSeePlayer(Player guiViewer, Set<UUID> onlinePlayers, OfflinePlayer player) {
+        return !onlinePlayers.contains(player.getUniqueId()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player.getPlayer())) || (NotBounties.serverVersion >= 17 && seePlayerList && !guiViewer.canSee(player.getPlayer()))));
     }
 
     public static void openGUI(Player player, String name, long page, Object... data) {
