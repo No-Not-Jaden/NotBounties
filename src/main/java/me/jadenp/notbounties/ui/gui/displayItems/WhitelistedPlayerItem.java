@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class WhitelistedPlayerItem extends PlayerItem{
+    private final String playerPrefix;
+
     @Override
     public ItemStack getFormattedItem(Player player, String headName, List<String> lore) {
         ItemStack itemStack = super.getFormattedItem(player, headName, lore);
@@ -32,11 +34,12 @@ public class WhitelistedPlayerItem extends PlayerItem{
 
     @Override
     public String parseText(String text, Player player) {
-        text = text.replace("{player}", ChatColor.GREEN + NotBounties.getPlayerName(super.getUuid()));
+        text = text.replace("{player}", playerPrefix + NotBounties.getPlayerName(super.getUuid()));
         return super.parseText(text, player);
     }
 
-    public WhitelistedPlayerItem(UUID uuid, double amount, Leaderboard displayType, int index, long time, List<String> additionalLore) {
+    public WhitelistedPlayerItem(UUID uuid, double amount, Leaderboard displayType, int index, long time, List<String> additionalLore, String playerPrefix) {
         super(uuid, amount, displayType, index, time, additionalLore);
+        this.playerPrefix = playerPrefix;
     }
 }

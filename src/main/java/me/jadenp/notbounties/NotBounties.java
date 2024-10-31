@@ -80,12 +80,12 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * if a database has connected before, stat changes will be logged and reset on sync
  * database lock for first connection
  *
- * only show wanted tags when not moving option - does not ever show -
+ * only show wanted tags when not moving option - does not ever show - x
  * make update notification editable - x
  * open modal form for a split second after any custom
- * add whitelist msg for view-bounty GUI
- * put online players at top of active bounties and enchant them
- * bounty list doesn't show hidden players
+ * add whitelist msg for view-bounty GUI - x
+ * bounty list doesn't show hidden players - x
+ * console name is now used in the view-bounty GUI - x
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -717,6 +717,8 @@ public final class NotBounties extends JavaPlugin {
     }
 
     public static @NotNull String getPlayerName(UUID uuid) {
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
+            return consoleName;
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         String name = player.getName();
         if (name != null)

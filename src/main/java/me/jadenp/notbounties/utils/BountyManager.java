@@ -60,7 +60,7 @@ public class BountyManager {
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + title + " " + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "               ");
         int sortType = Objects.requireNonNull(GUI.getGUI("bounty-gui")).getSortType();
-        List<Bounty> sortedList = getPublicBounties(sortType);
+        List<Bounty> sortedList = getAllBounties(sortType);
         for (int i = page * length; i < (page * length) + length; i++) {
             if (sortedList.size() > i) {
                 sender.sendMessage(parse(getMessage("list-total"), sortedList.get(i).getTotalDisplayBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));

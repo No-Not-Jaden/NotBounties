@@ -55,7 +55,7 @@ public class Setter implements Comparable<Setter>, Inconsistent {
         this.items = items;
         this.timeCreated = timeCreated;
         this.notified = Objects.requireNonNullElse(notified, true);
-        this.whitelist = whitelist;
+        this.whitelist = new Whitelist(whitelist.getList(), whitelist.isBlacklist());
         this.receiverPlaytime = receiverPlaytime;
         if (displayBounty == -1) {
             this.displayBounty = amount + NumberFormatting.getTotalValue(items);
@@ -92,6 +92,9 @@ public class Setter implements Comparable<Setter>, Inconsistent {
     }
 
     public Whitelist getWhitelist() {
+        if (ConfigOptions.variableWhitelist) {
+            return NotBounties.getPlayerWhitelist(uuid);
+        }
         return whitelist;
     }
 

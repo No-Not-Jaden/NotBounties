@@ -104,7 +104,12 @@ public class GUI implements Listener {
                                 }
                             }
                         }
-                        displayItems.add(new PlayerItem(bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestUpdate(), additionalLore));
+                        if (onlinePlayers.contains(bounty.getUUID())) {
+                            displayItems.add(new WhitelistedPlayerItem(bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestUpdate(), additionalLore, ""));
+                        } else {
+                            displayItems.add(new PlayerItem(bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestUpdate(), additionalLore));
+                        }
+
                     }
                     if (reducePageCalculations && displayItems.size() > gui.getPlayerSlots().size() * page)
                         break;
@@ -123,7 +128,26 @@ public class GUI implements Listener {
                         long latestSet = 0;
                         int settersAdded = 0;
                         for (int i = 0; i < setters.size(); i++) {
+                            List<String> whitelistLore = new ArrayList<>();
                             Setter currentSetter = setters.get(i);
+                            if (!currentSetter.canClaim(player) && !showWhitelistedBounties)
+                                continue;
+
+                            if (!currentSetter.getWhitelist().isBlacklist() && !currentSetter.getWhitelist().getList().isEmpty() && currentSetter.getWhitelist().getList().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
+                                whitelistLore.addAll(getListMessage("whitelist-notify"));
+                            } else if (currentSetter.getWhitelist().isBlacklist() && !currentSetter.getWhitelist().getList().isEmpty() && !currentSetter.getWhitelist().getList().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
+                                whitelistLore.addAll(getListMessage("whitelist-notify"));
+                            } else if (showWhitelistedBounties || player.hasPermission(NotBounties.getAdminPermission())) {
+                                // not whitelisted
+                                for (Setter setter : viewedBounty.getSetters()) {
+                                    if (!setter.canClaim(player)) {
+                                        whitelistLore.addAll(getListMessage("not-whitelisted"));
+                                        break;
+                                    }
+                                }
+                            }
+                            List<String> combinedLore = new ArrayList<>(additionalLore);
+                            combinedLore.addAll(whitelistLore);
                             concurrentItems.addAll(currentSetter.getItems());
                             concurrentAmount += currentSetter.getAmount();
                             concurrentDisplay += currentSetter.getDisplayAmount();
@@ -131,7 +155,7 @@ public class GUI implements Listener {
                                 latestSet = currentSetter.getTimeCreated();
                             if (i == setters.size() - 1 || !currentSetter.getUuid().equals(setters.get(i + 1).getUuid())) {
                                 // at the end of the list, or next setter is different
-                                displayItems.add(new PlayerItem(currentSetter.getUuid(), concurrentDisplay, Leaderboard.CURRENT, settersAdded++, latestSet, additionalLore)); // add player head item
+                                displayItems.add(new PlayerItem(currentSetter.getUuid(), concurrentDisplay, Leaderboard.CURRENT, settersAdded++, latestSet, combinedLore)); // add player head item
                                 // add items for everything added
                                 if (concurrentAmount != 0) {
                                     // add currency
@@ -164,7 +188,7 @@ public class GUI implements Listener {
                                                 parsedItem.setItemMeta(meta);
                                             }
                                             for (int j = 0; j < stacks; j++) {
-                                                displayItems.add(new UnmodifiedItem(currentSetter.getUuid(), parsedItem, new ArrayList<>()));
+                                                displayItems.add(new UnmodifiedItem(currentSetter.getUuid(), parsedItem, whitelistLore));
                                             }
                                         }
                                         if (remainder > 0) {
@@ -179,15 +203,15 @@ public class GUI implements Listener {
                                                 }
                                                 parsedItem.setItemMeta(meta);
                                             }
-                                            displayItems.add(new UnmodifiedItem(currentSetter.getUuid(), parsedItem, new ArrayList<>()));
+                                            displayItems.add(new UnmodifiedItem(currentSetter.getUuid(), parsedItem, whitelistLore));
                                         }
                                     } else {
                                         // add default currency items
-                                        displayItems.add(new CurrencyItem(currentSetter.getUuid(), concurrentAmount, new ArrayList<>()));
+                                        displayItems.add(new CurrencyItem(currentSetter.getUuid(), concurrentAmount, whitelistLore));
                                     }
                                 }
                                 for (ItemStack item : concurrentItems) {
-                                    displayItems.add(new UnmodifiedItem(currentSetter.getUuid(), item, new ArrayList<>()));
+                                    displayItems.add(new UnmodifiedItem(currentSetter.getUuid(), item, whitelistLore));
                                 }
                                 // reset concurrent values
                                 concurrentItems.clear();
@@ -242,7 +266,7 @@ public class GUI implements Listener {
                 Whitelist whitelist = NotBounties.getPlayerWhitelist(player.getUniqueId());
                 for (UUID uuid : whitelist.getList()) {
                     List<String> additionalLore = whitelist.isBlacklist() ? getListMessage("blacklist-lore") : getListMessage("whitelist-lore");
-                    displayItems.add(new WhitelistedPlayerItem(uuid, Leaderboard.IMMUNITY.getStat(uuid), Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), additionalLore));
+                    displayItems.add(new WhitelistedPlayerItem(uuid, Leaderboard.IMMUNITY.getStat(uuid), Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), additionalLore, "&a"));
                     playersAdded.add(uuid);
                 }
                 for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
