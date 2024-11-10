@@ -465,7 +465,7 @@ public class BountyManager {
             Bukkit.getLogger().info("[NotBountiesDebug] Claim messages sent to all players.");
 
         // reward head
-        RewardHead rewardHead = new RewardHead(player.getUniqueId(), bounty.getTotalDisplayBounty(killer));
+        RewardHead rewardHead = new RewardHead(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer));
 
         if (rewardHeadSetter) {
             for (Setter setter : claimedBounties) {
@@ -622,7 +622,7 @@ public class BountyManager {
                 NumberFormatting.givePlayer(killer, item, 1);
             }
         }
-        DataManager.changeStat(player.getUniqueId(), Leaderboard.ALL, bounty.getTotalDisplayBounty(killer));
+
         DataManager.changeStat(player.getUniqueId(), Leaderboard.DEATHS, 1);
         DataManager.changeStat(killer.getUniqueId(), Leaderboard.KILLS, 1);
         DataManager.changeStat(killer.getUniqueId(), Leaderboard.CLAIMED, bounty.getTotalDisplayBounty(killer));

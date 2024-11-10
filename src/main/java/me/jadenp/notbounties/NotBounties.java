@@ -510,7 +510,7 @@ public final class NotBounties extends JavaPlugin {
             configuration.set("head-rewards." + i + ".setter", mapElement.getKey().toString());
             List<String> encodedText = new ArrayList<>();
             for (RewardHead rewardHead : mapElement.getValue()) {
-                encodedText.add(encodeRewardHead(rewardHead));
+                encodedText.add(RewardHead.encodeRewardHead(rewardHead));
             }
             configuration.set("head-rewards." + i + ".uuid", encodedText);
             i++;
@@ -813,28 +813,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public static RewardHead decodeRewardHead(String input) {
-        try {
-            if (!input.contains(",")) {
-                UUID uuid = UUID.fromString(input);
-                return new RewardHead( uuid, 0);
-            } else {
-                UUID uuid = UUID.fromString(input.substring(0, input.indexOf(",")));
-                input = input.substring(input.indexOf(',') + 1);
-                //String playerName = input.substring(0, input.indexOf(","));
-                input = input.substring(input.indexOf(",") + 1);
-                double amount = NumberFormatting.tryParse(input);
-                return new RewardHead(uuid, amount);
-            }
-        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
-            Bukkit.getLogger().warning(e.toString());
-        }
-        return null;
-    }
 
-    public static String encodeRewardHead(RewardHead rewardHead) {
-        return rewardHead.uuid().toString() + ",name," + NumberFormatting.getValue(rewardHead.amount());
-    }
 
     public static Map<UUID, String> getNetworkPlayers() {
         return DataManager.getNetworkPlayers();

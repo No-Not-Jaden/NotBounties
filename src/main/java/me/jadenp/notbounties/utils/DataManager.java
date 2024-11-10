@@ -195,7 +195,7 @@ public class DataManager {
                     try {
                         List<RewardHead> rewardHeads = new ArrayList<>();
                         for (String str : configuration.getStringList("head-rewards." + i + ".uuid")) {
-                            rewardHeads.add(decodeRewardHead(str));
+                            rewardHeads.add(RewardHead.decodeRewardHead(str));
                         }
                         BountyManager.headRewards.put(UUID.fromString(Objects.requireNonNull(configuration.getString("head-rewards." + i + ".setter"))), rewardHeads);
                     } catch (IllegalArgumentException | NullPointerException e) {
