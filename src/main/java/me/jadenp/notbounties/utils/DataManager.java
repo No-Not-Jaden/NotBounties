@@ -69,15 +69,21 @@ public class DataManager {
                 String type = configuration.isSet(databaseName + ".type") ? configuration.getString(databaseName + ".type") : "You need to set your database type for: " + databaseName;
                 assert type != null; // isSet() assures that type != null
                 NotBountiesDatabase database;
-                switch (type.toUpperCase()) {
-                    case "SQL" -> database = new MySQL(NotBounties.getInstance(), databaseName);
-                    case "REDIS" -> database = new RedisConnection(NotBounties.getInstance(), databaseName);
-                    default -> {
-                        Bukkit.getLogger().warning(() -> "[NotBounties] Unknown database type for " + databaseName + ": " + type);
-                        continue;
+                try {
+                    switch (type.toUpperCase()) {
+                        case "SQL" -> database = new MySQL(NotBounties.getInstance(), databaseName);
+                        case "REDIS" -> database = new RedisConnection(NotBounties.getInstance(), databaseName);
+                        default -> {
+                            Bukkit.getLogger().warning(() -> "[NotBounties] Unknown database type for " + databaseName + ": " + type);
+                            continue;
+                        }
                     }
+                    databases.add(new AsyncDatabaseWrapper(database));
+                } catch (NoClassDefFoundError e) {
+                    // Couldn't load a dependency.
+                    // This will be thrown if unable to use Spigot's library loader
+                    NotBounties.debugMessage("One or more dependencies could not be downloaded to use the database: " + databaseName + " (" + type + ")", true);
                 }
-                databases.add(new AsyncDatabaseWrapper(database));
             }
         }
         Collections.sort(databases);

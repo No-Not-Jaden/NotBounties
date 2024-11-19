@@ -81,7 +81,5 @@ permissions:
     default: false
     description: Immune to timed auto-bounties.
 libraries:
-  - org.apache.httpcomponents.client5:httpclient5:5.3.1
-  - org.apache.commons:commons-collections4:4.5.0-M2
   - com.mysql:mysql-connector-j:8.4.0
   - io.lettuce:lettuce-core:6.4.0.RELEASE

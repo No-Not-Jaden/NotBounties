@@ -622,7 +622,6 @@ public class BountyManager {
                 NumberFormatting.givePlayer(killer, item, 1);
             }
         }
-        DataManager.changeStat(player.getUniqueId(), Leaderboard.ALL, bounty.getTotalDisplayBounty(killer));
         DataManager.changeStat(player.getUniqueId(), Leaderboard.DEATHS, 1);
         DataManager.changeStat(killer.getUniqueId(), Leaderboard.KILLS, 1);
         DataManager.changeStat(killer.getUniqueId(), Leaderboard.CLAIMED, bounty.getTotalDisplayBounty(killer));

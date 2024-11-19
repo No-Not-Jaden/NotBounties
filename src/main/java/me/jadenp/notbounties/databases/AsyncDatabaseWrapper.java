@@ -93,7 +93,7 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
      * @param sync Whether the read should be synchronous or asyncronous
      */
     public void readDatabaseData(boolean sync) {
-        if (database.isConnected() && System.currentTimeMillis() - database.getLastSync() > Math.min(refreshInterval * 1000L, MIN_UPDATE_INTERVAL)) {
+        if (isConnected() && System.currentTimeMillis() - database.getLastSync() > Math.min(refreshInterval * 1000L, MIN_UPDATE_INTERVAL)) {
             if (sync) {
                 updateData();
             } else {
@@ -109,7 +109,7 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
     }
 
     private void updateData() {
-        if (database.isConnected()) {
+        if (isConnected()) {
             NotBounties.debugMessage("Receiving " + database.getName() + " data.", false);
             try {
                 List<Bounty> databaseBounties = database.getAllBounties(2);
@@ -128,7 +128,6 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
                 localData.addBounty(databaseAdded);
                 localData.removeBounty(databaseRemoved);
                 // these should be empty
-                //Bukkit.getLogger().info(localAdded.size() + " " + localRemoved.size() + " inconsistent local changes");
                 addBounty(localAdded);
                 removeBounty(localRemoved);
 
@@ -140,7 +139,7 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
     }
 
     public void disconnect() {
-        if (database.isConnected()) {
+        if (isConnected()) {
             database.disconnect();
             Bukkit.getLogger().warning(() -> "Lost connection with " + database.getName() + ".");
         }
@@ -161,7 +160,7 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (!database.isConnected()) {
+                if (!isConnected()) {
                     if (System.currentTimeMillis() - getLastSync() < DataManager.CONNECTION_REMEMBRANCE_MS) {
                         if (statChanges.containsKey(uuid)) {
                             statChanges.replace(uuid, statChanges.get(uuid).combineStats(stats));
@@ -233,7 +232,7 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
      */
     @Override
     public Bounty addBounty(@NotNull Bounty bounty) {
-        if (database.isConnected()) {
+        if (isConnected()) {
             new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -315,7 +314,14 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
 
     @Override
     public boolean isConnected() {
-        return database.isConnected();
+        try {
+            return database.isConnected();
+        } catch (NoClassDefFoundError e) {
+            // Couldn't load a dependency.
+            // This will be thrown if unable to use Spigot's library loader
+            NotBounties.debugMessage("One or more dependencies could not be downloaded to use the database: " + database.getName(), true);
+            return false;
+        }
     }
 
 
