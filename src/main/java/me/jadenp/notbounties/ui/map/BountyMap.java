@@ -205,10 +205,7 @@ public class BountyMap implements Listener {
         // update result
         int amountCrafted = 1;
         switch (event.getAction()){
-            case PICKUP_ONE:
-            case PICKUP_ALL:
-            case PICKUP_HALF:
-            case PICKUP_SOME:
+            case PICKUP_ONE,PICKUP_ALL,PICKUP_HALF,PICKUP_SOME:
                 new BukkitRunnable() {
 
                     final int previousAmount = event.getCursor() != null ? event.getCursor().getAmount() : 0;
@@ -221,10 +218,7 @@ public class BountyMap implements Listener {
                     }
                 }.runTaskLater(NotBounties.getInstance(), 1);
                 break;
-            case DROP_ALL_SLOT:
-            case DROP_ALL_CURSOR:
-            case DROP_ONE_CURSOR:
-            case DROP_ONE_SLOT:
+            case DROP_ONE_CURSOR,DROP_ALL_CURSOR,DROP_ALL_SLOT,DROP_ONE_SLOT:
                 event.getWhoClicked().getWorld().dropItem(event.getWhoClicked().getEyeLocation(), inventory.getResult());
                 break;
             case MOVE_TO_OTHER_INVENTORY:
@@ -240,8 +234,7 @@ public class BountyMap implements Listener {
                 NumberFormatting.givePlayer((Player) event.getWhoClicked(), inventory.getResult(), minAmount);
                 amountCrafted = minAmount;
                 break;
-            case HOTBAR_MOVE_AND_READD:
-            case HOTBAR_SWAP:
+            case HOTBAR_MOVE_AND_READD,HOTBAR_SWAP:
                 // hit a number button to move to a hotbar slot - slot must be empty
                 if (event.getWhoClicked().getOpenInventory().getBottomInventory().getItem(event.getHotbarButton()) == null)
                     event.getWhoClicked().getOpenInventory().getBottomInventory().setItem(event.getHotbarButton(), inventory.getResult());

@@ -81,5 +81,5 @@ permissions:
     default: false
     description: Immune to timed auto-bounties.
 libraries:
-  - com.mysql:mysql-connector-j:8.4.0
-  - io.lettuce:lettuce-core:6.4.0.RELEASE
+  - com.mysql:mysql-connector-j:9.1.0
+  - io.lettuce:lettuce-core:6.5.0.RELEASE

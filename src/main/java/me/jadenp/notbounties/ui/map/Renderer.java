@@ -50,15 +50,13 @@ public class Renderer extends MapRenderer {
             name = NotBounties.getPlayerName(uuid);
         }
         File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
-        if (ConfigOptions.saveTemplates) {
-            if (imageFile.exists()) {
-                try {
-                    image = ImageIO.read(imageFile);
-                } catch (IOException e) {
-                    Bukkit.getLogger().warning(e.toString());
-                }
-                return;
+        if (ConfigOptions.saveTemplates && imageFile.exists()) {
+            try {
+                image = ImageIO.read(imageFile);
+            } catch (IOException e) {
+                Bukkit.getLogger().warning(e.toString());
             }
+            return;
         }
         new BukkitRunnable() {
             @Override
@@ -157,8 +155,8 @@ public class Renderer extends MapRenderer {
     }
 
     private void drawTransparentImage(int x, int y, BufferedImage image, MapCanvas canvas) {
-        for (int ix = 0; ix < image.getWidth(); ix++) {
-            for (int iy = 0; iy < image.getHeight(); iy++) {
+        for (int ix = 0; ix < Math.min(image.getWidth(), 128 - x); ix++) {
+            for (int iy = 0; iy < Math.min(image.getHeight(), 128 - y); iy++) {
                 Color color = getColor(image.getRGB(ix, iy));
                 if (color.getAlpha() > 10) {
                     if (NotBounties.serverVersion >= 19)
@@ -184,7 +182,7 @@ public class Renderer extends MapRenderer {
             if (currentCost != bountyAmount || ConfigOptions.alwaysUpdate) {
                 // redraw canvas
                 currentCost = bountyAmount;
-                canvas.drawImage(0, 0, image);
+                drawTransparentImage(0, 0, image, canvas);
                 if (ConfigOptions.displayReward) {
                     Graphics2D graphics = reward.createGraphics();
                     graphics.setComposite(AlphaComposite.Clear);
