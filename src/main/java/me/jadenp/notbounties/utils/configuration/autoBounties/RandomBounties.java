@@ -55,7 +55,7 @@ public class RandomBounties {
                 setNextRandomBounty();
                 return;
             }
-            UUID uuid = randomBountyOfflineSet ? (UUID) NotBounties.loggedPlayers.values().toArray()[random.nextInt(NotBounties.loggedPlayers.values().size())] : ((OfflinePlayer) NotBounties.getNetworkPlayers().keySet().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())]).getUniqueId();
+            UUID uuid = randomBountyOfflineSet ? (UUID) NotBounties.loggedPlayers.values().toArray()[random.nextInt(NotBounties.loggedPlayers.values().size())] : (UUID) NotBounties.getNetworkPlayers().keySet().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())];
             if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
                 // this shouldn't be possible, but it's an extra safety measure
                 return;
