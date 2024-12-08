@@ -13,6 +13,7 @@ import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.BigBounty;
+import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.configuration.RewardHead;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
@@ -264,6 +265,9 @@ public class DataManager {
         }
         localData.addBounty(bountyList);
         localData.addStats(stats);
+        // load player data for immunity
+        // currently this is just for time immunity
+        Immunity.loadPlayerData();
     }
 
     /**

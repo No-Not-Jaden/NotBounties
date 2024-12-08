@@ -324,7 +324,11 @@ public class ConfigOptions {
         TrickleBounties.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("trickle-bounties")));
         GUIClicks.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-gui-clicks")));
         DataManager.loadDatabaseConfig(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("databases")));
-        WantedTags.loadConfiguration(bounties.getConfig().getConfigurationSection("wanted-tag"));
+        WantedTags.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag")));
+
+        if (!firstStart) {
+            Immunity.loadPlayerData();
+        }
 
         rewardHeadSetter = bounties.getConfig().getBoolean("reward-heads.setters");
         rewardHeadClaimed = bounties.getConfig().getBoolean("reward-heads.claimed");

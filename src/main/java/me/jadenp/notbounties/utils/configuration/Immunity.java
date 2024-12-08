@@ -92,19 +92,25 @@ public class Immunity {
                 immunityTimeTracker = updatedNextBounties;
             }
             timeOfflineTracking = updatedOfflineTracking;
-            // add immunity that isn't in time tracker - this should only do anything when immunity is switched to time immunity or the server is starting
-            Map<UUID, Double> immunity = getImmunity();
-            for (Map.Entry<UUID, Double> entry : immunity.entrySet()) {
-                if (!immunityTimeTracker.containsKey(entry.getKey()))
-                    if (Bukkit.getOfflinePlayer(entry.getKey()).isOnline() || timeOfflineTracking)
-                        immunityTimeTracker.put(entry.getKey(), (long) ((entry.getValue() * time * 1000) + System.currentTimeMillis()));
-                    else
-                        immunityTimeTracker.put(entry.getKey(), (long) ((entry.getValue() * time * 1000)));
-            }
         } else {
             immunityTimeTracker.clear();
         }
 
+    }
+
+    public static void loadPlayerData() {
+        // add immunity that isn't in time tracker - this should only do anything when immunity is switched to time immunity or the server is starting
+        Map<UUID, Double> immunity = getImmunity();
+        if (immunityType == ImmunityType.TIME) {
+            for (Map.Entry<UUID, Double> entry : immunity.entrySet()) {
+                if (!immunityTimeTracker.containsKey(entry.getKey()))
+                    if (Bukkit.getOfflinePlayer(entry.getKey()).isOnline() || timeOfflineTracking) {
+                        immunityTimeTracker.put(entry.getKey(), (long) ((entry.getValue() * time * 1000) + System.currentTimeMillis()));
+                    } else {
+                        immunityTimeTracker.put(entry.getKey(), (long) (entry.getValue() * time * 1000));
+                    }
+            }
+        }
     }
 
     /**
