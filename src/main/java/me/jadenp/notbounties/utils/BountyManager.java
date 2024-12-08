@@ -180,6 +180,7 @@ public class BountyManager {
     }
 
     public static void addBounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
+
         double displayAmount = amount;
         // you can only set bounties by items or amount, if there are items, the amount is just the value of the items
         if (!items.isEmpty())

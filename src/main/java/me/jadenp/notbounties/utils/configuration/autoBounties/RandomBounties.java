@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.utils.configuration.autoBounties;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
@@ -11,10 +12,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.ArrayList;
-import java.util.Objects;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 import static me.jadenp.notbounties.utils.BountyManager.addBounty;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.liteBansEnabled;
@@ -58,6 +56,9 @@ public class RandomBounties {
                 return;
             }
             UUID uuid = randomBountyOfflineSet ? (UUID) NotBounties.loggedPlayers.values().toArray()[random.nextInt(NotBounties.loggedPlayers.values().size())] : ((OfflinePlayer) NotBounties.getNetworkPlayers().keySet().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())]).getUniqueId();
+            if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
+                // this shouldn't be possible, but it's an extra safety measure
+                return;
             final double[] price = {randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice)};
             try {
                 OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);

@@ -419,7 +419,6 @@ public class LanguageOptions {
 
     public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
         str = str.replace("{player}", (player));
-        str = str.replace("{receiver}", (player));
         return parse(str,amount,receiver);
     }
 
