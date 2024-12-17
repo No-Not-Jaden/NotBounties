@@ -56,7 +56,16 @@ public class LocalTime {
 
         // load account id and license key from secret file
         account = configuration.getInt("geoip2.account");
-        license = configuration.getString("geoip2.license");
+        license = decodeLicense(Objects.requireNonNull(configuration.getString("geoip2.license")));
+    }
+
+    private static String decodeLicense(String input) {
+        char[] text = input.toCharArray();
+        StringBuilder builder = new StringBuilder();
+        for (char c : text) {
+            builder.append(Character.valueOf((char) (c + 1)));
+        }
+        return builder.toString();
     }
 
     private static String formatTime(long time, Player player) {
@@ -180,10 +189,13 @@ class ResponseHandler implements HttpClientResponseHandler<TimeZone> {
             classicHttpResponse.close();
 
             JsonObject input = new JsonParser().parse(result).getAsJsonObject();
+            NotBounties.debugMessage("Receieved Timezone Response!", false);
             if (input.has("location")) {
+                NotBounties.debugMessage("Valid location!", false);
                 JsonObject location = input.getAsJsonObject("location");
                 return TimeZone.getTimeZone(location.get("time_zone").getAsString());
             } else {
+                NotBounties.debugMessage(input.toString(), false);
                 throw new IOException("Ran out of credits.");
             }
         } else {
