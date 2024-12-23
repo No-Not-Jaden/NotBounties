@@ -659,9 +659,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args.length == 2) {
                         // reg command
                         if (sender.hasPermission("notbounties.removeimmunity") || sender.hasPermission(NotBounties.getAdminPermission())) {
-                            if (sender instanceof Player) {
+                            if (sender instanceof Player player) {
                                 // remove immunity
-                                if (Immunity.removeImmunity(parser.getUniqueId())) {
+                                if (Immunity.removeImmunity(player.getUniqueId())) {
                                     if (!silent)
                                         sender.sendMessage(parse(getPrefix() + getMessage("removed-immunity"), parser));
                                     return true;

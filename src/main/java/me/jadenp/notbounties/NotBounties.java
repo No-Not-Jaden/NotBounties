@@ -331,7 +331,7 @@ public final class NotBounties extends JavaPlugin {
 
             }
         }.runTaskTimer(this, 100, 40);
-        // auto save bounties every 5 min & do some ram cleaning
+        // auto save bounties about every 6 min & do some ram cleaning
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -352,7 +352,7 @@ public final class NotBounties extends JavaPlugin {
 
 
             }
-        }.runTaskTimerAsynchronously(this, 6000, 6000); // 5 minutes
+        }.runTaskTimerAsynchronously(this, 7100, 7100); // about 6 minutes
         // Check for banned players
         //         * Runs every hour and will check a few players at a time
         //         * Every player will be guaranteed to be checked after 12 hours

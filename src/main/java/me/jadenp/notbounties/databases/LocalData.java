@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 import static me.jadenp.notbounties.NotBounties.isVanished;
 
 public class LocalData implements NotBountiesDatabase {
-    private final List<Bounty> activeBounties = new LinkedList<>();
-    private final Map<UUID, PlayerStat> playerStats = new HashMap<>();
+    private final List<Bounty> activeBounties =  Collections.synchronizedList(new LinkedList<>());
+    private final Map<UUID, PlayerStat> playerStats = Collections.synchronizedMap(new HashMap<>());
 
     private void sortActiveBounties() {
         activeBounties.sort(Comparator.reverseOrder());
@@ -41,7 +41,7 @@ public class LocalData implements NotBountiesDatabase {
 
     @Override
     public Map<UUID, PlayerStat> getAllStats() {
-        return playerStats;
+        return Collections.unmodifiableMap(playerStats);
     }
 
     @Override

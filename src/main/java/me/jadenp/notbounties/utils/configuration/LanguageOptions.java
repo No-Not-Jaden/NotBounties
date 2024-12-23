@@ -4,6 +4,7 @@ import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.Tutorial;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
@@ -101,6 +102,7 @@ public class LanguageOptions {
 
         prefix = configuration.getString("prefix");
 
+        Tutorial.loadConfiguration(Objects.requireNonNull(configuration.getConfigurationSection("tutorial")));
 
     }
 
@@ -322,11 +324,6 @@ public class LanguageOptions {
         Player parser = sender instanceof Player ? (Player) sender : null;
         for (String str : message) {
             str = str.replace("{whitelist}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix));
-            str = str.replace("{tax}", (NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)));
-            str = str.replace("{buy_back_interest}", (NumberFormatting.formatNumber(ConfigOptions.buyBackInterest)));
-            str = str.replace("{permanent_cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
-            str = str.replace("{scaling_ratio}", (NumberFormatting.formatNumber(Immunity.getScalingRatio())));
-            str = str.replace("{time_immunity}", (formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
             sender.sendMessage(parse(str, parser));
         }
     }
@@ -350,6 +347,12 @@ public class LanguageOptions {
         str = str.replace("{min_bounty}", (NumberFormatting.getValue(ConfigOptions.minBounty)));
         str = str.replace("{c_prefix}", (NumberFormatting.currencyPrefix));
         str = str.replace("{c_suffix}", (NumberFormatting.currencySuffix));
+        str = str.replace("{whitelist_cost}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix);
+        str = str.replace("{tax}", (NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)));
+        str = str.replace("{buy_back_interest}", (NumberFormatting.formatNumber(ConfigOptions.buyBackInterest * 100)));
+        str = str.replace("{permanent_cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
+        str = str.replace("{scaling_ratio}", (NumberFormatting.formatNumber(Immunity.getScalingRatio())));
+        str = str.replace("{time_immunity}", (formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
 
         if (receiver != null) {
             Bounty bounty = BountyManager.getBounty(receiver.getUniqueId());

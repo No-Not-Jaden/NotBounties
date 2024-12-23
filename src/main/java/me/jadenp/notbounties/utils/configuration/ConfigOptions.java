@@ -13,6 +13,7 @@ import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.BountyClaimRequirements;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.TrickleBounties;
+import me.jadenp.notbounties.utils.Tutorial;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
