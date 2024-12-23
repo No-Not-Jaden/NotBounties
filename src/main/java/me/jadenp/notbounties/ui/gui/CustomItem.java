@@ -5,6 +5,7 @@ import com.google.common.collect.Multimap;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.Head;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.attribute.Attribute;
@@ -14,6 +15,8 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.PotionMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,7 @@ public class CustomItem {
     private final boolean hideTooltip;
     private final List<String> commands;
     private String headID = null;
+    private final Color color;
 
     public CustomItem(ConfigurationSection configurationSection){
         Material material = Material.STONE;
@@ -63,6 +67,7 @@ public class CustomItem {
         hideTooltip = configurationSection.getBoolean("hide-tooltip");
 
         this.commands = configurationSection.isList("commands") ? configurationSection.getStringList("commands") : new ArrayList<>();
+        color = parseColor(configurationSection.getString("color"));
     }
 
     public CustomItem() {
@@ -75,9 +80,10 @@ public class CustomItem {
         hideNBT = false;
         hideTooltip = false;
         commands = new ArrayList<>();
+        color = null;
     }
 
-    public CustomItem(Material material, int amount, int customModelData, String name, List<String> lore, boolean enchanted, boolean hideNBT, boolean hideTooltip, List<String> commands) {
+    public CustomItem(Material material, int amount, int customModelData, String name, List<String> lore, boolean enchanted, boolean hideNBT, boolean hideTooltip, List<String> commands, Color color) {
 
         this.material = material;
         this.amount = amount;
@@ -88,24 +94,37 @@ public class CustomItem {
         this.hideNBT = hideNBT;
         this.hideTooltip = hideTooltip;
         this.commands = commands;
+        this.color = color;
+    }
+
+    private String parseReplacements(String str, OfflinePlayer player, String[] replacements) {
+        return parse(str.replace("{leaderboard}", replacements[0])
+                .replace("{amount}", replacements[1])
+                .replace("{tax}", replacements[2])
+                .replace("{amount_tax}", replacements[3]), player);
     }
 
 
     public ItemStack getFormattedItem(OfflinePlayer player, String[] replacements){
-        if (replacements == null || replacements.length == 0)
-            replacements = new String[]{""};
+        if (replacements == null)
+            replacements = new String[]{"","","",""};
+        if (replacements.length < 4) {
+            String[] newReplacements = new String[]{"","","",""};
+            System.arraycopy(replacements, 0, newReplacements, 0, replacements.length);
+            replacements = newReplacements;
+        }
         ItemStack itemStack = headID != null && material == Material.PLAYER_HEAD ? Head.createPlayerSkull(headID) : new ItemStack(material, amount);
         if (itemStack == null)
             return null;
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) return itemStack;
         if (name != null)
-            meta.setDisplayName(parse(color(name.replace("{leaderboard}", replacements[0])), player));
+            meta.setDisplayName(parseReplacements(name, player, replacements));
         if (!lore.isEmpty()) {
-            List<String> lore = new ArrayList<>(this.lore);
+            List<String> newLore = new ArrayList<>(this.lore);
             String[] finalReplacements = replacements;
-            lore.replaceAll(s -> parse(color(s.replace("{leaderboard}", finalReplacements[0])), player));
-            meta.setLore(lore);
+            newLore.replaceAll(s -> parseReplacements(s, player, finalReplacements));
+            meta.setLore(newLore);
         }
         if (customModelData != -1)
             meta.setCustomModelData(customModelData);
@@ -135,6 +154,10 @@ public class CustomItem {
         if (hideTooltip && NotBounties.isAboveVersion(20, 4)) {
             meta.setHideTooltip(true);
         }
+        if (color != null) {
+            if (meta instanceof PotionMeta potionMeta) potionMeta.setColor(color);
+            if (meta instanceof LeatherArmorMeta leatherArmorMeta) leatherArmorMeta.setColor(color);
+        }
         itemStack.setItemMeta(meta);
         return itemStack;
     }
@@ -145,6 +168,101 @@ public class CustomItem {
 
     public String toString(){
         return getFormattedItem(null, new String[0]).toString();
+    }
+
+    /**
+     * Parses a string into a Bukkit Color.
+     *
+     * @param input The string representing the color (e.g., "red", "#FF0000", "255,0,0", "255 0 0").
+     * @return A Bukkit Color object, or null if the input is invalid.
+     */
+    private static Color parseColor(String input) {
+        if (input == null || input.isEmpty()) {
+            return null;
+        }
+
+        input = input.trim().toLowerCase();
+
+        Color parsedColor = getColorFromName(input);
+
+
+        // Check for hex codes (#RRGGBB or RRGGBB)
+        if (input.startsWith("#")) {
+            input = input.substring(1); // Remove the leading #
+        }
+        if (input.matches("[0-9a-fA-F]{6}")) {
+            try {
+                int r = Integer.parseInt(input.substring(0, 2), 16);
+                int g = Integer.parseInt(input.substring(2, 4), 16);
+                int b = Integer.parseInt(input.substring(4, 6), 16);
+                return Color.fromRGB(r, g, b);
+            } catch (NumberFormatException ignored) {
+                // could not get number from string
+            }
+        }
+
+        // parse for R G B or R,G,B
+        if (parsedColor == null)
+            parsedColor = getRGB(" ", input);
+        if (parsedColor == null)
+            parsedColor = getRGB(",", input);
+        return parsedColor;
+    }
+
+    /**
+     * Parses an RGB string into a Bukkit Color
+     * @param spacer The spacer between the RGB numbers.
+     * @param input The RGB input string.
+     * @return The parsed Bukkit Color, or null if it didn't match the pattern.
+     */
+    private static Color getRGB(String spacer, String input) {
+        // Check for RGB format with spacer
+        String number = "\\d{1,3}";
+        if (input.matches( number + spacer + number + spacer + number)) {
+            String[] parts = input.split(spacer);
+            try {
+                int r = Integer.parseInt(parts[0]);
+                int g = Integer.parseInt(parts[1]);
+                int b = Integer.parseInt(parts[2]);
+
+                // Ensure values are within range
+                if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
+                    return Color.fromRGB(r, g, b);
+                }
+            } catch (NumberFormatException ignored) {
+                // could not get number from string
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get a Bukkit color from the name
+     * @param input String input
+     * @return A bukkit color representing the input, or null if the input doesn't match a color.
+     */
+    private static Color getColorFromName(String input) {
+        // Check for named colors
+        return switch (input) {
+            case "red" -> Color.RED;
+            case "green" -> Color.GREEN;
+            case "blue" -> Color.BLUE;
+            case "white" -> Color.WHITE;
+            case "black" -> Color.BLACK;
+            case "yellow" -> Color.YELLOW;
+            case "aqua" -> Color.AQUA;
+            case "fuchsia" -> Color.FUCHSIA;
+            case "gray" -> Color.GRAY;
+            case "lime" -> Color.LIME;
+            case "maroon" -> Color.MAROON;
+            case "navy" -> Color.NAVY;
+            case "olive" -> Color.OLIVE;
+            case "orange" -> Color.ORANGE;
+            case "purple" -> Color.PURPLE;
+            case "silver" -> Color.SILVER;
+            case "teal" -> Color.TEAL;
+            default -> null;
+        };
     }
 
 }

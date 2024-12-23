@@ -165,27 +165,49 @@ public class GUIOptions {
         }
         Inventory inventory = inventoryType == InventoryType.CHEST ? Bukkit.createInventory(player, size, title) : Bukkit.createInventory(player, inventoryType, title);
         ItemStack[] contents = inventory.getContents();
+        String[] replacements;
+        if (data.length == 0) {
+            replacements = new String[0];
+        } else if (type.equals("leaderboard") && data[0] instanceof String string) {
+            replacements = new String[]{string,"","",""};
+        } else if (type.equals("select-price") || type.equals("confirm-bounty")) {
+            double tax = page * ConfigOptions.bountyTax + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * ConfigOptions.bountyWhitelistCost;
+            double total = page + tax;
+            replacements = new String[]{"",
+                    currencyPrefix + NumberFormatting.formatNumber(page) + currencySuffix, // amount
+                    currencyPrefix + NumberFormatting.formatNumber(tax) + currencySuffix, // tax
+                    currencyPrefix + NumberFormatting.formatNumber(total) + currencySuffix // amount_tax
+            };
+        } else if (type.equals("confirm") && data[0] instanceof Number number) {
+            String amount = currencyPrefix + NumberFormatting.formatNumber(number.doubleValue()) + currencySuffix;
+            replacements = new String[]{"",
+                    amount, // amount
+                    amount, // tax
+                    amount // amount_tax
+            };
+        } else {
+            replacements = new String[0];
+        }
         // set up regular items
         for (int i = 0; i < contents.length; i++) {
             if (customItems[i] == null)
                 continue;
             // check if item is a page item
-            String[] leaderboardReplacements = type.equals("leaderboard") && data.length > 0 && data[0] instanceof String string ? new String[]{string} : new String[0];
             if (removePageItems) {
                 // next
                 if (getPageType(customItems[i].getCommands()) == 1 && page * playerSlots.size() >= displayItems.size()) {
-                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, leaderboardReplacements) : null;
+                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, replacements) : null;
                     contents[i] = replacement;
                     continue;
                 }
                 // back
                 if (getPageType(customItems[i].getCommands()) == 2 && page == 1) {
-                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, leaderboardReplacements) : null;
+                    ItemStack replacement = pageReplacements.containsKey(i) ? pageReplacements.get(i).getFormattedItem(player, replacements) : null;
                     contents[i] = replacement;
                     continue;
                 }
             }
-            contents[i] = customItems[i].getFormattedItem(player, leaderboardReplacements);
+            contents[i] = customItems[i].getFormattedItem(player, replacements);
         }
         // set up player slots
         List<QueuedHead> unloadedHeads = new ArrayList<>();

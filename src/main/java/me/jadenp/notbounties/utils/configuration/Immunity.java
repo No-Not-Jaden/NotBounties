@@ -103,12 +103,13 @@ public class Immunity {
         Map<UUID, Double> immunity = getImmunity();
         if (immunityType == ImmunityType.TIME) {
             for (Map.Entry<UUID, Double> entry : immunity.entrySet()) {
-                if (!immunityTimeTracker.containsKey(entry.getKey()))
+                if (entry.getValue() > 0 && !immunityTimeTracker.containsKey(entry.getKey())) {
                     if (Bukkit.getOfflinePlayer(entry.getKey()).isOnline() || timeOfflineTracking) {
                         immunityTimeTracker.put(entry.getKey(), (long) ((entry.getValue() * time * 1000) + System.currentTimeMillis()));
                     } else {
                         immunityTimeTracker.put(entry.getKey(), (long) (entry.getValue() * time * 1000));
                     }
+                }
             }
         }
     }
@@ -143,7 +144,6 @@ public class Immunity {
         gracePeriodTracker.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
-    private static long lastSQLUpdate = 0;
     public static void update() {
         if (immunityType != ImmunityType.TIME)
             return;

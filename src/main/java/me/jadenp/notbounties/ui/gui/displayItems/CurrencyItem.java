@@ -22,11 +22,10 @@ public class CurrencyItem implements DisplayItem, AmountItem{
 
     @Override
     public ItemStack getFormattedItem(Player player, String headName, List<String> lore) {
-        ItemStack item = GUI.getGeneralCurrencyItem().getFormattedItem(player, null);
+        ItemStack item = GUI.getGeneralCurrencyItem().getFormattedItem(player, new String[] {"", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix, "", ""});
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
             return item;
-        meta.setDisplayName(meta.getDisplayName().replace("{amount}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
         List<String> previousLore = new ArrayList<>();
         if (meta.hasLore() && meta.getLore() != null) {
              previousLore.addAll(meta.getLore());

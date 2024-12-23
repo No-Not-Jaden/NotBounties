@@ -83,6 +83,7 @@ public class ActionCommands {
         }.runTaskLater(NotBounties.getInstance(), 10);
     }
 
+    // <TODO> move some string parsing to LanguageOptions.parse</TODO>
     private static void execute(Player player, Player killer, @Nullable Bounty bounty, String command) {
         if (command.isEmpty())
             return;

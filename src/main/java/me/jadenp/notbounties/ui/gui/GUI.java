@@ -49,7 +49,7 @@ public class GUI implements Listener {
 
     public static CustomItem getGeneralCurrencyItem() {
         if (!customItems.containsKey("general-currency-item")) {
-            CustomItem customItem = new CustomItem(Material.SUNFLOWER, 1, -1, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>());
+            CustomItem customItem = new CustomItem(Material.SUNFLOWER, 1, -1, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>(), null);
             customItems.put("general-currency-item", customItem);
             return customItem;
         }
@@ -363,8 +363,11 @@ public class GUI implements Listener {
                 return;
             GUIOptions gui = customGuis.get(name);
             String title = createTitle(gui, player, page, displayItems, data);
+            PlayerGUInfo info = new PlayerGUInfo(page, name, data, displayItems, title);
+            boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).title());
+            playerInfo.put(player.getUniqueId(), info);
             Inventory inventory = gui.createInventory(player, page, displayItems, title, data);
-            if (playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).title())) {
+            if (guiOpen) {
                 // already has the gui type open - update contents
                 player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
                 if (NotBounties.serverVersion >= 19)
@@ -372,7 +375,7 @@ public class GUI implements Listener {
             } else {
                 player.openInventory(inventory);
             }
-            playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, name, data, displayItems, title));
+            playerInfo.put(player.getUniqueId(), info);
         }
 
     }

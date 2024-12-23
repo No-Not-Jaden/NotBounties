@@ -12,6 +12,9 @@ custom-items:
     name: '&r'
     lore: []
     enchanted: false
+    # If the item can have a color (potions, tipped arrows, leather armor), this will control the color
+    # Hex (#RRGGBB), RGB (R G B) or (R,G,B), or a color from this list can be used: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Color.html
+    color: '#ffffff'
     hide-nbt: true
     # this will cause the item to not have anything displayed when hovered over (Minecraft version 1.20.5 and higher)
     hide-tooltip: true

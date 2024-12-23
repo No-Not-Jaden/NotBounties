@@ -850,14 +850,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             return true;
                                         }
                                     } else {
-                                        // usage
-                                        if (!silent)
-                                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                        if (Immunity.immunityType == Immunity.ImmunityType.SCALING)
-                                            sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
-                                        else if (Immunity.immunityType == Immunity.ImmunityType.TIME)
-                                            sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
-                                        return false;
+                                        // send immunity spend
+
+                                        return executeCommand(sender, new String[]{"stat", "immunity"}); // run /bounty stat immunity
                                     }
                                 }
                             } else {

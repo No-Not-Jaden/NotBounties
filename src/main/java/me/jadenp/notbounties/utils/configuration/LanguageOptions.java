@@ -3,6 +3,9 @@ package me.jadenp.notbounties.utils.configuration;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.BountyTracker;
+import me.jadenp.notbounties.ui.gui.GUI;
+import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
+import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.Tutorial;
 import me.jadenp.notbounties.utils.Whitelist;
@@ -398,6 +401,24 @@ public class LanguageOptions {
                     str = str.replace("{whitelist" + stringValue + "}", "");
                 else
                     str = str.replace("{whitelist" + stringValue + "}", NotBounties.getPlayerName(whitelist.getList().get(num-1)));
+            }
+            // parsing for GUI
+            if (receiver.isOnline() && GUI.playerInfo.containsKey(receiver.getUniqueId())) {
+                PlayerGUInfo info = GUI.playerInfo.get(receiver.getUniqueId());
+                // check for {player<x>}
+                while (str.contains("{player") && str.substring(str.indexOf("{player")).contains("}")) {
+                    String replacement = "";
+                    String slotString = str.substring(str.indexOf("{player") + 7, str.substring(str.indexOf("{player")).indexOf("}") + str.substring(0, str.indexOf("{player")).length());
+                    try {
+                        int slot = Integer.parseInt(slotString);
+                        if (info.displayItems().size() > slot-1 && info.displayItems().get(slot-1) instanceof PlayerItem playerItem) {
+                            replacement = NotBounties.getPlayerName(playerItem.getUuid());
+                        }
+                    } catch (NumberFormatException e) {
+                        Bukkit.getLogger().warning("Error getting player in command: \n" + str);
+                    }
+                    str = str.replace(("{player" + slotString + "}"), (replacement));
+                }
             }
         }
         if (ConfigOptions.papiEnabled && receiver != null) {
