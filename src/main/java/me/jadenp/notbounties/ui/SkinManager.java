@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -401,7 +402,7 @@ class SkinResponseHandler {
 
     private static PlayerSkin saveNamedSkin(CloseableHttpClient httpClient, UUID uuid) throws IOException {
         SkinManager.incrementMojangRate();
-        String playerName = NotBounties.getPlayerName(uuid);
+        String playerName = LoggedPlayers.getPlayerName(uuid);
         if (playerName.length() > 24) {
             // not a valid length
             throw new IOException("Recorded player name is not of a valid length. (May not be recorded): " + uuid.toString());

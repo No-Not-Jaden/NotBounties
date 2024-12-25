@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -110,7 +111,7 @@ public enum Leaderboard {
         } else {
             LinkedHashMap<UUID, Double> map = sortByValue(getStatMap());
             for (Map.Entry<UUID, Double> entry : map.entrySet()){
-                String name = NotBounties.getPlayerName(entry.getKey());
+                String name = LoggedPlayers.getPlayerName(entry.getKey());
                 if (hiddenNames.contains(name))
                     continue;
                 if (amount <= 0.01)
@@ -137,7 +138,7 @@ public enum Leaderboard {
         } else {
             LinkedHashMap<UUID, Double> map = sortByValue(getStatMap());
             for (Map.Entry<UUID, Double> entry : map.entrySet()){
-                String name = NotBounties.getPlayerName(entry.getKey());
+                String name = LoggedPlayers.getPlayerName(entry.getKey());
                 if (hiddenNames.contains(name))
                     continue;
                 if (entry.getKey().equals(uuid))
@@ -171,7 +172,7 @@ public enum Leaderboard {
         int i = 0;
         for (Map.Entry<UUID, Double> entry : map.entrySet()){
             OfflinePlayer p = Bukkit.getOfflinePlayer(entry.getKey());
-            String name = NotBounties.getPlayerName(entry.getKey());
+            String name = LoggedPlayers.getPlayerName(entry.getKey());
             sender.sendMessage(parseBountyTopString(i + 1, name, entry.getValue(), useCurrency, p));
             i++;
         }
@@ -205,7 +206,7 @@ public enum Leaderboard {
         List<Map.Entry<UUID, Double>> list = new LinkedList<>(hm.entrySet());
 
         // Sort the list
-        list.sort((o1, o2) -> (NotBounties.getPlayerName(o2.getKey())).compareTo(NotBounties.getPlayerName(o1.getKey())));
+        list.sort((o1, o2) -> (LoggedPlayers.getPlayerName(o2.getKey())).compareTo(LoggedPlayers.getPlayerName(o1.getKey())));
 
         // put data from sorted list to hashmap
         LinkedHashMap<UUID, Double> temp = new LinkedHashMap<>();

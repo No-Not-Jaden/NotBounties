@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils;
 
+import com.mysql.cj.log.Log;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -122,7 +123,7 @@ public class CommandPrompt {
                         Prompt.failExecute(player.getUniqueId());
                     }
                 } else if (responseType == ResponseType.PLAYER) {
-                    if (NotBounties.getPlayer(finalMessage) == null) {
+                    if (!LoggedPlayers.isLogged(finalMessage)) {
                         Prompt.failExecute(player.getUniqueId());
                     }
                 }

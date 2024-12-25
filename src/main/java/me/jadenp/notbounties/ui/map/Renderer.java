@@ -5,6 +5,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -47,7 +48,7 @@ public class Renderer extends MapRenderer {
             assert bounty != null;
             name = bounty.getName();
         } else {
-            name = NotBounties.getPlayerName(uuid);
+            name = LoggedPlayers.getPlayerName(uuid);
         }
         File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
         if (ConfigOptions.saveTemplates && imageFile.exists()) {

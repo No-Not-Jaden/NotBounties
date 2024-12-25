@@ -13,7 +13,6 @@ import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.BountyClaimRequirements;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.TrickleBounties;
-import me.jadenp.notbounties.utils.Tutorial;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
@@ -109,6 +108,7 @@ public class ConfigOptions {
     public static boolean geyserEnabled;
     private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level", "databases"};
     public static long bountyCooldown;
+    public static int maxTabCompletePlayers;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -401,7 +401,7 @@ public class ConfigOptions {
         rewardHeadAnyKill = bounties.getConfig().getBoolean("reward-heads.any-kill");
         bountyBackups = bounties.getConfig().getBoolean("bounty-backups");
         bountyCooldown = bounties.getConfig().getLong("bounty-cooldown");
-
+        maxTabCompletePlayers = bounties.getConfig().getInt("max-tab-complete-players");
 
 
         wantedLevels.clear();

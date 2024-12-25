@@ -58,11 +58,6 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  */
 public final class NotBounties extends JavaPlugin {
 
-    /**
-     * Name (lower case), UUID
-     */
-    public static final Map<String, UUID> loggedPlayers = new HashMap<>();
-
     public static List<String> immunePerms = new ArrayList<>();
     public static List<String> autoImmuneMurderPerms = new ArrayList<>();
     public static List<String> autoImmuneRandomPerms = new ArrayList<>();
@@ -404,15 +399,11 @@ public final class NotBounties extends JavaPlugin {
         configuration.set("immunity-murder", autoImmuneMurderPerms);
         configuration.set("immunity-random", autoImmuneMurderPerms);
         configuration.set("immunity-timed", autoImmuneMurderPerms);
-        int i = 0;
-        for (Map.Entry<String, UUID> entry : loggedPlayers.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue().toString();
-            configuration.set("logged-players." + i + ".name", key);
-            configuration.set("logged-players." + i + ".uuid", value);
-            i++;
+        for (Map.Entry<UUID, String> entry : LoggedPlayers.getLoggedPlayers().entrySet()) {
+            // uuid: name
+            configuration.set("logged-players." + entry.getKey(), entry.getValue());
         }
-            i = 0;
+            int i = 0;
             for (Bounty bounty : DataManager.getLocalBounties()) {
                 configuration.set("bounties." + i + ".uuid", bounty.getUUID().toString());
                 configuration.set("bounties." + i + ".name", bounty.getName());
@@ -584,7 +575,7 @@ public final class NotBounties extends JavaPlugin {
                 }
                 if (timeSinceCreation > maxDailyBackup) {
                     // been over 7 days since this backup was created
-                    if (weeklyBackups == 0 || (weeklyBackups < 3 && timeSinceCreation - lastWeeklyBackup >= maxDailyBackup)) {
+                    if (weeklyBackups < 3 || timeSinceCreation - lastWeeklyBackup >= maxDailyBackup - (1000L * 60 * 60 * 24)) {
                         // only keep 3 weekly backups
                         weeklyBackups++;
                         lastWeeklyBackup = timeSinceCreation;
@@ -661,55 +652,6 @@ public final class NotBounties extends JavaPlugin {
         bountyBoards.clear();
     }
 
-    /**
-     * Returns an OfflinePlayer from their logged name
-     * @param name Name of the player
-     * @return The OfflinePlayer or null if one hasn't been logged yet.
-     */
-    public static OfflinePlayer getPlayer(String name) {
-        Player player = Bukkit.getPlayer(name);
-        if (player != null)
-            return player;
-        if (loggedPlayers.containsKey(name.toLowerCase(Locale.ROOT)))
-            return Bukkit.getOfflinePlayer(loggedPlayers.get(name.toLowerCase(Locale.ROOT)));
-        try {
-            return Bukkit.getOfflinePlayer(UUID.fromString(name));
-        } catch (IllegalArgumentException e) {
-            UUID closest = getClosestPlayer(name);
-            if (closest != null)
-                return Bukkit.getOfflinePlayer(closest);
-            return null;
-        }
-    }
-
-    private static UUID getClosestPlayer(String playerName) {
-        List<String> viableNames = new ArrayList<>();
-        for (Map.Entry<String, UUID> entry : loggedPlayers.entrySet()) {
-            if (entry.getKey().toLowerCase().startsWith(playerName.toLowerCase()))
-                viableNames.add(entry.getKey());
-        }
-        if (viableNames.isEmpty())
-            return null;
-        Collections.sort(viableNames);
-        return loggedPlayers.get(viableNames.get(0));
-    }
-
-    public static @NotNull String getPlayerName(UUID uuid) {
-        if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
-            return consoleName;
-        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-        String name = player.getName();
-        if (name != null)
-            return name;
-        if (loggedPlayers.containsValue(uuid)) {
-            for (Map.Entry<String, UUID> entry : loggedPlayers.entrySet()) {
-                if (entry.getValue().equals(uuid))
-                    return entry.getKey();
-            }
-        }
-        return uuid.toString();
-    }
-
     public static Whitelist getPlayerWhitelist(UUID uuid) {
         if (playerWhitelist.containsKey(uuid)) {
             return playerWhitelist.get(uuid);
@@ -721,7 +663,7 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public void sendDebug(CommandSender sender) throws SQLException {
+    public void sendDebug(CommandSender sender) {
         sender.sendMessage(parse(getPrefix() + ChatColor.WHITE + "NotBounties debug info:", null));
         long numConnected = DataManager.getDatabases().stream().filter(AsyncDatabaseWrapper::isConnected).count();
         String connected = numConnected > 0 ? ChatColor.GREEN + "" + numConnected : ChatColor.RED + "" + numConnected;

@@ -7,6 +7,7 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIClicks;
 import me.jadenp.notbounties.ui.gui.displayItems.*;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
@@ -227,7 +228,7 @@ public class BedrockGUIOptions {
                             // check if max requests hit
                             if (maxRequests <= 0) {
                                 if (NotBounties.debug) {
-                                    Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(playerItem.getUuid()));
+                                    Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + LoggedPlayers.getPlayerName(playerItem.getUuid()));
                                 }
                             } else {
                                 if (loaded) {

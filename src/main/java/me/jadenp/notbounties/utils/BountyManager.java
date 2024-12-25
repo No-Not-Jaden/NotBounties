@@ -488,7 +488,7 @@ public class BountyManager {
                             headRewards.put(setter.getUuid(), Collections.singletonList(rewardHead));
                         }
                         if (debug)
-                            Bukkit.getLogger().info("[NotBountiesDebug] Will give " + NotBounties.getPlayerName(setter.getUuid()) + " a player skull when they log on next for the bounty.");
+                            Bukkit.getLogger().info("[NotBountiesDebug] Will give " + LoggedPlayers.getPlayerName(setter.getUuid()) + " a player skull when they log on next for the bounty.");
                     }
                 }
             }

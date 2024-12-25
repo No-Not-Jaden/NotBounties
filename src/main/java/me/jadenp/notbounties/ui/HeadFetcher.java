@@ -4,6 +4,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -93,7 +94,7 @@ public class HeadFetcher {
                         i = 0;
                         for (QueuedHead queuedHead : heads) {
                             if (fetchedHeads[i] == null) {
-                                NotBounties.debugMessage("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(queuedHead.uuid()), true);
+                                NotBounties.debugMessage("[NotBountiesDebug] Timed out loading skin for " + LoggedPlayers.getPlayerName(queuedHead.uuid()), true);
                             }
                             i++;
                         }
@@ -135,12 +136,12 @@ public class HeadFetcher {
         } catch (NullPointerException e) {
             if (NotBounties.serverVersion >= 18) {
                 try {
-                    PlayerProfile profile = Bukkit.createPlayerProfile(uuid, NotBounties.getPlayerName(uuid));
+                    PlayerProfile profile = Bukkit.createPlayerProfile(uuid, LoggedPlayers.getPlayerName(uuid));
                     meta.setOwnerProfile(profile);
                 } catch (IllegalArgumentException ignored) {
                     // The name of the profile is longer than 16 characters
                     if (NotBounties.debug)
-                        Bukkit.getLogger().info("Could not get an unloaded head for: " + NotBounties.getPlayerName(uuid));
+                        Bukkit.getLogger().info("Could not get an unloaded head for: " + LoggedPlayers.getPlayerName(uuid));
                 }
             }
         }

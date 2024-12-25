@@ -4,6 +4,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
@@ -21,7 +22,7 @@ public record RewardHead(UUID uuid, UUID killer, double amount) {
 
     public ItemStack getItem() {
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-        String killerName = NotBounties.getPlayerName(killer);
+        String killerName = LoggedPlayers.getPlayerName(killer);
         ItemStack skull = Head.createPlayerSkull(uuid, SkinManager.getSkin(uuid).getUrl());
         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         assert skullMeta != null;

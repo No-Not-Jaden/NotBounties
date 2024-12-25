@@ -32,7 +32,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
     public Bounty(Player setter, OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist, UUID serverID){
         // save player
         this.uuid = receiver.getUniqueId();
-        name = NotBounties.getPlayerName(receiver.getUniqueId());
+        name = LoggedPlayers.getPlayerName(receiver.getUniqueId());
         // add to the total bounty
         setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
         this.serverID = serverID;
@@ -45,7 +45,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
     public Bounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist, UUID serverID){
         // save player
         this.uuid = receiver.getUniqueId();
-        name = NotBounties.getPlayerName(receiver.getUniqueId());
+        name = LoggedPlayers.getPlayerName(receiver.getUniqueId());
         // add to the total bounty
         setters.add(new Setter(ConfigOptions.consoleName, DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
         this.serverID = serverID;
@@ -157,7 +157,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
                 return;
             }
         }
-        setters.add(new Setter(NotBounties.getPlayerName(uuid), uuid, change, new ArrayList<>(), System.currentTimeMillis(), false, new Whitelist(new ArrayList<>(), false), BountyExpire.getTimePlayed(uuid)));
+        setters.add(new Setter(LoggedPlayers.getPlayerName(uuid), uuid, change, new ArrayList<>(), System.currentTimeMillis(), false, new Whitelist(new ArrayList<>(), false), BountyExpire.getTimePlayed(uuid)));
     }
 
     /**

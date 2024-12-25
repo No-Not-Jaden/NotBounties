@@ -7,6 +7,7 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.Tutorial;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
@@ -372,8 +373,8 @@ public class LanguageOptions {
                 str = str.replace("{player}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
                 str = str.replace("{receiver}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
             } else {
-                str = str.replace("{player}", getMessage("player-prefix") + NotBounties.getPlayerName(receiver.getUniqueId()) + getMessage("player-prefix"));
-                str = str.replace("{receiver}", getMessage("player-prefix") + NotBounties.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"));
+                str = str.replace("{player}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-prefix"));
+                str = str.replace("{receiver}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"));
             }
             if (str.contains("{balance}"))
                 str = str.replace("{balance}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
@@ -400,7 +401,7 @@ public class LanguageOptions {
                 if (whitelist.getList().size() > num)
                     str = str.replace("{whitelist" + stringValue + "}", "");
                 else
-                    str = str.replace("{whitelist" + stringValue + "}", NotBounties.getPlayerName(whitelist.getList().get(num-1)));
+                    str = str.replace("{whitelist" + stringValue + "}", LoggedPlayers.getPlayerName(whitelist.getList().get(num-1)));
             }
             // parsing for GUI
             if (receiver.isOnline() && GUI.playerInfo.containsKey(receiver.getUniqueId())) {
@@ -412,7 +413,7 @@ public class LanguageOptions {
                     try {
                         int slot = Integer.parseInt(slotString);
                         if (info.displayItems().size() > slot-1 && info.displayItems().get(slot-1) instanceof PlayerItem playerItem) {
-                            replacement = NotBounties.getPlayerName(playerItem.getUuid());
+                            replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
                         }
                     } catch (NumberFormatException e) {
                         Bukkit.getLogger().warning("Error getting player in command: \n" + str);
@@ -482,7 +483,7 @@ public class LanguageOptions {
             if (player.getName() != null) {
                 replacement = player.getName();
             } else {
-                replacement = NotBounties.getPlayerName(player.getUniqueId());
+                replacement = LoggedPlayers.getPlayerName(player.getUniqueId());
             }
             replacement = getMessage("player-prefix") + replacement + getMessage("player-suffix");
             if (papiEnabled)
@@ -498,7 +499,7 @@ public class LanguageOptions {
             if (player.getName() != null) {
                 replacement = player.getName();
             } else {
-                replacement = NotBounties.getPlayerName(player.getUniqueId());
+                replacement = LoggedPlayers.getPlayerName(player.getUniqueId());
             }
             replacement = getMessage("player-prefix") + replacement + getMessage("player-suffix");
             if (papiEnabled)

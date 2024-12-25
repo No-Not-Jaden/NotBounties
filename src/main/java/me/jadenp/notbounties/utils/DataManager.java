@@ -111,17 +111,14 @@ public class DataManager {
                 else
                     databaseServerID = UUID.randomUUID();
                 // add all previously logged on players to a map
-                int i = 0;
-                while (configuration.getString("logged-players." + i + ".name") != null) {
-                    loggedPlayers.put(Objects.requireNonNull(configuration.getString("logged-players." + i + ".name")).toLowerCase(Locale.ROOT), UUID.fromString(Objects.requireNonNull(configuration.getString("logged-players." + i + ".uuid"))));
-                    i++;
-                }
+                if (configuration.isConfigurationSection("logged-players"))
+                    LoggedPlayers.readConfiguration(Objects.requireNonNull(configuration.getConfigurationSection("logged-players")));
                 immunePerms = configuration.isSet("immune-permissions") ? configuration.getStringList("immune-permissions") : new ArrayList<>();
                 autoImmuneMurderPerms = configuration.isSet("immunity-murder") ? configuration.getStringList("immunity-murder") : new ArrayList<>();
                 autoImmuneRandomPerms = configuration.isSet("immunity-random") ? configuration.getStringList("immunity-random") : new ArrayList<>();
                 autoImmuneTimedPerms = configuration.isSet("immunity-timed") ? configuration.getStringList("immunity-timed") : new ArrayList<>();
                 // go through bounties in file
-                i = 0;
+                int i = 0;
                 while (configuration.getString("bounties." + i + ".uuid") != null) {
                     List<Setter> setters = new ArrayList<>();
                     int l = 0;
@@ -840,7 +837,11 @@ public class DataManager {
                     }
                 }
                 // log any unknown names in the database bounties
-                databaseAdded.stream().filter(bounty -> !loggedPlayers.containsKey(bounty.getName()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)).forEach(bounty -> loggedPlayers.put(bounty.getName(), bounty.getUUID()));
+                for (Bounty bounty : databaseAdded) {
+                    if (!LoggedPlayers.isLogged(bounty.getUUID()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)) {
+                        LoggedPlayers.logPlayer(bounty.getName(), bounty.getUUID());
+                    }
+                }
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
     }

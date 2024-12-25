@@ -10,6 +10,7 @@ import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.CommandPrompt;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -58,7 +59,7 @@ public class ActionCommands {
             @Override
             public void run() {
                 for (String command : bountySetCommands) {
-                    command = command.replace("{receiever}", NotBounties.getPlayerName(receiver));
+                    command = command.replace("{receiever}", LoggedPlayers.getPlayerName(receiver));
                     execute(setter, setter, bounty, command);
                 }
             }
@@ -165,13 +166,13 @@ public class ActionCommands {
                         assert meta != null;
                         OfflinePlayer p = meta.getOwningPlayer();
                         if (p != null) {
-                            replacement = NotBounties.getPlayerName(p.getUniqueId());
+                            replacement = LoggedPlayers.getPlayerName(p.getUniqueId());
                         } else {
                             if (!info.guiType().isEmpty()) {
                                GUIOptions guiOptions = GUI.getGUI(info.guiType());
                                if (guiOptions != null) {
                                    if (guiOptions.getPlayerSlots().contains(slot) && info.displayItems().get(guiOptions.getPlayerSlots().indexOf(slot)) instanceof PlayerItem playerItem) {
-                                        replacement = NotBounties.getPlayerName(playerItem.getUuid());
+                                        replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
                                    }
                                } else {
                                    Bukkit.getLogger().warning("Invalid player for slot " + slot);
@@ -201,7 +202,7 @@ public class ActionCommands {
             try {
                 int slot = Integer.parseInt(slotString);
                 if (info.displayItems().size() > slot-1 && info.displayItems().get(slot-1) instanceof PlayerItem playerItem) {
-                    replacement = NotBounties.getPlayerName(playerItem.getUuid());
+                    replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
                 }
             } catch (NumberFormatException e) {
                 Bukkit.getLogger().warning("Error getting player in command: \n" + command);

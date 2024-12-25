@@ -241,7 +241,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
             byte[] message = wrapGlobalMessage(encodeMessage(uuid.toString(), tokenChange), "PlayerTokenUpdate");
             sendMessage("notbounties:main", message);
         } catch (IOException e) {
-            Bukkit.getLogger().warning("Could not send a token update for " + NotBounties.getPlayerName(uuid));
+            Bukkit.getLogger().warning("Could not send a token update for " + LoggedPlayers.getPlayerName(uuid));
             Bukkit.getLogger().warning(e.toString());
         }
     }
@@ -411,7 +411,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("PlayerSkin");
 
-        String playerName = NotBounties.getPlayerName(uuid);
+        String playerName = LoggedPlayers.getPlayerName(uuid);
         ByteArrayOutputStream msgbytes = new ByteArrayOutputStream();
         DataOutputStream msgout = new DataOutputStream(msgbytes);
         try {

@@ -8,6 +8,7 @@ import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUIOptions;
 import me.jadenp.notbounties.ui.gui.displayItems.*;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.Whitelist;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
@@ -231,35 +232,33 @@ public class GUI implements Listener {
                 }
                 break;
             case "set-bounty":
-                List<UUID> addedPlayers = new ArrayList<>();
-                for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
-                    OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
-                    if (online && canSeePlayer(player, onlinePlayers, player1)) {
-                        // skip if offline or vanished
-                        continue;
-                    }
-                    displayItems.add(new PlayerItem(entry.getKey(), entry.getValue(), Leaderboard.IMMUNITY, addedPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
-                    addedPlayers.add(entry.getKey());
-                }
-                for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet()) {
-                    if (reducePageCalculations && displayItems.size() > gui.getPlayerSlots().size() * page)
-                        break;
-                    if (!addedPlayers.contains(entry.getValue())) {
-                        OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getValue());
-                        if (online && canSeePlayer(player, onlinePlayers, player1)) {
+                    List<UUID> addedPlayers = new ArrayList<>();
+                    for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
+                        if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                             // skip if offline or vanished
                             continue;
                         }
-
-                        Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(player1, 69);
-                        if (immunityType == Immunity.ImmunityType.PERMANENT || immunityType == Immunity.ImmunityType.GRACE_PERIOD || immunityType == Immunity.ImmunityType.TIME) {
-                            // skip if they are immune
-                            continue;
-                        }
-                        displayItems.add(new PlayerItem(entry.getValue(), 0, Leaderboard.IMMUNITY, addedPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
-                        addedPlayers.add(entry.getValue());
+                        displayItems.add(new PlayerItem(entry.getKey(), entry.getValue(), Leaderboard.IMMUNITY, addedPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
+                        addedPlayers.add(entry.getKey());
                     }
-                }
+                    for (Map.Entry<UUID, String> entry : LoggedPlayers.getLoggedPlayers().entrySet()) {
+                        if (reducePageCalculations && displayItems.size() > gui.getPlayerSlots().size() * page)
+                            break;
+                        if (!addedPlayers.contains(entry.getKey())) {
+                            if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
+                                // skip if offline or vanished
+                                continue;
+                            }
+
+                            Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(Bukkit.getOfflinePlayer(entry.getKey()), 69);
+                            if (immunityType == Immunity.ImmunityType.PERMANENT || immunityType == Immunity.ImmunityType.GRACE_PERIOD || immunityType == Immunity.ImmunityType.TIME) {
+                                // skip if they are immune
+                                continue;
+                            }
+                            displayItems.add(new PlayerItem(entry.getKey(), 0, Leaderboard.IMMUNITY, addedPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
+                            addedPlayers.add(entry.getKey());
+                        }
+                    }
                 break;
             case "set-whitelist":
                 List<UUID> playersAdded = new ArrayList<>();
@@ -271,8 +270,7 @@ public class GUI implements Listener {
                 }
                 for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
                     if (!playersAdded.contains(entry.getKey())) {
-                        OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getKey());
-                        if (online && canSeePlayer(player, onlinePlayers, player1)) {
+                        if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                             // skip if offline or vanished
                             continue;
                         }
@@ -280,18 +278,17 @@ public class GUI implements Listener {
                         playersAdded.add(entry.getKey());
                     }
                 }
-                for (Map.Entry<String, UUID> entry : NotBounties.loggedPlayers.entrySet()) {
+                for (Map.Entry<UUID, String> entry : LoggedPlayers.getLoggedPlayers().entrySet()) {
                     if (reducePageCalculations && playersAdded.size() > gui.getPlayerSlots().size() * page)
                         break;
-                    if (!playersAdded.contains(entry.getValue())) {
-                        OfflinePlayer player1 = Bukkit.getOfflinePlayer(entry.getValue());
-                        if (online && canSeePlayer(player, onlinePlayers, player1)) {
+                    if (!playersAdded.contains(entry.getKey())) {
+                        if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                             // skip if offline or vanished
                             continue;
                         }
 
-                        displayItems.add(new PlayerItem(entry.getValue(), 0, Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), new ArrayList<>()));
-                        playersAdded.add(entry.getValue());
+                        displayItems.add(new PlayerItem(entry.getKey(), 0, Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), new ArrayList<>()));
+                        playersAdded.add(entry.getKey());
                     }
                 }
 
@@ -329,8 +326,20 @@ public class GUI implements Listener {
 
     }
 
-    private static boolean canSeePlayer(Player guiViewer, Set<UUID> onlinePlayers, OfflinePlayer player) {
-        return !onlinePlayers.contains(player.getUniqueId()) || (player.isOnline() && (isVanished(Objects.requireNonNull(player.getPlayer())) || (NotBounties.serverVersion >= 17 && seePlayerList && !guiViewer.canSee(player.getPlayer()))));
+    /**
+     * Check if a player can see another player.
+     * @param guiViewer Player that is viewing the other player.
+     * @param onlinePlayers Current online players.
+     * @param playerUUID Player to be viewed.
+     * @return True if the player is offline, or is vanished.
+     */
+    private static boolean cantSeePlayer(Player guiViewer, Set<UUID> onlinePlayers, UUID playerUUID) {
+        if (!onlinePlayers.contains(playerUUID))
+            return true;
+        Player player = Bukkit.getPlayer(playerUUID);
+        if (player == null)
+            return true;
+        return isVanished(player) || (NotBounties.serverVersion >= 17 && seePlayerList && !guiViewer.canSee(player));
     }
 
     public static void openGUI(Player player, String name, long page, Object... data) {
@@ -394,7 +403,7 @@ public class GUI implements Listener {
             if (bounty != null) {
                 amount = showWhitelistedBounties ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(viewer);
             }
-            String playerName = NotBounties.getPlayerName(uuid);
+            String playerName = LoggedPlayers.getPlayerName(uuid);
             title = title.replace("{player}", playerName).replace("{amount}", currencyPrefix + NumberFormatting.formatNumber(amount) + currencySuffix);
         } else {
             for (DisplayItem displayItem : displayItems) {
@@ -415,7 +424,7 @@ public class GUI implements Listener {
                 maxPage++;
             }
         } else if (reducePageCalculations) {
-            int totalPlayers = loggedPlayers.size();
+            int totalPlayers = LoggedPlayers.getLoggedPlayers().size();
             int playerSlots = Math.max(numPlayerSlots, 1);
             maxPage = (int) ((double) totalPlayers / playerSlots);
             if (totalPlayers % playerSlots != 0) {
@@ -571,7 +580,7 @@ public class GUI implements Listener {
             assert meta != null;
             DisplayItem displayItem = info.displayItems().get(gui.getPlayerSlots().indexOf(event.getRawSlot()) + pageAddition);
             UUID playerUUID = displayItem instanceof PlayerItem playerItem ? playerItem.getUuid() : event.getWhoClicked().getUniqueId();
-            String playerName = NotBounties.getPlayerName(playerUUID);
+            String playerName = LoggedPlayers.getPlayerName(playerUUID);
             switch (guiType) {
                 case "bounty-gui":
                     // do click actions

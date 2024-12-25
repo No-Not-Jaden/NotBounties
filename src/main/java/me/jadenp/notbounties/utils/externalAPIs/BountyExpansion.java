@@ -5,6 +5,7 @@ import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.WantedTags;
 import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
@@ -211,7 +212,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             Map.Entry<UUID, Double> entry = stat.entrySet().iterator().next();
             double amount = entry.getValue();
             UUID uuid1 = entry.getKey();
-            String name = NotBounties.getPlayerName(uuid1);
+            String name = LoggedPlayers.getPlayerName(uuid1);
             OfflinePlayer p = Bukkit.getOfflinePlayer(uuid1);
             if (ending == 1)
                 return LanguageOptions.parse(leaderboard.getStatMsg(true).replace("{amount}", (leaderboard.getFormattedStat(uuid1))), p);

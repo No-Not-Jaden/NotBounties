@@ -2,6 +2,7 @@ package me.jadenp.notbounties.ui.gui.displayItems;
 
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.ChatColor;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -34,7 +35,7 @@ public class WhitelistedPlayerItem extends PlayerItem{
 
     @Override
     public String parseText(String text, Player player) {
-        text = text.replace("{player}", playerPrefix + NotBounties.getPlayerName(super.getUuid()));
+        text = text.replace("{player}", playerPrefix + LoggedPlayers.getPlayerName(super.getUuid()));
         return super.parseText(text, player);
     }
 

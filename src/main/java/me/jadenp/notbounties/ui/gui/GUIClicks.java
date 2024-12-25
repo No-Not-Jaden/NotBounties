@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui.gui;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.BountyTracker;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -168,13 +169,13 @@ public class GUIClicks {
             case POSTER -> {
                 if (giveOwnMap) {
                     player.getOpenInventory().close();
-                    Bukkit.getServer().dispatchCommand(player, pluginBountyCommands.get(0) + " poster " + NotBounties.getPlayerName(bounty.getUUID()));
+                    Bukkit.getServer().dispatchCommand(player, pluginBountyCommands.get(0) + " poster " + LoggedPlayers.getPlayerName(bounty.getUUID()));
                 }
             }
             case TRACKER -> {
                 if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || player.hasPermission(NotBounties.getAdminPermission())) && player.hasPermission("notbounties.tracker")) {
                     player.getOpenInventory().close();
-                    Bukkit.getServer().dispatchCommand(player, pluginBountyCommands.get(0) + " tracker " + NotBounties.getPlayerName(bounty.getUUID()));
+                    Bukkit.getServer().dispatchCommand(player, pluginBountyCommands.get(0) + " tracker " + LoggedPlayers.getPlayerName(bounty.getUUID()));
                 }
             }
             case VIEW -> GUI.openGUI(player, "view-bounty", 1, bounty.getUUID());

@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils.externalAPIs;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.ui.SkinManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.ProxyMessaging;
 import net.skinsrestorer.api.PropertyUtils;
 import net.skinsrestorer.api.SkinsRestorer;
@@ -114,7 +115,7 @@ public class SkinsRestorerClass {
             addDelayedSkinCheck(uuid);
             return;
         }
-        String name = NotBounties.getPlayerName(uuid);
+        String name = LoggedPlayers.getPlayerName(uuid);
         if (!connect()) {
             if (!firstConnect)
                 requestSkinManually(uuid);

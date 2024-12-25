@@ -1,7 +1,5 @@
 package me.jadenp.notbounties.utils;
 
-import me.jadenp.notbounties.NotBounties;
-
 import java.util.*;
 
 public class Whitelist {
@@ -53,7 +51,7 @@ public class Whitelist {
         } else {
             StringBuilder builder = new StringBuilder();
             for (UUID uuid : list) {
-                builder.append(NotBounties.getPlayerName(uuid)).append(" ");
+                builder.append(LoggedPlayers.getPlayerName(uuid)).append(" ");
             }
             builder.deleteCharAt(builder.length()-1);
             return builder.toString();

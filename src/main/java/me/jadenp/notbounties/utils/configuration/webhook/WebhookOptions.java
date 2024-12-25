@@ -9,6 +9,7 @@ import me.jadenp.notbounties.bountyEvents.BountySetEvent;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -111,7 +112,7 @@ public class WebhookOptions implements Listener {
                         if (maxRequests <= 0) {
                             this.cancel();
                             if (NotBounties.debug) {
-                                Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + NotBounties.getPlayerName(avatarUUID) + " or " + NotBounties.getPlayerName(imageUUID));
+                                Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + LoggedPlayers.getPlayerName(avatarUUID) + " or " + LoggedPlayers.getPlayerName(imageUUID));
                             }
                         }
                         maxRequests--;

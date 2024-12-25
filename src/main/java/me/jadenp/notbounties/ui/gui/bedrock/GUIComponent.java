@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.ui.gui.bedrock;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
@@ -230,7 +231,7 @@ public class GUIComponent {
                         break;
                         case "{whitelist}":
                             for (UUID uuid : NotBounties.getPlayerWhitelist(player.getUniqueId()).getList())
-                                parsedOptions.add(NotBounties.getPlayerName(uuid));
+                                parsedOptions.add(LoggedPlayers.getPlayerName(uuid));
                             break;
                         default:
                             parsedOptions.add(LanguageOptions.parse(str, player));

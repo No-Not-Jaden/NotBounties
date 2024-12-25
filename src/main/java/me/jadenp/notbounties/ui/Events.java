@@ -1,11 +1,13 @@
 package me.jadenp.notbounties.ui;
 
+import com.mysql.cj.log.Log;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.UpdateChecker;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
@@ -160,23 +162,13 @@ public class Events implements Listener {
 
     public static void logPlayer(Player player) {
         // check if they are logged yet
-        if (!loggedPlayers.containsValue(player.getUniqueId())) {
+        if (!LoggedPlayers.isLogged(player.getUniqueId())) {
             // if not, add them
-            loggedPlayers.put(player.getName().toLowerCase(Locale.ROOT), player.getUniqueId());
-        } else {
+            LoggedPlayers.logPlayer(player.getName(), player.getUniqueId());
+        } else
             // if they are, check if their username has changed, and update it
-            if (!loggedPlayers.containsKey(player.getName().toLowerCase(Locale.ROOT))) {
-                String nameToRemove = "";
-                for (Map.Entry<String, UUID> entry : loggedPlayers.entrySet()) {
-                    if (entry.getValue().equals(player.getUniqueId())) {
-                        nameToRemove = entry.getKey();
-                    }
-                }
-                if (!Objects.equals(nameToRemove, "")) {
-                    loggedPlayers.remove(nameToRemove);
-                }
-                loggedPlayers.put(player.getName().toLowerCase(Locale.ROOT), player.getUniqueId());
-            }
+            if (!LoggedPlayers.getPlayerName(player.getUniqueId()).equals(player.getName())) {
+                LoggedPlayers.replacePlayerName(player.getName(), player.getUniqueId());
         }
     }
 
