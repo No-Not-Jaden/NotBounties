@@ -258,6 +258,15 @@ public class DataManager {
                         }
                     }
                 }
+                if (configuration.isList("wanted-tags")) {
+                    List<Location> locations = stringListToLocationList(configuration.getStringList("wanted-tags"));
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            RemovePersistentEntitiesEvent.cleanChunks(locations);
+                        }
+                    }.runTaskLater(NotBounties.getInstance(), 100L);
+                }
             }
         } catch (IOException e) {
             Bukkit.getLogger().severe("[NotBounties] Error loading saved data!");
@@ -316,7 +325,32 @@ public class DataManager {
 
     public static Map<UUID, PlayerStat> getAllStats() {
         return localData.getAllStats();
-   }
+    }
+
+    public static List<String> locationListToStringList(List<Location> locations) {
+        List<String> stringList = new ArrayList<>(locations.size());
+        for (Location location : locations) {
+            if (location == null || location.getWorld() == null)
+                continue;
+            stringList.add(location.getX() + "," + location.getY() + "," + location.getZ() + "," + location.getWorld().getUID());
+        }
+        return stringList;
+    }
+
+    public static List<Location> stringListToLocationList(List<String> stringList) {
+        List<Location> locations = new ArrayList<>(stringList.size());
+        for (String str : stringList) {
+            String[] split = str.split(",");
+            if (split.length != 4)
+                continue;
+            try {
+                locations.add(new Location(Bukkit.getWorld(UUID.fromString(split[3])), Double.parseDouble(split[0]), Double.parseDouble(split[1]), Double.parseDouble(split[2])));
+            } catch (IllegalArgumentException ignored) {
+                // couldn't parse location from string
+            }
+        }
+        return locations;
+    }
 
     /**
      * Change stats of the player. Current stat cannot be changed here.

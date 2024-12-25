@@ -52,40 +52,9 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
 
 /**
  * Proxy Messaging
- * Challenges
  * Save to json file instead of yaml
- * Redis - create and test after
  * Folia
  * Team bounties
- *
- * test player specific challenges
- * sync redis with mysql or get redis faster
- * bounty cooldown - x
- * bounty set commands
- * disconnect redis while running
- * database update rate
- * bounty edits?
- * try to connect for all databases method
- *
- * on database connect:
- * read all db bounties and read the last sync time
- * if no last sync time, add local bounties (matching server-id)
- * check for changes against bounties
- * If a bounty is added
- * last database sync stored in file
- *
- * 1. what if the database reset, but another server already put their data in it - add stats with their server id, if server ids don't match for a player, add together
- * push stat changes - if the database is empty, set to current stats
- * stat changes will be logged between database syncs -
- * if a database has connected before, stat changes will be logged and reset on sync
- * database lock for first connection
- *
- * only show wanted tags when not moving option - does not ever show - x
- * make update notification editable - x
- * open modal form for a split second after any custom
- * add whitelist msg for view-bounty GUI - x
- * bounty list doesn't show hidden players - x
- * console name is now used in the view-bounty GUI - x
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -183,8 +152,8 @@ public final class NotBounties extends JavaPlugin {
             serverSubVersion = 0;
         }
 
-        if (serverVersion >= 17)
-            Bukkit.getServer().getPluginManager().registerEvents(new RemovePersistentEntitiesEvent(), this);
+        Bukkit.getServer().getPluginManager().registerEvents(new RemovePersistentEntitiesEvent(), this);
+
 
         try {
             loadConfig();
@@ -342,6 +311,8 @@ public final class NotBounties extends JavaPlugin {
                 BountyExpire.removeExpiredBounties();
 
                 SkinManager.removeOldData();
+
+                RemovePersistentEntitiesEvent.checkRemovedEntities();
 
                 save();
                 try {
@@ -547,6 +518,11 @@ public final class NotBounties extends JavaPlugin {
         configuration.set("server-id", DataManager.getDatabaseServerID(false).toString());
         if (NotBounties.isPaused())
             configuration.set("paused", true);
+        // save last location of wanted tags
+        List<String> wantedTagLocations = DataManager.locationListToStringList(wantedText.values().stream().map(WantedTags::getLastLocation).toList());
+        if (!wantedTagLocations.isEmpty())
+            configuration.set("wanted-tags", wantedTagLocations);
+
         File bounties = new File(NotBounties.getInstance().getDataFolder() + File.separator + "bounties.yml");
         try {
             configuration.save(bounties);
@@ -558,71 +534,73 @@ public final class NotBounties extends JavaPlugin {
     }
 
     private void saveBackup(YamlConfiguration configuration) {
-        if (bountyBackups) {
-            Date date = new Date();
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yy-MM-dd");
-            File backupDirectory = new File(this.getDataFolder() + File.separator + "backups");
-            File today = new File(backupDirectory + File.separator + simpleDateFormat.format(date) + "_bounties.yml");
-            if (!backupDirectory.exists() && backupDirectory.mkdir()) {
-                Bukkit.getLogger().info("[NotBounties] Created backups directory.");
+        if (!bountyBackups) {
+            return;
+        }
+        Date date = new Date();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yy-MM-dd");
+        File backupDirectory = new File(this.getDataFolder() + File.separator + "backups");
+        File today = new File(backupDirectory + File.separator + simpleDateFormat.format(date) + "_bounties.yml");
+        if (!backupDirectory.exists() && backupDirectory.mkdir()) {
+            Bukkit.getLogger().info("[NotBounties] Created backups directory.");
+        }
+        // try to create a daily backup
+        try {
+            if (today.createNewFile()) {
+                configuration.save(today);
             }
-            // try to create a daily backup
-            try {
-                if (today.createNewFile()) {
-                    configuration.save(today);
+        } catch (IOException e) {
+            Bukkit.getLogger().warning(e.toString());
+        }
+        // delete old backups
+        File[] files = backupDirectory.listFiles();
+        if (files != null) {
+            Map<File, Long> fileDates = new HashMap<>();
+            for (File value : files) {
+                try {
+                    if (value.getName().contains("_"))
+                        fileDates.put(value, simpleDateFormat.parse(value.getName().substring(0, value.getName().indexOf("_"))).getTime());
+                } catch (ParseException ignored) {
+                    // file not in correct format
                 }
-            } catch (IOException e) {
-                Bukkit.getLogger().warning(e.toString());
             }
-            // delete old backups
-            File[] files = backupDirectory.listFiles();
-            if (files != null) {
-                Map<File, Long> fileDates = new HashMap<>();
-                for (File value : files) {
-                    try {
-                        if (value.getName().contains("_"))
-                            fileDates.put(value, simpleDateFormat.parse(value.getName().substring(0, value.getName().indexOf("_"))).getTime());
-                    } catch (ParseException ignored) {
-                        // file not in correct format
-                    }
+            Map<File, Long> sortedMap =
+                    fileDates.entrySet().stream()
+                            .sorted(Map.Entry.comparingByValue())
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                                    (e1, e2) -> e1, LinkedHashMap::new));
+            // find out which files need to be deleted
+            final long maxWeeklyBackup = 1000L * 60 * 60 * 24 * 7 * 3;
+            final long maxDailyBackup = 1000L * 60 * 60 * 24 * 7;
+            int weeklyBackups = 0;
+            long lastWeeklyBackup = 0;
+            List<File> pendingDeletion = new ArrayList<>();
+            for (Map.Entry<File, Long> entry : sortedMap.entrySet()) {
+                long timeSinceCreation = System.currentTimeMillis() - entry.getValue();
+                if (timeSinceCreation > maxWeeklyBackup) {
+                    // too long ago to be useful
+                    pendingDeletion.add(entry.getKey());
+                    continue;
                 }
-                Map<File, Long> sortedMap =
-                        fileDates.entrySet().stream()
-                                .sorted(Map.Entry.comparingByValue())
-                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                                        (e1, e2) -> e1, LinkedHashMap::new));
-                // find out which files need to be deleted
-                final long maxWeeklyBackup = 1000L * 60 * 60 * 24 * 7 * 3;
-                final long maxDailyBackup = 1000L * 60 * 60 * 24 * 7;
-                int weeklyBackups = 0;
-                long lastWeeklyBackup = 0;
-                List<File> pendingDeletion = new ArrayList<>();
-                for (Map.Entry<File, Long> entry : sortedMap.entrySet()) {
-                    long timeSinceCreation = System.currentTimeMillis() - entry.getValue();
-                    if (timeSinceCreation > maxWeeklyBackup) {
-                        // too long ago to be useful
+                if (timeSinceCreation > maxDailyBackup) {
+                    // been over 7 days since this backup was created
+                    if (weeklyBackups == 0 || (weeklyBackups < 3 && timeSinceCreation - lastWeeklyBackup >= maxDailyBackup)) {
+                        // only keep 3 weekly backups
+                        weeklyBackups++;
+                        lastWeeklyBackup = timeSinceCreation;
+                    } else {
+                        // delete
                         pendingDeletion.add(entry.getKey());
-                        continue;
-                    }
-                    if (timeSinceCreation > maxDailyBackup) {
-                        // been over 7 days since this backup was created
-                        if (weeklyBackups == 0 || (weeklyBackups < 3 && timeSinceCreation - lastWeeklyBackup >= maxDailyBackup)) {
-                            // only keep 3 weekly backups
-                            weeklyBackups++;
-                            lastWeeklyBackup = timeSinceCreation;
-                        } else {
-                            // delete
-                            pendingDeletion.add(entry.getKey());
-                        }
                     }
                 }
-                for (File file : pendingDeletion) {
-                    if (!file.delete()) {
-                        Bukkit.getLogger().info("[NotBounties] Could not delete old backup.");
-                    }
+            }
+            for (File file : pendingDeletion) {
+                if (!file.delete()) {
+                    Bukkit.getLogger().info("[NotBounties] Could not delete old backup.");
                 }
             }
         }
+
     }
 
     public void loadConfig() throws IOException {
@@ -668,7 +646,6 @@ public final class NotBounties extends JavaPlugin {
         for (Map.Entry<UUID, WantedTags> entry : wantedText.entrySet()) {
             entry.getValue().removeStand();
         }
-        wantedText.clear();
         // save bounties & logged players
         save();
         try {
@@ -677,6 +654,7 @@ public final class NotBounties extends JavaPlugin {
             Bukkit.getLogger().severe("Error saving bounty maps!");
             Bukkit.getLogger().severe(e.toString());
         }
+        wantedText.clear();
         for (BountyBoard board : bountyBoards) {
             board.remove();
         }

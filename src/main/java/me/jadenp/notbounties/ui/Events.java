@@ -271,29 +271,7 @@ public class Events implements Listener {
     }
 
 
-    @EventHandler
-    public void onChunkLoad(ChunkLoadEvent event) {
-        if (NotBounties.isPaused())
-            return;
-        // remove persistent entities (wanted tags & bounty boards)
-        if (serverVersion <= 16)
-            if (WantedTags.isEnabled() || !bountyBoards.isEmpty())
-                for (Entity entity : event.getChunk().getEntities()) {
-                    if (entity == null)
-                        return;
-                    if (entity.getType() != EntityType.ARMOR_STAND && entity.getType() != EntityType.ITEM_FRAME)
-                        continue;
-                    PersistentDataContainer container = entity.getPersistentDataContainer();
-                    if (container.has(namespacedKey, PersistentDataType.STRING)) {
-                        String value = container.get(namespacedKey, PersistentDataType.STRING);
-                        if (value == null)
-                            continue;
-                        if (!value.equals(sessionKey)) {
-                            entity.remove();
-                        }
-                    }
-                }
-    }
+
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {

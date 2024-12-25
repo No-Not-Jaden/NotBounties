@@ -65,6 +65,7 @@ public class WantedTags {
 
     private final Player player;
     private ArmorStand armorStand = null;
+    private Location lastLocation = null;
     private long nextTextUpdateTime = 0;
     private long nextVisibilityUpdateTime = 0;
     private boolean enabled = true;
@@ -151,17 +152,20 @@ public class WantedTags {
     public void removeStand(){
         if (armorStand == null)
             return;
+        lastLocation = armorStand.getLocation();
+        armorStand.setInvulnerable(false);
+        armorStand.setCollidable(true);
+        armorStand.setVisible(true);
         armorStand.remove();
         armorStand = null;
     }
 
-    private void spawnWantedTag(){
+    private void spawnWantedTag() {
         armorStand = (ArmorStand) player.getWorld().spawnEntity(player.getEyeLocation().add(0,wantedOffset,0), EntityType.ARMOR_STAND);
         armorStand.setVisible(false);
         armorStand.setMarker(true);
         armorStand.setCustomName(getWantedDisplayText(player));
         armorStand.setCustomNameVisible(true);
-        //armorStand.setPersistent(true);
         armorStand.setAI(false);
         armorStand.setCollidable(false);
         armorStand.setRemoveWhenFarAway(false);
@@ -169,7 +173,14 @@ public class WantedTags {
         armorStand.getPersistentDataContainer().set(NotBounties.namespacedKey, PersistentDataType.STRING, NotBounties.sessionKey);
         if (NotBounties.serverVersion >= 17)
             player.hideEntity(NotBounties.getInstance(), armorStand);
+        if (lastLocation == null)
+            lastLocation = armorStand.getLocation();
+    }
 
+    public Location getLastLocation() {
+        if (armorStand != null)
+            lastLocation = armorStand.getLocation();
+        return lastLocation;
     }
 
 
