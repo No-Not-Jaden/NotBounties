@@ -109,6 +109,7 @@ public class ConfigOptions {
     private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level", "databases"};
     public static long bountyCooldown;
     public static int maxTabCompletePlayers;
+    public static int autoSaveInterval;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -402,6 +403,7 @@ public class ConfigOptions {
         bountyBackups = bounties.getConfig().getBoolean("bounty-backups");
         bountyCooldown = bounties.getConfig().getLong("bounty-cooldown");
         maxTabCompletePlayers = bounties.getConfig().getInt("max-tab-complete-players");
+        autoSaveInterval = bounties.getConfig().getInt("auto-save-interval");
 
 
         wantedLevels.clear();

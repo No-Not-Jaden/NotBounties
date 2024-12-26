@@ -256,11 +256,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                     newValue = args[1].equalsIgnoreCase("enable");
                     if (newValue != debug) {
                         debug = newValue;
-                        if (debug)
-                            if (!silent)
+                        if (debug) {
+                            if (!silent) {
                                 sender.sendMessage(parse(getPrefix() + ChatColor.GREEN + "Debug messages will now be sent in console.", parser));
-                            else if (!silent)
-                                sender.sendMessage(parse(getPrefix() + ChatColor.RED + "Debug messages will no longer be sent in console.", parser));
+                            }
+                        } else if (!silent) {
+                            sender.sendMessage(parse(getPrefix() + ChatColor.RED + "Debug messages will no longer be sent in console.", parser));
+                        }
                     } else {
                         if (!silent)
                             sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "Debug mode is already set this way.", parser));

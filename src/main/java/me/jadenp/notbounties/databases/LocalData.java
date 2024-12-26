@@ -23,6 +23,7 @@ public class LocalData implements NotBountiesDatabase {
         activeBounties.sort(Comparator.reverseOrder());
     }
 
+
     @Override
     public void addStats(UUID uuid, PlayerStat stats) {
         if (!playerStats.containsKey(uuid)) {
@@ -41,7 +42,11 @@ public class LocalData implements NotBountiesDatabase {
 
     @Override
     public Map<UUID, PlayerStat> getAllStats() {
-        return Collections.unmodifiableMap(playerStats);
+        Map<UUID, PlayerStat> snapshot;
+        synchronized (playerStats) {
+            snapshot = new HashMap<>(playerStats);
+        }
+        return snapshot;
     }
 
     @Override

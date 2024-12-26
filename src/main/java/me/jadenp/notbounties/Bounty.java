@@ -112,7 +112,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
 
     public void addBounty(Setter setter){
         // add a new setter
-        setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), setter.getTimeCreated(), Bukkit.getPlayer(uuid) != null, setter.getWhitelist(), BountyExpire.getTimePlayed(uuid), setter.getDisplayAmount()));
+        setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), setter.getTimeCreated(), setter.isNotified() || Bukkit.getPlayer(uuid) != null, setter.getWhitelist(), BountyExpire.getTimePlayed(uuid), setter.getDisplayAmount()));
     }
 
     public void notifyBounty() {

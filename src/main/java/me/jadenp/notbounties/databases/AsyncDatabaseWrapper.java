@@ -89,8 +89,8 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
     }
 
     /**
-     * Reads the data from the database and updates the
-     * @param sync Whether the read should be synchronous or asyncronous
+     * Reads the data from the database and updates the local data.
+     * @param sync Whether the read should be synchronous or asynchronous.
      */
     public void readDatabaseData(boolean sync) {
         if (isConnected() && System.currentTimeMillis() - database.getLastSync() > Math.min(refreshInterval * 1000L, MIN_UPDATE_INTERVAL)) {
@@ -141,7 +141,7 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
     public void disconnect() {
         if (isConnected()) {
             database.disconnect();
-            Bukkit.getLogger().warning(() -> "Lost connection with " + database.getName() + ".");
+            Bukkit.getLogger().warning(() -> "Disconnected from " + database.getName() + ".");
         }
     }
 

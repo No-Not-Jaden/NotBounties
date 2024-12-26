@@ -433,6 +433,7 @@ public class DataManager {
      */
     public static Set<Map.Entry<UUID, PlayerStat>> getLocalStats(){
         readPriorityDatabase();
+
         return getAllStats().entrySet().stream().filter(entry -> entry.getValue().serverID().equals(databaseServerID)).collect(Collectors.toUnmodifiableSet());
     }
 
@@ -572,8 +573,9 @@ public class DataManager {
                     database.notifyBounty(player.getUniqueId());
                 }
                 localData.notifyBounty(player.getUniqueId());
+                BigBounty.setBounty(player, bounty, addedAmount);
             }
-            BigBounty.setBounty(player, bounty, addedAmount);
+
             if (bounty.getTotalDisplayBounty() > BigBounty.getThreshold()) {
                 displayParticle.add(player.getUniqueId());
             }

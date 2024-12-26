@@ -122,6 +122,8 @@ see-player-list: false
 max-tab-complete-players: 50
 # Use NotBounties' methods to get skins
 override-skinsrestorer: false
+# How often player data will be saved in minutes.
+auto-save-interval: 15
 # back up any locally stored data
 bounty-backups: true
 # How long a player has to wait before setting another bounty - measured in seconds

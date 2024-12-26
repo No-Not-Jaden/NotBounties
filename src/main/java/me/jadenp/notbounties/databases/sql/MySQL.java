@@ -723,9 +723,11 @@ public class MySQL implements NotBountiesDatabase {
     @Override
     public void notifyBounty(UUID uuid) {
         if (isConnected()) {
-            try (PreparedStatement ps = getConnection().prepareStatement("UPDATE notbounties SET notified = 1 WHERE uuid = ? AND created < ?;")) {
+            try (PreparedStatement ps = getConnection().prepareStatement("UPDATE notbounties SET notified = 1 WHERE uuid = ?;")) {
                 ps.setString(1, uuid.toString());
-                ps.setLong(2, getLastSync());
+                // if a player joins after a bounty is placed, but before the next sync, then it won't be updated if the time is included, and they will get a duplicate notification
+                // without the time, if a player joins after a bounty is placed on another server and this server, then they won't get the notification for the other bounty.
+                //ps.setLong(2, getLastSync());
                 ps.executeUpdate();
 
             } catch (SQLException e) {
