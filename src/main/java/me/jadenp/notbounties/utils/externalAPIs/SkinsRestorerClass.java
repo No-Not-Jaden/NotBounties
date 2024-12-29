@@ -4,7 +4,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.ProxyMessaging;
+import me.jadenp.notbounties.databases.proxy.ProxyMessaging;
 import net.skinsrestorer.api.PropertyUtils;
 import net.skinsrestorer.api.SkinsRestorer;
 import net.skinsrestorer.api.SkinsRestorerProvider;

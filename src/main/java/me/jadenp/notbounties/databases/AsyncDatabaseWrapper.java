@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.*;
 
-public class AsyncDatabaseWrapper implements NotBountiesDatabase {
+public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     private static final Map<String, ActiveAsyncTask> taskList = new HashMap<>();
 
@@ -108,30 +108,41 @@ public class AsyncDatabaseWrapper implements NotBountiesDatabase {
 
     }
 
+    /**
+     * Update the data in this database with the specified values.
+     * @param databaseBounties Bounties in the database.
+     * @param databaseStats Stats in the database.
+     */
+    public void updateData(List<Bounty> databaseBounties, Map<UUID, PlayerStat> databaseStats) {
+
+        NotBounties.debugMessage("Receiving " + database.getName() + " data.", false);
+        LocalData localData = DataManager.getLocalData();
+        localData.setStats(databaseStats);
+
+        List<Bounty>[] dataChanges = Inconsistent.getAsyncronousObjects(localData.getAllBounties(2), databaseBounties, database.getLastSync());
+        // these bounties should be added/removed to local data
+        List<Bounty> databaseAdded = dataChanges[0];
+        List<Bounty> databaseRemoved = dataChanges[1];
+        // these bounties should be added/removed to the database
+        List<Bounty> localAdded = dataChanges[2];
+        List<Bounty> localRemoved = dataChanges[3];
+        // apply consistency changes
+        localData.addBounty(databaseAdded);
+        localData.removeBounty(databaseRemoved);
+        // these should be empty because databases should be updated immediately on a change.
+        addBounty(localAdded);
+        removeBounty(localRemoved);
+
+        database.setLastSync(System.currentTimeMillis());
+
+    }
+
     private void updateData() {
         if (isConnected()) {
-            NotBounties.debugMessage("Receiving " + database.getName() + " data.", false);
             try {
                 List<Bounty> databaseBounties = database.getAllBounties(2);
                 Map<UUID, PlayerStat> databaseStats = database.getAllStats();
-                LocalData localData = DataManager.getLocalData();
-                localData.setStats(databaseStats);
-
-                List<Bounty>[] dataChanges = Inconsistent.getAsyncronousObjects(localData.getAllBounties(2), databaseBounties, database.getLastSync());
-                // these bounties should be added/removed to local data
-                List<Bounty> databaseAdded = dataChanges[0];
-                List<Bounty> databaseRemoved = dataChanges[1];
-                // these bounties should be added/removed to the database
-                List<Bounty> localAdded = dataChanges[2];
-                List<Bounty> localRemoved = dataChanges[3];
-                // apply consistency changes
-                localData.addBounty(databaseAdded);
-                localData.removeBounty(databaseRemoved);
-                // these should be empty
-                addBounty(localAdded);
-                removeBounty(localRemoved);
-
-                database.setLastSync(System.currentTimeMillis());
+                updateData(databaseBounties, databaseStats);
             } catch (IOException e) {
                 disconnect();
             }

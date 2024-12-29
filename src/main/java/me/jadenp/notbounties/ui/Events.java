@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.ui;
 
-import com.mysql.cj.log.Log;
 import me.jadenp.notbounties.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
@@ -21,7 +20,6 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
@@ -31,10 +29,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.*;
-import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -161,15 +156,7 @@ public class Events implements Listener {
     }
 
     public static void logPlayer(Player player) {
-        // check if they are logged yet
-        if (!LoggedPlayers.isLogged(player.getUniqueId())) {
-            // if not, add them
-            LoggedPlayers.logPlayer(player.getName(), player.getUniqueId());
-        } else
-            // if they are, check if their username has changed, and update it
-            if (!LoggedPlayers.getPlayerName(player.getUniqueId()).equals(player.getName())) {
-                LoggedPlayers.replacePlayerName(player.getName(), player.getUniqueId());
-        }
+
     }
 
     public static void login(Player player) {
@@ -178,8 +165,7 @@ public class Events implements Listener {
         BountyExpire.login(player);
         ChallengeManager.login(player);
         DataManager.login(player);
-
-        logPlayer(player);
+        LoggedPlayers.login(player);
 
         new BukkitRunnable() {
             @Override

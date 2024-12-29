@@ -3,7 +3,7 @@ package me.jadenp.notbounties.utils.externalAPIs;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.utils.ProxyMessaging;
+import me.jadenp.notbounties.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.apache.hc.client5.http.auth.AuthScope;

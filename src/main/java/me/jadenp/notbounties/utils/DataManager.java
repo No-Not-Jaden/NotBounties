@@ -7,6 +7,7 @@ import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
 import me.jadenp.notbounties.databases.LocalData;
 import me.jadenp.notbounties.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.databases.TempDatabase;
+import me.jadenp.notbounties.databases.proxy.ProxyDatabase;
 import me.jadenp.notbounties.databases.redis.RedisConnection;
 import me.jadenp.notbounties.databases.sql.MySQL;
 import me.jadenp.notbounties.ui.BountyTracker;
@@ -56,6 +57,11 @@ public class DataManager {
         return localData;
     }
 
+    public static void connectProxy(List<Bounty> bounties, Map<UUID, PlayerStat> playerStatMap) {
+        // turn local data into proxy database
+
+    }
+
     public static void loadDatabaseConfig(ConfigurationSection configuration) {
         for (String databaseName : configuration.getKeys(false)) {
             boolean newDatabase = true;
@@ -74,6 +80,7 @@ public class DataManager {
                     switch (type.toUpperCase()) {
                         case "SQL" -> database = new MySQL(NotBounties.getInstance(), databaseName);
                         case "REDIS" -> database = new RedisConnection(NotBounties.getInstance(), databaseName);
+                        case "PROXY" -> database = new ProxyDatabase(NotBounties.getInstance(), databaseName);
                         default -> {
                             Bukkit.getLogger().warning(() -> "[NotBounties] Unknown database type for " + databaseName + ": " + type);
                             continue;
@@ -770,6 +777,8 @@ public class DataManager {
                     Bukkit.getLogger().warning("[NotBounties] Incomplete connection to " + database.getName());
                     return;
                 }
+
+
                 long lastSyncTime = database.getLastSync();// get last sync time
                 database.setLastSync(System.currentTimeMillis());
 
@@ -793,7 +802,7 @@ public class DataManager {
                     // doesn't have local data
                     // combine both local and database stats
                     database.addStats(localStats);
-                    localData.addStats(databaseStats);
+                    DataManager.localData.addStats(databaseStats);
                 } else {
                     // database has connected before
 
@@ -834,7 +843,7 @@ public class DataManager {
                                 else
                                     databaseStats.put(entry.getKey(), entry.getValue());
                             }
-                            localData.setStats(databaseStats);
+                            DataManager.localData.setStats(databaseStats);
                         }
                     }
                 }
@@ -844,9 +853,12 @@ public class DataManager {
                         LoggedPlayers.logPlayer(bounty.getName(), bounty.getUUID());
                     }
                 }
+
             }
         }.runTaskAsynchronously(NotBounties.getInstance());
     }
+
+
 
     private static void tryDatabaseConnections() {
         for (NotBountiesDatabase database : databases) {

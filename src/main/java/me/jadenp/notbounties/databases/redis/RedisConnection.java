@@ -22,65 +22,42 @@ import java.util.*;
 /**
  * Data is stored in Redis which is basically a string hashmap
  */
-public class RedisConnection implements NotBountiesDatabase {
+public class RedisConnection extends NotBountiesDatabase {
     private RedisClient redis = null;
     private StatefulRedisConnection<String, String> connection = null;
     private RedisCommands<String, String> data = null;
     private long failedConnectionTimeout = 0;
-    private final Plugin plugin;
     private boolean connectedBefore = false;
-    private int refreshInterval = 300;
-    private long lastSync = 0;
 
-    private final String name;
     private String username = "username";
     private String password = "pass";
     private String host = "localhost";
     private int port = 3306;
     private int databaseNumber = -1;
     private boolean ssl = false;
-    private int priority;
 
     private static final String BOUNTIES_KEY = "bounties";
     private static final String STATS_KEY = "stats";
-    private static final String SERVER_IDS_KEY = "servers";
     private static final String ONLINE_PLAYERS_KEY = "players";
 
     public RedisConnection(Plugin plugin, String name) {
-        this.plugin = plugin;
-        this.name = name;
-
-        readConfig();
+        super(plugin, name);
 
         redis = RedisClient.create(constructURI());
     }
 
-    private void readConfig() {
-        ConfigurationSection configuration = plugin.getConfig().getConfigurationSection("databases." + name);
+    @Override
+    protected ConfigurationSection readConfig() {
+        ConfigurationSection configuration = super.readConfig();
         if (configuration == null)
-            return;
+            return null;
         host = configuration.isSet( "host") ? configuration.getString( "host") : "localhost";
         port = configuration.isSet( "port") ? configuration.getInt( "port") : 3306;
         databaseNumber = configuration.isSet( "database-number") ? configuration.getInt( "database-number") : -1;
         username = configuration.isSet( "user") ? configuration.getString( "user") : "user";
         password = configuration.isSet( "password") ? configuration.getString( "password") : "";
         ssl = configuration.isSet( "use-ssl") && configuration.getBoolean( "use-ssl");
-        refreshInterval = configuration.isSet("refresh-interval") ? configuration.getInt("refresh-interval") : 300;
-        priority = configuration.isSet("priority") ? configuration.getInt("priority") : 0;
-    }
-
-    public int getRefreshInterval() {
-        return refreshInterval;
-    }
-
-    @Override
-    public long getLastSync() {
-        return lastSync;
-    }
-
-    @Override
-    public void setLastSync(long lastSync) {
-        this.lastSync = lastSync;
+        return configuration;
     }
 
     @Override
@@ -90,12 +67,7 @@ public class RedisConnection implements NotBountiesDatabase {
             getData().hgetall(ONLINE_PLAYERS_KEY).forEach((key, value) -> players.put(UUID.fromString(key), value.substring(value.indexOf(":") + 1)));
             return players;
         }
-        throw new IOException("Database is not connected!");
-    }
-
-    @Override
-    public int getPriority() {
-        return priority;
+        throw notConnectedException;
     }
 
     private RedisCommands<String, String> getData() {
@@ -121,8 +93,9 @@ public class RedisConnection implements NotBountiesDatabase {
         return uri;
     }
 
-    private long getConfigHash() {
-        return (long) host.hashCode() + port + databaseNumber + username.hashCode() + password.hashCode() + (ssl ? 1 : 0) + refreshInterval + priority;
+    @Override
+    protected long getConfigHash() {
+        return super.getConfigHash() + Objects.hash(host, port, databaseNumber, username, password, ssl);
     }
 
     @Override
@@ -256,7 +229,7 @@ public class RedisConnection implements NotBountiesDatabase {
                 return new PlayerStat(jsonResult);
             return new PlayerStat(0,0,0,0,0,0, DataManager.GLOBAL_SERVER_ID);
         }
-        throw new IOException("Database is not connected!");
+        throw notConnectedException;
     }
 
     /**
@@ -265,7 +238,7 @@ public class RedisConnection implements NotBountiesDatabase {
      */
     public Map<UUID, PlayerStat> getAllStats() throws IOException {
         if (getData() == null)
-            throw new IOException("Database is not connected!");
+            throw notConnectedException;
         Map<UUID, PlayerStat> stats = new HashMap<>();
         for (Map.Entry<String, String> entry : getData().hgetall(STATS_KEY).entrySet()) {
             stats.put(UUID.fromString(entry.getKey()), new PlayerStat(entry.getValue()));
@@ -311,7 +284,7 @@ public class RedisConnection implements NotBountiesDatabase {
      */
     public Bounty addBounty(@NotNull Bounty bounty) throws IOException {
         if (getData() == null) {
-            throw new IOException("Database is not connected!");
+            throw notConnectedException;
         }
         Bounty prevBounty = getBounty(bounty.getUUID());
         if (prevBounty != null) {
@@ -345,7 +318,7 @@ public class RedisConnection implements NotBountiesDatabase {
             }
             return null;
         }
-        throw new IOException("Database is not connected!");
+        throw notConnectedException;
     }
 
     /**
@@ -391,7 +364,7 @@ public class RedisConnection implements NotBountiesDatabase {
      */
     public List<Bounty> getAllBounties(int sortType) throws IOException{
         if (getData() == null)
-            throw new IOException("Database is not connected!");
+            throw notConnectedException;
         List<Bounty> bounties = new ArrayList<>();
         for (Map.Entry<String, String> entry : getData().hgetall(BOUNTIES_KEY).entrySet()) {
             bounties.add(new Bounty(entry.getValue()));
@@ -423,9 +396,4 @@ public class RedisConnection implements NotBountiesDatabase {
         return bounties;
     }
 
-
-    @Override
-    public String getName() {
-        return name;
-    }
 }

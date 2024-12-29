@@ -21,57 +21,43 @@ import java.sql.*;
 import java.util.*;
 
 // remove bounty server id
-public class MySQL implements NotBountiesDatabase {
-    private final Plugin plugin;
+public class MySQL extends NotBountiesDatabase {
     private Connection connection;
     private boolean hasConnected = false;
     private long nextReconnectAttempt;
     private int reconnectAttempts;
-    private long lastSync = 0;
 
-    private final String name;
     private String host;
     private int port;
     private String database;
     private String username;
     private String password;
     private boolean useSSL;
-    private int refreshInterval;
-    private int priority;
 
     public MySQL(Plugin plugin, String name){
-        this.plugin = plugin;
-        this.name = name;
-        readConfig();
+        super(plugin, name);
 
         nextReconnectAttempt = System.currentTimeMillis();
         reconnectAttempts = 0;
     }
 
-    private void readConfig() {
-        ConfigurationSection configuration = plugin.getConfig().getConfigurationSection("databases." + name);
+    @Override
+    protected ConfigurationSection readConfig() {
+        ConfigurationSection configuration = super.readConfig();
         if (configuration == null)
-            return;
+            return null;
         host = configuration.isSet( "host") ? configuration.getString( "host") : "localhost";
         port = configuration.isSet( "port") ? configuration.getInt( "port") : 3306;
         database = configuration.isSet( "database") ? configuration.getString( "database") : "db";
         username = configuration.isSet( "user") ? configuration.getString( "user") : "user";
         password = configuration.isSet( "password") ? configuration.getString( "password") : "";
         useSSL = configuration.isSet( "use-ssl") && configuration.getBoolean( "use-ssl");
-        refreshInterval = configuration.isSet("refresh-interval") ? configuration.getInt("refresh-interval") : 300;
-        priority = configuration.isSet("priority") ? configuration.getInt("priority") : 0;
+        return configuration;
     }
 
     @Override
-    public void reloadConfig() {
-        long oldHash = getConfigHash();
-        readConfig();
-        if (oldHash != getConfigHash())
-            connect();
-    }
-
-    private long getConfigHash() {
-        return (long) host.hashCode() + port + database.hashCode() + username.hashCode() + password.hashCode() + (useSSL ? 1 : 0) + refreshInterval + priority;
+    protected long getConfigHash() {
+        return super.getConfigHash() + Objects.hash(host, port, database, username, password, useSSL);
     }
 
     public String getDatabase() {
@@ -133,7 +119,7 @@ public class MySQL implements NotBountiesDatabase {
                 }
             }
         }
-        throw new IOException("Database is not connected!");
+        throw notConnectedException;
     }
 
     @Override
@@ -161,7 +147,7 @@ public class MySQL implements NotBountiesDatabase {
                 }
             }
         }
-        throw new IOException("Database is not connected!");
+        throw notConnectedException;
     }
 
     @Override
@@ -315,7 +301,7 @@ public class MySQL implements NotBountiesDatabase {
                 // database has lost connection
             }
         }
-        throw new IOException("Database is not connected!");
+        throw notConnectedException;
     }
 
     /**
@@ -458,12 +444,7 @@ public class MySQL implements NotBountiesDatabase {
                 }
             }
         }
-        throw new IOException("Database is not connected!");
-    }
-
-    @Override
-    public String getName() {
-        return name;
+        throw notConnectedException;
     }
 
     public boolean isConnected() {
@@ -480,21 +461,6 @@ public class MySQL implements NotBountiesDatabase {
 
     public boolean hasConnectedBefore() {
         return hasConnected;
-    }
-
-    @Override
-    public int getRefreshInterval() {
-        return refreshInterval;
-    }
-
-    @Override
-    public long getLastSync() {
-        return lastSync;
-    }
-
-    @Override
-    public void setLastSync(long lastSync) {
-        this.lastSync = lastSync;
     }
 
     private boolean makeConnection(){
@@ -708,11 +674,6 @@ public class MySQL implements NotBountiesDatabase {
             }
         }
         return networkPlayers;
-    }
-
-    @Override
-    public int getPriority() {
-        return priority;
     }
 
     @Override

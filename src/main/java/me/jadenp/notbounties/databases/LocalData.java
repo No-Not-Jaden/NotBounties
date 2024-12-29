@@ -15,14 +15,25 @@ import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.isVanished;
 
-public class LocalData implements NotBountiesDatabase {
-    private final List<Bounty> activeBounties =  Collections.synchronizedList(new LinkedList<>());
-    private final Map<UUID, PlayerStat> playerStats = Collections.synchronizedMap(new HashMap<>());
+public class LocalData extends NotBountiesDatabase {
+    protected final List<Bounty> activeBounties;
+    protected final Map<UUID, PlayerStat> playerStats;
+
+    public LocalData() {
+        super(null, "LocalData");
+        activeBounties = Collections.synchronizedList(new LinkedList<>());
+        playerStats = Collections.synchronizedMap(new HashMap<>());
+    }
+
+    protected LocalData(List<Bounty> activeBounties, Map<UUID, PlayerStat> playerStats) {
+        super(null, "LocalData");
+        this.activeBounties = activeBounties;
+        this.playerStats = playerStats;
+    }
 
     private void sortActiveBounties() {
         activeBounties.sort(Comparator.reverseOrder());
     }
-
 
     @Override
     public void addStats(UUID uuid, PlayerStat stats) {
@@ -76,6 +87,7 @@ public class LocalData implements NotBountiesDatabase {
 
     @Override
     public Bounty addBounty(@NotNull Bounty bounty) {
+        // <TODO> make this linear search because of linked list
         Bounty prevBounty = getBounty(bounty.getUUID());
         if (prevBounty == null) {
             // insert new bounty for this player

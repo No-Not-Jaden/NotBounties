@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.databases.proxy.ProxyMessaging;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -17,7 +18,7 @@ public class LoggedPlayers {
     /**
      * Name (lowercase), UUID
      */
-    private static final Map<String, UUID> loggedPlayers = new HashMap<>();
+    private static final Map<String, UUID> playerIDs = new HashMap<>();
     /**
      * UUID, Name
      */
@@ -31,7 +32,7 @@ public class LoggedPlayers {
             while (configuration.getString(i + ".name") != null) {
                 String name = Objects.requireNonNull(configuration.getString( i + ".name"));
                 UUID uuid = UUID.fromString(Objects.requireNonNull(configuration.getString(i + ".uuid")));
-                loggedPlayers.put(name.toLowerCase(), uuid);
+                playerIDs.put(name.toLowerCase(), uuid);
                 playerNames.put(uuid, name);
                 i++;
             }
@@ -41,7 +42,7 @@ public class LoggedPlayers {
                 String name = Objects.requireNonNull(configuration.getString(key));
                 try {
                     UUID uuid = UUID.fromString(key);
-                    loggedPlayers.put(name.toLowerCase(), uuid);
+                    playerIDs.put(name.toLowerCase(), uuid);
                     playerNames.put(uuid, name);
                 } catch (IllegalArgumentException e) {
                     Bukkit.getLogger().warning("Key in logged-players is not a UUID: " + key);
@@ -63,8 +64,8 @@ public class LoggedPlayers {
         Player player = Bukkit.getPlayer(name);
         if (player != null)
             return player.getUniqueId();
-        if (loggedPlayers.containsKey(name))
-            return loggedPlayers.get(name.toLowerCase(Locale.ROOT));
+        if (playerIDs.containsKey(name))
+            return playerIDs.get(name.toLowerCase(Locale.ROOT));
         try {
             return UUID.fromString(name);
         } catch (IllegalArgumentException e) {
@@ -73,36 +74,50 @@ public class LoggedPlayers {
     }
 
     public static void logPlayer(String name, UUID uuid) {
-        loggedPlayers.put(name.toLowerCase(), uuid);
+        playerIDs.put(name.toLowerCase(), uuid);
         playerNames.put(uuid, name);
     }
 
     public static void replacePlayerName(String newName, UUID uuid) {
         String oldName = playerNames.get(uuid);
         if (oldName != null)
-            loggedPlayers.remove(oldName.toLowerCase());
-        loggedPlayers.put(newName.toLowerCase(), uuid);
+            playerIDs.remove(oldName.toLowerCase());
+        playerIDs.put(newName.toLowerCase(), uuid);
         playerNames.put(uuid, newName);
     }
 
     public static boolean isLogged(String name) {
-        return loggedPlayers.containsKey(name.toLowerCase());
+        return playerIDs.containsKey(name.toLowerCase());
     }
 
     public static boolean isLogged(UUID uuid) {
         return playerNames.containsKey(uuid);
     }
 
+    public static void login(Player player) {
+        // check if they are logged yet
+        if (!isLogged(player.getUniqueId())) {
+            // if not, add them
+            logPlayer(player.getName(), player.getUniqueId());
+            // send a proxy message to log
+            ProxyMessaging.logNewPlayer(player.getName(), player.getUniqueId());
+        } else
+            // if they are, check if their username has changed, and update it
+            if (!getPlayerName(player.getUniqueId()).equals(player.getName())) {
+                replacePlayerName(player.getName(), player.getUniqueId());
+            }
+    }
+
     private static UUID getClosestPlayer(String playerName) {
         List<String> viableNames = new ArrayList<>();
-        for (Map.Entry<String, UUID> entry : loggedPlayers.entrySet()) {
+        for (Map.Entry<String, UUID> entry : playerIDs.entrySet()) {
             if (entry.getKey().toLowerCase().startsWith(playerName.toLowerCase()))
                 viableNames.add(entry.getKey());
         }
         if (viableNames.isEmpty())
             return null;
         Collections.sort(viableNames);
-        return loggedPlayers.get(viableNames.get(0));
+        return playerIDs.get(viableNames.get(0));
     }
 
     public static @NotNull String getPlayerName(UUID uuid) {
