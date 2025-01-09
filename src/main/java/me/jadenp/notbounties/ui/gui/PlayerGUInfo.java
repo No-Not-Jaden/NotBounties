@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.ui.gui;
 
-import me.jadenp.notbounties.ui.gui.displayItems.DisplayItem;
+import me.jadenp.notbounties.ui.gui.display_items.DisplayItem;
 
 import java.util.List;
 

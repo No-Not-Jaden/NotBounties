@@ -7,7 +7,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.jadenp.notbounties.utils.externalAPIs.SkinsRestorerClass;
+import me.jadenp.notbounties.utils.external_api.SkinsRestorerClass;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -30,18 +30,21 @@ public class SkinManager {
     private static final Map<UUID, Long> requestCooldown = new HashMap<>();
     private static final long REQUEST_FAIL_TIMEOUT = 60000 * 30L; // 30 min
     private static final long CONCURRENT_REQUEST_INTERVAL = 10000;
+    private static final String MISSING_SKIN_TEXTURE = "http://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57";
+    private static final String MISSING_SKIN_ID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
     private static final PlayerSkin missingSkin;
-    private static final List<Long> rateLimit = new ArrayList<>(); // 200 requests / min
-    private static final List<UUID> queuedRequests = new ArrayList<>();
 
     static {
         try {
-            missingSkin = new PlayerSkin(new URL("http://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57"), "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82");
-        } catch (MalformedURLException e) {
+            missingSkin = new PlayerSkin(new URI(MISSING_SKIN_TEXTURE).toURL(), MISSING_SKIN_ID);
+        } catch (MalformedURLException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin); // console
+        savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin);
     }
+
+    private static final List<Long> rateLimit = new ArrayList<>(); // 200 requests / min
+    private static final List<UUID> queuedRequests = new ArrayList<>();
 
     private SkinManager(){}
 

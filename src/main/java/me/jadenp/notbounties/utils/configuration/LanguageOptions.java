@@ -1,18 +1,20 @@
 package me.jadenp.notbounties.utils.configuration;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.PlayerData;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
-import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
+import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.Tutorial;
-import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
-import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
-import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.external_api.LocalTime;
+import me.jadenp.notbounties.utils.external_api.PlaceholderAPIClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -33,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.externalAPIs.LocalTime.formatTime;
+import static me.jadenp.notbounties.utils.external_api.LocalTime.formatTime;
 import static net.md_5.bungee.api.ChatColor.COLOR_CHAR;
 
 public class LanguageOptions {
@@ -135,7 +137,7 @@ public class LanguageOptions {
             page++;
         if (page == 4 && !(sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled))
             page++;
-        if (page == 5 && !(sender.hasPermission("notbounties.buyown") && buyBack) && !(sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE))
+        if (page == 5 && !(sender.hasPermission("notbounties.buyown") && buyBack) && !(sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE))
             page++;
         if (page == 6 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
             page++;
@@ -169,8 +171,8 @@ public class LanguageOptions {
         if (sender.hasPermission("notbounties.buyown") & buyBack) {
             sendHelpMessage(sender, getListMessage("help.buy-own"));
         }
-        if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
-            switch (Immunity.immunityType) {
+        if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
+            switch (Immunity.getImmunityType()) {
                 case PERMANENT:
                     sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                     break;
@@ -248,8 +250,8 @@ public class LanguageOptions {
                 if (sender.hasPermission("notbounties.buyown") & buyBack) {
                     sendHelpMessage(sender, getListMessage("help.buy-own"));
                 }
-                if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
-                    switch (Immunity.immunityType) {
+                if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
+                    switch (Immunity.getImmunityType()) {
                         case PERMANENT:
                             sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                             break;
@@ -378,13 +380,14 @@ public class LanguageOptions {
             }
             if (str.contains("{balance}"))
                 str = str.replace("{balance}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));
-            Whitelist whitelist = NotBounties.getPlayerWhitelist(receiver.getUniqueId());
+            PlayerData playerData = DataManager.getPlayerData(receiver.getUniqueId());
+            Whitelist whitelist = playerData.getWhitelist();
             str = str.replace("{whitelist}", (whitelist.toString()));
             String mode = whitelist.isBlacklist() ? "Blacklist" : "Whitelist";
             str = str.replace("{mode}", mode);
             mode = whitelist.isBlacklist() ? "false" : "true";
             str = str.replace("{mode_raw}", mode);
-            String notification = NotBounties.disableBroadcast.contains(receiver.getUniqueId()) ? "false" : "true";
+            String notification = playerData.isDisableBroadcast() ? "true" : "false";
             str = str.replace("{notification}", notification);
             // {whitelist2} turns into the name of the second player in the receiver's whitelist
             while (str.contains("{whitelist") && str.substring(str.indexOf("{whitelist")).contains("}")) {

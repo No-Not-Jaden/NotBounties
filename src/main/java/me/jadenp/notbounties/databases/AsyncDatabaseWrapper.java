@@ -1,10 +1,10 @@
 package me.jadenp.notbounties.databases;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
-import me.jadenp.notbounties.utils.PlayerStat;
+import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -60,6 +60,9 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     private long lastOnlinePlayerRequest = 0;
     private final Map<UUID, PlayerStat> statChanges = new HashMap<>();
     private Map<UUID, String> onlinePlayers = new HashMap<>();
+    private static final long CONNECTION_TEST_INTERVAL = 500L; // the minimum amount of time between connection tests
+    private long lastConnectionTest = 0;
+    private boolean lastConnection = false;
 
     public AsyncDatabaseWrapper(NotBountiesDatabase database) {
         this.database = database;
@@ -325,14 +328,18 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     @Override
     public boolean isConnected() {
-        try {
-            return database.isConnected();
-        } catch (NoClassDefFoundError e) {
-            // Couldn't load a dependency.
-            // This will be thrown if unable to use Spigot's library loader
-            NotBounties.debugMessage("One or more dependencies could not be downloaded to use the database: " + database.getName(), true);
-            return false;
+        if (System.currentTimeMillis() - lastConnectionTest > CONNECTION_TEST_INTERVAL) {
+            lastConnectionTest = System.currentTimeMillis();
+            try {
+                lastConnection = database.isConnected();
+            } catch (NoClassDefFoundError e) {
+                // Couldn't load a dependency.
+                // This will be thrown if unable to use Spigot's library loader
+                NotBounties.debugMessage("One or more dependencies could not be downloaded to use the database: " + database.getName(), true);
+                lastConnection = false;
+            }
         }
+        return lastConnection;
     }
 
 
@@ -378,9 +385,9 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     @Override
     public Map<UUID, String> getOnlinePlayers() {
         if (System.currentTimeMillis() - lastOnlinePlayerRequest > MIN_UPDATE_INTERVAL) {
+            lastOnlinePlayerRequest = System.currentTimeMillis();
             try {
                 onlinePlayers = database.getOnlinePlayers();
-                lastOnlinePlayerRequest = System.currentTimeMillis();
             } catch (IOException e) {
                 onlinePlayers.clear();
                 disconnect();

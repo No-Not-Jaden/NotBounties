@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.utils.configuration;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;

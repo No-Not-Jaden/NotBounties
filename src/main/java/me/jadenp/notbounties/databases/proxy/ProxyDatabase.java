@@ -1,10 +1,12 @@
 package me.jadenp.notbounties.databases.proxy;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.BountyChange;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.PlayerStat;
+import me.jadenp.notbounties.data.PlayerStat;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -13,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.*;
 
-/** <TODO> save last sync time, override extra methods</TODO>
+/**
  * The proxy database works slightly differently than the others:
  * - A player must be online to receive or send data
  * - When a player joins, the server will receive the database
@@ -23,11 +25,9 @@ import java.util.*;
  */
 public class ProxyDatabase extends NotBountiesDatabase {
 
-    private boolean enabled = false;
-    private int numOnlinePlayers = 0;
+    private boolean enabled;
+    private int numOnlinePlayers;
     private boolean hasConnected = false;
-    private List<BountyChange> bountyChanges = new LinkedList<>();
-    private Map<UUID, PlayerStat> statChanges = new HashMap<>();
     private static Map<UUID, String> databaseOnlinePlayers = new HashMap<>();
     private static long lastOnlinePlayersCheck = 0;
 
@@ -47,32 +47,9 @@ public class ProxyDatabase extends NotBountiesDatabase {
         }
     }
 
-    private void checkConnection() {
-        if (isConnected() && !hasConnected) {
-            requestPlayerList();
-            hasConnected = true;
-            ProxyMessaging.sendBountyUpdate(bountyChanges);
-            ProxyMessaging.sendStatUpdate(statChanges);
-            bountyChanges.clear();
-            statChanges.clear();
-        }
-    }
-
     @Override
     public void addStats(UUID uuid, PlayerStat stats) {
-        if (enabled) {
-            if (hasConnected) {
-                // send stats through proxy
-                ProxyMessaging.sendStatUpdate(Collections.singletonMap(uuid, stats));
-            } else {
-                // store change
-                if (statChanges.containsKey(uuid))
-                    statChanges.replace(uuid, statChanges.get(uuid).combineStats(stats));
-                else
-                    statChanges.put(uuid, stats);
-                checkConnection();
-            }
-        }
+        ProxyMessaging.sendStatUpdate(Collections.singletonMap(uuid, stats));
     }
 
     @Override
@@ -87,64 +64,33 @@ public class ProxyDatabase extends NotBountiesDatabase {
 
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) {
-        if (enabled) {
-            if (hasConnected) {
-                // send stats through proxy
-                ProxyMessaging.sendStatUpdate(playerStats);
-            } else {
-                // store change
-                for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
-                    if (statChanges.containsKey(entry.getKey()))
-                        statChanges.replace(entry.getKey(), statChanges.get(entry.getKey()).combineStats(entry.getValue()));
-                    else
-                        statChanges.put(entry.getKey(), entry.getValue());
-                }
-                checkConnection();
-            }
-        }
+        ProxyMessaging.sendStatUpdate(playerStats);
+
     }
 
 
 
     @Override
     public void addBounty(List<Bounty> bounties) {
-        if (enabled) {
+
             List<BountyChange> changes = bounties.stream().map(
                     bounty -> new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, bounty)).toList();
-            if (hasConnected) {
-                ProxyMessaging.sendBountyUpdate(changes);
-            } else {
-                bountyChanges.addAll(changes);
-            }
-            checkConnection();
-        }
+        ProxyMessaging.sendBountyUpdate(changes);
     }
 
     @Override
     public void removeBounty(List<Bounty> bounties) {
-        if (enabled) {
+
             List<BountyChange> changes = bounties.stream().map(
                     bounty -> new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, bounty)).toList();
-            if (hasConnected) {
-                ProxyMessaging.sendBountyUpdate(changes);
-            } else {
-                bountyChanges.addAll(changes);
-            }
-            checkConnection();
-        }
+        ProxyMessaging.sendBountyUpdate(changes);
     }
 
     @Override
     public Bounty addBounty(@NotNull Bounty bounty) {
-        if (enabled) {
+
             BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, bounty);
-            if (hasConnected) {
-                ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
-            } else {
-                bountyChanges.add(bountyChange);
-            }
-            checkConnection();
-        }
+        ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
         return bounty;
     }
 
@@ -155,28 +101,14 @@ public class ProxyDatabase extends NotBountiesDatabase {
 
     @Override
     public void removeBounty(UUID uuid) {
-        if (enabled) {
-            BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, getBounty(uuid));
-            if (hasConnected) {
-                ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
-            } else {
-                bountyChanges.add(bountyChange);
-            }
-            checkConnection();
-        }
+        BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, new Bounty(uuid, Collections.emptyList(), ""));
+        ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
     }
 
     @Override
     public void removeBounty(Bounty bounty) {
-        if (enabled) {
             BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, bounty);
-            if (hasConnected) {
-                ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
-            } else {
-                bountyChanges.add(bountyChange);
-            }
-            checkConnection();
-        }
+        ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
     }
 
     @Override
@@ -186,7 +118,6 @@ public class ProxyDatabase extends NotBountiesDatabase {
 
     @Override
     public boolean isConnected() {
-        // once connected, always connected
         return enabled && ProxyMessaging.hasConnectedBefore() && numOnlinePlayers > 0;
     }
 
@@ -222,34 +153,50 @@ public class ProxyDatabase extends NotBountiesDatabase {
     }
 
     @Override
-    protected long getConfigHash() {
-        return super.getConfigHash() + Objects.hash(enabled);
+    public int hashCode() {
+        return super.hashCode() + Objects.hash(enabled);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ProxyDatabase that = (ProxyDatabase) o;
+        return enabled == that.enabled && numOnlinePlayers == that.numOnlinePlayers && hasConnected == that.hasConnected;
     }
 
     @Override
     public void notifyBounty(UUID uuid) {
-        if (enabled) {
+
             BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.NOTIFY, getBounty(uuid));
-            if (hasConnected) {
+        ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
+            /*if (hasConnected) {
                 ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
             } else {
                 bountyChanges.add(bountyChange);
             }
-            checkConnection();
-        }
+            checkConnection();*/
+
     }
 
     @Override
     public void replaceBounty(UUID uuid, Bounty bounty) {
-        if (enabled) {
+
             BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.REPLACE_BOUNTY, bounty);
-            if (hasConnected) {
+        ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
+            /*if (hasConnected) {
                 ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
             } else {
                 bountyChanges.add(bountyChange);
             }
-            checkConnection();
-        }
+            checkConnection();*/
+
+    }
+
+    @Override
+    public int getRefreshInterval() {
+        return 1000000;
     }
 
     @Override

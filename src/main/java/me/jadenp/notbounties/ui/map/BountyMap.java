@@ -2,14 +2,14 @@ package me.jadenp.notbounties.ui.map;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.challenges.ChallengeType;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
+import me.jadenp.notbounties.utils.external_api.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;

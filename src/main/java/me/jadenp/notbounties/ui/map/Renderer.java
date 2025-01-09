@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.ui.map;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -9,7 +9,7 @@ import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.external_api.PlaceholderAPIClass;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
 
 public class Renderer extends MapRenderer {
     private BufferedImage image = null;

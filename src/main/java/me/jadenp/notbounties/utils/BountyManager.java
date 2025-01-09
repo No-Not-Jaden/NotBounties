@@ -1,19 +1,18 @@
 package me.jadenp.notbounties.utils;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
-import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
-import me.jadenp.notbounties.bountyEvents.BountySetEvent;
+import me.jadenp.notbounties.bounty_events.BountyClaimEvent;
+import me.jadenp.notbounties.bounty_events.BountySetEvent;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.utils.configuration.*;
-import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
-import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
+import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -40,11 +39,6 @@ import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 
 public class BountyManager {
-
-    public static final Map<UUID, Double> refundedBounties = new HashMap<>();
-    public static final Map<UUID, List<ItemStack>> refundedItems = new HashMap<>();
-    public static final Map<UUID, List<RewardHead>> headRewards = new HashMap<>();
-    public static final Map<UUID, Long> bountyCooldowns = new HashMap<>();
 
     private static final int length = 10;
 
@@ -153,7 +147,7 @@ public class BountyManager {
         if (whitelist.getList().isEmpty()) {
             if (displayAmount >= minBroadcast)
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (!NotBounties.disableBroadcast.contains(player.getUniqueId()) && !player.getUniqueId().equals(receiver.getUniqueId()) && !player.getUniqueId().equals(setter.getUniqueId())) {
+                    if (!DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() && !player.getUniqueId().equals(receiver.getUniqueId()) && !player.getUniqueId().equals(setter.getUniqueId())) {
                         player.sendMessage(message);
                     }
                 }
@@ -176,7 +170,7 @@ public class BountyManager {
         }
         ActionCommands.executeBountySet(receiver.getUniqueId(), setter, bounty);
         if (bountyCooldown > 0)
-            bountyCooldowns.put(setter.getUniqueId(), System.currentTimeMillis());
+            DataManager.getPlayerData(setter.getUniqueId()).setBountyCooldown(System.currentTimeMillis());
     }
 
     public static void addBounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
@@ -222,7 +216,7 @@ public class BountyManager {
         if (whitelist.getList().isEmpty()) {
             if (displayAmount >= minBroadcast)
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (!NotBounties.disableBroadcast.contains(player.getUniqueId()) && !player.getUniqueId().equals(receiver.getUniqueId())) {
+                    if (!DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() && !player.getUniqueId().equals(receiver.getUniqueId())) {
                         player.sendMessage(message);
                     }
                 }
@@ -284,22 +278,13 @@ public class BountyManager {
 
     private static void addRefund(UUID uuid, double amount) {
         if (!uuid.equals(DataManager.GLOBAL_SERVER_ID)) {
-            if (refundedBounties.containsKey(uuid)) {
-                refundedBounties.replace(uuid, refundedBounties.get(uuid) + amount);
-            } else {
-                refundedBounties.put(uuid, amount);
-            }
+            DataManager.getPlayerData(uuid).addRefund(amount);
         }
     }
 
     private static void addRefund(UUID uuid, List<ItemStack> items) {
-        if (items.isEmpty())
-            return;
-        if (refundedItems.containsKey(uuid)){
-            refundedItems.get(uuid).addAll(items);
-        } else {
-            refundedItems.put(uuid, items);
-        }
+        if (!items.isEmpty() && !uuid.equals(DataManager.GLOBAL_SERVER_ID))
+            DataManager.getPlayerData(uuid).addRefund(items);
     }
 
     public static List<Bounty> getPublicBounties(int sortType) {
@@ -330,19 +315,12 @@ public class BountyManager {
         DataManager.deleteBounty(uuid);
     }
 
-    public static void removeSetters(UUID bountyUUID, List<Setter> setters) {
-        Bounty bounty = getBounty(bountyUUID);
-        if (bounty != null) {
-            double change = setters.stream().mapToDouble(Setter::getDisplayAmount).sum();
-            bigBountyCheck(bounty, change);
-            DataManager.removeSetters(bounty, setters);
-        }
-    }
 
     public static boolean editBounty(@NotNull Bounty bounty, @Nullable UUID setterUUID, double change) {
         // remove particle if bounty reduced under threshold
         bigBountyCheck(bounty, change);
         return DataManager.editBounty(bounty, setterUUID, change) != null;
+
     }
 
     /**
@@ -357,48 +335,50 @@ public class BountyManager {
     }
 
 
+    /**
+     * Called when a player dies, this function determines if a bounty can be claimed, and hands out rewards if so.
+     * @param player Player that was killed.
+     * @param killer Player that killed.
+     * @param drops Items that were dropped/
+     * @param forceEditDrops Whether the player's inventory should be forcibly edited after the drops are modified.
+     */
     public static void claimBounty(@NotNull Player player, Player killer, List<ItemStack> drops, boolean forceEditDrops) {
-        if (debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Received a bounty claim request.");
+        NotBounties.debugMessage("Received a bounty claim request.", false);
         Item droppedHead = null;
         if (rewardHeadAnyKill)
             droppedHead = player.getWorld().dropItemNaturally(player.getLocation(), Head.createPlayerSkull(player.getUniqueId(), SkinManager.getSkin(player.getUniqueId()).getUrl()));
-        // possible remove this later when the other functions allow null killers
+        // possible remove this later when the other functions allow null killers aka non-player deaths
         if (killer == null)
             return;
-        if (debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] " + killer.getName() + " killed " + player.getName());
-        TimedBounties.onDeath(player);
+        NotBounties.debugMessage(killer.getName() + " killed " + player.getName(), false);
+
         // check if a bounty can be claimed
         if (!BountyClaimRequirements.canClaim(player, killer)) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] An external plugin, world filter, or a shared team is preventing this bounty from being claimed.");
+            NotBounties.debugMessage("An external plugin, world filter, or a shared team is preventing this bounty from being claimed.", false);
             return;
         }
-        MurderBounties.killPlayer(player, killer);
-
         if (player == killer) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Player killed themself.");
+            NotBounties.debugMessage("Player killed themself. D:", false);
             return;
         }
+
+        TimedBounties.onDeath(player); // reset next bounty timer for being killed
+        MurderBounties.killPlayer(player, killer); // possibly add bounty on killer
 
         // check if killer can steal a bounty
+        // stealing a bounty is killing someone that placed a bounty on you, and taking those rewards.
         if (hasBounty(killer.getUniqueId()) && stealBounties) {
             Bounty bounty = getBounty(killer.getUniqueId());
             assert bounty != null;
             Bounty stolenBounty = bounty.getBounty(player.getUniqueId());
-            //bounty.removeBounty(player.getUniqueId());
             // update the bounty
-            removeSetters(stolenBounty.getUUID(), stolenBounty.getSetters());
+            DataManager.removeSetters(bounty, stolenBounty.getSetters());
             if (!stolenBounty.getSetters().isEmpty()) {
                 // bounty has been stolen
-                if (debug)
-                    Bukkit.getLogger().info("[NotBountiesDebug] Killer stole a bounty!");
+                NotBounties.debugMessage("Killer stole a bounty!", false);
                 if (manualEconomy == ManualEconomy.AUTOMATIC) {
                     // give rewards
-                    if (debug)
-                        Bukkit.getLogger().info("[NotBountiesDebug] Giving stolen bounty.");
+                    NotBounties.debugMessage("Giving stolen bounty.", false);
                     NumberFormatting.doAddCommands(killer, stolenBounty.getTotalBounty());
                     NumberFormatting.givePlayer(killer, bounty.getTotalItemBounty(), false);
                 }
@@ -409,7 +389,7 @@ public class BountyManager {
                 Bukkit.getConsoleSender().sendMessage(message);
                 if (stolenBounty.getTotalDisplayBounty() >= minBroadcast)
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!NotBounties.disableBroadcast.contains(p.getUniqueId()) && !p.getUniqueId().equals(killer.getUniqueId())) {
+                        if (!DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() && !p.getUniqueId().equals(killer.getUniqueId())) {
                             p.sendMessage(message);
                         }
                     }
@@ -419,91 +399,86 @@ public class BountyManager {
         }
         Bounty bounty = DataManager.getGuarrenteedBounty(player.getUniqueId());
         if (bounty == null) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Player doesn't have a bounty.");
+            NotBounties.debugMessage("Player doesn't have a bounty.", false);
             return;
         }
 
         // check if it is a npc
         if (!npcClaim && killer.hasMetadata("NPC")) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] This is an NPC which bounty claiming is disabled for in the config.");
+            NotBounties.debugMessage("This is an NPC which bounty claiming is disabled for in the config.", false);
             return;
         }
 
         // check if killer can claim it
         if (bounty.getTotalDisplayBounty(killer) < 0.01 && bounty.getTotalItemBounty(killer).isEmpty()) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] This bounty is too small, and there are no items attached!");
+            NotBounties.debugMessage("This bounty is too small, and there are no items attached!", false);
             return;
         }
-        if (debug)
-            Bukkit.getLogger().info(() -> "[NotBountiesDebug] Bounty to be claimed: " + bounty.getTotalDisplayBounty(killer));
+        NotBounties.debugMessage("Bounty to be claimed: " + bounty.getTotalDisplayBounty(killer), false);
+
         BountyClaimEvent event1 = new BountyClaimEvent(killer, new Bounty(bounty));
         Bukkit.getPluginManager().callEvent(event1);
         if (event1.isCancelled()) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] The bounty event got canceled by an external plugin.");
+            NotBounties.debugMessage("The bounty event got canceled by an external plugin.", false);
             return;
         }
-        PVPRestrictions.onBountyClaim(player);
-        Bounty bountyCopy = new Bounty(bounty, killer.getUniqueId());
 
+        // can now begin the bounty claim
+
+        PVPRestrictions.onBountyClaim(player); // make combat safe if enabled
+        final Bounty claimedBounty = new Bounty(bounty, killer.getUniqueId()); // create a copy of the claimed part of the bounty (for reference later)
+        // get a copy of all the setters that are to be claimed
         List<Setter> claimedBounties = new ArrayList<>(bounty.getSetters());
         claimedBounties.removeIf(setter -> !setter.canClaim(killer));
-
-        displayParticle.remove(player.getUniqueId());
 
         // broadcast message
         String message = parse(getPrefix() + getMessage("claim-bounty-broadcast"), killer, bounty.getTotalDisplayBounty(killer), player);
         Bukkit.getConsoleSender().sendMessage(message);
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if ((!NotBounties.disableBroadcast.contains(p.getUniqueId()) && bounty.getTotalDisplayBounty(killer) >= minBroadcast) || p.getUniqueId().equals(player.getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(killer).getUniqueId())) {
+            if ((!DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() && bounty.getTotalDisplayBounty(killer) >= minBroadcast) || p.getUniqueId().equals(player.getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(killer).getUniqueId())) {
                 p.sendMessage(message);
             }
         }
-        if (debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Claim messages sent to all players.");
+        NotBounties.debugMessage(" Claim messages sent to all players.", false);
 
-        // reward head
+        // hand out reward heads
         RewardHead rewardHead = new RewardHead(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer));
-
         if (rewardHeadSetter) {
+            // reward head for setters
             for (Setter setter : claimedBounties) {
-                if (!setter.getUuid().equals(new UUID(0, 0))) {
+                if (!setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID)) { // can't give reward head to the console
                     Player p = Bukkit.getPlayer(setter.getUuid());
                     if (p != null) {
+                        // setter is online
+                        // check to make sure the setter isn't the killer and won't get another head for claiming
                         if (!rewardHeadClaimed || !Objects.requireNonNull(killer).getUniqueId().equals(setter.getUuid())) {
-                            NumberFormatting.givePlayer(p, rewardHead.getItem(), 1);
-                            if (debug)
-                                Bukkit.getLogger().info("[NotBountiesDebug] Gave "  + p.getName() + " a player skull for the bounty.");
+                            NumberFormatting.givePlayer(p, rewardHead.getItem(), 1); // give head ;)
+                            NotBounties.debugMessage("Gave "  + p.getName() + " a player skull for the bounty.", false);
                         }
                     } else {
-                        if (headRewards.containsKey(setter.getUuid())) {
-                            // I think this could be replaced with headRewards.get(setter.getUuid()).add(rewardHead)
-                            List<RewardHead> heads = new ArrayList<>(headRewards.get(setter.getUuid()));
-                            heads.add(rewardHead);
-                            headRewards.replace(setter.getUuid(), heads);
-                        } else {
-                            headRewards.put(setter.getUuid(), Collections.singletonList(rewardHead));
-                        }
-                        if (debug)
-                            Bukkit.getLogger().info("[NotBountiesDebug] Will give " + LoggedPlayers.getPlayerName(setter.getUuid()) + " a player skull when they log on next for the bounty.");
+                        // Setter is offline.
+                        // Save reward head to player data.
+                        PlayerData playerData = DataManager.getPlayerData(setter.getUuid());
+                        playerData.addRewardHeads(Collections.singletonList(rewardHead));
+                        NotBounties.debugMessage("Will give " + playerData.getPlayerName() + " a player skull when they log on next for the bounty.", false);
                     }
                 }
             }
         }
         if (rewardHeadClaimed) {
+            // reward head for killer
             if (droppedHead != null)
+                // if a head was dropped for killing a player, remove it to be replaced with a custom head
                 droppedHead.remove();
             NumberFormatting.givePlayer(killer, rewardHead.getItem(), 1);
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Gave " + killer.getName() + " a player skull for the bounty.");
+            NotBounties.debugMessage("Gave " + killer.getName() + " a player skull for the bounty.", false);
         }
+
         // death tax
         if (ConfigOptions.deathTax > 0 && NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Removing " + bounty.getTotalDisplayBounty(killer) * ConfigOptions.deathTax + " currency for death tax");
+            NotBounties.debugMessage("Removing " + bounty.getTotalDisplayBounty(killer) * ConfigOptions.deathTax + " currency for death tax", false);
+            // attempt to remove currency/items from the player's inventory
+            // I think these are the items that should have been removed from the player, but might not have been since they died.
             Map<Material, Long> removedItems = NumberFormatting.doRemoveCommands(player, bounty.getTotalDisplayBounty(killer) * ConfigOptions.deathTax, drops);
             if (!removedItems.isEmpty()) {
                 // send message
@@ -515,8 +490,7 @@ public class BountyManager {
                 }
                 builder.replace(builder.length() - 2, builder.length(), "");
                 if (totalLoss > 0) {
-                    if (debug)
-                        Bukkit.getLogger().info("[NotBountiesDebug] Removing " + totalLoss + " currency for the death tax.");
+                    NotBounties.debugMessage("Removing " + totalLoss + " currency for the death tax.", false);
                     player.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("death-tax").replace("{items}", (builder.toString())), player));
                     // modify drops
                     if (forceEditDrops)
@@ -542,23 +516,22 @@ public class BountyManager {
                 }
             }
         }
-        if (debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Redeeming Reward: ");
         Bounty rewardedBounty = TrickleBounties.getRewardedBounty(bounty, killer);
+        NotBounties.debugMessage("Redeeming Reward: of " + rewardedBounty.getTotalDisplayBounty(), false);
         if (!redeemRewardLater) {
+            // give currency
             if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
-                if (debug)
-                    Bukkit.getLogger().info("[NotBountiesDebug] Directly giving auto-bounty reward.");
+                // partial economy means only auto bounties are given by the console
+                NotBounties.debugMessage("Directly giving auto-bounty reward.", false);
                 NumberFormatting.doAddCommands(killer, rewardedBounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(killer));
             } else {
-                if (debug)
-                    Bukkit.getLogger().info("[NotBountiesDebug] Directly giving total claimed bounty.");
+                NotBounties.debugMessage("Directly giving total claimed bounty.", false);
                 NumberFormatting.doAddCommands(killer, rewardedBounty.getTotalBounty(killer));
                 if (manualEconomy == ManualEconomy.AUTOMATIC)
                     NumberFormatting.givePlayer(killer, bounty.getTotalItemBounty(killer), false); // give bountied items
             }
         } else {
-            // will add these to a voucher later
+            // will add these to a voucher later, or will I?
             if (manualEconomy == ManualEconomy.AUTOMATIC)
                 NumberFormatting.givePlayer(killer, bounty.getTotalItemBounty(killer), false); // give bountied items
             // give voucher
@@ -567,8 +540,7 @@ public class BountyManager {
                 NumberFormatting.doAddCommands(killer, rewardedBounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(killer));
             }
             if (RRLVoucherPerSetter) {
-                if (debug)
-                    Bukkit.getLogger().info("[NotBountiesDebug] Handing out vouchers. ");
+                NotBounties.debugMessage("Handing out vouchers.", false);
                 // multiple vouchers
                 for (Setter setter : rewardedBounty.getSetters()) {
                     if (!setter.canClaim(killer))
@@ -597,8 +569,7 @@ public class BountyManager {
                     NumberFormatting.givePlayer(killer, item, 1);
                 }
             } else {
-                if (debug)
-                    Bukkit.getLogger().info("[NotBountiesDebug] Handing out a voucher. ");
+                NotBounties.debugMessage("Handing out a voucher.", false);
                 // one voucher
                 ItemStack item = new ItemStack(Material.PAPER);
                 ItemMeta meta = item.getItemMeta();
@@ -625,23 +596,23 @@ public class BountyManager {
         }
 
         DataManager.changeStat(player.getUniqueId(), Leaderboard.DEATHS, 1);
-        DataManager.changeStat(killer.getUniqueId(), Leaderboard.KILLS, 1);
-        DataManager.changeStat(killer.getUniqueId(), Leaderboard.CLAIMED, bounty.getTotalDisplayBounty(killer));
-        if (debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] stats. ");
-        TrickleBounties.transferBounty(bounty, killer);
-        removeSetters(bounty.getUUID(), claimedBounties);
+        DataManager.changeStats(killer.getUniqueId(), new PlayerStat(1,0,0,0,0, bounty.getTotalDisplayBounty(killer)));
+        NotBounties.debugMessage("Given stats.", false);
+        Bounty transferedBounty = TrickleBounties.transferBounty(bounty, killer);
+        // modify the bounty to remove the rewarded setters.
+        List<Setter> removedSetters = new LinkedList<>(rewardedBounty.getSetters());
+        removedSetters.addAll(transferedBounty.getSetters());
+
+        DataManager.removeSetters(bounty, removedSetters);
 
 
-        if (bounty.getTotalDisplayBounty() < WantedTags.getMinWanted()) {
-            // remove bounty tag
-            NotBounties.removeWantedTag(bounty.getUUID());
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Removed wanted tag. ");
-        }
+        // the bounty object is no longer accurate of the current bounty
 
+
+
+        // play sound for setters
         for (Setter setter : claimedBounties) {
-            if (!setter.getUuid().equals(new UUID(0, 0))) {
+            if (!setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID)) {
                 Player p = Bukkit.getPlayer(setter.getUuid());
                 if (p != null) {
                     p.playSound(p.getEyeLocation(), Sound.BLOCK_BEEHIVE_SHEAR, 1, 1);
@@ -649,12 +620,8 @@ public class BountyManager {
             }
         }
         Immunity.startGracePeriod(player);
-        BountyTracker.stopTracking(player.getUniqueId());
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            BountyTracker.removeTracker(p);
-        }
         GUI.reopenBountiesGUI();
-        ActionCommands.executeBountyClaim(player, killer, bountyCopy);
+        ActionCommands.executeBountyClaim(player, killer, claimedBounty);
     }
 
 }

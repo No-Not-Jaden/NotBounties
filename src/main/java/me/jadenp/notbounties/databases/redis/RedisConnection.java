@@ -6,11 +6,11 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.StaticCredentialsProvider;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.PlayerStat;
+import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -94,16 +94,21 @@ public class RedisConnection extends NotBountiesDatabase {
     }
 
     @Override
-    protected long getConfigHash() {
-        return super.getConfigHash() + Objects.hash(host, port, databaseNumber, username, password, ssl);
+    public int hashCode() {
+        return super.hashCode() + Objects.hash(host, port, databaseNumber, username, password, ssl);
     }
 
     @Override
-    public void reloadConfig() {
-        long oldHash = getConfigHash();
-        readConfig();
-        if (oldHash != getConfigHash())
-            connect();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        RedisConnection that = (RedisConnection) o;
+        return failedConnectionTimeout == that.failedConnectionTimeout && connectedBefore == that.connectedBefore
+                && port == that.port && databaseNumber == that.databaseNumber && ssl == that.ssl
+                && Objects.equals(redis, that.redis) && Objects.equals(connection, that.connection)
+                && Objects.equals(data, that.data) && Objects.equals(username, that.username)
+                && Objects.equals(password, that.password) && Objects.equals(host, that.host);
     }
 
     /**

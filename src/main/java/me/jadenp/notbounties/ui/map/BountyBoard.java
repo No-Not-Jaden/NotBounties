@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.ui.map;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
@@ -14,10 +14,57 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class BountyBoard {
+    private static final List<BountyBoard> bountyBoards = new ArrayList<>();
+    private static long lastBountyBoardUpdate = System.currentTimeMillis();
+
+    public static List<BountyBoard> getBountyBoards() {
+        return bountyBoards;
+    }
+
+    public static void addBountyBoards(List<BountyBoard> bountyBoards) {
+        BountyBoard.bountyBoards.addAll(bountyBoards);
+    }
+
+    public static void addBountyBoard(BountyBoard bountyBoard) {
+        bountyBoards.add(bountyBoard);
+    }
+
+    public static long getLastBountyBoardUpdate() {
+        return lastBountyBoardUpdate;
+    }
+
+    public static void clearBoard() {
+        for (BountyBoard board : bountyBoards) {
+            board.remove();
+        }
+        bountyBoards.clear();
+    }
+
+    public static int removeSpecificBountyBoard(ItemFrame frame) {
+        ListIterator<BountyBoard> bountyBoardListIterator = bountyBoards.listIterator();
+        int removes = 0;
+        while (bountyBoardListIterator.hasNext()) {
+            BountyBoard board = bountyBoardListIterator.next();
+            if (frame.equals(board.getFrame())) {
+                board.remove();
+                bountyBoardListIterator.remove();
+                removes++;
+            }
+        }
+        return removes;
+    }
+
+
+    /**
+     * Sets the last bounty board update to the current time in milliseconds.
+     */
+    public static void setLastBountyBoardUpdate() {
+        lastBountyBoardUpdate = System.currentTimeMillis();
+    }
+
     private final Location location;
     private final BlockFace direction;
     private final int rank;

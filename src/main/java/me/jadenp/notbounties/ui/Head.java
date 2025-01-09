@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.ui;
 
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.utils.externalAPIs.HeadDataBaseClass;
+import me.jadenp.notbounties.utils.external_api.HeadDataBaseClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;

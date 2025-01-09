@@ -1,5 +1,6 @@
 package me.jadenp.notbounties;
 
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;

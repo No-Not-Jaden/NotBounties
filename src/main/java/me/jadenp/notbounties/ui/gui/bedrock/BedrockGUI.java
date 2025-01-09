@@ -3,7 +3,7 @@ package me.jadenp.notbounties.ui.gui.bedrock;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
-import me.jadenp.notbounties.ui.gui.displayItems.DisplayItem;
+import me.jadenp.notbounties.ui.gui.display_items.DisplayItem;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;

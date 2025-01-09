@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.ui.gui;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.utils.LoggedPlayers;

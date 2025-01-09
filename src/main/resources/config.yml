@@ -317,7 +317,7 @@ trickle-bounties:
   # the ratio of the bounty that is physically rewarded to the person who claimed the bounty (they get the currency)
   # 1 = all, 0.5 = half, 0 = none
   given-reward: 1
-  # the ratio of the bounty that is transfered to the person who claimed the bounty
+  # the ratio of the bounty that is transferred to the person who claimed the bounty
   bounty-transfer: 0
   # whether the player claiming the bounty will need a bounty on themselves for a trickle bounty to activate
   require-bounty: true
@@ -552,5 +552,9 @@ databases:
     refresh-interval: 300
     # higher priority means that this database will be used more
     priority: 2
+  example-proxy:
+    type: PROXY
+    enabled: false
+    priority: 3
 # send server stats like most other plugins do
 send-bstats: true

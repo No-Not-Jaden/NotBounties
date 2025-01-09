@@ -1,25 +1,25 @@
 package me.jadenp.notbounties.ui.gui;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUIOptions;
-import me.jadenp.notbounties.ui.gui.displayItems.*;
+import me.jadenp.notbounties.ui.gui.display_items.*;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
-import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
-import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
+import me.jadenp.notbounties.utils.external_api.bedrock.FloodGateClass;
+import me.jadenp.notbounties.utils.external_api.bedrock.GeyserMCClass;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -30,9 +30,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -46,15 +44,10 @@ public class GUI implements Listener {
     public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
     private static final String[] allowedPausedGUIs = new String[]{"bounty-gui", "leaderboard", "view-bounty", "selection-gui"};
-
+    private static final String GENERAL_CURRENCY_ITEM_NAME = "general-currency-item";
 
     public static CustomItem getGeneralCurrencyItem() {
-        if (!customItems.containsKey("general-currency-item")) {
-            CustomItem customItem = new CustomItem(Material.SUNFLOWER, 1, -1, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>(), null);
-            customItems.put("general-currency-item", customItem);
-            return customItem;
-        }
-        return customItems.get("general-currency-item");
+        return customItems.computeIfAbsent(GENERAL_CURRENCY_ITEM_NAME, k -> new CustomItem(Material.SUNFLOWER, 1, -1, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>(), null));
     }
 
     public static void addGUI(GUIOptions gui, String name) {
@@ -262,7 +255,7 @@ public class GUI implements Listener {
                 break;
             case "set-whitelist":
                 List<UUID> playersAdded = new ArrayList<>();
-                Whitelist whitelist = NotBounties.getPlayerWhitelist(player.getUniqueId());
+                Whitelist whitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist();
                 for (UUID uuid : whitelist.getList()) {
                     List<String> additionalLore = whitelist.isBlacklist() ? getListMessage("blacklist-lore") : getListMessage("whitelist-lore");
                     displayItems.add(new WhitelistedPlayerItem(uuid, Leaderboard.IMMUNITY.getStat(uuid), Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), additionalLore, "&a"));
@@ -488,7 +481,7 @@ public class GUI implements Listener {
     }
 
     private static void returnGUIItems(Player player, Inventory inventory, boolean shutdown) {
-        if (!((Plugin) NotBounties.getInstance()).isEnabled())
+        if (!NotBounties.getInstance().isEnabled())
             shutdown = true;
         PlayerGUInfo guInfo = playerInfo.get(player.getUniqueId());
         if (guInfo.guiType().equals("bounty-item-select")){
@@ -539,23 +532,6 @@ public class GUI implements Listener {
                 }
             }
         }
-    }
-
-    /**
-     * Get a gui from the title
-     *
-     * @param title Title of the GUI
-     * @return the GUIOptions if the title matches a NotBounties GUI, or null if the title does not match any GUI
-     */
-    public static @Nullable GUIOptions getGUIByTitle(String title) {
-        GUIOptions gui = null;
-        for (Map.Entry<String, GUIOptions> entry : customGuis.entrySet()) {
-            if (title.startsWith(entry.getValue().getName())) {
-                gui = entry.getValue();
-                break;
-            }
-        }
-        return gui;
     }
 
     @EventHandler
@@ -625,7 +601,7 @@ public class GUI implements Listener {
                     }
                     break;
                 case "set-whitelist":
-                    List<UUID> whitelist = NotBounties.getPlayerWhitelist(event.getWhoClicked().getUniqueId()).getList();
+                    List<UUID> whitelist = DataManager.getPlayerData(event.getWhoClicked().getUniqueId()).getWhitelist().getList();
                     if (!whitelist.remove(playerUUID)) {
                         if (whitelist.size() < 10)
                             whitelist.add(playerUUID);
@@ -640,13 +616,10 @@ public class GUI implements Listener {
                         event.getView().close();
                     break;
                 case "bounty-item-select":
-
-                    if (!gui.getPlayerSlots().isEmpty())
-                        if (event.getRawSlot() ==  gui.getPlayerSlots().get(0)) {
-                            // set bounty
-                            ActionCommands.executeCommands((Player) event.getWhoClicked(),  new ArrayList<>(Collections.singletonList("[p] " + pluginBountyCommands.get(0) + " {data} --confirm")));
-                        }
-
+                    if (!gui.getPlayerSlots().isEmpty() && event.getRawSlot() ==  gui.getPlayerSlots().get(0)) {
+                        // set bounty
+                        ActionCommands.executeCommands((Player) event.getWhoClicked(),  new ArrayList<>(Collections.singletonList("[p] " + pluginBountyCommands.get(0) + " {data} --confirm")));
+                    }
                     break;
                 default:
                     // no action for the player slots in the custom GUI

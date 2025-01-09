@@ -1,11 +1,11 @@
 package me.jadenp.notbounties.utils.configuration.webhook;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
-import me.jadenp.notbounties.bountyEvents.BountyEditEvent;
-import me.jadenp.notbounties.bountyEvents.BountyRemoveEvent;
-import me.jadenp.notbounties.bountyEvents.BountySetEvent;
+import me.jadenp.notbounties.bounty_events.BountyClaimEvent;
+import me.jadenp.notbounties.bounty_events.BountyEditEvent;
+import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
+import me.jadenp.notbounties.bounty_events.BountySetEvent;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;

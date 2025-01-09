@@ -1,13 +1,13 @@
 package me.jadenp.notbounties.databases.sql;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.PlayerStat;
+import me.jadenp.notbounties.data.PlayerStat;
 import me.jadenp.notbounties.utils.SerializeInventory;
-import me.jadenp.notbounties.utils.Whitelist;
+import me.jadenp.notbounties.data.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
@@ -56,8 +56,21 @@ public class MySQL extends NotBountiesDatabase {
     }
 
     @Override
-    protected long getConfigHash() {
-        return super.getConfigHash() + Objects.hash(host, port, database, username, password, useSSL);
+    public int hashCode() {
+        return super.hashCode() + Objects.hash(host, port, database, username, password, useSSL);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        MySQL mySQL = (MySQL) o;
+        return hasConnected == mySQL.hasConnected && nextReconnectAttempt == mySQL.nextReconnectAttempt
+                && reconnectAttempts == mySQL.reconnectAttempts && port == mySQL.port && useSSL == mySQL.useSSL
+                && Objects.equals(connection, mySQL.connection) && Objects.equals(host, mySQL.host)
+                && Objects.equals(database, mySQL.database) && Objects.equals(username, mySQL.username)
+                && Objects.equals(password, mySQL.password);
     }
 
     public String getDatabase() {

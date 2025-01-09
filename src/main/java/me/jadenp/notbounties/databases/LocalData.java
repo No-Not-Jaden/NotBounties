@@ -1,10 +1,11 @@
 package me.jadenp.notbounties.databases;
 
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.PlayerStat;
+import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -69,6 +70,7 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public void addBounty(List<Bounty> bounties) {
+        // called on database synchronizations
         for (Bounty bounty : bounties) {
             addBounty(bounty);
         }
@@ -87,13 +89,15 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public Bounty addBounty(@NotNull Bounty bounty) {
-        // <TODO> make this linear search because of linked list
         Bounty prevBounty = getBounty(bounty.getUUID());
         if (prevBounty == null) {
             // insert new bounty for this player
-            int index = Collections.binarySearch(activeBounties, bounty, Collections.reverseOrder());
-            if (index < 0) {
-                index = -index - 1;
+            int index = activeBounties.size();
+            for (int i = 0; i < activeBounties.size(); i++) {
+                if (activeBounties.get(i).compareTo(bounty) < 0) {
+                    index = i;
+                    break;
+                }
             }
             activeBounties.add(index, bounty);
             prevBounty = bounty;
@@ -111,10 +115,12 @@ public class LocalData extends NotBountiesDatabase {
     public void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
         for (int i = 0; i < activeBounties.size(); i++) {
             if (activeBounties.get(i).getUUID().equals(uuid)) {
-                if (bounty != null)
+                if (bounty != null) {
                     activeBounties.set(i, bounty);
-                else
+                    sortActiveBounties();
+                } else {
                     activeBounties.remove(i);
+                }
                 break;
             }
         }
@@ -131,29 +137,55 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public void removeBounty(Bounty bounty) {
-        Bounty masterBounty = getBounty(bounty.getUUID());
-        if (masterBounty == null)
-            return;
-        synchronized (masterBounty) {
-            DataManager.removeSimilarSetters(masterBounty.getSetters(), bounty.getSetters());
-        }
-        // if no master setters are left over, remove bounty entirely from active bounties
-        if (masterBounty.getSetters().isEmpty()) {
-            removeBounty(masterBounty.getUUID());
+        for (int i = 0; i < activeBounties.size(); i++) {
+            if (activeBounties.get(i).getUUID().equals(bounty.getUUID())) {
+                Bounty bountyCopy = new Bounty(activeBounties.get(i));
+                removeSimilarSetters(bountyCopy.getSetters(), bounty.getSetters());
+                // if no master setters are left over, remove bounty entirely from active bounties
+                if (bountyCopy.getSetters().isEmpty()) {
+                    activeBounties.remove(i);
+                } else {
+                    activeBounties.set(i, bountyCopy);
+                    sortActiveBounties();
+                }
+                break;
+            }
         }
 
         // bounty.getSetters() contains the leftover setters that couldn't be removed
     }
 
+    /**
+     * A utility to remove all setters that have the same uuid and time created in both lists
+     */
+    private static void removeSimilarSetters(List<Setter> masterSetterList, List<Setter> setterList) {
+        // iterate through setters
+        ListIterator<Setter> masterSetters = masterSetterList.listIterator();
+        while (masterSetters.hasNext()) {
+            Setter masterSetter = masterSetters.next();
+            ListIterator<Setter> setters = setterList.listIterator();
+            while (setters.hasNext()) {
+                Setter setter = setters.next();
+                if (setter.getUuid().equals(masterSetter.getUuid()) && setter.getTimeCreated() == masterSetter.getTimeCreated()) {
+                    setters.remove();
+                    masterSetters.remove();
+                    break;
+                }
+            }
+        }
+    }
+
 
     @Override
     public void removeBounty(UUID uuid) {
-        ListIterator<Bounty> bountyListIterator = activeBounties.listIterator();
-        while (bountyListIterator.hasNext()) {
-            Bounty bounty = bountyListIterator.next();
-            if (bounty.getUUID().equals(uuid)) {
-                bountyListIterator.remove();
-                return;
+        synchronized (activeBounties) {
+            ListIterator<Bounty> bountyListIterator = activeBounties.listIterator();
+            while (bountyListIterator.hasNext()) {
+                Bounty bounty = bountyListIterator.next();
+                if (bounty.getUUID().equals(uuid)) {
+                    bountyListIterator.remove();
+                    return;
+                }
             }
         }
     }
@@ -239,6 +271,12 @@ public class LocalData extends NotBountiesDatabase {
     @Override
     public void reloadConfig() {
         // no configuration for this database
+    }
+
+    @Override
+    public ConfigurationSection readConfig() {
+        // no configuration for local data.
+        return null;
     }
 
     @Override

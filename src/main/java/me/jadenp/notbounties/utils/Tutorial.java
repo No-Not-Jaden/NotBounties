@@ -7,7 +7,6 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -16,9 +15,8 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.function.IntPredicate;
 
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
@@ -64,32 +62,49 @@ public class Tutorial {
      * @param page Page to start at.
      * @return The first valid page.
      */
-    private static int getNextValidPage(int page) {
-        if (page > 16)
+    private static int getNextValidPage(int page, int step) {
+        if (page > 16 || page < 1)
             page = 1;
-        if (page == 4 && !bountyWhitelistEnabled)
-            page++;
-        if (page == 5 && (!bountyWhitelistEnabled || !variableWhitelist))
-            page++;
-        if (page == 6 && (!bountyWhitelistEnabled || variableWhitelist))
-            page++;
-        if (page == 8 && !buyBack)
-            page++;
-        if (page == 9 && Immunity.immunityType == Immunity.ImmunityType.DISABLE)
-            page++;
-        if (page == 10 && Immunity.immunityType != Immunity.ImmunityType.PERMANENT)
-            page++;
-        if (page == 11 && Immunity.immunityType != Immunity.ImmunityType.SCALING)
-            page++;
-        if (page == 12 && Immunity.immunityType != Immunity.ImmunityType.TIME)
-            page++;
-        if (page == 13 && Immunity.immunityType == Immunity.ImmunityType.DISABLE)
-            page++;
-        if (page == 14 && !BountyTracker.isEnabled())
-            page++;
-        if (page == 15 && !craftPoster)
-            page++;
+        while (isInvalidPage(page))
+            page += step;
         return page;
+    }
+
+    /**
+     * Gets the page that the viewer sees.
+     * @param page The page number with respect to all pages.
+     * @return The page that the viewer sees.
+     */
+    private static int getViewerPage(int page) {
+        int viewerPage = 1;
+        int pageTracker = 1;
+        while (pageTracker < page) {
+            pageTracker = getNextValidPage(pageTracker + 1, 1);
+            viewerPage++;
+        }
+        return viewerPage;
+    }
+
+    private static final Map<Integer, IntPredicate> PAGE_VALIDATORS = new HashMap<>();
+
+    static {
+        // page, condition in which the page should be skipped
+        PAGE_VALIDATORS.put(4, page -> !bountyWhitelistEnabled);
+        PAGE_VALIDATORS.put(5, page -> !bountyWhitelistEnabled || !variableWhitelist);
+        PAGE_VALIDATORS.put(6, page -> !bountyWhitelistEnabled || variableWhitelist);
+        PAGE_VALIDATORS.put(8, page -> !buyBack);
+        PAGE_VALIDATORS.put(9, page -> Immunity.getImmunityType() == Immunity.ImmunityType.DISABLE);
+        PAGE_VALIDATORS.put(10, page -> Immunity.getImmunityType() != Immunity.ImmunityType.PERMANENT);
+        PAGE_VALIDATORS.put(11, page -> Immunity.getImmunityType() != Immunity.ImmunityType.SCALING);
+        PAGE_VALIDATORS.put(12, page -> Immunity.getImmunityType() != Immunity.ImmunityType.TIME);
+        PAGE_VALIDATORS.put(13, page -> Immunity.getImmunityType() == Immunity.ImmunityType.DISABLE);
+        PAGE_VALIDATORS.put(14, page -> !BountyTracker.isEnabled());
+        PAGE_VALIDATORS.put(15, page -> !craftPoster);
+    }
+
+    private static boolean isInvalidPage(int page) {
+        IntPredicate validator = PAGE_VALIDATORS.get(page);
+        return validator != null && validator.test(page);
     }
 
     private static void sendPage(@NotNull CommandSender sender, int page) {
@@ -173,7 +188,7 @@ public class Tutorial {
             } catch (NumberFormatException ignored) {
                 // not a valid page
             }
-        page = getNextValidPage(page);
+        page = getNextValidPage(page, 1);
         sendPage(sender, page);
 
     }
@@ -183,12 +198,12 @@ public class Tutorial {
         TextComponent space = new TextComponent("        ");
         TextComponent extraSpace = new TextComponent(" ".repeat(Math.max(maxLength / 2 - 13, 3)));
         TextComponent back = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋘⋘⋘");
-        TextComponent middle = new TextComponent("        " + ChatColor.GRAY + " [" + page + "]        ");
+        TextComponent middle = new TextComponent("        " + ChatColor.GRAY + " [" + getViewerPage(page) + "]        ");
         TextComponent next = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋙⋙⋙");
         back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(previousPageHover, null))));
         next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(nextPageHover, null))));
-        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + (page - 1)));
-        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + (page + 1)));
+        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + getNextValidPage(page - 1, -1)));
+        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + getNextValidPage(page + 1, 1)));
         BaseComponent[] baseComponents = new BaseComponent[]{extraSpace, back, middle, next};
         if (page == 1)
             baseComponents[1] = space;

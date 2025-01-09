@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.databases;
 
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.utils.PlayerStat;
+import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -216,19 +216,10 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * Reload the database config
      */
     public void reloadConfig() {
-        long oldHash = getConfigHash();
+        long oldHash = hashCode();
         readConfig();
-        if (oldHash != getConfigHash())
+        if (oldHash != hashCode())
             connect();
-    }
-
-    /**
-     * Get a hash for the current configuration options.
-     * Changing the configuration for this database should change the hash.
-     * @return A unique number representing the current configuration.
-     */
-    protected long getConfigHash() {
-        return Objects.hash(name, priority, refreshInterval);
     }
 
     /**
@@ -274,5 +265,18 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     @Override
     public int compareTo(@NotNull NotBountiesDatabase o) {
         return o.getPriority() - getPriority();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, priority, refreshInterval);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        NotBountiesDatabase that = (NotBountiesDatabase) o;
+        return priority == that.priority && refreshInterval == that.refreshInterval && lastSync == that.lastSync && Objects.equals(name, that.name) && Objects.equals(plugin, that.plugin);
     }
 }

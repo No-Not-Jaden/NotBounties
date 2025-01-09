@@ -4,9 +4,9 @@ import com.google.common.primitives.Floats;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ItemValue;
-import me.jadenp.notbounties.utils.externalAPIs.EssentialsXClass;
-import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
-import me.jadenp.notbounties.utils.externalAPIs.VaultClass;
+import me.jadenp.notbounties.utils.external_api.EssentialsXClass;
+import me.jadenp.notbounties.utils.external_api.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.external_api.VaultClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.ItemTag;
@@ -504,21 +504,21 @@ public class NumberFormatting {
                 String command = removeCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
             }
-            return new HashMap<>();
+            return new EnumMap<>(Material.class);
         }
 
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.withdraw(p, amount)) {
-                return new HashMap<>();
+                return new EnumMap<>(Material.class);
             } else {
                 Bukkit.getLogger().warning("Error withdrawing currency with vault!");
             }
         }
         if (currency.isEmpty()){
             Bukkit.getLogger().warning("Currency is not set up! Run /currency in-game to fix.");
-            return new HashMap<>();
+            return new EnumMap<>(Material.class);
         }
-        Map<Material, Long> removedItems = new HashMap<>();
+        Map<Material, Long> removedItems = new EnumMap<>(Material.class);
         if (currency.size() > 1) {
             if (addSingleCurrency == CurrencyAddType.BIMODAL) {
                 // just do remove commands

@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.databases;
 
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.utils.PlayerStat;
+import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.PlayerStat;
 
 import java.io.IOException;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.UUID;
  * A temporary database is one that doesn't save data long term. Whether that is from a restart or reconnect.
  * Data from temporary databases need to be stored locally still, but they can be used to communicate between servers while connected.
  */
-public interface TempDatabase extends NotBountiesDatabase{
+public abstract class TempDatabase extends NotBountiesDatabase{
 
 
     /**
@@ -21,7 +21,7 @@ public interface TempDatabase extends NotBountiesDatabase{
      * @param serverID ID of the server that the bounties are saved on.
      * @return All the bounties that have the serverID in their data.
      */
-    default List<Bounty> getServerBounties(UUID serverID) throws IOException {
+    public List<Bounty> getServerBounties(UUID serverID) throws IOException {
         List<Bounty> bounties = getAllBounties(-1);
         bounties.removeIf(bounty -> bounty.getServerID() != serverID);
         return bounties;
@@ -32,7 +32,7 @@ public interface TempDatabase extends NotBountiesDatabase{
      * @param serverID ID of the server that the stats are saved on.
      * @return All the stats that have the serverID Vin their data.
      */
-    default Map<UUID, PlayerStat> getServerStats(UUID serverID) throws IOException{
+    public Map<UUID, PlayerStat> getServerStats(UUID serverID) throws IOException{
         Map<UUID, PlayerStat> stats = getAllStats();
         stats.entrySet().removeIf(entry -> entry.getValue().serverID() != serverID);
         return stats;
@@ -42,11 +42,11 @@ public interface TempDatabase extends NotBountiesDatabase{
      * Get the ids of the servers that have data stored in this database.
      * @return A list of server IDs that have connected to this database.
      */
-    Set<UUID> getStoredServerIds();
+    public abstract Set<UUID> getStoredServerIds();
 
     /**
      * Replaces all server IDs the global server ID.
      */
-    void replaceWithDefaultServerID();
+    public abstract void replaceWithDefaultServerID();
 
 }

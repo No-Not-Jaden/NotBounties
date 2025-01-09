@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.data.PlayerData;
 import me.jadenp.notbounties.databases.proxy.ProxyMessaging;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -8,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.consoleName;
 
@@ -19,12 +21,8 @@ public class LoggedPlayers {
      * Name (lowercase), UUID
      */
     private static final Map<String, UUID> playerIDs = new HashMap<>();
-    /**
-     * UUID, Name
-     */
-    private static final Map<UUID, String> playerNames = new HashMap<>();
 
-    public static void readConfiguration(ConfigurationSection configuration) {
+    public static void readOldConfiguration(ConfigurationSection configuration) {
         // add all previously logged on players to a map
         if (configuration.isSet("0")) {
             // old configuration - configuration section of numbers
@@ -33,7 +31,7 @@ public class LoggedPlayers {
                 String name = Objects.requireNonNull(configuration.getString( i + ".name"));
                 UUID uuid = UUID.fromString(Objects.requireNonNull(configuration.getString(i + ".uuid")));
                 playerIDs.put(name.toLowerCase(), uuid);
-                playerNames.put(uuid, name);
+                DataManager.getPlayerData(uuid).setPlayerName(name);
                 i++;
             }
         } else {
@@ -43,7 +41,7 @@ public class LoggedPlayers {
                 try {
                     UUID uuid = UUID.fromString(key);
                     playerIDs.put(name.toLowerCase(), uuid);
-                    playerNames.put(uuid, name);
+                    DataManager.getPlayerData(uuid).setPlayerName(name);
                 } catch (IllegalArgumentException e) {
                     Bukkit.getLogger().warning("Key in logged-players is not a UUID: " + key);
                 }
@@ -51,8 +49,19 @@ public class LoggedPlayers {
         }
     }
 
+    /**
+     * Loads player data and saves their names to a map.
+     */
+    public static void loadPlayerData() {
+        DataManager.getPlayerDataMap().entrySet().stream()
+                .filter(entry -> entry.getValue().getPlayerName() != null)
+                .forEach(entry -> playerIDs.put(entry.getValue().getPlayerName().toLowerCase(), entry.getKey()));
+    }
+
     public static Map<UUID, String> getLoggedPlayers() {
-        return playerNames;
+        return DataManager.getPlayerDataMap().entrySet().stream()
+                .filter(entry -> entry.getValue().getPlayerName() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getPlayerName(), (a, b) -> b));
     }
 
     /**
@@ -75,15 +84,16 @@ public class LoggedPlayers {
 
     public static void logPlayer(String name, UUID uuid) {
         playerIDs.put(name.toLowerCase(), uuid);
-        playerNames.put(uuid, name);
+        DataManager.getPlayerData(uuid).setPlayerName(name);
     }
 
     public static void replacePlayerName(String newName, UUID uuid) {
-        String oldName = playerNames.get(uuid);
+        PlayerData playerData = DataManager.getPlayerData(uuid);
+        String oldName =  playerData.getPlayerName();
         if (oldName != null)
             playerIDs.remove(oldName.toLowerCase());
         playerIDs.put(newName.toLowerCase(), uuid);
-        playerNames.put(uuid, newName);
+        playerData.setPlayerName(newName);
     }
 
     public static boolean isLogged(String name) {
@@ -91,7 +101,7 @@ public class LoggedPlayers {
     }
 
     public static boolean isLogged(UUID uuid) {
-        return playerNames.containsKey(uuid);
+        return DataManager.getPlayerData(uuid).getPlayerName() != null;
     }
 
     public static void login(Player player) {
@@ -123,8 +133,9 @@ public class LoggedPlayers {
     public static @NotNull String getPlayerName(UUID uuid) {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
             return consoleName;
-        if (playerNames.containsKey(uuid))
-            return playerNames.get(uuid);
+        PlayerData playerData = DataManager.getPlayerData(uuid);
+        if (playerData.getPlayerName() != null)
+            return playerData.getPlayerName();
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         String name = player.getName();
         if (name != null)

@@ -1,8 +1,8 @@
 package me.jadenp.notbounties.utils.configuration;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
@@ -163,7 +163,7 @@ public class BountyExpire {
                 }
             }
             for (Map.Entry<UUID, List<Setter>> entry : settersToRemove.entrySet()) {
-                BountyManager.removeSetters(entry.getKey(), entry.getValue());
+                DataManager.removeSetters(getBounty(entry.getKey()), entry.getValue());
             }
 
         return change;

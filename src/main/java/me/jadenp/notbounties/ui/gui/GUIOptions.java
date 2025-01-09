@@ -1,37 +1,22 @@
 package me.jadenp.notbounties.ui.gui;
 
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
-import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.HeadFetcher;
 import me.jadenp.notbounties.ui.QueuedHead;
-import me.jadenp.notbounties.ui.gui.displayItems.DisplayItem;
-import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
-import me.jadenp.notbounties.utils.SerializeInventory;
-import me.jadenp.notbounties.utils.challenges.ActiveChallenge;
+import me.jadenp.notbounties.ui.gui.display_items.DisplayItem;
+import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 
-import java.io.IOException;
 import java.util.*;
-import java.util.regex.Matcher;
 
-import static me.jadenp.notbounties.utils.BountyManager.getBounty;
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 
@@ -171,7 +156,7 @@ public class GUIOptions {
         } else if (type.equals("leaderboard") && data[0] instanceof String string) {
             replacements = new String[]{string,"","",""};
         } else if (type.equals("select-price") || type.equals("confirm-bounty")) {
-            double tax = page * ConfigOptions.bountyTax + NotBounties.getPlayerWhitelist(player.getUniqueId()).getList().size() * ConfigOptions.bountyWhitelistCost;
+            double tax = page * ConfigOptions.bountyTax + DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList().size() * ConfigOptions.bountyWhitelistCost;
             double total = page + tax;
             replacements = new String[]{"",
                     currencyPrefix + NumberFormatting.formatNumber(page) + currencySuffix, // amount

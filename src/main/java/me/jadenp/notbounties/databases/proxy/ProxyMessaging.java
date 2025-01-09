@@ -3,7 +3,7 @@ package me.jadenp.notbounties.databases.proxy;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.databases.LocalData;
 import me.jadenp.notbounties.ui.PlayerSkin;
@@ -11,7 +11,7 @@ import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyChange;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.PlayerStat;
+import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -28,6 +28,9 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     private static boolean connectedBefore = false;
     private static final String CHANNEL = "notbounties:main";
 
+    private static void setConnectedBefore() {
+        ProxyMessaging.connectedBefore = true;
+    }
 
     /**
      * Check if the proxy has been connected since server start
@@ -41,7 +44,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     public void onPluginMessageReceived(@NotNull String channel, @NotNull Player player, byte @NotNull [] bytes) {
         if (!channel.equals(CHANNEL))
             return;
-        connectedBefore = true;
+        setConnectedBefore();
         ByteArrayDataInput in = ByteStreams.newDataInput(bytes);
         try {
             receiveMessage(in);
@@ -51,19 +54,24 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         }
     }
 
+    /**
+     * Controls the outcome of messages received from the proxy.
+     * @param in The message bytes received.
+     * @throws IOException If an error occurs while reading the message.
+     */
     private void receiveMessage(ByteArrayDataInput in) throws IOException {
         String subChannel = in.readUTF();
         NotBounties.debugMessage("Received a message from proxy: " + subChannel, false);
         short len = in.readShort();
         byte[] msgBytes = new byte[len];
         in.readFully(msgBytes);
-
         DataInputStream msgIn = new DataInputStream(new ByteArrayInputStream(msgBytes));
+
         switch (subChannel) {
             case "ReceiveConnection" -> receiveConnection(msgIn);
             case "PlayerList" -> receivePlayerList(msgIn);
             case "Forward" -> {
-                String subSubChannel = in.readUTF();
+                String subSubChannel = msgIn.readUTF();
                 switch (subSubChannel) {
                     case "BountyUpdate" -> receiveBountyUpdate(msgIn);
                     case "StatUpdate" -> receiveStatUpdate(msgIn);
@@ -237,6 +245,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      */
     public static void sendBountyUpdate(List<BountyChange> bountyChanges) {
         // send proxy message
+        NotBounties.debugMessage("Sending Bounty Update of " + bountyChanges.size() + " changes.", false);
         try {
             byte[] message = wrapGlobalMessage(encodeMessage(bountyChanges));
             sendMessage(CHANNEL, message);
@@ -253,6 +262,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      */
     public static void sendStatUpdate(Map<UUID, PlayerStat> statChanges) {
         // send proxy message
+        NotBounties.debugMessage("Sending Stat Update of " + statChanges.size() + " changes.", false);
         try {
             byte[] message = wrapGlobalMessage(encodeMessage(statChanges));
             sendMessage(CHANNEL, message);
@@ -332,8 +342,20 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     public static void requestPlayerList(){
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("PlayerList");
-        out.writeUTF("ALL");
+
+        ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
+        DataOutputStream msgout = new DataOutputStream(msgBytes);
+        try {
+            msgout.writeUTF("ALL");
+        } catch (IOException e) {
+            NotBounties.debugMessage("Error preparing a player list request", true);
+            NotBounties.debugMessage(e.toString(), true);
+        }
+        out.writeShort(msgBytes.toByteArray().length); // This is the length.
+        out.write(msgBytes.toByteArray()); // This is the message.
         sendMessage(CHANNEL, out.toByteArray());
+        if (NotBounties.debug)
+            Bukkit.getLogger().info("[NotBountiesDebug] Sent player skin request.");
     }
 
     /**

@@ -1,0 +1,155 @@
+package me.jadenp.notbounties.utils.configuration.auto_bounties;
+
+import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.utils.configuration.Immunity;
+import me.jadenp.notbounties.utils.external_api.LiteBansClass;
+import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.data.Whitelist;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+
+import java.util.*;
+
+import static me.jadenp.notbounties.utils.BountyManager.addBounty;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.liteBansEnabled;
+
+public class RandomBounties {
+    /**
+     * The minimum amount of time between random bounties.
+     * 0 means disabled.
+     */
+    private static int randomBountyMinTime;
+    /**
+     * The maximum amount of time between random bounties.
+     */
+    private static int randomBountyMaxTime;
+    /**
+     * The minimum price of a random bounty.
+     */
+    private static double randomBountyMinPrice;
+    /**
+     * The maximum price of a random bounty.
+     */
+    private static double randomBountyMaxPrice;
+    /**
+     * Whether offline players can get random bounties set on them.
+     */
+    private static boolean randomBountyOfflineSet;
+    /**
+     * The time in milliseconds when the next random bounty should be set.
+     */
+    private static long nextRandomBounty = 0;
+    /**
+     * The random number generator used to generate random amounts.
+     */
+    private static final Random random = new Random();
+
+    private RandomBounties(){}
+
+    public static void loadConfiguration(ConfigurationSection randomBounties) {
+        randomBountyMinTime = randomBounties.getInt("min-time");
+        randomBountyMaxTime = randomBounties.getInt("max-time");
+        randomBountyMinPrice = randomBounties.getDouble("min-price");
+        randomBountyMaxPrice = randomBounties.getDouble("max-price");
+        randomBountyOfflineSet = randomBounties.getBoolean("offline-set");
+
+        // make sure amounts are in bounds
+        if (randomBountyMaxTime < randomBountyMinTime)
+            randomBountyMaxTime = randomBountyMinTime;
+        if (randomBountyMaxPrice < randomBountyMinPrice)
+            randomBountyMaxPrice = randomBountyMinPrice;
+
+        // stop next random bounty if it is changed
+        if (!isEnabled() && nextRandomBounty != 0)
+            nextRandomBounty = 0;
+        if (isEnabled() && nextRandomBounty == 0)
+            setNextRandomBounty();
+    }
+
+    public static void update() {
+        // random bounties
+        if (randomBountyMinTime != 0 && nextRandomBounty != 0 && System.currentTimeMillis() > nextRandomBounty) {
+            if (!randomBountyOfflineSet && NotBounties.getNetworkPlayers().isEmpty()) {
+                setNextRandomBounty();
+                return;
+            }
+            UUID uuid = randomBountyOfflineSet ? (UUID) LoggedPlayers.getLoggedPlayers().keySet().toArray()[random.nextInt(LoggedPlayers.getLoggedPlayers().size())] : (UUID) NotBounties.getNetworkPlayers().keySet().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())];
+            if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
+                // this shouldn't be possible, but it's an extra safety measure
+                return;
+            final double[] price = {randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice)};
+            try {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+                // check immunity
+                if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(player, price[0]) != Immunity.ImmunityType.DISABLE || hasImmunity(player))
+                    return;
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (!player.isBanned()) {
+                            if (liteBansEnabled) {
+                                if (new LiteBansClass().isPlayerNotBanned(player.getUniqueId())) {
+                                    // back into sync thread
+                                    if (!NumberFormatting.shouldUseDecimals())
+                                        price[0] = (long) price[0];
+                                    double finalPrice = price[0];
+                                    new BukkitRunnable() {
+                                        @Override
+                                        public void run() {
+                                            addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                                        }
+                                    }.runTask(NotBounties.getInstance());
+                                }
+                            } else {
+                                if (!NumberFormatting.shouldUseDecimals())
+                                    price[0] = (long) price[0];
+                                double finalPrice = price[0];
+                                new BukkitRunnable() {
+                                    @Override
+                                    public void run() {
+                                        addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                                    }
+                                }.runTask(NotBounties.getInstance());
+                            }
+                            setNextRandomBounty();
+                        }
+                    }
+                }.runTaskAsynchronously(NotBounties.getInstance());
+            } catch (IllegalArgumentException e) {
+                Bukkit.getLogger().info("[NotBounties] Invalid UUID of picked player for random bounty: " + uuid);
+            }
+        }
+    }
+
+    public static boolean isEnabled() {
+        return randomBountyMinTime != 0;
+    }
+
+    public static long getNextRandomBounty() {
+        return nextRandomBounty;
+    }
+
+    public static void setNextRandomBounty(long nextRandomBounty) {
+        RandomBounties.nextRandomBounty = nextRandomBounty;
+    }
+
+    public static void setNextRandomBounty() {
+        nextRandomBounty = System.currentTimeMillis() + randomBountyMinTime * 1000L + (random.nextInt(Math.abs(randomBountyMaxTime - randomBountyMinTime)) * 1000L);
+    }
+
+    private static boolean hasImmunity(OfflinePlayer player) {
+        if (player.isOnline())
+            return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.random");
+        return DataManager.getPlayerData(player.getUniqueId()).hasRandomImmunity();
+    }
+
+    public static void logout(Player player) {
+        DataManager.getPlayerData(player.getUniqueId()).setRandomImmunity(player.hasPermission("notbounties.immunity.random"));
+    }
+}

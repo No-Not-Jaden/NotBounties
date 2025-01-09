@@ -9,7 +9,6 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.NotBounties.immunePerms;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class Immunity {
@@ -47,15 +46,45 @@ public class Immunity {
          */
         TIMED
     }
-    public static ImmunityType immunityType;
-    private static boolean timeOfflineTracking = false;
-    private static double time;
 
+    /**
+     * Current immunity type set in the configuration. This can be DISABLE, PERMANENT, SCALING, or TIME.
+     */
+    private static ImmunityType immunityType;
+    /**
+     * Whether time immunity ticks down when the player is offline.
+     */
+    private static boolean timeOfflineTracking = false;
+    /**
+     * The amount of time given per currency spent on immunity.
+     */
+    private static double time;
+    /**
+     * The permanent cost of immunity.
+     */
     private static double permanentCost;
+    /**
+     * The ratio of currency spent to immunity strength.
+     */
     private static double scalingRatio;
+    /**
+     *  The time in seconds that a player has immunity for after a bounty is claimed on them.
+     */
     private static long gracePeriod;
+    /**
+     * Time immunity tracking. This will either display at what time in milliseconds that the immunity expires,
+     * or how many milliseconds the player has left in their immunity.
+     */
     private static Map<UUID, Long> immunityTimeTracker = new HashMap<>();
+    /**
+     * The time at which the grace period started for players.
+     */
     private static final Map<UUID, Long> gracePeriodTracker = new HashMap<>();
+
+    /**
+     * Load the immunity configuration.
+     * @param configuration The immunity configuration section in the config.yml file.
+     */
     public static void loadConfiguration(ConfigurationSection configuration) {
 
         try {
@@ -233,7 +262,7 @@ public class Immunity {
     public static ImmunityType getAppliedImmunity(OfflinePlayer receiver, double amount) {
         if (getGracePeriod(receiver.getUniqueId()) > 0)
             return ImmunityType.GRACE_PERIOD;
-        if (receiver.getUniqueId().equals(DataManager.GLOBAL_SERVER_ID) || (receiver.isOnline() && Objects.requireNonNull(receiver.getPlayer()).hasPermission("notbounties.immune")) || (!receiver.isOnline() && immunePerms.contains(receiver.getUniqueId().toString()))) {
+        if (receiver.getUniqueId().equals(DataManager.GLOBAL_SERVER_ID) || (receiver.isOnline() && Objects.requireNonNull(receiver.getPlayer()).hasPermission("notbounties.immune")) || (!receiver.isOnline() && DataManager.getPlayerData(receiver.getUniqueId()).hasGeneralImmunity())) {
             return ImmunityType.PERMANENT;
         }
         switch (immunityType) {
@@ -274,7 +303,10 @@ public class Immunity {
             // change storage type from time to expire to time until expire
             immunityTimeTracker.replace(player.getUniqueId(), immunityTimeTracker.get(player.getUniqueId()) - System.currentTimeMillis());
         }
+        DataManager.getPlayerData(player.getUniqueId()).setGeneralImmunity(player.hasPermission("notbounties.immune"));
     }
 
-
+    public static ImmunityType getImmunityType() {
+        return immunityType;
+    }
 }

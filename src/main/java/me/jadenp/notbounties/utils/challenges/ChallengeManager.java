@@ -6,10 +6,10 @@ import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.autoBounties.MurderBounties;
-import me.jadenp.notbounties.utils.configuration.autoBounties.RandomBounties;
-import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
-import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
+import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
+import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
+import me.jadenp.notbounties.utils.external_api.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
@@ -495,7 +495,7 @@ public class ChallengeManager implements Listener {
     private static boolean isChallengeEnabled(Challenge challenge) {
         switch (challenge.getChallengeType()) {
             case PURCHASE_IMMUNITY -> {
-                return Immunity.immunityType == Immunity.ImmunityType.TIME || Immunity.immunityType == Immunity.ImmunityType.SCALING;
+                return Immunity.getImmunityType() == Immunity.ImmunityType.TIME || Immunity.getImmunityType() == Immunity.ImmunityType.SCALING;
             }
             case HOLD_POSTER -> {
                 return ConfigOptions.craftPoster;

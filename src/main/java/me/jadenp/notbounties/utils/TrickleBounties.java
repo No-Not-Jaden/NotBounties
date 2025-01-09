@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.utils;
 
-import me.jadenp.notbounties.Bounty;
-import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.configuration.BountyExpire;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -10,6 +10,8 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 
 public class TrickleBounties {
@@ -38,9 +40,17 @@ public class TrickleBounties {
         while (setterListIterator.hasNext()) {
             Setter setter = setterListIterator.next();
             if (setter.canClaim(claimer)) {
-                double newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * givenReward : Math.ceil(setter.getAmount() * givenReward);
+                double newAmount;
+                if (setter.getAmount() < 0.01) {
+                    // amount too small, reward all of it
+                    newAmount = setter.getAmount();
+                } else {
+                    newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * givenReward : Math.floor(setter.getAmount() * givenReward);
+                }
                 Setter newSetter = new Setter(setter.getName(), setter.getUuid(), newAmount, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() + (newAmount - setter.getAmount()));
                 setterListIterator.set(newSetter);
+            } else {
+                setterListIterator.remove();
             }
         }
         return rewardedBounty;
@@ -51,25 +61,32 @@ public class TrickleBounties {
      * Items are not transferred.
      * @param bounty Bounty that was claimed.
      * @param claimer Player who claimed the bounty and is receiving the transfer
+     * @return Bounty that was transfered
      */
-    public static void transferBounty(Bounty bounty, Player claimer) {
+    public static Bounty transferBounty(Bounty bounty, Player claimer) {
         // check if a bounty should be transferred
         if ((!requireBounty || BountyManager.hasBounty(claimer.getUniqueId())) && bountyTransfer > 0 && bounty.getTotalBounty(claimer) > 0) {
-            Bounty transferedBounty = new Bounty(claimer.getUniqueId(), new ArrayList<>(bounty.getSetters()), claimer.getName()); // create a copy so the original isn't modified
-            ListIterator<Setter> setterListIterator = transferedBounty.getSetters().listIterator();
-            while (setterListIterator.hasNext()) {
-                Setter setter = setterListIterator.next();
+            List<Setter> newSetters = new LinkedList<>();
+            for (Setter setter : bounty.getSetters()) {
                 if (setter.canClaim(claimer)) {
-                    double newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * bountyTransfer : Math.floor(setter.getAmount() * bountyTransfer);
-                    Setter newSetter = new Setter(setter.getName(), setter.getUuid(), newAmount, new ArrayList<>(), System.currentTimeMillis(), setter.isNotified(), setter.getWhitelist(), BountyExpire.getTimePlayed(claimer.getUniqueId()), setter.getDisplayAmount() + (newAmount - setter.getAmount()));
-                    setterListIterator.set(newSetter);
-                } else {
-                    setterListIterator.remove();
+                    double newAmount;
+                    if (setter.getAmount() < 0.01) {
+                        newAmount = 0;
+                    } else {
+                        newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * bountyTransfer : Math.ceil(setter.getAmount() * bountyTransfer);
+                    }
+                    if (newAmount > 0) {
+                        Setter newSetter = new Setter(setter.getName(), setter.getUuid(), newAmount, new ArrayList<>(), System.currentTimeMillis(), setter.isNotified(), setter.getWhitelist(), BountyExpire.getTimePlayed(claimer.getUniqueId()), setter.getDisplayAmount() + (newAmount - setter.getAmount()));
+                        newSetters.add(newSetter);
+                    }
                 }
             }
+            Bounty transferedBounty = new Bounty(claimer.getUniqueId(), newSetters, claimer.getName()); // create a new bounty
             // send message to claimer
             claimer.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("trickle-bounty"), transferedBounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
             DataManager.addBounty(transferedBounty);
+            return transferedBounty;
         }
+        return new Bounty(claimer.getUniqueId(), new LinkedList<>(), claimer.getName());
     }
 }

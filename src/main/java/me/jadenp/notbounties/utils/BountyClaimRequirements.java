@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.utils;
 
-import me.jadenp.notbounties.utils.externalAPIs.*;
+import me.jadenp.notbounties.utils.external_api.*;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;

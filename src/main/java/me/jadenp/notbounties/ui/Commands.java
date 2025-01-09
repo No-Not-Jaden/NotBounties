@@ -1,8 +1,12 @@
 package me.jadenp.notbounties.ui;
 
 import me.jadenp.notbounties.*;
-import me.jadenp.notbounties.bountyEvents.BountyEditEvent;
-import me.jadenp.notbounties.bountyEvents.BountyRemoveEvent;
+import me.jadenp.notbounties.bounty_events.BountyEditEvent;
+import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
+import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.ui.gui.GUI;
@@ -12,8 +16,8 @@ import me.jadenp.notbounties.utils.*;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.challenges.ChallengeType;
 import me.jadenp.notbounties.utils.configuration.*;
-import me.jadenp.notbounties.utils.externalAPIs.LiteBansClass;
-import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
+import me.jadenp.notbounties.utils.external_api.LiteBansClass;
+import me.jadenp.notbounties.utils.external_api.LocalTime;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -30,7 +34,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
@@ -279,8 +282,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (args.length > 1) {
                     if (args[1].equalsIgnoreCase("clear")) {
                         if (!silent)
-                            sender.sendMessage(parse(getPrefix() + ChatColor.DARK_RED + "Removed " + bountyBoards.size() + " bounty boards.", parser));
-                        removeBountyBoard();
+                            sender.sendMessage(parse(getPrefix() + ChatColor.DARK_RED + "Removed " + BountyBoard.getBountyBoards().size() + " bounty boards.", parser));
+                        BountyBoard.clearBoard();
 
                         return true;
                     }
@@ -297,7 +300,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                     }
                 } else {
-                    for (BountyBoard board : bountyBoards) {
+                    // get highest rank
+                    for (BountyBoard board : BountyBoard.getBountyBoards()) {
                         if (board.getRank() > rank)
                             rank = board.getRank();
                     }
@@ -313,7 +317,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 Tutorial.onCommand(sender, args);
                 return true;
             } else if (args[0].equalsIgnoreCase("whitelist") && bountyWhitelistEnabled) {
-                if (sender instanceof Player) {
+                if (sender instanceof Player player) {
                     if (!sender.hasPermission("notbounties.whitelist")) {
                         if (!silent)
                             sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
@@ -328,13 +332,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("reset")) {
-                        getPlayerWhitelist(parser.getUniqueId()).setList(new ArrayList<>());
+                        DataManager.getPlayerData(player.getUniqueId()).getWhitelist().setList(new ArrayList<>());
                         if (!silent)
                             sender.sendMessage(parse(getPrefix() + getMessage("whitelist-reset"), parser));
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("view")) {
-                        List<UUID> whitelist = getPlayerWhitelist((parser).getUniqueId()).getList();
+                        List<UUID> whitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList();
                         StringBuilder names = new StringBuilder(" ");
                         for (UUID uuid : whitelist) {
                             names.append(LoggedPlayers.getPlayerName(uuid)).append(", ");
@@ -351,7 +355,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args[1].equalsIgnoreCase("toggle")) {
                         if (args.length == 2 && enableBlacklist) {
                             // toggle
-                            if (getPlayerWhitelist(((Player) sender).getUniqueId()).toggleBlacklist()) {
+                            if (DataManager.getPlayerData(player.getUniqueId()).getWhitelist().toggleBlacklist()) {
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + getMessage("blacklist-toggle"), parser));
                             } else {
@@ -366,7 +370,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         args[2].equalsIgnoreCase("blacklist")
                                                 || args[2].equalsIgnoreCase("false")
                                                 || args[2].equalsIgnoreCase("off");
-                                boolean change = getPlayerWhitelist(((Player) sender).getUniqueId()).setBlacklist(blacklist);
+                                boolean change = DataManager.getPlayerData(player.getUniqueId()).getWhitelist().setBlacklist(blacklist);
                                 // command is silent if there is no change
                                 if (change)
                                     if (blacklist) {
@@ -385,7 +389,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[2], parser));
                                     return false;
                                 }
-                                Whitelist whitelist = getPlayerWhitelist(((Player) sender).getUniqueId());
+                                Whitelist whitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist();
                                 if (whitelist.getList().remove(playerUUID)) {
                                     if (!silent)
                                         sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
@@ -402,8 +406,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     if (args.length > 2) {
+                        Whitelist playerWhitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist();
                         List<UUID> whitelist = new ArrayList<>();
-                        List<UUID> previousWhitelist = NotBounties.playerWhitelist.containsKey((parser).getUniqueId()) ? playerWhitelist.get((parser).getUniqueId()).getList() : new ArrayList<>();
+                        List<UUID> previousWhitelist = playerWhitelist.getList();
                         for (int i = 2; i < Math.min(args.length, 12); i++) {
                             UUID playerUUID = LoggedPlayers.getPlayer(args[i]);
                             if (playerUUID == null) {
@@ -420,12 +425,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                             whitelist.stream().filter(uuid -> !previousWhitelist.contains(uuid)).forEach(previousWhitelist::add);
                             while (previousWhitelist.size() > 10)
                                 previousWhitelist.remove(10);
-                            getPlayerWhitelist(parser.getUniqueId()).setList(previousWhitelist);
+                            // don't need to set the player's whitelist to previousWhitelist because it is already a reference to it
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
-                            if (previousWhitelist.size() == 10)
-                                if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + getMessage("whitelist-max"), parser));
+                            if (previousWhitelist.size() == 10 && !silent)
+                                sender.sendMessage(parse(getPrefix() + getMessage("whitelist-max"), parser));
                             return true;
                         }
                         if (args[1].equalsIgnoreCase("remove")) {
@@ -439,13 +443,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), builder.toString(), parser));
                                 return true;
                             }
-                            getPlayerWhitelist(parser.getUniqueId()).setList(previousWhitelist);
+                            // don't need to set the player's whitelist to previousWhitelist because it is already a reference to it
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
                             return true;
                         }
                         if (args[1].equalsIgnoreCase("set")) {
-                            getPlayerWhitelist(parser.getUniqueId()).setList(whitelist);
+                            playerWhitelist.setList(whitelist);
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
                             return true;
@@ -489,31 +493,31 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
-            } else if (args[0].equalsIgnoreCase("bdc") && sender.hasPermission("notbounties.basic")) {
-                if (sender instanceof Player) {
+            } else if ((args[0].equalsIgnoreCase("bdc") || args[0].equalsIgnoreCase("broadcast")) && sender.hasPermission("notbounties.basic")) {
+                if (sender instanceof Player player) {
+                    PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
                     if (args.length > 1) {
                         boolean broadcastMode = args[1].equalsIgnoreCase("true") || args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("enable");
                         if (broadcastMode) {
                             // enable
-                            NotBounties.disableBroadcast.remove((parser).getUniqueId());
+                            playerData.setDisableBroadcast(false);
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
                         } else {
                             // disable
-                            if (!NotBounties.disableBroadcast.contains((parser).getUniqueId()))
-                                NotBounties.disableBroadcast.add(parser.getUniqueId());
+                            playerData.setDisableBroadcast(true);
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("disable-broadcast"), parser));
                         }
                     } else {
-                        if (NotBounties.disableBroadcast.contains((parser).getUniqueId())) {
+                        if (playerData.isDisableBroadcast()) {
                             // enable
-                            NotBounties.disableBroadcast.remove((parser).getUniqueId());
+                            playerData.setDisableBroadcast(false);
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
                         } else {
                             // disable
-                            NotBounties.disableBroadcast.add((parser).getUniqueId());
+                            playerData.setDisableBroadcast(true);
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("disable-broadcast"), parser));
                         }
@@ -676,10 +680,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                         } else {
                             // usage
                             if (sender instanceof Player)
-                                if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
+                                if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
                                     if (!silent)
                                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                    switch (Immunity.immunityType) {
+                                    switch (Immunity.getImmunityType()) {
                                         case PERMANENT:
                                             sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                                             break;
@@ -720,10 +724,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                                 sendHelpMessage(sender, getListMessage("help.remove-immunity"));
-                            } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
+                            } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                switch (Immunity.immunityType) {
+                                switch (Immunity.getImmunityType()) {
                                     case PERMANENT:
                                         sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                                         break;
@@ -750,10 +754,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                             sendHelpMessage(sender, getListMessage("help.remove-immunity"));
-                        } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
+                        } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                            switch (Immunity.immunityType) {
+                            switch (Immunity.getImmunityType()) {
                                 case PERMANENT:
                                     sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
                                     break;
@@ -772,9 +776,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 } else {
                     if (sender instanceof Player) {
-                        if (Immunity.immunityType != Immunity.ImmunityType.DISABLE) {
+                        if (Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
                             if (sender.hasPermission("notbounties.buyimmunity")) {
-                                if (Immunity.immunityType == Immunity.ImmunityType.PERMANENT) {
+                                if (Immunity.getImmunityType() == Immunity.ImmunityType.PERMANENT) {
                                     double immunitySpent = Immunity.getImmunity(Objects.requireNonNull(parser).getUniqueId());
                                     if (immunitySpent < Immunity.getPermanentCost() && !sender.hasPermission("notbounties.immune")) {
                                         if ((repeatBuyCommand2.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyCommand2.get((parser).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
@@ -826,7 +830,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 // successfully bought scaling immunity - amount x scalingRatio
                                                 Immunity.addImmunity(parser.getUniqueId(), amount);
                                                 ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.PURCHASE_IMMUNITY, amount);
-                                                if (Immunity.immunityType == Immunity.ImmunityType.SCALING) {
+                                                if (Immunity.getImmunityType() == Immunity.ImmunityType.SCALING) {
                                                     if (!silent)
                                                         sender.sendMessage(parse(getPrefix() + getMessage("buy-scaling-immunity"), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getScalingRatio(), parser));
                                                 } else {
@@ -1059,7 +1063,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         Bukkit.getPluginManager().callEvent(event);
                                         if (event.isCancelled())
                                             return true;
-                                        BountyManager.removeSetters(toRemove.getUUID(), actualSetters);
+                                        DataManager.removeSetters(getBounty(toRemove.getUUID()), actualSetters);
 
                                         refundBounty(bounty);
                                         // reopen gui for everyone
@@ -1486,11 +1490,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         return false;
                     }
-                    if (bountyCooldown > 0 && sender instanceof Player player1 && bountyCooldowns.containsKey(player1.getUniqueId()) && System.currentTimeMillis() - bountyCooldowns.get(player1.getUniqueId()) < bountyCooldown * 1000L) {
+                    if (bountyCooldown > 0 && sender instanceof Player player1) {
                         // bounty cooldown
-                        if (!silent)
-                            sender.sendMessage(parse(getPrefix() + getMessage("bounty-set-cooldown"), bountyCooldown * 1000L - (System.currentTimeMillis() - bountyCooldowns.get(player1.getUniqueId())), LocalTime.TimeFormat.RELATIVE, parser));
-                        return false;
+                        long sinceLastSet = System.currentTimeMillis() - DataManager.getPlayerData(player1.getUniqueId()).getBountyCooldown();
+                        if (sinceLastSet < bountyCooldown * 1000L) {
+                            if (!silent)
+                                sender.sendMessage(parse(getPrefix() + getMessage("bounty-set-cooldown"), bountyCooldown * 1000L - sinceLastSet, LocalTime.TimeFormat.RELATIVE, parser));
+                            return false;
+                        }
                     }
                     if (!selfSetting && sender instanceof Player p && p.getUniqueId().equals(playerUUID)) {
                         // own bounty
@@ -1510,7 +1517,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
 
                     // get whitelisted people
-                    Whitelist whitelist = (sender instanceof Player) && sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled ? getPlayerWhitelist((parser).getUniqueId()) : new Whitelist(new ArrayList<>(), false);
+                    Whitelist whitelist = (sender instanceof Player player) && sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled ? DataManager.getPlayerData(player.getUniqueId()).getWhitelist() : new Whitelist(new ArrayList<>(), false);
                     if (args.length > 3 && sender.hasPermission("notbounties.whitelist")) {
                         List<UUID> newWhitelist = new ArrayList<>();
                         for (int i = 3; i < Math.min(args.length, 13); i++) {
@@ -1859,6 +1866,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("notbounties.basic")) {
                     tab.add("help");
                     tab.add("bdc");
+                    tab.add("broadcast");
                     tab.add("tutorial");
                 }
                 if (sender.hasPermission("notbounties.set")) {
@@ -1898,7 +1906,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("notbounties.buyown") && buyBack) {
                     tab.add("buy");
                 }
-                if (Immunity.immunityType != Immunity.ImmunityType.DISABLE || sender.hasPermission(NotBounties.getAdminPermission())) {
+                if (Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE || sender.hasPermission(NotBounties.getAdminPermission())) {
                     if (sender.hasPermission("notbounties.buyimmunity")) {
                         tab.add("immunity");
                     }
@@ -1926,7 +1934,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else if (args[0].equalsIgnoreCase("immunity")) {
                     if ((sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.removeimmunity")))
                         tab.add("remove");
-                    if ((sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.buyimmunity")) && Immunity.immunityType == Immunity.ImmunityType.PERMANENT)
+                    if ((sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.buyimmunity")) && Immunity.getImmunityType() == Immunity.ImmunityType.PERMANENT)
                         tab.add("--confirm");
                 } else if ((args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("stat")) && sender.hasPermission("notbounties.view")) {
                     tab.add("all");
@@ -2026,7 +2034,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 tab.add(entry.getValue());
                         }
                     }
-                    if ((sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.buyimmunity")) && (Immunity.immunityType == Immunity.ImmunityType.SCALING || Immunity.immunityType == Immunity.ImmunityType.TIME))
+                    if ((sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.buyimmunity")) && (Immunity.getImmunityType() == Immunity.ImmunityType.SCALING || Immunity.getImmunityType() == Immunity.ImmunityType.TIME))
                         tab.add("--confirm");
                 } else if (args[0].equalsIgnoreCase("tracker") && BountyTracker.isEnabled()) {
                     for (Map.Entry<UUID, String> entry : NotBounties.getNetworkPlayers().entrySet()) {
@@ -2077,8 +2085,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 if (sender.hasPermission("notbounties.set") && isPlayer && confirmation)
                     tab.add("--confirm");
-                if (args[0].equalsIgnoreCase("whitelist") && args[1].equalsIgnoreCase("remove") && sender.hasPermission("notbounties.whitelist")) {
-                    for (UUID uuid : getPlayerWhitelist(((Player) sender).getUniqueId()).getList()) {
+                if (args[0].equalsIgnoreCase("whitelist") && args[1].equalsIgnoreCase("remove") && sender.hasPermission("notbounties.whitelist") && sender instanceof Player player) {
+                    for (UUID uuid : DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList()) {
                         String name = LoggedPlayers.getPlayerName(uuid);
                         if (name.length() < 25)
                             tab.add(name);

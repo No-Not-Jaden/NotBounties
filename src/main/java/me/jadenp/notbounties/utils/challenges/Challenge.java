@@ -2,7 +2,7 @@ package me.jadenp.notbounties.utils.challenges;
 
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.Setter;
+import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.ui.gui.bedrock.GUIComponent;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -11,7 +11,7 @@ import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.external_api.PlaceholderAPIClass;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;

@@ -1,17 +1,17 @@
 package me.jadenp.notbounties.utils.configuration;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
-import me.jadenp.notbounties.ui.gui.displayItems.PlayerItem;
+import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.CommandPrompt;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.externalAPIs.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.external_api.PlaceholderAPIClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -317,7 +317,7 @@ public class ActionCommands {
         } else if (command.startsWith("[broadcast] ")) {
             String message = command.substring(12);
             for (Player p : Bukkit.getOnlinePlayers()) {
-                if (!NotBounties.disableBroadcast.contains(p.getUniqueId())) {
+                if (!DataManager.getPlayerData(p.getUniqueId()).isDisableBroadcast()) {
                     p.sendMessage(LanguageOptions.parse(getPrefix() + message, killer));
                 }
             }

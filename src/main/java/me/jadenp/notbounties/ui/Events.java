@@ -1,8 +1,10 @@
 package me.jadenp.notbounties.ui;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
+import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.RewardHead;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.DataManager;
@@ -10,8 +12,10 @@ import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.UpdateChecker;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
-import me.jadenp.notbounties.utils.configuration.autoBounties.TimedBounties;
-import me.jadenp.notbounties.utils.externalAPIs.LocalTime;
+import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
+import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
+import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
+import me.jadenp.notbounties.utils.external_api.LocalTime;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -45,45 +49,12 @@ public class Events implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         if (NotBounties.isPaused())
             return;
-        if (immunePerms.contains(event.getPlayer().getUniqueId().toString())) {
-            if (!event.getPlayer().hasPermission("notbounties.immune")) {
-                immunePerms.remove(event.getPlayer().getUniqueId().toString());
-            }
-        } else {
-            if (event.getPlayer().hasPermission("notbounties.immune")) {
-                immunePerms.add(event.getPlayer().getUniqueId().toString());
-            }
-        }
-        if (autoImmuneMurderPerms.contains(event.getPlayer().getUniqueId().toString())) {
-            if (!event.getPlayer().hasPermission("notbounties.immunity.murder")) {
-                autoImmuneMurderPerms.remove(event.getPlayer().getUniqueId().toString());
-            }
-        } else {
-            if (event.getPlayer().hasPermission("notbounties.immunity.murder")) {
-                autoImmuneMurderPerms.add(event.getPlayer().getUniqueId().toString());
-            }
-        }
-        if (autoImmuneRandomPerms.contains(event.getPlayer().getUniqueId().toString())) {
-            if (!event.getPlayer().hasPermission("notbounties.immunity.random")) {
-                autoImmuneRandomPerms.remove(event.getPlayer().getUniqueId().toString());
-            }
-        } else {
-            if (event.getPlayer().hasPermission("notbounties.immunity.random")) {
-                autoImmuneRandomPerms.add(event.getPlayer().getUniqueId().toString());
-            }
-        }
-        if (autoImmuneTimedPerms.contains(event.getPlayer().getUniqueId().toString())) {
-            if (!event.getPlayer().hasPermission("notbounties.immunity.timed")) {
-                autoImmuneTimedPerms.remove(event.getPlayer().getUniqueId().toString());
-            }
-        } else {
-            if (event.getPlayer().hasPermission("notbounties.immunity.timed")) {
-                autoImmuneTimedPerms.add(event.getPlayer().getUniqueId().toString());
-            }
-        }
+
         displayParticle.remove(event.getPlayer().getUniqueId());
         NotBounties.removeWantedTag(event.getPlayer().getUniqueId());
 
+        RandomBounties.logout(event.getPlayer());
+        MurderBounties.logout(event.getPlayer());
         TimedBounties.logout(event.getPlayer());
         Immunity.logout(event.getPlayer());
         BountyExpire.logout(event.getPlayer());
@@ -137,7 +108,7 @@ public class Events implements Listener {
                 return;
             }
             Location location = Objects.requireNonNull(event.getClickedBlock()).getRelative(event.getBlockFace()).getLocation();
-            addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
+            BountyBoard.addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
             event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
             NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
         }
@@ -149,14 +120,10 @@ public class Events implements Listener {
             return;
         if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId()) && NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1 && (event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME))) {
             event.setCancelled(true);
-            int removes = removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
+            int removes = BountyBoard.removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
             NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
             event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.GREEN + "Removed " + removes + " bounty boards.", event.getPlayer()));
         }
-    }
-
-    public static void logPlayer(Player player) {
-
     }
 
     public static void login(Player player) {
@@ -199,14 +166,16 @@ public class Events implements Listener {
             if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted() && !NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
                 NotBounties.wantedText.put(event.getPlayer().getUniqueId(), new WantedTags(event.getPlayer()));
             }
+
         }
 
-        if (headRewards.containsKey(event.getPlayer().getUniqueId())) {
-            for (RewardHead rewardHead : headRewards.get(event.getPlayer().getUniqueId())) {
-                NumberFormatting.givePlayer(event.getPlayer(), rewardHead.getItem(), 1);
-            }
-            headRewards.remove(event.getPlayer().getUniqueId());
+        PlayerData playerData = DataManager.getPlayerData(event.getPlayer().getUniqueId());
+
+        for (RewardHead rewardHead : playerData.getRewardHeads()) {
+            NumberFormatting.givePlayer(event.getPlayer(), rewardHead.getItem(), 1);
         }
+        playerData.getRewardHeads().clear();
+
         if (BountyExpire.removeExpiredBounties()) {
             GUI.reopenBountiesGUI();
         }
@@ -230,19 +199,16 @@ public class Events implements Listener {
 
 
         // check if they had a bounty refunded
-        if (refundedBounties.containsKey(event.getPlayer().getUniqueId())) {
-            if (NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL)
-                NumberFormatting.doAddCommands(event.getPlayer(), refundedBounties.get(event.getPlayer().getUniqueId()));
-            refundedBounties.remove(event.getPlayer().getUniqueId());
+        if (playerData.getRefundAmount() > 0 && NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL) {
+            NumberFormatting.doAddCommands(event.getPlayer(), playerData.getRefundAmount());
         }
-        if (refundedItems.containsKey(event.getPlayer().getUniqueId())) {
-            if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC)
-                NumberFormatting.givePlayer(event.getPlayer(), refundedItems.get(event.getPlayer().getUniqueId()), false);
-            refundedItems.remove(event.getPlayer().getUniqueId());
+        if (!playerData.getRefundItems().isEmpty() && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC) {
+            NumberFormatting.givePlayer(event.getPlayer(), playerData.getRefundItems(), false);
         }
+        playerData.clearRefund();
 
         // remove persistent bounty entities in chunk
-        if (WantedTags.isEnabled() || !bountyBoards.isEmpty())
+        if (WantedTags.isEnabled() || !BountyBoard.getBountyBoards().isEmpty())
             RemovePersistentEntitiesEvent.cleanChunk(event.getPlayer().getLocation());
 
 

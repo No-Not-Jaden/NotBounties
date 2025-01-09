@@ -1,16 +1,14 @@
 package me.jadenp.notbounties.utils.challenges;
 
-import me.jadenp.notbounties.Setter;
-import me.jadenp.notbounties.bountyEvents.BountyClaimEvent;
-import me.jadenp.notbounties.bountyEvents.BountySetEvent;
+import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.bounty_events.BountyClaimEvent;
+import me.jadenp.notbounties.bounty_events.BountySetEvent;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
-
-import java.util.UUID;
 
 public class ChallengeListener implements Listener {
     @EventHandler

@@ -1,19 +1,19 @@
 package me.jadenp.notbounties.ui.gui.bedrock;
 
-import me.jadenp.notbounties.Bounty;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIClicks;
-import me.jadenp.notbounties.ui.gui.displayItems.*;
+import me.jadenp.notbounties.ui.gui.display_items.*;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import me.jadenp.notbounties.utils.externalAPIs.bedrock.FloodGateClass;
-import me.jadenp.notbounties.utils.externalAPIs.bedrock.GeyserMCClass;
+import me.jadenp.notbounties.utils.external_api.bedrock.FloodGateClass;
+import me.jadenp.notbounties.utils.external_api.bedrock.GeyserMCClass;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
