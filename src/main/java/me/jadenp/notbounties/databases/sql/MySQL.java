@@ -440,10 +440,11 @@ public class MySQL extends NotBountiesDatabase {
                 Bounty temp;
                 for (int i = 0; i < sortedList.size(); i++) {
                     for (int j = i + 1; j < sortedList.size(); j++) {
-                        if ((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
+                        if (!sortedList.get(i).getSetters().isEmpty()
+                                && ((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
                                 (sortedList.get(i).getSetters().get(0).getTimeCreated() < sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 1) || // newest bounties at top
                                 (sortedList.get(i).getTotalDisplayBounty() < sortedList.get(j).getTotalDisplayBounty() && sortType == 2) || // more expensive bounties at top
-                                (sortedList.get(i).getTotalDisplayBounty() > sortedList.get(j).getTotalDisplayBounty() && sortType == 3)) { // less expensive bounties at top
+                                (sortedList.get(i).getTotalDisplayBounty() > sortedList.get(j).getTotalDisplayBounty() && sortType == 3))) { // less expensive bounties at top
                             temp = sortedList.get(i);
                             sortedList.set(i, sortedList.get(j));
                             sortedList.set(j, temp);

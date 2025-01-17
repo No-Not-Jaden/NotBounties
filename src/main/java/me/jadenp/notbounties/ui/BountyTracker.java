@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import net.md_5.bungee.api.ChatMessageType;
@@ -29,10 +30,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.map.MapView;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.Nullable;
 
+import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -130,8 +134,8 @@ public class BountyTracker implements Listener {
         meta.setDisplayName(LanguageOptions.parse(LanguageOptions.getMessage("empty-tracker-name"), null));
         List<String> lore = new ArrayList<>();
         LanguageOptions.getListMessage("empty-tracker-lore").forEach(str -> lore.add(LanguageOptions.parse(str, null)));
-        lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@-1");
         meta.setLore(lore);
+        meta.getPersistentDataContainer().set(namespacedKey, PersistentDataType.STRING, DataManager.GLOBAL_SERVER_ID.toString());
         item.setItemMeta(meta);
         return item;
     }
@@ -144,13 +148,9 @@ public class BountyTracker implements Listener {
         ItemMeta meta = compass.getItemMeta();
         assert meta != null;
         meta.setDisplayName(parse(getMessage("bounty-tracker-name"), player));
-
         ArrayList<String> lore = getListMessage("bounty-tracker-lore").stream().map(str -> parse(str, player)).collect(Collectors.toCollection(ArrayList::new));
-
-        int id = registerTrackedUUID(uuid);
-
-        lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + id);
         meta.setLore(lore);
+        meta.getPersistentDataContainer().set(namespacedKey, PersistentDataType.STRING, uuid.toString());
         if (NotBounties.isAboveVersion(20, 4)) {
             if (!meta.hasEnchantmentGlintOverride())
                 meta.setEnchantmentGlintOverride(true);
@@ -163,30 +163,12 @@ public class BountyTracker implements Listener {
     }
 
     /**
-     * Register a UUID with trackedBounties.
-     * If the UUID already exists in the map, the ID will be returned. Otherwise, a new ID is created and returned;
-     * @param uuid UUID of the tracked player
-     * @return The associated ID of the tracked bounty.
-     */
-    private static int registerTrackedUUID(UUID uuid) {
-        // check if the uuid already exists in the map
-        if (trackedBounties.containsValue(uuid))
-            return trackedBounties.inverse().get(uuid);
-        // get the next usable ID
-        int id = 0;
-        while (trackedBounties.containsKey(id))
-            id++;
-
-        trackedBounties.put(id, uuid); // register to map
-        return id; // return found id
-    }
-
-    /**
      * Get the tracker ID from a compass ItemStack
      * @param itemStack ItemStack to parse
      * @return The tracker id located at the end of the item's lore. An ID of -404 will be returned if the ItemStack isn't a tracker.
+     * @Depricated TrackerID is no longer given to items. Instead, use {@link BountyTracker#getTrackedPlayer(ItemStack)}.
      */
-    public static int getTrackerID(ItemStack itemStack) {
+    private static int getTrackerID(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() != Material.COMPASS)
             return -404;
         ItemMeta meta = itemStack.getItemMeta();
@@ -204,6 +186,35 @@ public class BountyTracker implements Listener {
         } catch (NumberFormatException e) {
             return -404;
         }
+    }
+
+    /**
+     * Get the player that a bounty compass is tracking.
+     * @param itemStack Compass that is tracking a bounty.
+     * @return The UUID of the player that the compass is tracking.
+     * If the item is an empty tracker, then the console id will be returned.
+     * If the item isn't a tracker, then null will be returned.
+     */
+    public static @Nullable UUID getTrackedPlayer(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() != Material.COMPASS)
+            return null;
+        ItemMeta meta = itemStack.getItemMeta();
+        assert meta != null;
+        if (meta.getPersistentDataContainer().has(namespacedKey)) {
+            return UUID.fromString(Objects.requireNonNull(meta.getPersistentDataContainer().get(namespacedKey, PersistentDataType.STRING)));
+        }
+        // old ids
+        int oldId = getTrackerID(itemStack);
+        if (oldId == -1)
+            return DataManager.GLOBAL_SERVER_ID;
+        if (oldId != -404 && trackedBounties.containsKey(oldId)) {
+            // old tracked bounty
+            UUID uuid = trackedBounties.get(oldId);
+            meta.getPersistentDataContainer().set(namespacedKey, PersistentDataType.STRING, uuid.toString());
+            itemStack.setItemMeta(meta);
+            return uuid;
+        }
+        return null;
     }
 
     public static boolean isGiveOwnTracker() {
@@ -241,8 +252,8 @@ public class BountyTracker implements Listener {
         ItemStack[] contents = inventory.getContents();
         for (int i = 0; i < contents.length; i++) {
             if (contents[i] != null) {
-                int id = getTrackerID(contents[i]);
-                if (id != -404 && id != -1 && !trackedBounties.containsKey(id)) {
+                UUID trackedUUID = getTrackedPlayer(contents[i]);
+                if (trackedUUID != null && !trackedUUID.equals(DataManager.GLOBAL_SERVER_ID) && !hasBounty(trackedUUID)) {
                     if (resetRemovedTrackers) {
                         ItemStack emptyTracker = getEmptyTracker().clone();
                         emptyTracker.setAmount(contents[i].getAmount());
@@ -268,8 +279,8 @@ public class BountyTracker implements Listener {
         ItemStack[] contents = player.getInventory().getContents();
         for (int i = 0; i < contents.length; i++) {
             if (contents[i] != null) {
-                int id = getTrackerID(contents[i]);
-                if (id == -1) {
+                UUID trackedUUID = getTrackedPlayer(contents[i]);
+                if (DataManager.GLOBAL_SERVER_ID.equals(trackedUUID)) {
                     if (contents[i].getAmount() > 1 && limitOne) {
                         contents[i] = new ItemStack(contents[i].getType(), contents[i].getAmount() - 1);
                         break;
@@ -299,17 +310,18 @@ public class BountyTracker implements Listener {
             return;
         for (Player player : Bukkit.getOnlinePlayers()) {
             ItemStack item = player.getInventory().getItemInMainHand();
-            int id = getTrackerID(item);
-            if (id == -404)
+            UUID trackedUUID = getTrackedPlayer(item);
+            if (trackedUUID == null)
                 continue;
-            updateHeldTracker(player, item, id, false);
+            updateHeldTracker(player, item, trackedUUID, false);
         }
     }
 
-    private static void updateHeldTracker(Player player, ItemStack item, int id, boolean force) {
+    private static void updateHeldTracker(Player player, ItemStack item, UUID uuid, boolean force) {
         if (item.getType() != Material.COMPASS)
             return;
-        if (!trackedBounties.containsKey(id) && trackerRemove > 0 && id != -1) {
+        boolean canTrack = hasBounty(uuid);
+        if (!DataManager.GLOBAL_SERVER_ID.equals(uuid) && !canTrack && trackerRemove > 0) {
             // invalid tracker
             removeTracker(player);
             return;
@@ -317,7 +329,7 @@ public class BountyTracker implements Listener {
         CompassMeta compassMeta = (CompassMeta) item.getItemMeta();
         assert compassMeta != null;
         Location previousLocation = compassMeta.hasLodestone() ? compassMeta.getLodestone() : null;
-        if (!player.hasPermission("notbounties.tracker") || !trackedBounties.containsKey(id)) {
+        if (!player.hasPermission("notbounties.tracker") || !canTrack) {
             // no permission or empty tracker - track other world for funky compass movements
             if (Bukkit.getWorlds().size() > 1) {
                 for (World world : Bukkit.getWorlds()) {
@@ -334,7 +346,7 @@ public class BountyTracker implements Listener {
                 World world = player.getWorld();
                 compassMeta.setLodestone(new Location(world, world.getSpawnLocation().getX(), 0, world.getSpawnLocation().getZ()));
             }
-            if (id != -1) // not an empty tracker
+            if (!DataManager.GLOBAL_SERVER_ID.equals(uuid)) // not an empty tracker
                 if (trackerActionBar && (TABShowAlways || force)) {
                     player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(getMessage("tracker-no-permission"), player)));
                 }
@@ -346,50 +358,45 @@ public class BountyTracker implements Listener {
             }
             return;
         }
-
-        UUID trackedUUID = trackedBounties.get(id);
-        if (!hasBounty(trackedUUID))
+        if (!hasBounty(uuid))
             // no bounty
             return;
-        OfflinePlayer trackedPlayer = Bukkit.getOfflinePlayer(trackedUUID);
-        if (trackedPlayer.isOnline() && (NotBounties.serverVersion >= 17 && player.canSee(Objects.requireNonNull(trackedPlayer.getPlayer()))) && !isVanished(trackedPlayer.getPlayer())) {
+        Player trackedPlayer = Bukkit.getPlayer(uuid);
+        if (trackedPlayer != null && (NotBounties.serverVersion >= 17 && player.canSee(Objects.requireNonNull(trackedPlayer))) && !isVanished(trackedPlayer)) {
             // can track player
-            Player p = trackedPlayer.getPlayer();
             if (!compassMeta.hasLodestone() || compassMeta.getLodestone() == null) {
-                compassMeta.setLodestone(p.getLocation().getBlock().getLocation());
-            } else if (Objects.equals(compassMeta.getLodestone().getWorld(), p.getWorld())) {
-                if (compassMeta.getLodestone().distance(p.getLocation()) > 2) {
-                    compassMeta.setLodestone(p.getLocation().getBlock().getLocation());
+                compassMeta.setLodestone(trackedPlayer.getLocation().getBlock().getLocation());
+            } else if (Objects.equals(compassMeta.getLodestone().getWorld(), trackedPlayer.getWorld())) {
+                if (compassMeta.getLodestone().distance(trackedPlayer.getLocation()) > 2) {
+                    compassMeta.setLodestone(trackedPlayer.getLocation().getBlock().getLocation());
                 }
             } else {
-                compassMeta.setLodestone(p.getLocation().getBlock().getLocation());
+                compassMeta.setLodestone(trackedPlayer.getLocation().getBlock().getLocation());
             }
 
 
-            if (trackerGlow > 0) {
-                if (p.getWorld().equals(player.getWorld())) {
-                    if (player.getLocation().distance(p.getLocation()) < trackerGlow) {
-                        p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 45, 0));
-                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(getMessage("tracked-notify"), p)));
-                    }
-                }
+            if (trackerGlow > 0 && trackedPlayer.getWorld().equals(player.getWorld()) && player.getLocation().distance(trackedPlayer.getLocation()) < trackerGlow) {
+                trackedPlayer.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 45, 0));
+                trackedPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(getMessage("tracked-notify"), trackedPlayer)));
             }
+
 
             // build actionbar
             if (trackerActionBar && (TABShowAlways || force)) {
                 StringBuilder actionBar = new StringBuilder(ChatColor.DARK_GRAY + "|");
                 if (TABPlayerName)
-                    actionBar.append(" " + ChatColor.YELLOW).append(p.getName()).append(ChatColor.DARK_GRAY).append(" |");
-                if (TABDistance)
-                    if (p.getWorld().equals(player.getWorld())) {
-                        actionBar.append(" " + ChatColor.GOLD).append((int) player.getLocation().distance(p.getLocation())).append("m").append(ChatColor.DARK_GRAY).append(" |");
+                    actionBar.append(" ").append(ChatColor.YELLOW).append(trackedPlayer.getName()).append(ChatColor.DARK_GRAY).append(" |");
+                if (TABDistance) {
+                    if (trackedPlayer.getWorld().equals(player.getWorld())) {
+                        actionBar.append(" ").append(ChatColor.GOLD).append((int) player.getLocation().distance(trackedPlayer.getLocation())).append("m").append(ChatColor.DARK_GRAY).append(" |");
                     } else {
                         actionBar.append(" ?m |");
                     }
+                }
                 if (TABPosition)
-                    actionBar.append(" " + ChatColor.RED).append(p.getLocation().getBlockX()).append("x ").append(p.getLocation().getBlockY()).append("y ").append(p.getLocation().getBlockZ()).append("z").append(ChatColor.DARK_GRAY).append(" |");
+                    actionBar.append(" ").append(ChatColor.RED).append(trackedPlayer.getLocation().getBlockX()).append("x ").append(trackedPlayer.getLocation().getBlockY()).append("y ").append(trackedPlayer.getLocation().getBlockZ()).append("z").append(ChatColor.DARK_GRAY).append(" |");
                 if (TABWorld)
-                    actionBar.append(" " + ChatColor.LIGHT_PURPLE).append(p.getWorld().getName()).append(ChatColor.DARK_GRAY).append(" |");
+                    actionBar.append(" ").append(ChatColor.LIGHT_PURPLE).append(trackedPlayer.getWorld().getName()).append(ChatColor.DARK_GRAY).append(" |");
                 player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(actionBar.toString()));
             }
             if (previousLocation == null || !Objects.equals(previousLocation.getWorld(), Objects.requireNonNull(compassMeta.getLodestone()).getWorld()) || previousLocation.distance(compassMeta.getLodestone()) > 2) {
@@ -438,11 +445,11 @@ public class BountyTracker implements Listener {
         if (event.getItem() == null || !(event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK))
             return;
         Player player = event.getPlayer();
-        int id = getTrackerID(player.getInventory().getItemInMainHand());
-        if (id == -404 || id == -1)
+        UUID trackedPlayer = getTrackedPlayer(player.getInventory().getItemInMainHand());
+        if (trackedPlayer == null || trackedPlayer.equals(DataManager.GLOBAL_SERVER_ID))
             // not a tracker or an empty tracker
             return;
-        updateHeldTracker(player, player.getInventory().getItemInMainHand(), id, true);
+        updateHeldTracker(player, player.getInventory().getItemInMainHand(), trackedPlayer, true);
     }
 
     // remove tracker if holding
@@ -454,8 +461,9 @@ public class BountyTracker implements Listener {
         if (item == null)
             return;
 
-        int id = getTrackerID(item);
-        if (id == -404 || id == -1 || trackedBounties.containsKey(id))
+        // check if trackers are invalid
+        UUID trackedPlayer = getTrackedPlayer(item);
+        if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer) || hasBounty(trackedPlayer))
             // not a tracker, empty tracker, or valid tracker
             return;
         removeTracker(event.getPlayer());
@@ -475,8 +483,8 @@ public class BountyTracker implements Listener {
         if (!posterTracking || !(event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)) || NotBounties.isPaused())
             return;
         ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
-        int id = getTrackerID(item);
-        if (id != -1)
+        UUID trackedPlayer = getTrackedPlayer(item);
+        if (!DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer))
             // not an empty tracker
             return;
         ItemFrame itemFrame = (ItemFrame) event.getRightClicked();
@@ -486,11 +494,10 @@ public class BountyTracker implements Listener {
         ItemStack frameItem = itemFrame.getItem();
         MapMeta mapMeta = (MapMeta) frameItem.getItemMeta();
         assert mapMeta != null;
-        MapView mapView = mapMeta.getMapView();
-        if (mapView == null || !BountyMap.mapIDs.containsKey(mapView.getId()))
+        if (!mapMeta.getPersistentDataContainer().has(namespacedKey))
             return;
         event.setCancelled(true);
-        UUID posterPlayerUUID = BountyMap.mapIDs.get(mapView.getId());
+        UUID posterPlayerUUID = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(namespacedKey, PersistentDataType.STRING)));
         if (!hasBounty(posterPlayerUUID))
             return;
         removeEmptyTracker(event.getPlayer(), true); // remove one empty tracker
@@ -511,7 +518,7 @@ public class BountyTracker implements Listener {
         for (ItemStack itemStack : matrix) {
             if (itemStack == null)
                 continue;
-            if (getTrackerID(itemStack) == -1) {
+            if (DataManager.GLOBAL_SERVER_ID.equals(getTrackedPlayer(itemStack))) {
                 if (!hasEmptyTracker) {
                     hasEmptyTracker = true;
                 } else {
@@ -549,8 +556,8 @@ public class BountyTracker implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!tracker || !craftTracker || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused())
             return;
-        int id = getTrackerID(inventory.getResult());
-        if (id < 0)
+        UUID trackedPlayer = getTrackedPlayer(inventory.getResult());
+        if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer))
             return;
         if (event.getRawSlot() == 0) {
             event.setCancelled(true);
@@ -560,10 +567,7 @@ public class BountyTracker implements Listener {
         // update result
         int amountCrafted = 1;
         switch (event.getAction()){
-            case PICKUP_ONE:
-            case PICKUP_ALL:
-            case PICKUP_HALF:
-            case PICKUP_SOME:
+            case PICKUP_SOME, PICKUP_HALF, PICKUP_ALL, PICKUP_ONE:
                 new BukkitRunnable() {
                     final int previousAmount = event.getCursor() != null ? event.getCursor().getAmount() : 0;
                     final ItemStack result = inventory.getResult();
@@ -575,10 +579,7 @@ public class BountyTracker implements Listener {
                     }
                 }.runTaskLater(NotBounties.getInstance(), 1);
                 break;
-            case DROP_ALL_SLOT:
-            case DROP_ALL_CURSOR:
-            case DROP_ONE_CURSOR:
-            case DROP_ONE_SLOT:
+            case DROP_ONE_SLOT, DROP_ONE_CURSOR, DROP_ALL_CURSOR, DROP_ALL_SLOT:
                 if (inventory.getResult() != null)
                     event.getWhoClicked().getWorld().dropItem(event.getWhoClicked().getEyeLocation(), inventory.getResult());
                 break;
@@ -595,8 +596,7 @@ public class BountyTracker implements Listener {
                 NumberFormatting.givePlayer((Player) event.getWhoClicked(), inventory.getResult(), minAmount);
                 amountCrafted = minAmount;
                 break;
-            case HOTBAR_MOVE_AND_READD:
-            case HOTBAR_SWAP:
+            case HOTBAR_SWAP, HOTBAR_MOVE_AND_READD:
                 // hit a number button to move to a hotbar slot - slot must be empty
                 if (event.getWhoClicked().getOpenInventory().getBottomInventory().getItem(event.getHotbarButton()) == null)
                     event.getWhoClicked().getOpenInventory().getBottomInventory().setItem(event.getHotbarButton(), inventory.getResult());
@@ -629,9 +629,9 @@ public class BountyTracker implements Listener {
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
         if (!tracker || !washTrackers || NotBounties.isPaused())
             return;
-        int id = getTrackerID(event.getItemDrop().getItemStack());
-        if (id == -404 || id == -1)
-            // not a tracker or empty tracker
+        UUID trackedPlayer = getTrackedPlayer(event.getItemDrop().getItemStack());
+        if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer))
+            // not a tracker or it's an empty tracker
             return;
         new BukkitRunnable() {
             @Override

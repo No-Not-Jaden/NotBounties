@@ -60,7 +60,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
         uuid = bounty.getUUID();
         name = bounty.getName();
         for (Setter setter : bounty.getSetters()) {
-            setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount()));
+            setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), new ArrayList<>(setter.getItems()), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount()));
         }
         serverID = bounty.serverID;
     }
@@ -185,12 +185,19 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
     }
 
     public Setter getLastSetter() {
-        long latest = getLatestUpdate();
-        for (Setter setter : setters) {
-            if (setter.getTimeCreated() == latest)
-                return setter;
+        if (setters.isEmpty()) {
+            DataManager.getLocalData().removeBounty(uuid);
+            return null;
         }
-        return setters.get(setters.size()-1);
+        long latest = setters.get(0).getTimeCreated();
+        Setter latestSetter = setters.get(0);
+        for (int i = 1; i < setters.size(); i++) {
+            if (setters.get(i).getTimeCreated() > latest) {
+                latest = setters.get(i).getTimeCreated();
+                latestSetter = setters.get(i);
+            }
+        }
+        return latestSetter;
     }
 
 

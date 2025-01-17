@@ -3,6 +3,8 @@ package me.jadenp.notbounties.ui;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.MalformedJsonException;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -408,7 +410,7 @@ class SkinResponseHandler {
         String playerName = LoggedPlayers.getPlayerName(uuid);
         if (playerName.length() > 24) {
             // not a valid length
-            throw new IOException("Recorded player name is not of a valid length. (May not be recorded): " + uuid.toString());
+            throw new IOException("Recorded player name is not of a valid length. (May not be recorded): " + uuid);
         }
 
         final HttpGet request = new HttpGet("https://api.mojang.com/users/profiles/minecraft/" + playerName);
@@ -418,8 +420,14 @@ class SkinResponseHandler {
             if (response.getEntity() == null) {
                 throw new IOException("Failed to get skin for " + playerName + ": Null contents");
             }
+
             String text = EntityUtils.toString(response.getEntity());
-            JsonObject input = new JsonParser().parse(text).getAsJsonObject();
+            JsonObject input;
+            try {
+                input = new JsonParser().parse(text).getAsJsonObject();
+            } catch (JsonSyntaxException e) {
+                throw new IOException("Failed to get skin for " + playerName + ": Syntax Error.", e);
+            }
             if (input.has("errorMessage") && !input.get("errorMessage").isJsonNull()) {
                 throw new IOException("Failed to get skin for " + playerName + ": " + input.get("errorMessage").getAsString());
             }

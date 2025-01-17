@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.ui.map;
 
-import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
@@ -10,10 +9,10 @@ import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.external_api.LocalTime;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.*;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,12 +21,14 @@ import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.server.MapInitializeEvent;
+import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.map.MapView;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.imageio.ImageIO;
@@ -51,7 +52,7 @@ public class BountyMap implements Listener {
     public static BufferedImage deadBounty;
     private static Font playerFont = null;
     public static File posterDirectory;
-    public static final BiMap<Integer, UUID> mapIDs = HashBiMap.create();
+    private static final Map<UUID, MapView> mapViews = new HashMap<>();
     private static File mapData;
 
     public static void initialize(){
@@ -76,18 +77,6 @@ public class BountyMap implements Listener {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-        // load mapIDs
-        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(mapData);
-        for (String key : configuration.getKeys(false)) {
-            try {
-                UUID uuid = UUID.fromString(key);
-                int id = configuration.getInt(key);
-                mapIDs.put(id, uuid);
-            } catch (IllegalArgumentException e) {
-                Bukkit.getLogger().warning("Found a key in mapdata.yml that isn't a UUID. \"" + key + "\". This will be overwritten in 5 minutes.");
-            }
-        }
     }
 
     private static final List<String> posterFiles = Arrays.asList("bounty poster.png", "dead bounty.png", "mapdata.yml", "poster template.png", "READ_ME.txt", "playerfont.ttf", "Name Line.json", "Reward Line.json");
@@ -104,19 +93,11 @@ public class BountyMap implements Listener {
         if (deletedFiles > 0)
             Bukkit.getLogger().info("[NotBounties] Cleaned out " + deletedFiles + " poster templates.");
     }
-
-    public static void save() throws IOException {
-        YamlConfiguration configuration = new YamlConfiguration();
-        for (Map.Entry<Integer, UUID> entry : mapIDs.entrySet()) {
-            configuration.set(entry.getValue().toString(), entry.getKey());
-        }
-        configuration.save(mapData);
-    }
-
+/*
     @EventHandler
     public void onMapInitialize(MapInitializeEvent event) {
         MapView mapView = event.getMap();
-        if (mapIDs.containsKey(mapView.getId())) {
+        if (mapIDs.containsKey(mapView.getId()) && ConfigOptions.postersEnabled) {
             if (!mapView.isVirtual()) {
                 UUID uuid = mapIDs.get(mapView.getId());
                 mapView.setLocked(ConfigOptions.lockMap);
@@ -124,35 +105,71 @@ public class BountyMap implements Listener {
                 mapView.addRenderer(new Renderer(uuid));
             }
         }
-    }
+    }*/
 
     // method to initialize maps for 1.20.5 & update challenge for holding your own map
     @EventHandler
     public void onMapHold(PlayerItemHeldEvent event) {
         ItemStack newItem = event.getPlayer().getInventory().getItem(event.getNewSlot());
-        if (newItem == null || !isPoster(newItem))
+        if (newItem == null || !isPoster(newItem) || !ConfigOptions.postersEnabled)
             return;
         MapMeta mapMeta = (MapMeta) newItem.getItemMeta();
         assert mapMeta != null;
         MapView mapView = mapMeta.getMapView();
         assert mapView != null;
-        if (mapIDs.containsKey(mapView.getId())) {
-            UUID uuid = mapIDs.get(mapView.getId());
-            if (uuid.equals(event.getPlayer().getUniqueId()))
-                ChallengeManager.updateChallengeProgress(uuid, ChallengeType.HOLD_POSTER, 1);
-            if (!NotBounties.isAboveVersion(20,4) && mapView.isVirtual()) {
+
+        // will have persistent data of uuid if a isPoster returns true
+        UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.namespacedKey, PersistentDataType.STRING)));
+        if (uuid.equals(event.getPlayer().getUniqueId()))
+            ChallengeManager.updateChallengeProgress(uuid, ChallengeType.HOLD_POSTER, 1);
+        if (!mapView.isVirtual()) {
+            if (mapViews.containsKey(uuid)) {
+                mapMeta.setMapView(mapViews.get(uuid));
+                newItem.setItemMeta(mapMeta);
+            } else {
                 mapView.setLocked(ConfigOptions.lockMap);
                 mapView.getRenderers().forEach(mapView::removeRenderer);
                 mapView.addRenderer(new Renderer(uuid));
+                mapViews.put(uuid, mapView);
             }
         }
     }
+
+    @EventHandler
+    public void onEntityLoad(EntitiesLoadEvent event) {
+        if (!ConfigOptions.postersEnabled)
+            return;
+        for (Entity entity : event.getEntities()) {
+            if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.serverVersion >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME)) {
+                ItemFrame itemFrame = (ItemFrame) entity;
+                if (itemFrame.getItem().getItemMeta() != null && itemFrame.getItem().getItemMeta() instanceof MapMeta mapMeta) {
+                    MapView mapView = mapMeta.getMapView();
+                    assert mapView != null;
+
+                    if (!mapView.isVirtual() && mapMeta.getPersistentDataContainer().has(NotBounties.namespacedKey)) {
+                        // will have persistent data of uuid if a isPoster returns true
+                        UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.namespacedKey, PersistentDataType.STRING)));
+                        if (mapViews.containsKey(uuid)) {
+                            mapMeta.setMapView(mapViews.get(uuid));
+                            itemFrame.getItem().setItemMeta(mapMeta);
+                        } else {
+                            mapView.setLocked(ConfigOptions.lockMap);
+                            mapView.getRenderers().forEach(mapView::removeRenderer);
+                            mapView.addRenderer(new Renderer(uuid));
+                            mapViews.put(uuid, mapView);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // craft maps with a player skull
     // check for tracking crafting
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
-        if (!ConfigOptions.craftPoster || NotBounties.isPaused())
+        if (!ConfigOptions.craftPoster || NotBounties.isPaused() || !ConfigOptions.postersEnabled)
             return;
         ItemStack[] matrix = event.getInventory().getMatrix();
         boolean hasMap = false;
@@ -193,7 +210,7 @@ public class BountyMap implements Listener {
     // complete tracker crafting
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!ConfigOptions.craftPoster || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused())
+        if (!ConfigOptions.craftPoster || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused() || !ConfigOptions.postersEnabled)
             return;
         if (inventory.getResult() == null || inventory.getResult().getType() != Material.FILLED_MAP)
             return;
@@ -264,7 +281,7 @@ public class BountyMap implements Listener {
     // wash trackers
     @EventHandler
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        if (!ConfigOptions.washPoster || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused())
+        if (!ConfigOptions.washPoster || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused() || !ConfigOptions.postersEnabled)
             return;
 
         new BukkitRunnable() {
@@ -287,14 +304,8 @@ public class BountyMap implements Listener {
         MapMeta meta = (MapMeta) itemStack.getItemMeta();
         if (meta == null || meta.getMapView() == null)
             return false;
-        try {
-            return mapIDs.containsKey(meta.getMapView().getId());
-        } catch (NullPointerException e) {
-            // error with the map id
-            NotBounties.debugMessage("Error getting map view from poster!", true);
-            NotBounties.debugMessage(e.toString(), true);
-            return false;
-        }
+
+        return meta.getPersistentDataContainer().has(NotBounties.namespacedKey);
 
     }
 
@@ -347,23 +358,18 @@ public class BountyMap implements Listener {
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         meta.addItemFlags(ItemFlag.values()[5]);
+        meta.getPersistentDataContainer().set(NotBounties.namespacedKey, PersistentDataType.STRING, uuid.toString());
         mapItem.setItemMeta(meta);
         return mapItem;
     }
 
-    @SuppressWarnings("deprecation")
     public static MapView getMapView(UUID uuid) {
         MapView mapView;
-        if (mapIDs.containsValue(uuid)){
-            int id = mapIDs.inverse().get(uuid);
-            mapView = Bukkit.getMap(id);
-            if (mapView == null) {
-                mapIDs.remove(id);
-                mapView = Bukkit.createMap(Bukkit.getWorlds().get(0));
-            }
+        if (mapViews.containsKey(uuid)) {
+            mapView = mapViews.get(uuid);
         } else {
             mapView = Bukkit.createMap(Bukkit.getWorlds().get(0));
-            mapIDs.put(mapView.getId(), uuid);
+            mapViews.put(uuid, mapView);
         }
         mapView.setUnlimitedTracking(false);
         mapView.getRenderers().forEach(mapView::removeRenderer);

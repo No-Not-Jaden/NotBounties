@@ -13,7 +13,7 @@ public class BountyClaimRequirements {
     /**
      * KingdomsX
      */
-    public static boolean kingdomsXEnabled;
+    private static boolean kingdomsXEnabled;
     private static boolean kingdomsXNation;
     private static boolean kingdomsXNationAllies;
     private static boolean kingdomsXKingdom;
@@ -21,14 +21,14 @@ public class BountyClaimRequirements {
     /**
      * Towny Advanced
      */
-    public static boolean townyAdvancedEnabled;
+    private static boolean townyAdvancedEnabled;
     private static boolean townyNation;
     private static boolean townyTown;
     private static boolean townyAllies;
     /**
      * BetterTeams
      */
-    public static boolean betterTeamsEnabled;
+    private static boolean betterTeamsEnabled;
     private static boolean btClaim;
     private static boolean btAllies;
     /**
@@ -42,7 +42,7 @@ public class BountyClaimRequirements {
     /**
      * Lands
      */
-    public static boolean landsEnabled;
+    private static boolean landsEnabled;
     private static boolean landsNation;
     private static boolean landsNationAllies;
     private static boolean landsLand;
@@ -50,13 +50,18 @@ public class BountyClaimRequirements {
     /**
      * WorldGuard
      */
-    public static boolean worldGuardEnabled;
+    private static boolean worldGuardEnabled;
     /**
      * Factions - SabreFactions or FactionsUUID
      */
     private static boolean factionsEnabled;
     private static boolean factionsFaction;
     private static boolean factionsAlly;
+    /**
+     * SuperiorSkyblock2
+     */
+    private static boolean superiorSkyblockEnabled;
+    private static boolean superiorSkyblockIslandMember;
 
     public static void loadConfiguration(ConfigurationSection configuration) {
         kingdomsXEnabled = Bukkit.getPluginManager().isPluginEnabled("Kingdoms");
@@ -65,6 +70,7 @@ public class BountyClaimRequirements {
         landsEnabled = Bukkit.getPluginManager().isPluginEnabled("Lands");
         worldGuardEnabled = Bukkit.getPluginManager().isPluginEnabled("WorldGuard");
         factionsEnabled = Bukkit.getPluginManager().isPluginEnabled("Factions");
+        superiorSkyblockEnabled = Bukkit.getPluginManager().isPluginEnabled("SuperiorSkyblock2");
 
         kingdomsXNation = configuration.getBoolean("kingdoms-x.nation");
         kingdomsXNationAllies = configuration.getBoolean("kingdoms-x.nation-ally");
@@ -83,6 +89,7 @@ public class BountyClaimRequirements {
         landsLandAllies = configuration.getBoolean("lands.land-ally");
         factionsFaction = configuration.getBoolean("saber-factions.faction");
         factionsAlly = configuration.getBoolean("saber-factions.ally");
+        superiorSkyblockIslandMember = configuration.getBoolean("superior-skyblock-2.island-member");
 
     }
     
@@ -145,7 +152,37 @@ public class BountyClaimRequirements {
                 // not using this specific factions plugin
             }
         }
+        if (superiorSkyblockEnabled && !superiorSkyblockIslandMember && SuperiorSkyblockClass.onSameIsland(player, killer))
+            return false;
 
         return true;
+    }
+
+    public static boolean isBetterTeamsEnabled() {
+        return betterTeamsEnabled;
+    }
+
+    public static boolean isFactionsEnabled() {
+        return factionsEnabled;
+    }
+
+    public static boolean isKingdomsXEnabled() {
+        return kingdomsXEnabled;
+    }
+
+    public static boolean isLandsEnabled() {
+        return landsEnabled;
+    }
+
+    public static boolean isSuperiorSkyblockEnabled() {
+        return superiorSkyblockEnabled;
+    }
+
+    public static boolean isWorldGuardEnabled() {
+        return worldGuardEnabled;
+    }
+
+    public static boolean isTownyAdvancedEnabled() {
+        return townyAdvancedEnabled;
     }
 }

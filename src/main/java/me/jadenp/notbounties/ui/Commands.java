@@ -1289,7 +1289,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
-            } else if (args[0].equalsIgnoreCase("poster")) {
+            } else if (args[0].equalsIgnoreCase("poster") && ConfigOptions.postersEnabled) {
                 if (!(giveOwnMap || sender.hasPermission(NotBounties.getAdminPermission()))) {
                     // no permission
                     if (!silent)
@@ -1420,7 +1420,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         ItemStack tracker = giveEmpty ? BountyTracker.getEmptyTracker() : BountyTracker.getTracker(playerUUID);
                                         // check if player is holding an empty compass
-                                        if (BountyTracker.isWriteEmptyTrackers() && BountyTracker.getTrackerID(parser.getInventory().getItemInMainHand()) == -1) {
+                                        UUID trackedPlayers = BountyTracker.getTrackedPlayer(parser.getInventory().getItemInMainHand());
+                                        if (BountyTracker.isWriteEmptyTrackers() && trackedPlayers != null && trackedPlayers.equals(DataManager.GLOBAL_SERVER_ID)) {
                                             // has empty tracker in hand
                                             BountyTracker.removeEmptyTracker(parser, true); // remove 1 empty tracker
                                             NumberFormatting.givePlayer(parser, tracker, 1); // give new tracker
@@ -1899,7 +1900,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else if (sender.hasPermission("notbounties.removeset")) {
                     tab.add("remove");
                 }
-                if (sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap)
+                if (postersEnabled && (sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap))
                     tab.add("poster");
                 if ((sender.hasPermission(NotBounties.getAdminPermission()) || ((BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers()) && sender.hasPermission("notbounties.tracker"))) && BountyTracker.isEnabled())
                     tab.add("tracker");
@@ -1945,7 +1946,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("immunity");
                     tab.add("current");
                 } else if (args[0].equalsIgnoreCase("tracker") && BountyTracker.isEnabled() && (sender.hasPermission(NotBounties.getAdminPermission()) ||
-                        ((BountyTracker.isGiveOwnTracker() || (BountyTracker.isWriteEmptyTrackers() && sender instanceof Player && BountyTracker.getTrackerID(((Player) sender).getInventory().getItemInMainHand()) == -1)) && sender.hasPermission("notbounties.tracker")))) {
+                        ((BountyTracker.isGiveOwnTracker() || (BountyTracker.isWriteEmptyTrackers() && sender instanceof Player player && DataManager.GLOBAL_SERVER_ID.equals(BountyTracker.getTrackedPlayer(player.getInventory().getItemInMainHand())))) && sender.hasPermission("notbounties.tracker")))) {
 
                     List<Bounty> bountyList = sender.hasPermission(NotBounties.getAdminPermission()) ? BountyManager.getAllBounties(-1) : BountyManager.getPublicBounties(-1);
                     if (bountyList.size() <= maxTabCompletePlayers) {

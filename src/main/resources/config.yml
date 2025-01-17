@@ -176,7 +176,7 @@ teams:
   # players with the same placeholder result will not be able to claim each other's bounties (Must have PlaceholderAPI installed)
   # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
   placeholder: ''
-  # Team bounties
+  # Team bounties - WIP feature
   bounties:
     # whether team bounties are enabled
     enabled: false
@@ -227,6 +227,9 @@ teams:
     faction: false
     # claim if allied
     ally: false
+  superior-skyblock-2:
+    # claim if part of the same island
+    island-member: false
 # auto-updating bounty poster board
 bounty-board:
   # 0 oldest bounties
@@ -367,6 +370,8 @@ auto-bounties:
     offline-tracking: false
 # wanted posters of bounty
 bounty-posters:
+  # enable bounty posters
+  enabled: true
   # players can give themselves bounty posters of any bounty, otherwise, only admins can give posters
   give-own: false
   # players can craft a poster with an empty map and a player head

@@ -62,7 +62,7 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * You can go back pages in bounty help -
  * Bounty whitelists now always save after restart x
  * the %notbounties_wanted% placeholder will no longer show anything if the player has less than the minimum bounty amount
- *
+ * Improved tab completion performance for large servers
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -506,8 +506,6 @@ public final class NotBounties extends JavaPlugin {
         saveBackup(bountiesFile);
         saveBackup(statsFile);
         saveBackup(playerDataFile);
-
-        BountyMap.save();
     }
 
     private void saveBackup(File file) throws IOException {
@@ -677,7 +675,8 @@ public final class NotBounties extends JavaPlugin {
                 + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion()
                 + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE
                 + "1." + serverVersion + "." + serverSubVersion
-                + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug);
+                + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug
+                + ChatColor.YELLOW + " Online Mode: " + ChatColor.WHITE + Bukkit.getOnlineMode());
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties
                 + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + BountyTracker.getTrackedBounties().size()
                 + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + BountyBoard.getBountyBoards().size());
@@ -687,17 +686,19 @@ public final class NotBounties extends JavaPlugin {
         String liteBans = liteBansEnabled ? ChatColor.GREEN + "LiteBans" : ChatColor.RED + "LiteBans";
         String skinsRestorer = skinsRestorerEnabled
                 ? ChatColor.GREEN + "SkinsRestorer" : ChatColor.RED + "SkinsRestorer";
-        String betterTeams = BountyClaimRequirements.betterTeamsEnabled
+        String betterTeams = BountyClaimRequirements.isBetterTeamsEnabled()
                 ? ChatColor.GREEN + "BetterTeams" : ChatColor.RED + "BetterTeams";
-        String townyAdvanced = BountyClaimRequirements.townyAdvancedEnabled
+        String townyAdvanced = BountyClaimRequirements.isTownyAdvancedEnabled()
                 ? ChatColor.GREEN + "TownyAdvanced" : ChatColor.RED + "TownyAdvanced";
         String floodgate = floodgateEnabled ? ChatColor.GREEN + "Floodgate" : ChatColor.RED + "Floodgate";
         String geyser = geyserEnabled ? ChatColor.GREEN + "GeyserMC" : ChatColor.RED + "GeyserMC";
-        String kingdoms = BountyClaimRequirements.kingdomsXEnabled
+        String kingdoms = BountyClaimRequirements.isKingdomsXEnabled()
                 ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
-        String lands = BountyClaimRequirements.landsEnabled ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
-        String worldGuard = BountyClaimRequirements.worldGuardEnabled
+        String lands = BountyClaimRequirements.isLandsEnabled() ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
+        String worldGuard = BountyClaimRequirements.isWorldGuardEnabled()
                 ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
+        String superiorSkyblock2 = BountyClaimRequirements.isSuperiorSkyblockEnabled()
+                ? ChatColor.GREEN + "SuperiorSkyblock2" : ChatColor.RED + "SuperiorSkyblock2";
         sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "["
                 + vault + ChatColor.GRAY + "|"
                 + papi + ChatColor.GRAY + "|"
@@ -710,7 +711,8 @@ public final class NotBounties extends JavaPlugin {
                 + floodgate + ChatColor.GRAY + "|"
                 + kingdoms + ChatColor.GRAY + "|"
                 + lands + ChatColor.GRAY + "|"
-                + worldGuard + ChatColor.GRAY + "]");
+                + worldGuard + ChatColor.GRAY + "|"
+                + superiorSkyblock2 + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218))
                 + "Support Discord: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://discord.gg/zEsUzwYEx7");

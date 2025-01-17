@@ -61,6 +61,7 @@ public class ConfigOptions {
     public static boolean currencyWrap;
     public static boolean craftPoster;
     public static boolean washPoster;
+    public static boolean postersEnabled;
     public static boolean bountyWhitelistEnabled;
     public static int updateInterval;
     public static boolean confirmation;
@@ -404,6 +405,7 @@ public class ConfigOptions {
         bountyCooldown = bounties.getConfig().getLong("bounty-cooldown");
         maxTabCompletePlayers = bounties.getConfig().getInt("max-tab-complete-players");
         autoSaveInterval = bounties.getConfig().getInt("auto-save-interval");
+        postersEnabled = bounties.getConfig().getBoolean("bounty-posters.enabled");
 
 
         wantedLevels.clear();

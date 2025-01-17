@@ -389,8 +389,9 @@ public class RedisConnection extends NotBountiesDatabase {
         Bounty temp;
         for (int i = 0; i < bounties.size(); i++) {
             for (int j = i + 1; j < bounties.size(); j++) {
-                if ((bounties.get(i).getSetters().get(0).getTimeCreated() > bounties.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
-                        (bounties.get(i).getSetters().get(0).getTimeCreated() < bounties.get(j).getSetters().get(0).getTimeCreated() && sortType == 1)) { // newest bounties at top
+                if (!bounties.get(i).getSetters().isEmpty()
+                        && ((bounties.get(i).getSetters().get(0).getTimeCreated() > bounties.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
+                        (bounties.get(i).getSetters().get(0).getTimeCreated() < bounties.get(j).getSetters().get(0).getTimeCreated() && sortType == 1))) { // newest bounties at top
                     temp = bounties.get(i);
                     bounties.set(i, bounties.get(j));
                     bounties.set(j, temp);

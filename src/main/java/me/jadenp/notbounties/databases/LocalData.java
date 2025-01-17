@@ -207,8 +207,9 @@ public class LocalData extends NotBountiesDatabase {
         Bounty temp;
         for (int i = 0; i < sortedList.size(); i++) {
             for (int j = i + 1; j < sortedList.size(); j++) {
-                if ((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
-                        (sortedList.get(i).getSetters().get(0).getTimeCreated() < sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 1)){// newest bounties at top
+                if (!sortedList.get(i).getSetters().isEmpty()
+                        && ((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
+                        (sortedList.get(i).getLatestUpdate() < sortedList.get(j).getLatestUpdate() && sortType == 1))) {// newest bounties at top
                     temp = sortedList.get(i);
                     sortedList.set(i, sortedList.get(j));
                     sortedList.set(j, temp);

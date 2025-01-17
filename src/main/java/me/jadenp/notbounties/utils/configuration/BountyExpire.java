@@ -76,8 +76,10 @@ public class BountyExpire {
     }
 
     public static long getLowestExpireTime(Bounty bounty) {
-        if (bounty.getSetters().isEmpty())
+        if (bounty.getSetters().isEmpty()) {
+            DataManager.getLocalData().removeBounty(bounty.getUUID());
             return System.currentTimeMillis();
+        }
         long lowestTime = getExpireTime(bounty.getUUID(), bounty.getSetters().get(0));
         for (int i = 1; i < bounty.getSetters().size(); i++) {
             long expireTime = getExpireTime(bounty.getUUID(), bounty.getSetters().get(i));
@@ -88,6 +90,10 @@ public class BountyExpire {
     }
 
     public static long getHighestExpireTime(Bounty bounty) {
+        if (bounty.getSetters().isEmpty()) {
+            DataManager.getLocalData().removeBounty(bounty.getUUID());
+            return System.currentTimeMillis();
+        }
         long highestTime = getExpireTime(bounty.getUUID(), bounty.getSetters().get(0));
         for (int i = 1; i < bounty.getSetters().size(); i++) {
             long expireTime = getExpireTime(bounty.getUUID(), bounty.getSetters().get(i));
