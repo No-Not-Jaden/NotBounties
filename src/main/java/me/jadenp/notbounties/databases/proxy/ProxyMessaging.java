@@ -49,8 +49,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         try {
             receiveMessage(in);
         } catch (IOException e) {
-            Bukkit.getLogger().warning(() -> "[NotBounties] Error receiving message from proxy!");
-            Bukkit.getLogger().warning(e.toString());
+            player.kickPlayer(e.getMessage());
         }
     }
 
@@ -82,7 +81,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                             LoggedPlayers.logPlayer(entry.getValue(), entry.getKey());
                         }
                     }
-                    default -> Bukkit.getLogger().warning(() -> "[NotBounties] Received unknown message from proxy: " + subSubChannel);
+                    default -> throw new IllegalStateException("Unknown message!");
                 }
             }
             case "PlayerSkin" -> {
@@ -93,7 +92,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                     Bukkit.getLogger().warning(e.toString());
                 }
             }
-            default -> Bukkit.getLogger().warning(() -> "[NotBounties] Received unknown message from proxy: " + subChannel);
+            default -> throw new IllegalStateException("Unknown message!");
         }
         msgIn.close();
     }
