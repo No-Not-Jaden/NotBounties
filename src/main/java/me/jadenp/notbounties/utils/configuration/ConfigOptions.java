@@ -103,6 +103,7 @@ public class ConfigOptions {
     public static boolean autoTimezone;
     public static boolean reducePageCalculations;
     public static boolean seePlayerList;
+    public static boolean enableProxy;
     public static boolean overrideSkinsRestorer;
     public static boolean stealBounties;
     public static List<String> pluginBountyCommands;
@@ -387,6 +388,7 @@ public class ConfigOptions {
         autoTimezone = bounties.getConfig().getBoolean("auto-timezone");
         reducePageCalculations = bounties.getConfig().getBoolean("reduce-page-calculations");
         seePlayerList = bounties.getConfig().getBoolean("see-player-list");
+        enableProxy = bounties.getConfig().getBoolean("enable-proxy");
         overrideSkinsRestorer = bounties.getConfig().getBoolean("override-skinsrestorer");
         if (overrideSkinsRestorer && skinsRestorerEnabled) {
             Bukkit.getLogger().info("[NotBounties] NotBounties will be using its own methods to get player skins instead of SkinsRestorer.");

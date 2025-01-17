@@ -182,9 +182,11 @@ public final class NotBounties extends JavaPlugin {
         for (Bounty bounty : BountyManager.getAllBounties(-1))
             SkinManager.saveSkin(bounty.getUUID());
 
-        // register plugin messaging to a proxy
-        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "notbounties:main");
-        this.getServer().getMessenger().registerIncomingPluginChannel(this, "notbounties:main", new ProxyMessaging());
+        if (enableProxy) {
+            // register plugin messaging to a proxy
+            this.getServer().getMessenger().registerOutgoingPluginChannel(this, "notbounties:main");
+            this.getServer().getMessenger().registerIncomingPluginChannel(this, "notbounties:main", new ProxyMessaging());
+        }
 
         // force login players that are already on the server - this will happen if the plugin is loaded without a restart
         for (Player player : Bukkit.getOnlinePlayers()) {
