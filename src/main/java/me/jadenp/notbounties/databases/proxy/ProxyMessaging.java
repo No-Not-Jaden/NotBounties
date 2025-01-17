@@ -383,36 +383,38 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param uuid UUID of the player
      */
     public static void requestPlayerSkin(UUID uuid) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (Bukkit.getOnlinePlayers().isEmpty()) {
-                    SkinManager.failRequest(uuid);
-                    queuedSkinRequests.add(uuid);
-                } else {
-                    sendSkinRequest(uuid);
-                    UUID[] skinsToSend = queuedSkinRequests.toArray(new UUID[0]);
-                    queuedSkinRequests.clear();
-                    new BukkitRunnable() {
-                        int index = 0;
-                        @Override
-                        public void run() {
-                            if (index >= skinsToSend.length) {
-                                this.cancel();
-                                return;
-                            }
-                            sendSkinRequest(skinsToSend[index]);
-                            index++;
-                            if (index >= skinsToSend.length) {
-                                this.cancel();
-                            }
+        if (ProxyDatabase.areSkinRequestsEnabled()) {
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (Bukkit.getOnlinePlayers().isEmpty()) {
+                        SkinManager.failRequest(uuid);
+                        queuedSkinRequests.add(uuid);
+                    } else {
+                        sendSkinRequest(uuid);
+                        UUID[] skinsToSend = queuedSkinRequests.toArray(new UUID[0]);
+                        queuedSkinRequests.clear();
+                        new BukkitRunnable() {
+                            int index = 0;
 
-                        }
-                    }.runTaskTimer(NotBounties.getInstance(), 5, 5);
+                            @Override
+                            public void run() {
+                                if (index >= skinsToSend.length) {
+                                    this.cancel();
+                                    return;
+                                }
+                                sendSkinRequest(skinsToSend[index]);
+                                index++;
+                                if (index >= skinsToSend.length) {
+                                    this.cancel();
+                                }
+
+                            }
+                        }.runTaskTimer(NotBounties.getInstance(), 5, 5);
+                    }
                 }
-            }
-        }.runTask(NotBounties.getInstance());
-
+            }.runTask(NotBounties.getInstance());
+        }
     }
 
     private static void sendSkinRequest(UUID uuid) {

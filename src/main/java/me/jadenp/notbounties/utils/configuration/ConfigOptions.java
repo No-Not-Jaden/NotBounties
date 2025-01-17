@@ -33,6 +33,7 @@ import java.text.DateFormat;
 import java.util.*;
 
 public class ConfigOptions {
+    // <TODO>Transition public static usage to private and make getters</TODO>
     public static int minBroadcast;
     public static int minBounty;
     public static double bountyTax;
@@ -103,8 +104,6 @@ public class ConfigOptions {
     public static boolean autoTimezone;
     public static boolean reducePageCalculations;
     public static boolean seePlayerList;
-    public static boolean enableProxy;
-    public static boolean overrideSkinsRestorer;
     public static boolean stealBounties;
     public static List<String> pluginBountyCommands;
     public static boolean geyserEnabled;
@@ -297,6 +296,12 @@ public class ConfigOptions {
             bounties.getConfig().set("database", null);
         }
 
+        // add extra options to the proxy database
+        if (bounties.getConfig().isSet("databases.example-proxy.type") && !bounties.getConfig().isSet("databases.example-proxy.skins")) {
+            bounties.getConfig().set("databases.example-proxy.skins", true);
+            bounties.getConfig().set("databases.example-proxy.database-sync", true);
+        }
+
         boolean saveChanges = true;
         if (bounties.getConfig().getKeys(true).size() <= 2) {
             saveChanges = false;
@@ -388,9 +393,7 @@ public class ConfigOptions {
         autoTimezone = bounties.getConfig().getBoolean("auto-timezone");
         reducePageCalculations = bounties.getConfig().getBoolean("reduce-page-calculations");
         seePlayerList = bounties.getConfig().getBoolean("see-player-list");
-        enableProxy = bounties.getConfig().getBoolean("enable-proxy");
-        overrideSkinsRestorer = bounties.getConfig().getBoolean("override-skinsrestorer");
-        if (overrideSkinsRestorer && skinsRestorerEnabled) {
+        if (bounties.getConfig().getBoolean("override-skinsrestorer") && skinsRestorerEnabled) {
             Bukkit.getLogger().info("[NotBounties] NotBounties will be using its own methods to get player skins instead of SkinsRestorer.");
             skinsRestorerEnabled = false;
         }

@@ -118,8 +118,6 @@ auto-timezone: true
 reduce-page-calculations: true
 # An extra check to make sure the player is visible to see them in the player selection
 see-player-list: false
-# Only enable this if you are behind a proxy like BungeeCord or Velocity!
-enable-proxy: false
 # The maximum amount of logged players until tab-complete no longer fills offline players. A lower number improves tab-complete performance
 max-tab-complete-players: 50
 # Use NotBounties' methods to get skins
@@ -561,7 +559,10 @@ databases:
     priority: 2
   example-proxy:
     type: PROXY
+    # Whether proxy messaging is enabled.
     enabled: false
+    database-sync: true
+    skins: true
     priority: 3
 # send server stats like most other plugins do
 send-bstats: true

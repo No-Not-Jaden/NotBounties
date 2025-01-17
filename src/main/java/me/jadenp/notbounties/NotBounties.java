@@ -51,18 +51,10 @@ import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEnabled;
 
-/** <TODO>Release new code for API</TODO>
- * Proxy Messaging -
- * Save to json file instead of yaml - stats, bounties, and playerData files for easy deletion -
+/**
  * Folia
  * Team bounties
- * Leftover % in trickle bounties stays on player. -
  * Cleanup this file's static usage.
- * Added broadcast alias -
- * You can go back pages in bounty help -
- * Bounty whitelists now always save after restart x
- * the %notbounties_wanted% placeholder will no longer show anything if the player has less than the minimum bounty amount
- * Improved tab completion performance for large servers
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -181,12 +173,6 @@ public final class NotBounties extends JavaPlugin {
         // load skins for bounties
         for (Bounty bounty : BountyManager.getAllBounties(-1))
             SkinManager.saveSkin(bounty.getUUID());
-
-        if (enableProxy) {
-            // register plugin messaging to a proxy
-            this.getServer().getMessenger().registerOutgoingPluginChannel(this, "notbounties:main");
-            this.getServer().getMessenger().registerIncomingPluginChannel(this, "notbounties:main", new ProxyMessaging());
-        }
 
         // force login players that are already on the server - this will happen if the plugin is loaded without a restart
         for (Player player : Bukkit.getOnlinePlayers()) {

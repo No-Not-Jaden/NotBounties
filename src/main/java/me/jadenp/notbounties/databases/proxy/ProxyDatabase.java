@@ -6,7 +6,6 @@ import me.jadenp.notbounties.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.BountyChange;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.data.PlayerStat;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -22,14 +21,18 @@ import java.util.*;
  * - When data is updated on other servers, it will be immediately sent over to this server
  * Database synchronizations shouldn't need to occur apart from when a player joins.
  * Therefor, getting data here will only return the local data.
+ * Another way that this is different is that there can only be 1 proxy connected, so statics can be used.
  */
 public class ProxyDatabase extends NotBountiesDatabase {
 
-    private boolean enabled;
+    private static boolean enabled = false;
     private int numOnlinePlayers;
     private boolean hasConnected = false;
     private static Map<UUID, String> databaseOnlinePlayers = new HashMap<>();
     private static long lastOnlinePlayersCheck = 0;
+    private static boolean databaseSynchronization = false;
+    private static boolean skins = false;
+    private static boolean registeredListener = false;
 
 
     public ProxyDatabase(Plugin plugin, String name) {
@@ -68,21 +71,18 @@ public class ProxyDatabase extends NotBountiesDatabase {
 
     }
 
-
-
     @Override
     public void addBounty(List<Bounty> bounties) {
-
-            List<BountyChange> changes = bounties.stream().map(
-                    bounty -> new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, bounty)).toList();
+        List<BountyChange> changes = bounties.stream().map(
+                bounty -> new BountyChange(BountyChange.ChangeType.ADD_BOUNTY, bounty)).toList();
         ProxyMessaging.sendBountyUpdate(changes);
     }
 
     @Override
     public void removeBounty(List<Bounty> bounties) {
 
-            List<BountyChange> changes = bounties.stream().map(
-                    bounty -> new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, bounty)).toList();
+        List<BountyChange> changes = bounties.stream().map(
+                bounty -> new BountyChange(BountyChange.ChangeType.DELETE_BOUNTY, bounty)).toList();
         ProxyMessaging.sendBountyUpdate(changes);
     }
 
@@ -118,7 +118,7 @@ public class ProxyDatabase extends NotBountiesDatabase {
 
     @Override
     public boolean isConnected() {
-        return enabled && ProxyMessaging.hasConnectedBefore() && numOnlinePlayers > 0;
+        return enabled && databaseSynchronization && ProxyMessaging.hasConnectedBefore() && numOnlinePlayers > 0;
     }
 
     @Override
@@ -148,13 +148,49 @@ public class ProxyDatabase extends NotBountiesDatabase {
         ConfigurationSection configuration = super.readConfig();
         if (configuration == null)
             return null;
-        enabled = configuration.getBoolean("enabled");
+        setEnabled(configuration.getBoolean("enabled"));
+        setDatabaseSynchronization(configuration.getBoolean("database-sync"));
+        setSkins(configuration.getBoolean("skins"));
+        if (enabled && !registeredListener) {
+            // Proxy messaging is enabled, but the listeners haven't been registered.
+            // Register plugin message listeners.
+            Plugin plugin = NotBounties.getInstance();
+            plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, "notbounties:main");
+            plugin.getServer().getMessenger().registerIncomingPluginChannel(plugin, "notbounties:main", new ProxyMessaging());
+            setRegisteredListener(true);
+        } else if (!enabled && registeredListener) {
+            // Proxy messaging is disabled, but listeners are registered.
+            // Unregister message listeners.
+            Plugin plugin = NotBounties.getInstance();
+            plugin.getServer().getMessenger().unregisterIncomingPluginChannel(plugin);
+            setRegisteredListener(false);
+        }
         return configuration;
+    }
+
+    private static void setEnabled(boolean enabled) {
+        ProxyDatabase.enabled = enabled;
+    }
+
+    private static void setDatabaseSynchronization(boolean databaseSynchronization) {
+        ProxyDatabase.databaseSynchronization = databaseSynchronization;
+    }
+
+    private static void setSkins(boolean skins) {
+        ProxyDatabase.skins = skins;
+    }
+
+    public static boolean areSkinRequestsEnabled() {
+        return enabled && skins;
+    }
+
+    private static void setRegisteredListener(boolean registeredListener) {
+        ProxyDatabase.registeredListener = registeredListener;
     }
 
     @Override
     public int hashCode() {
-        return super.hashCode() + Objects.hash(enabled);
+        return super.hashCode() + Objects.hash(enabled, databaseSynchronization, skins);
     }
 
     @Override
@@ -163,35 +199,19 @@ public class ProxyDatabase extends NotBountiesDatabase {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         ProxyDatabase that = (ProxyDatabase) o;
-        return enabled == that.enabled && numOnlinePlayers == that.numOnlinePlayers && hasConnected == that.hasConnected;
+        return numOnlinePlayers == that.numOnlinePlayers && hasConnected == that.hasConnected;
     }
 
     @Override
     public void notifyBounty(UUID uuid) {
-
-            BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.NOTIFY, getBounty(uuid));
+        BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.NOTIFY, getBounty(uuid));
         ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
-            /*if (hasConnected) {
-                ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
-            } else {
-                bountyChanges.add(bountyChange);
-            }
-            checkConnection();*/
-
     }
 
     @Override
     public void replaceBounty(UUID uuid, Bounty bounty) {
-
-            BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.REPLACE_BOUNTY, bounty);
+        BountyChange bountyChange = new BountyChange(BountyChange.ChangeType.REPLACE_BOUNTY, bounty);
         ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
-            /*if (hasConnected) {
-                ProxyMessaging.sendBountyUpdate(Collections.singletonList(bountyChange));
-            } else {
-                bountyChanges.add(bountyChange);
-            }
-            checkConnection();*/
-
     }
 
     @Override

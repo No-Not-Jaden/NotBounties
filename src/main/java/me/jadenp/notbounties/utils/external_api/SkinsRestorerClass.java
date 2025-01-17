@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.utils.external_api;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.databases.proxy.ProxyDatabase;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -16,7 +17,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 public class SkinsRestorerClass {
@@ -109,7 +111,7 @@ public class SkinsRestorerClass {
     }
 
     public void saveSkin(UUID uuid) {
-        if (ProxyMessaging.hasConnectedBefore()) {
+        if (ProxyMessaging.hasConnectedBefore() && ProxyDatabase.areSkinRequestsEnabled()) {
             ProxyMessaging.requestPlayerSkin(uuid);
             // timeout
             addDelayedSkinCheck(uuid);
@@ -131,8 +133,8 @@ public class SkinsRestorerClass {
             }
             String skinUrl = PropertyUtils.getSkinTextureUrl(skinProperty.get());
             String identifier = PropertyUtils.getSkinProfileData(skinProperty.get()).getProfileId();
-            SkinManager.saveSkin(uuid, new PlayerSkin(new URL(skinUrl), identifier));
-        } catch (MalformedURLException | DataRequestException e) {
+            SkinManager.saveSkin(uuid, new PlayerSkin(new URI(skinUrl).toURL(), identifier));
+        } catch (MalformedURLException | DataRequestException | URISyntaxException e) {
             NotBounties.debugMessage("[NotBountiesDebug] Error getting skin from SkinsRestorer.", true);
             NotBounties.debugMessage(e.toString(), true);
             requestSkinManually(uuid);
