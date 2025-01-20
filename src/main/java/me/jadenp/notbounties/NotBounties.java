@@ -55,6 +55,8 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Folia
  * Team bounties
  * Cleanup this file's static usage.
+ * Bungee support.
+ * Better SQL and Redis config with connection string and address options to replace others.
  */
 public final class NotBounties extends JavaPlugin {
 
