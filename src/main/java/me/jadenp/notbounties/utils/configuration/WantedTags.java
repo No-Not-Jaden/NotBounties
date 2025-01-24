@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils.configuration;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.BountyManager;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -13,7 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 
-import java.util.Map;
+import java.util.*;
 
 import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
@@ -22,7 +23,7 @@ public class WantedTags {
     /**
      * Whether the Wanted Tags feature is enabled.
      */
-    private static boolean tagsEnabled;
+    private static boolean tagsEnabled = false;
     /**
      * The offset in blocks that the tag should be above the player name.
      */
@@ -51,13 +52,25 @@ public class WantedTags {
      * Whether the tag should be hidden when the player is moving.
      */
     private static boolean hideWantedWhenMoving;
+    /**
+     * The current players with wanted tags.
+     */
+    private static final Map<UUID, WantedTags> activeTags = new HashMap<>();
 
     /**
      * Load the Wanted Tags configuration.
      * @param configuration wanted-tags configuration section.
      */
     public static void loadConfiguration(ConfigurationSection configuration) {
-        tagsEnabled = configuration.getBoolean("enabled");
+        boolean newTagsEnabled = configuration.getBoolean("enabled");
+        if (!tagsEnabled && newTagsEnabled) {
+            // enabling tags
+            enableWantedTags();
+        } else if (tagsEnabled && !newTagsEnabled) {
+            // disabling tags
+            disableWantedTags();
+        }
+        tagsEnabled = newTagsEnabled;
         wantedOffset = configuration.getDouble("offset");
         wantedText = configuration.getString("text");
         minWanted = configuration.getDouble("min-bounty");
@@ -65,6 +78,22 @@ public class WantedTags {
         wantedTextUpdateInterval = configuration.getLong("text-update-interval");
         wantedVisibilityUpdateInterval = configuration.getLong("visibility-update-interval");
         hideWantedWhenMoving = configuration.getBoolean("hide-when-moving");
+    }
+
+    public static void enableWantedTags() {
+        // add wanted tags for online players with the minimum bounty amount
+        for (Player wantedPlayer : Bukkit.getOnlinePlayers()) {
+            Bounty bounty = BountyManager.getBounty(wantedPlayer.getUniqueId());
+            if (bounty != null && bounty.getTotalBounty() >= minWanted)
+                addWantedTag(wantedPlayer);
+        }
+    }
+
+    public static void disableWantedTags() {
+        for (Map.Entry<UUID, WantedTags> entry : activeTags.entrySet()) {
+            entry.getValue().disable();
+        }
+        activeTags.clear();
     }
 
     /**
@@ -101,6 +130,30 @@ public class WantedTags {
      */
     public static double getMinWanted() {
         return minWanted;
+    }
+
+
+    public static void removeWantedTag(UUID uuid) {
+        if (!activeTags.containsKey(uuid))
+            return;
+        activeTags.get(uuid).disable();
+        activeTags.remove(uuid);
+    }
+
+    public static void addWantedTag(Player player) {
+        if (activeTags.containsKey(player.getUniqueId())) {
+            activeTags.get(player.getUniqueId()).disable();
+        }
+        activeTags.put(player.getUniqueId(), new WantedTags(player));
+    }
+
+    public static List<Location> getLocations() {
+        return activeTags.values().stream().map(WantedTags::getLastLocation).toList();
+    }
+
+    public static void update() {
+        for (WantedTags wantedTags : activeTags.values())
+            wantedTags.updateArmorStand();
     }
 
     /**
@@ -200,7 +253,7 @@ public class WantedTags {
                 teleport();
             }
         } else {
-         removeStand();
+            removeStand();
         }
     }
 
@@ -213,7 +266,7 @@ public class WantedTags {
         removeStand();
     }
 
-    public void removeStand(){
+    private void removeStand(){
         if (armorStand == null)
             return;
         lastLocation = armorStand.getLocation();

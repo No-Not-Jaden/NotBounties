@@ -308,7 +308,7 @@ class SkinResponseHandler {
                         }
                         skinRequestType = requestQueue.poll();
                     }
-                } catch(IOException e){
+                } catch(IOException | IllegalStateException e){
                     // skin request fail
                     SkinManager.failRequest(uuid);
                     NotBounties.debugMessage("Failed to request skin: " + uuid, true);

@@ -127,9 +127,7 @@ public class BountyManager {
             }
             // add wanted tag
             if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
-                if (!NotBounties.wantedText.containsKey(onlineReceiver.getUniqueId())) {
-                    NotBounties.wantedText.put(onlineReceiver.getUniqueId(), new WantedTags(onlineReceiver));
-                }
+                WantedTags.addWantedTag(onlineReceiver);
             }
         }
         // send messages
@@ -205,9 +203,7 @@ public class BountyManager {
             }
             // add wanted tag
             if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
-                if (!NotBounties.wantedText.containsKey(onlineReceiver.getUniqueId())) {
-                    NotBounties.wantedText.put(onlineReceiver.getUniqueId(), new WantedTags(onlineReceiver));
-                }
+                WantedTags.addWantedTag(onlineReceiver);
             }
         }
         // send messages
@@ -310,7 +306,7 @@ public class BountyManager {
         BountyTracker.stopTracking(uuid);
         for (Player player : Bukkit.getOnlinePlayers())
             BountyTracker.removeTracker(player);
-        NotBounties.removeWantedTag(uuid);
+        WantedTags.removeWantedTag(uuid);
         displayParticle.remove(uuid);
         DataManager.deleteBounty(uuid);
     }

@@ -57,6 +57,7 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Cleanup this file's static usage.
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
+ * max bounty
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -64,7 +65,7 @@ public final class NotBounties extends JavaPlugin {
     public static final Map<String, Long> repeatBuyCommand2 = new HashMap<>();
 
     public static final List<UUID> displayParticle = new ArrayList<>();
-    public static final Map<UUID, WantedTags> wantedText = new HashMap<>();
+
     private static NotBounties instance;
     public static boolean latestVersion = true;
     public static final Map<UUID, Integer> boardSetup = new HashMap<>();
@@ -150,6 +151,7 @@ public final class NotBounties extends JavaPlugin {
         } catch (IOException e) {
             Bukkit.getLogger().severe("[NotBounties] Failed to read player data!");
             Bukkit.getPluginManager().disablePlugin(this);
+            return;
         }
 
         if (sendBStats) {
@@ -354,9 +356,7 @@ public final class NotBounties extends JavaPlugin {
                         }
                     }
                     long startTime = System.currentTimeMillis();
-                    for (Map.Entry<UUID, WantedTags> entry : wantedText.entrySet()) {
-                        entry.getValue().updateArmorStand();
-                    }
+                    WantedTags.update();
                     lastUpdateTime = (int) (System.currentTimeMillis() - startTime);
                     if (lastUpdateTime > maxUpdateTime) {
                         lastRunTime = System.currentTimeMillis();
@@ -482,7 +482,7 @@ public final class NotBounties extends JavaPlugin {
             writer.name("serverID").value(DataManager.getDatabaseServerID(false).toString());
             writer.name("paused").value(NotBounties.isPaused());
 
-            List<String> wantedTagLocations = DataManager.locationListToStringList(wantedText.values().stream().map(WantedTags::getLastLocation).toList());
+            List<String> wantedTagLocations = DataManager.locationListToStringList(WantedTags.getLocations());
             if (!wantedTagLocations.isEmpty()) {
                 writer.name("wantedTagLocations");
                 writer.beginArray();
@@ -643,10 +643,7 @@ public final class NotBounties extends JavaPlugin {
         }
 
         // remove wanted tags
-        for (Map.Entry<UUID, WantedTags> entry : wantedText.entrySet()) {
-            entry.getValue().removeStand();
-        }
-        wantedText.clear();
+        WantedTags.disableWantedTags();
         BountyBoard.clearBoard();
 
     }
@@ -720,13 +717,6 @@ public final class NotBounties extends JavaPlugin {
     }
 
 
-    public static void removeWantedTag(UUID uuid) {
-        if (!wantedText.containsKey(uuid))
-            return;
-        wantedText.get(uuid).disable();
-        wantedText.remove(uuid);
-    }
-
 
     public static Map<UUID, String> getNetworkPlayers() {
         return DataManager.getNetworkPlayers();
@@ -781,9 +771,7 @@ public final class NotBounties extends JavaPlugin {
                 GUI.safeCloseGUI(player, true);
             }
             // remove wanted tags
-            for (Map.Entry<UUID, WantedTags> entry : wantedText.entrySet()) {
-                entry.getValue().removeStand();
-            }
+            WantedTags.disableWantedTags();
             for (Player player : Bukkit.getOnlinePlayers())
                 events.onQuit(new PlayerQuitEvent(player, ""));
             NotBounties.paused = true;

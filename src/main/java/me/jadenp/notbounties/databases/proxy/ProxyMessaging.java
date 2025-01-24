@@ -42,7 +42,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
 
     @Override
     public void onPluginMessageReceived(@NotNull String channel, @NotNull Player player, byte @NotNull [] bytes) {
-        if (!channel.equals(CHANNEL))
+        if (!channel.equals(CHANNEL) || !ProxyDatabase.isEnabled())
             return;
         setConnectedBefore();
         ByteArrayDataInput in = ByteStreams.newDataInput(bytes);
@@ -214,14 +214,15 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param data data to be sent
      */
     public static void sendMessage(String identifier, byte[] data) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!Bukkit.getOnlinePlayers().isEmpty()) {
-                    sendMessage(identifier, data, Bukkit.getOnlinePlayers().iterator().next());
+        if (ProxyDatabase.isEnabled())
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (!Bukkit.getOnlinePlayers().isEmpty()) {
+                        sendMessage(identifier, data, Bukkit.getOnlinePlayers().iterator().next());
+                    }
                 }
-            }
-        }.runTask(NotBounties.getInstance());
+            }.runTask(NotBounties.getInstance());
 
     }
 
@@ -232,7 +233,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param data       data to be sent
      * @param player     player to send the message through
      */
-    public static void sendMessage(String identifier, byte[] data, Player player) {
+    private static void sendMessage(String identifier, byte[] data, Player player) {
         player.sendPluginMessage(NotBounties.getInstance(), identifier, data);
         // return is for future compatibility
     }

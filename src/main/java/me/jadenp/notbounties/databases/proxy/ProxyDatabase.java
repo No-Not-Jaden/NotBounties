@@ -25,6 +25,9 @@ import java.util.*;
  */
 public class ProxyDatabase extends NotBountiesDatabase {
 
+    /**
+     * Whether proxy communication should occur.
+     */
     private static boolean enabled = false;
     private int numOnlinePlayers;
     private boolean hasConnected = false;
@@ -170,6 +173,10 @@ public class ProxyDatabase extends NotBountiesDatabase {
 
     private static void setEnabled(boolean enabled) {
         ProxyDatabase.enabled = enabled;
+    }
+
+    public static boolean isEnabled() {
+        return enabled;
     }
 
     private static void setDatabaseSynchronization(boolean databaseSynchronization) {

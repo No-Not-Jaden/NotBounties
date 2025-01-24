@@ -34,7 +34,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.jetbrains.annotations.Debug;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,7 +54,7 @@ public class DataManager {
     private static final List<AsyncDatabaseWrapper> databases = new ArrayList<>();
 
     private static LocalData localData; // locally stored bounties and stats
-    private static UUID databaseServerID = UUID.randomUUID();
+    private static UUID databaseServerID = null;
     public static final long CONNECTION_REMEMBRANCE_MS = (long) 2.592e+8; // how long before databases stop storing changes if no connection was made (3 days)
     public static final UUID GLOBAL_SERVER_ID = new UUID(0,0);
 
@@ -161,6 +160,11 @@ public class DataManager {
                 }
             }
             reader.endObject();
+        }
+
+        if (databaseServerID == null) {
+            Bukkit.getLogger().info("[NotBounties] Generating new database ID.");
+            databaseServerID = UUID.randomUUID();
         }
 
         // tell LoggedPlayers that it can read all the player names and store them in an easy to read hashmap
@@ -980,7 +984,7 @@ public class DataManager {
             displayParticle.remove(bounty.getUUID());
         if (bountyCopy.getTotalDisplayBounty() < WantedTags.getMinWanted()) {
             // remove bounty tag
-            NotBounties.removeWantedTag(bounty.getUUID());
+            WantedTags.removeWantedTag(bounty.getUUID());
             NotBounties.debugMessage("Removed wanted tag.", false);
         }
         if (bountyCopy.getSetters().isEmpty()) {

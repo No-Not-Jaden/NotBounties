@@ -1047,7 +1047,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 // successfully removed
                                 if (parser != null && parser.getUniqueId().equals(toRemove.getUUID()))
                                     ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.BUY_OWN, 1);
-                                NotBounties.removeWantedTag(toRemove.getUUID());
+                                WantedTags.removeWantedTag(toRemove.getUUID());
                                 OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + getMessage("success-remove-bounty"), player));
@@ -1070,7 +1070,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         reopenBountiesGUI();
                                         // successfully removed
                                         if (toRemove.getTotalDisplayBounty() < WantedTags.getMinWanted())
-                                            NotBounties.removeWantedTag(toRemove.getUUID());
+                                            WantedTags.removeWantedTag(toRemove.getUUID());
 
                                         OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                                         if (!silent)
@@ -1162,7 +1162,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     reopenBountiesGUI();
                     // successfully removed
                     if (toRemove.getTotalDisplayBounty() < WantedTags.getMinWanted())
-                        NotBounties.removeWantedTag(toRemove.getUUID());
+                        WantedTags.removeWantedTag(toRemove.getUUID());
 
                     OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                     if (!silent)

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.*;
 import me.jadenp.notbounties.utils.configuration.BountyExpire;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
@@ -275,6 +276,10 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
     }
 
     public UUID getServerID() {
+        if (serverID == null) {
+            NotBounties.debugMessage("No server ID set for bounty!", true);
+            serverID = DataManager.getDatabaseServerID(true);
+        }
         return serverID;
     }
     

@@ -51,7 +51,7 @@ public class Events implements Listener {
             return;
 
         displayParticle.remove(event.getPlayer().getUniqueId());
-        NotBounties.removeWantedTag(event.getPlayer().getUniqueId());
+        WantedTags.removeWantedTag(event.getPlayer().getUniqueId());
 
         RandomBounties.logout(event.getPlayer());
         MurderBounties.logout(event.getPlayer());
@@ -163,8 +163,8 @@ public class Events implements Listener {
             bounty.setDisplayName(event.getPlayer().getName());
             DataManager.notifyBounty(event.getPlayer());
             // check if player should be given a wanted tag
-            if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted() && !NotBounties.wantedText.containsKey(event.getPlayer().getUniqueId())) {
-                NotBounties.wantedText.put(event.getPlayer().getUniqueId(), new WantedTags(event.getPlayer()));
+            if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
+                WantedTags.addWantedTag(event.getPlayer());
             }
 
         }
