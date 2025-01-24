@@ -49,7 +49,14 @@ public class PlayerStatAdapter extends TypeAdapter<PlayerStat> {
                 case "all" -> all = reader.nextDouble();
                 case "immunity" -> immunity = reader.nextDouble();
                 case "claimed" -> claimed = reader.nextDouble();
-                case "serverID", "server-id" -> serverID = UUID.fromString(reader.nextString());
+                case "serverID", "server-id" -> {
+                    if (reader.peek() == JsonToken.NULL) {
+                        reader.nextNull();
+                        serverID = DataManager.getDatabaseServerID(true);
+                    } else {
+                        serverID = UUID.fromString(reader.nextString());
+                    }
+                }
                 default -> {
                     // unknown stat
                 }

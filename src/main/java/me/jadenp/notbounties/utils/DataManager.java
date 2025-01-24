@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
@@ -77,6 +78,10 @@ public class DataManager {
         if (!statsFile.exists())
             return;
         try (JsonReader reader = new JsonReader(new FileReader(statsFile))) {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return;
+            }
             reader.beginArray();
             PlayerStatAdapter adapter = new PlayerStatAdapter();
             while (reader.hasNext()) {
@@ -102,6 +107,10 @@ public class DataManager {
         if (!bountiesFile.exists())
             return;
         try (JsonReader reader = new JsonReader(new FileReader(bountiesFile))) {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return;
+            }
             reader.beginArray();
             BountyTypeAdapter adapter = new BountyTypeAdapter();
             while (reader.hasNext()) {
@@ -117,6 +126,10 @@ public class DataManager {
         if (!playerDataFile.exists())
             return;
         try (JsonReader reader = new JsonReader(new FileReader(playerDataFile))) {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return;
+            }
             reader.beginObject();
             while (reader.hasNext()) {
                 String name = reader.nextName();
@@ -160,11 +173,6 @@ public class DataManager {
                 }
             }
             reader.endObject();
-        }
-
-        if (databaseServerID == null) {
-            Bukkit.getLogger().info("[NotBounties] Generating new database ID.");
-            databaseServerID = UUID.randomUUID();
         }
 
         // tell LoggedPlayers that it can read all the player names and store them in an easy to read hashmap
@@ -587,6 +595,10 @@ public class DataManager {
     public static UUID getDatabaseServerID(boolean newData) {
         if (newData && isPermDatabaseConnected())
             return GLOBAL_SERVER_ID;
+        if (databaseServerID == null) {
+            Bukkit.getLogger().info("[NotBounties] Generating new database ID.");
+            databaseServerID = UUID.randomUUID();
+        }
         return databaseServerID;
     }
 

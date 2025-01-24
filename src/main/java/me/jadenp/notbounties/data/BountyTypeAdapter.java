@@ -49,7 +49,14 @@ public class BountyTypeAdapter extends TypeAdapter<Bounty> {
                 case "name" -> playerName = reader.nextString();
                 case "uuid" -> uuid = UUID.fromString(reader.nextString());
                 case "setters" -> setters = readSetters(reader);
-                case "serverID", "server-id" -> serverID = UUID.fromString(reader.nextString());
+                case "serverID", "server-id" -> {
+                    if (reader.peek() == JsonToken.NULL) {
+                        reader.nextNull();
+                        serverID = DataManager.getDatabaseServerID(true);
+                    } else {
+                        serverID = UUID.fromString(reader.nextString());
+                    }
+                }
                 default -> {
                     // unexpected data
                     // this shouldn't be reached

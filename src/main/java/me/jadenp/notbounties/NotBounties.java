@@ -151,7 +151,7 @@ public final class NotBounties extends JavaPlugin {
         } catch (IOException e) {
             Bukkit.getLogger().severe("[NotBounties] Failed to read player data!");
             Bukkit.getLogger().severe(e.toString());
-            Bukkit.getLogger().severe(Arrays.toString(e.getStackTrace()));
+            Arrays.stream(e.getStackTrace()).forEach(stack -> Bukkit.getLogger().severe("       at " + stack.toString()));
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
