@@ -15,12 +15,14 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.server.MapInitializeEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemFlag;
@@ -115,51 +117,49 @@ public class BountyMap implements Listener {
             return;
         MapMeta mapMeta = (MapMeta) newItem.getItemMeta();
         assert mapMeta != null;
-        MapView mapView = mapMeta.getMapView();
-        assert mapView != null;
 
         // will have persistent data of uuid if a isPoster returns true
         UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.namespacedKey, PersistentDataType.STRING)));
         if (uuid.equals(event.getPlayer().getUniqueId()))
             ChallengeManager.updateChallengeProgress(uuid, ChallengeType.HOLD_POSTER, 1);
-        if (!mapView.isVirtual()) {
+
+        loadItem(newItem);
+    }
+
+    private void loadItem(ItemStack item) {
+        if (item == null || !isPoster(item) || !ConfigOptions.postersEnabled)
+            return;
+        MapMeta mapMeta = (MapMeta) item.getItemMeta();
+        assert mapMeta != null;
+        MapView mapView = mapMeta.hasMapView() && mapMeta.getMapView() != null ? mapMeta.getMapView() : null;
+        UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.namespacedKey, PersistentDataType.STRING)));
+        if (mapView == null || !mapView.isVirtual()) {
             if (mapViews.containsKey(uuid)) {
                 mapMeta.setMapView(mapViews.get(uuid));
-                newItem.setItemMeta(mapMeta);
+                item.setItemMeta(mapMeta);
             } else {
-                mapView.setLocked(ConfigOptions.lockMap);
-                mapView.getRenderers().forEach(mapView::removeRenderer);
-                mapView.addRenderer(new Renderer(uuid));
+                if (mapView != null) {
+                    mapView.setLocked(ConfigOptions.lockMap);
+                    mapView.getRenderers().forEach(mapView::removeRenderer);
+                    mapView.addRenderer(new Renderer(uuid));
+                } else {
+                    mapView = getMapView(uuid);
+                    mapMeta.setMapView(mapView);
+                    item.setItemMeta(mapMeta);
+                }
                 mapViews.put(uuid, mapView);
             }
         }
     }
 
-    @EventHandler
-    public void onEntityLoad(EntitiesLoadEvent event) {
+    @EventHandler(priority = EventPriority.LOW)
+    public void onChunkLoad(ChunkLoadEvent event) {
         if (!ConfigOptions.postersEnabled)
             return;
-        for (Entity entity : event.getEntities()) {
+        for (Entity entity : event.getChunk().getEntities()) {
             if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.serverVersion >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME)) {
                 ItemFrame itemFrame = (ItemFrame) entity;
-                if (itemFrame.getItem().getItemMeta() != null && itemFrame.getItem().getItemMeta() instanceof MapMeta mapMeta) {
-                    MapView mapView = mapMeta.getMapView();
-                    assert mapView != null;
-
-                    if (!mapView.isVirtual() && mapMeta.getPersistentDataContainer().has(NotBounties.namespacedKey)) {
-                        // will have persistent data of uuid if a isPoster returns true
-                        UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.namespacedKey, PersistentDataType.STRING)));
-                        if (mapViews.containsKey(uuid)) {
-                            mapMeta.setMapView(mapViews.get(uuid));
-                            itemFrame.getItem().setItemMeta(mapMeta);
-                        } else {
-                            mapView.setLocked(ConfigOptions.lockMap);
-                            mapView.getRenderers().forEach(mapView::removeRenderer);
-                            mapView.addRenderer(new Renderer(uuid));
-                            mapViews.put(uuid, mapView);
-                        }
-                    }
-                }
+                loadItem(itemFrame.getItem());
             }
         }
     }
@@ -281,7 +281,7 @@ public class BountyMap implements Listener {
     // wash trackers
     @EventHandler
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        if (!ConfigOptions.washPoster || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused() || !ConfigOptions.postersEnabled)
+        if (!ConfigOptions.washPoster || !ConfigOptions.postersEnabled || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused())
             return;
 
         new BukkitRunnable() {
@@ -302,7 +302,7 @@ public class BountyMap implements Listener {
         if (itemStack.getType() != Material.FILLED_MAP)
             return false;
         MapMeta meta = (MapMeta) itemStack.getItemMeta();
-        if (meta == null || meta.getMapView() == null)
+        if (meta == null)
             return false;
 
         return meta.getPersistentDataContainer().has(NotBounties.namespacedKey);

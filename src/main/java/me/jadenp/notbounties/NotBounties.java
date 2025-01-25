@@ -229,7 +229,6 @@ public final class NotBounties extends JavaPlugin {
 
         // make bounty tracker work & big bounty particle & time immunity
         new BukkitRunnable() {
-            List<BountyBoard> queuedBoards = new ArrayList<>();
 
             @Override
             public void run() {
@@ -259,26 +258,7 @@ public final class NotBounties extends JavaPlugin {
                 PVPRestrictions.checkCombatExpiry();
                 ChallengeManager.checkChallengeChange();
 
-                if (BountyBoard.getLastBountyBoardUpdate() + boardUpdate * 1000 < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty()) {
-                    // update bounty board
-                    if (queuedBoards.isEmpty()) {
-                        queuedBoards = new ArrayList<>(BountyBoard.getBountyBoards());
-                    }
-                    int minUpdate = boardStaggeredUpdate == 0 ? queuedBoards.size() : boardStaggeredUpdate;
-                    List<Bounty> bountyCopy = getPublicBounties(boardType);
-                    for (int i = 0; i < Math.min(queuedBoards.size(), minUpdate); i++) {
-                        BountyBoard board = queuedBoards.get(i);
-                        if (bountyCopy.size() >= board.getRank()) {
-                            board.update(bountyCopy.get(board.getRank() - 1));
-                        } else {
-                            board.update(null);
-                        }
-                    }
-                    if (Math.min(queuedBoards.size(), minUpdate) > 0) {
-                        queuedBoards.subList(0, Math.min(queuedBoards.size(), minUpdate)).clear();
-                    }
-                    BountyBoard.setLastBountyBoardUpdate();
-                }
+                BountyBoard.update();
 
             }
         }.runTaskTimer(this, 100, 40);

@@ -5,6 +5,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -16,9 +17,13 @@ import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
+import static me.jadenp.notbounties.utils.BountyManager.getPublicBounties;
+import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
+
 public class BountyBoard {
     private static final List<BountyBoard> bountyBoards = new ArrayList<>();
     private static long lastBountyBoardUpdate = System.currentTimeMillis();
+    private static List<BountyBoard> queuedBoards = new ArrayList<>();
 
     public static List<BountyBoard> getBountyBoards() {
         return bountyBoards;
@@ -57,15 +62,34 @@ public class BountyBoard {
         return removes;
     }
 
-
     /**
-     * Sets the last bounty board update to the current time in milliseconds.
+     * Updates the bounty boards, following the config options.
      */
-    public static void setLastBountyBoardUpdate() {
-        lastBountyBoardUpdate = System.currentTimeMillis();
+    public static void update() {
+        if (BountyBoard.getLastBountyBoardUpdate() + boardUpdate * 1000 < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty()) {
+            // update bounty board
+            if (queuedBoards.isEmpty()) {
+                queuedBoards = new ArrayList<>(BountyBoard.getBountyBoards());
+            }
+            int minUpdate = boardStaggeredUpdate == 0 ? queuedBoards.size() : boardStaggeredUpdate;
+            List<Bounty> bountyCopy = getPublicBounties(boardType);
+            for (int i = 0; i < Math.min(queuedBoards.size(), minUpdate); i++) {
+                BountyBoard board = queuedBoards.get(i);
+                if (bountyCopy.size() >= board.getRank()) {
+                    board.update(bountyCopy.get(board.getRank() - 1));
+                } else {
+                    board.update(null);
+                }
+            }
+            if (Math.min(queuedBoards.size(), minUpdate) > 0) {
+                queuedBoards.subList(0, Math.min(queuedBoards.size(), minUpdate)).clear();
+            }
+            lastBountyBoardUpdate = System.currentTimeMillis();
+        }
     }
 
     private final Location location;
+    private final Chunk chunk;
     private final BlockFace direction;
     private final int rank;
     private UUID lastUUID = null;
@@ -75,13 +99,14 @@ public class BountyBoard {
     public BountyBoard(Location location, BlockFace direction, int rank) {
 
         this.location = location;
+        chunk = location.getChunk();
         this.direction = direction;
         this.rank = rank;
 
     }
 
     public void update(Bounty bounty) {
-        if (!location.getChunk().isLoaded())
+        if (!chunk.isLoaded())
             return;
         if (bounty == null) {
             lastUUID = null;
