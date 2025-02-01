@@ -827,14 +827,15 @@ public class DataManager {
                         // remove if change causes that and there are no items
                         if (setter.getDisplayAmount() + change < 0 && setter.getItems().isEmpty()) {
                             setterListIterator.remove();
-                            lastSetter = setter;
+                            change += setter.getDisplayAmount();
+                            lastSetter = new Setter(setter.getName(), setterUUID, 0, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), 0);;
                         } else if (setter.getAmount() > 0) {
                             // update amount (minimum 0)
                             double newAmount = Math.min(0, setter.getAmount() + change);
                             change+= setter.getAmount() - newAmount; // update amount needed to be changed
                             Setter newSetter = new Setter(setter.getName(), setterUUID, newAmount, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() - (setter.getAmount() - newAmount));
                             setterListIterator.set(newSetter);
-                            lastSetter = setter;
+                            lastSetter = newSetter;
                         }
                     } else {
                         // setter amount won't go negative
@@ -842,7 +843,7 @@ public class DataManager {
                         Setter newSetter = new Setter(setter.getName(), setterUUID, setter.getAmount() + change, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() + change);
                         change = 0;
                         setterListIterator.set(newSetter);
-                        lastSetter = setter;
+                        lastSetter = newSetter;
                     }
 
                 }

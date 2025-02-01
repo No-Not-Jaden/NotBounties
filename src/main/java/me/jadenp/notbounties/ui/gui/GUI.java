@@ -16,10 +16,13 @@ import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.external_api.bedrock.FloodGateClass;
 import me.jadenp.notbounties.utils.external_api.bedrock.GeyserMCClass;
 import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -575,13 +578,13 @@ public class GUI implements Listener {
                             // bounty is valid
                             if (event.isRightClick()) {
                                 event.getView().close();
-                                TextComponent first = new TextComponent(ChatColor.GOLD + "To edit " + playerName + "'s amount on " + viewedBounty.getName() + "'s bounty");
-                                TextComponent click = new TextComponent(ChatColor.YELLOW + "" + ChatColor.BOLD + " Click Here ");
-                                TextComponent last = new TextComponent(ChatColor.GOLD + "and enter the amount to change " + ChatColor.GRAY + "(e.g. 10, -500, 10k)" + ChatColor.GOLD + ".");
-                                click.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + pluginBountyCommands.get(0) + " edit " + viewedBounty.getName() + " from " + playerName + " "));
-                                first.addExtra(click);
-                                first.addExtra(last);
-                                event.getWhoClicked().spigot().sendMessage(first);
+                                String messageText = LanguageOptions.parse(LanguageOptions.getMessage("edit-setter-clickable").replace("{player}", playerName).replace("{receiver}", viewedBounty.getName()), (OfflinePlayer) event.getWhoClicked());
+                                TextComponent message = new TextComponent(messageText);
+                                TextComponent prefix = new TextComponent(LanguageOptions.parse(LanguageOptions.getPrefix(), (OfflinePlayer) event.getWhoClicked()));
+                                message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(messageText)));
+                                message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + pluginBountyCommands.get(0) + " edit " + viewedBounty.getName() + " from " + playerName + " "));
+                                prefix.addExtra(message);
+                                event.getWhoClicked().spigot().sendMessage(prefix);
                             } else if (event.isLeftClick()) {
                                 event.getView().close();
                                 Bukkit.dispatchCommand(event.getWhoClicked(), pluginBountyCommands.get(0) + " remove " + viewedBounty.getName() + " from " + playerName);
