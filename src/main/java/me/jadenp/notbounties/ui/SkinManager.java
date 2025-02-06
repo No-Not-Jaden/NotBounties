@@ -432,15 +432,19 @@ class SkinResponseHandler {
                 throw new IOException("Failed to get skin for " + playerName + ": " + input.get("errorMessage").getAsString());
             }
 
-            // convert uuid without dashes to one with
-            // https://stackoverflow.com/questions/18986712/creating-a-uuid-from-a-string-with-no-dashes
-            UUID onlineUUID =  java.util.UUID.fromString(
-                    input.get("id").getAsString()
-                            .replaceFirst(
-                                    "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5"
-                            )
-            );
-            return saveJavaSkin(httpClient, onlineUUID, false);
+            if (input.has("id")) {
+                // convert uuid without dashes to one with
+                // https://stackoverflow.com/questions/18986712/creating-a-uuid-from-a-string-with-no-dashes
+                UUID onlineUUID = java.util.UUID.fromString(
+                        input.get("id").getAsString()
+                                .replaceFirst(
+                                        "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5"
+                                )
+                );
+                return saveJavaSkin(httpClient, onlineUUID, false);
+            } else {
+                throw new IOException("Failed to get skin for " + playerName + ": id not present.");
+            }
         });
     }
 }

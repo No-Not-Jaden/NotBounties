@@ -4,7 +4,6 @@ import com.google.common.io.Files;
 import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
-import me.jadenp.notbounties.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.ui.BountyTracker;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
@@ -324,23 +323,23 @@ public final class NotBounties extends JavaPlugin {
 
         // wanted text
         new BukkitRunnable() {
-            static final int maxUpdateTime = 10;
+            static final int MAX_UPDATE_TIME = 10;
             int lastUpdateTime = 0; // time it took for the stands to update last
             long lastRunTime = 0;
 
             @Override
             public void run() {
                 if (!Bukkit.getOnlinePlayers().isEmpty()) {
-                    if (lastUpdateTime > maxUpdateTime) {
+                    if (lastUpdateTime > MAX_UPDATE_TIME) {
                         //    (the amount of ms since last update)      (2 x the amount of ms last update took)
-                        if (System.currentTimeMillis() - lastRunTime < (lastUpdateTime - maxUpdateTime) * 2L) {
+                        if (System.currentTimeMillis() - lastRunTime < (lastUpdateTime - MAX_UPDATE_TIME) * 2L) {
                             return;
                         }
                     }
                     long startTime = System.currentTimeMillis();
                     WantedTags.update();
                     lastUpdateTime = (int) (System.currentTimeMillis() - startTime);
-                    if (lastUpdateTime > maxUpdateTime) {
+                    if (lastUpdateTime > MAX_UPDATE_TIME) {
                         lastRunTime = System.currentTimeMillis();
                         if (debug)
                             Bukkit.getLogger().info("[NotBountiesDebug] Took " + lastUpdateTime + "ms to update wanted tags. Pausing for a few updates.");

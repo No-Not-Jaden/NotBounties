@@ -187,6 +187,7 @@ public class WantedTags {
      * This is used to check if the player is moving.
      */
     private Location lastPlayerLocation;
+    private String displayText;
     
     public WantedTags(Player player) {
         this.player = player;
@@ -202,58 +203,68 @@ public class WantedTags {
         return moved;
     }
 
-    public void updateArmorStand(){
-        if (enabled && player != null && player.isOnline()) {
-            if (nextVisibilityUpdateTime < System.currentTimeMillis()) {
-                // conditions if the tag should be removed/invisible
-                if (!BountyManager.hasBounty(player.getUniqueId())
-                        || (hideWantedWhenSneaking && player.isSneaking())
-                        || (hideWantedWhenMoving && hasMoved())
-                        || player.getGameMode().equals(GameMode.SPECTATOR)
-                        || player.isInvisible()
-                        || isVanished(player)) {
-                    if (armorStand != null)
-                        removeStand();
-                    return;
-                }
-                if (armorStand == null) {
-                    spawnWantedTag();
-                }
-                nextVisibilityUpdateTime = System.currentTimeMillis() + wantedVisibilityUpdateInterval;
-            }
+    private boolean shouldHide() {
+        return (hideWantedWhenSneaking && player.isSneaking())
+                || (hideWantedWhenMoving && hasMoved())
+                || player.getGameMode().equals(GameMode.SPECTATOR)
+                || player.isInvisible()
+                || isVanished(player)
+                || !BountyManager.hasBounty(player.getUniqueId());
+    }
 
-            if (nextTextUpdateTime < System.currentTimeMillis()) {
-                // check if the name should be changed
-                String text = getWantedDisplayText(player);
-                if (!text.equalsIgnoreCase(armorStand.getCustomName())) {
-                    armorStand.setCustomName(text);
-                }
-                nextTextUpdateTime = System.currentTimeMillis() + wantedTextUpdateInterval;
+    private void updateText() {
+        if (nextTextUpdateTime < System.currentTimeMillis()) {
+            // check if the name should be changed
+            displayText = getWantedDisplayText(player);
+            if (!displayText.equalsIgnoreCase(armorStand.getCustomName())) {
+                armorStand.setCustomName(displayText);
             }
-            if (NotBounties.serverVersion >= 17 && player.canSee(armorStand))
-                player.hideEntity(NotBounties.getInstance(), armorStand);
-            // a fix for 1.16, the random is to help with performance
-            if (NotBounties.serverVersion <= 16 && Math.random() <= 0.5) {
-                armorStand.setVisible(true);
-                armorStand.setVisible(false);
-                armorStand.setMarker(false);
-                armorStand.setMarker(true);
-                armorStand.setCustomName("This is a bug!");
-                armorStand.setCustomName(getWantedDisplayText(player));
-                armorStand.setCustomNameVisible(false);
-                armorStand.setCustomNameVisible(true);
-                armorStand.setCollidable(true);
-                armorStand.setCollidable(false);
-            }
-            if (!armorStand.getLocation().getChunk().isLoaded()) {
-                armorStand.getLocation().getChunk().load();
-                teleport();
-                armorStand.getLocation().getChunk().unload();
-            } else {
-                teleport();
-            }
-        } else {
+            nextTextUpdateTime = System.currentTimeMillis() + wantedTextUpdateInterval;
+        }
+        if (NotBounties.serverVersion >= 17 && player.canSee(armorStand))
+            player.hideEntity(NotBounties.getInstance(), armorStand);
+        // a fix for 1.16, the random is to help with performance
+        if (NotBounties.serverVersion <= 16 && Math.random() <= 0.5) {
+            armorStand.setVisible(true);
+            armorStand.setVisible(false);
+            armorStand.setMarker(false);
+            armorStand.setMarker(true);
+            armorStand.setCustomName("This is a bug!");
+            armorStand.setCustomName(displayText);
+            armorStand.setCustomNameVisible(false);
+            armorStand.setCustomNameVisible(true);
+            armorStand.setCollidable(true);
+            armorStand.setCollidable(false);
+        }
+    }
+
+    public void updateArmorStand(){
+        if (!enabled || player == null || !player.isOnline()) {
             removeStand();
+            return;
+        }
+
+        if (nextVisibilityUpdateTime < System.currentTimeMillis()) {
+            nextVisibilityUpdateTime = System.currentTimeMillis() + wantedVisibilityUpdateInterval;
+            // conditions if the tag should be removed/invisible
+            if (shouldHide()) {
+                if (armorStand != null)
+                    removeStand();
+                return;
+            }
+            if (armorStand == null) {
+                spawnWantedTag();
+            }
+            updateText();
+        }
+
+
+        if (armorStand != null) {
+            if (armorStand.getLocation().getChunk().isLoaded()) {
+                teleport();
+            } else {
+                removeStand();
+            }
         }
     }
 
@@ -281,7 +292,8 @@ public class WantedTags {
         armorStand = (ArmorStand) player.getWorld().spawnEntity(player.getEyeLocation().add(0,wantedOffset,0), EntityType.ARMOR_STAND);
         armorStand.setVisible(false);
         armorStand.setMarker(true);
-        armorStand.setCustomName(getWantedDisplayText(player));
+        displayText = getWantedDisplayText(player);
+        armorStand.setCustomName(displayText);
         armorStand.setCustomNameVisible(true);
         armorStand.setAI(false);
         armorStand.setCollidable(false);
