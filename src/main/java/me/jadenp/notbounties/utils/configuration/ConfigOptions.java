@@ -111,6 +111,7 @@ public class ConfigOptions {
     public static long bountyCooldown;
     public static int maxTabCompletePlayers;
     public static int autoSaveInterval;
+    public static double maxBounty;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -411,6 +412,7 @@ public class ConfigOptions {
         maxTabCompletePlayers = bounties.getConfig().getInt("max-tab-complete-players");
         autoSaveInterval = bounties.getConfig().getInt("auto-save-interval");
         postersEnabled = bounties.getConfig().getBoolean("bounty-posters.enabled");
+        maxBounty = bounties.getConfig().getDouble("maximum-bounty");
 
 
         wantedLevels.clear();

@@ -31,6 +31,7 @@ buy-scaling-immunity: '&aYou have bought immunity from bounties under the amount
 buy-time-immunity: '&aYou have bought immunity from bounties for &2{time}&a.'
 grace-period: '&cA bounty had just been claimed on &4{player}&c. Please wait &4{time}&c until you try again.'
 min-bounty: '&cThe bounty must be at least &4{amount}&c.'
+max-bounty: '&cThe maximum bounty is &4{amount}&c.'
 already-bought-perm: '&cYou already have permanent immunity!'
 removed-immunity: '&aSuccessfully removed your immunity to bounties.'
 removed-other-immunity: '&aSuccessfully removed &2{receiver}''s &aimmunity to bounties.' #

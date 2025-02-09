@@ -1536,16 +1536,23 @@ public class Commands implements CommandExecutor, TabCompleter {
                         whitelist.setList(newWhitelist);
                     }
 
-                    // check if max setters reached
-                    if (ConfigOptions.maxSetters > -1) {
+                    // check if max setters reached or max bounty
+                    double currentBounty = 0;
+                    if (ConfigOptions.maxSetters > -1 || maxBounty > 0) {
                         if (hasBounty(playerUUID)) {
                             Bounty bounty = getBounty(playerUUID);
                             assert bounty != null;
-                            if (bounty.getSetters().size() >= ConfigOptions.maxSetters) {
+                            currentBounty = bounty.getTotalDisplayBounty();
+                            if (ConfigOptions.maxSetters > -1 && bounty.getSetters().size() >= ConfigOptions.maxSetters) {
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("max-setters"), args[0], parser));
                                 return false;
+                            } else if (maxBounty > 0 && bounty.getTotalDisplayBounty() > maxBounty) {
+                                if (!silent)
+                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("max-bounty"), maxBounty, parser));
+                                return false;
                             }
+
                         }
                     }
 
@@ -1681,6 +1688,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (amount < ConfigOptions.minBounty && (items.isEmpty() || bountyItemsUseItemValues != ItemValueMode.DISABLE)) {
                         if (!silent)
                             sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("min-bounty"), ConfigOptions.minBounty, parser));
+                        return false;
+                    }
+                    if (maxBounty > 0 && amount + currentBounty > maxBounty) {
+                        if (!silent)
+                            sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("min-bounty"), maxBounty, parser));
                         return false;
                     }
                     // total cost to place this bounty in currency

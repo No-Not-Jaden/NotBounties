@@ -58,6 +58,7 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
  * max bounty
+ * bounty admin command to open gui
  */
 public final class NotBounties extends JavaPlugin {
 

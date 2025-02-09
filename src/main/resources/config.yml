@@ -67,6 +67,8 @@ number-formatting:
     1000000000000: T
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
+# maximum amount of currency a bounty can be
+maximum-bounty: -1
 # minimum amount of currency that will broadcast bounties
 minimum-broadcast: 50
 # percent extra they have to pay to set a bounty - uses a DECIMAL
