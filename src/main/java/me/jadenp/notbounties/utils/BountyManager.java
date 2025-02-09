@@ -253,7 +253,7 @@ public class BountyManager {
                     addRefund(player.getUniqueId(), amount);
                 }
             } else {
-                if (player.isOnline() && manualEconomy != ManualEconomy.PARTIAL && ((Plugin) NotBounties.getInstance()).isEnabled()) {
+                if (player.isOnline() && manualEconomy != ManualEconomy.PARTIAL && NotBounties.getInstance().isEnabled()) {
                     NumberFormatting.doAddCommands(player.getPlayer(), amount);
                 } else {
                     addRefund(uuid, amount);
@@ -262,7 +262,7 @@ public class BountyManager {
         }
         items.removeIf(Objects::isNull);
         if (!items.isEmpty() && manualEconomy == ManualEconomy.AUTOMATIC) {
-                if (player.isOnline() && ((Plugin) NotBounties.getInstance()).isEnabled()) {
+                if (player.isOnline() && NotBounties.getInstance().isEnabled()) {
                     NumberFormatting.givePlayer(player.getPlayer(), items, false);
                 } else {
                     addRefund(uuid, items);

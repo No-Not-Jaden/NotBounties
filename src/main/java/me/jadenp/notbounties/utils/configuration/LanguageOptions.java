@@ -124,7 +124,7 @@ public class LanguageOptions {
         if (listMessages.containsKey(key))
             return listMessages.get(key);
         if (messages.containsKey(key))
-            return new ArrayList<>(Arrays.stream(key.split("\n")).toList());
+            return new ArrayList<>(Arrays.stream(messages.get(key).split("\n")).toList());
         return new ArrayList<>(List.of("&cInvalid Message! There may be YAML errors in the language.yml file, or this is a bug!"));
     }
 
