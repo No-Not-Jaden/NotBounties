@@ -21,6 +21,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -181,21 +182,23 @@ public class Events implements Listener {
         }
 
         // check for updates
-        if (updateNotification && !NotBounties.latestVersion && event.getPlayer().hasPermission(NotBounties.getAdminPermission())) {
-                new UpdateChecker(NotBounties.getInstance(), 104484).getVersion(version -> {
-                    if (NotBounties.getInstance().getDescription().getVersion().contains("dev"))
-                        return;
-                    if (NotBounties.getInstance().getDescription().getVersion().equals(version))
-                        return;
-                    event.getPlayer().sendMessage(parse(getPrefix() + getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", version), event.getPlayer()));
-                    TextComponent prefixMsg = new TextComponent(parse(getPrefix(), event.getPlayer()));
-                    TextComponent msg = new TextComponent(parse(getMessage("disable-update-notification"), event.getPlayer()));
-                    msg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: false")));
-                    msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + pluginBountyCommands.get(0) + " update-notification false"));
-                    BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg, msg};
-                    event.getPlayer().spigot().sendMessage(baseComponents);
-                });
-            }
+        if (NotBounties.isUpdateAvailable() && !ConfigOptions.getUpdateNotification().equals("false")
+                && NotBounties.getLatestVersion() != null
+                && !ConfigOptions.getUpdateNotification().equalsIgnoreCase(getLatestVersion())
+                && event.getPlayer().hasPermission(NotBounties.getAdminPermission())) {
+            event.getPlayer().sendMessage(parse(getPrefix() + getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", NotBounties.getLatestVersion()), event.getPlayer()));
+            TextComponent prefixMsg = new TextComponent(parse(getPrefix(), event.getPlayer()));
+            TextComponent disableUpdate = new TextComponent(parse(getMessage("disable-update-notification"), event.getPlayer()));
+            disableUpdate.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: false")));
+            disableUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + pluginBountyCommands.get(0) + " update-notification false"));
+            TextComponent skipUpdate = new TextComponent(parse(getMessage("skip-update"), event.getPlayer()));
+            skipUpdate.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: " + getLatestVersion())));
+            skipUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + pluginBountyCommands.get(0) + " update-notification " + getLatestVersion()));
+            BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg, skipUpdate};
+            event.getPlayer().spigot().sendMessage(baseComponents);
+            baseComponents = new BaseComponent[]{prefixMsg, disableUpdate};
+            event.getPlayer().spigot().sendMessage(baseComponents);
+        }
 
 
         // check if they had a bounty refunded

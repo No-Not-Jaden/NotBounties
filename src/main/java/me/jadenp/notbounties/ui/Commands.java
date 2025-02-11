@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.reopenBountiesGUI;
@@ -55,18 +56,33 @@ public class Commands implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, Command command, @NotNull String label, String[] args) {
         if (command.getName().equalsIgnoreCase("notbounties")) {
-            boolean commandResult = executeCommand(sender, args);
-            if (sender instanceof Player)
+            boolean commandResult = executeCommand(sender, args, false);
+            if (sender instanceof Player player) {
                 if (commandResult) {
-                    Prompt.successfulExecute(((Player) sender).getUniqueId());
+                    Prompt.successfulExecute(player.getUniqueId());
                 } else {
-                    Prompt.failExecute(((Player) sender).getUniqueId());
+                    Prompt.failExecute(player.getUniqueId());
                 }
+            }
+        } else if (command.getName().equalsIgnoreCase("notbountiesadmin") && sender.hasPermission("notbounties.admin")) {
+            Player player = Bukkit.getPlayer(args[0]);
+            if (player != null) {
+                String[] newArgs = new String[args.length - 1];
+                System.arraycopy(args, 1, newArgs, 0, newArgs.length);
+                boolean commandResult = executeCommand(player, newArgs, true);
+                if (commandResult) {
+                    Prompt.successfulExecute(player.getUniqueId());
+                } else {
+                    Prompt.failExecute(player.getUniqueId());
+                }
+            } else {
+                sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("unknown-player"), null));
+            }
         }
         return true;
     }
 
-    public boolean executeCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean executeCommand(@NotNull CommandSender sender, String[] args, boolean adminPermission) {
         if (NotBounties.isPaused()) {
             if (args.length > 0) {
                 boolean allow = false;
@@ -77,7 +93,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 }
                 if (!allow) {
-                    if (sender.hasPermission(NotBounties.getAdminPermission()))
+                    if (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))
                         sender.sendMessage(parse(getPrefix() + getMessage("paused"), null));
                     return true;
                 }
@@ -102,7 +118,7 @@ public class Commands implements CommandExecutor, TabCompleter {
         }
         Player parser = getParser(sender);
         if (args.length > 0) {
-            if (args[0].equalsIgnoreCase("help") && sender.hasPermission("notbounties.basic")) {
+            if (args[0].equalsIgnoreCase("help") && (adminPermission || sender.hasPermission("notbounties.basic"))) {
                 int page;
                 if (args.length == 1) {
                     page = 1;
@@ -115,7 +131,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 LanguageOptions.sendHelpMessage(sender, page);
             } else if (args[0].equalsIgnoreCase("challenges") && ChallengeManager.isEnabled()) {
-                if (sender.hasPermission("notbounties.challenges") && sender instanceof Player) {
+                if ((adminPermission || sender.hasPermission("notbounties.challenges")) && sender instanceof Player) {
                     if (args.length == 1) {
                         // open GUI
                         openGUI(parser, "challenges", 1);
@@ -187,33 +203,32 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                 }
                 return false;
-            } else if (args[0].equalsIgnoreCase("update-notification")) {
-                if (!sender.hasPermission(NotBounties.getAdminPermission())) {
-                    if (!silent)
-                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                    return false;
-                }
+            } else if (args[0].equalsIgnoreCase("update-notification") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                 if (args.length == 1) {
-                    updateNotification = !updateNotification;
+                    if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("true")) {
+                        ConfigOptions.setUpdateNotification("false");
+                    } else {
+                        ConfigOptions.setUpdateNotification("true");
+                    }
                 } else {
-                    updateNotification = args[1].equalsIgnoreCase("true") || args[1].equalsIgnoreCase("enable");
+                    if (args[1].equalsIgnoreCase("true") || args[1].equalsIgnoreCase("enable")) {
+                        ConfigOptions.setUpdateNotification("true");
+                    } else if (args[1].equalsIgnoreCase("false") || args[1].equalsIgnoreCase("disable")) {
+                        ConfigOptions.setUpdateNotification("false");
+                    } else {
+                        ConfigOptions.setUpdateNotification(args[1]);
+                    }
                 }
-                NotBounties.getInstance().reloadConfig();
-                NotBounties.getInstance().getConfig().set("update-notification", updateNotification);
-                NotBounties.getInstance().saveConfig();
-                if (updateNotification) {
-                    if (!silent)
+                if (!silent) {
+                    if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("true")) {
                         sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now " + ChatColor.GREEN + "enabled" + ChatColor.YELLOW + ".", parser));
-                } else {
-                    if (!silent)
+                    } else if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("true")) {
                         sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now " + ChatColor.RED + "disabled" + ChatColor.YELLOW + ".", parser));
+                    } else {
+                        sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now skipping the version " + ChatColor.GOLD + ConfigOptions.getUpdateNotification() + ChatColor.YELLOW + ".", parser));
+                    }
                 }
-            } else if (args[0].equalsIgnoreCase("cleanEntities")) {
-                if (!sender.hasPermission(NotBounties.getAdminPermission())) {
-                    if (!silent)
-                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
-                    return false;
-                }
+            } else if (args[0].equalsIgnoreCase("cleanEntities") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                 if (!(sender instanceof Player)) {
                     if (!silent)
                         sender.sendMessage("Only players can use this command!");
@@ -233,7 +248,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 RemovePersistentEntitiesEvent.cleanAsync(parser.getNearbyEntities(radius, radius, radius), sender);
                 return true;
-            } else if (args[0].equalsIgnoreCase("pause") && sender.hasPermission(NotBounties.getAdminPermission())) {
+            } else if (args[0].equalsIgnoreCase("pause") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                 if (NotBounties.isPaused()) {
                     sender.sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.RED + "NotBounties is already paused.", parser));
                     return false;
@@ -242,7 +257,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(parse(getPrefix() + ChatColor.RED + "NotBounties is now paused. Players will only be able to view previous bounties. Run " + ChatColor.GREEN + "/" + pluginBountyCommands.get(0) + " unpause " + ChatColor.RED + " to use all features again.", parser));
                     return true;
                 }
-            } else if (args[0].equalsIgnoreCase("unpause") && sender.hasPermission(NotBounties.getAdminPermission())) {
+            } else if (args[0].equalsIgnoreCase("unpause") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                 if (NotBounties.isPaused()) {
                     NotBounties.setPaused(false);
                     sender.sendMessage(parse(getPrefix() + ChatColor.GREEN + "NotBounties is no longer paused.", parser));
@@ -251,7 +266,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(parse(getPrefix() + ChatColor.GREEN + "NotBounties is already unpaused.", parser));
                     return false;
                 }
-            } else if (args[0].equalsIgnoreCase("debug") && sender.hasPermission(NotBounties.getAdminPermission())) {
+            } else if (args[0].equalsIgnoreCase("debug") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                 if (args.length == 1) {
                     NotBounties.getInstance().sendDebug(sender);
                 } else {
@@ -272,7 +287,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 }
                 return true;
-            } else if (args[0].equalsIgnoreCase("board") && sender.hasPermission(NotBounties.getAdminPermission())) {
+            } else if (args[0].equalsIgnoreCase("board") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                 if (!(sender instanceof Player)) {
                     if (!silent)
                         sender.sendMessage("Only players can use this command!");
@@ -313,16 +328,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(parse(getPrefix() + ChatColor.DARK_AQUA + ChatColor.BOLD + "<Rank " + rank + "> " + ChatColor.AQUA + "Punch a block to place the bounty board on.", parser));
                 NotBounties.boardSetup.put(parser.getUniqueId(), rank);
                 return true;
-            } else if (args[0].equalsIgnoreCase("tutorial") && sender.hasPermission("notbounties.basic")) {
+            } else if (args[0].equalsIgnoreCase("tutorial") && (adminPermission || sender.hasPermission("notbounties.basic"))) {
                 Tutorial.onCommand(sender, args);
                 return true;
-            } else if (args[0].equalsIgnoreCase("whitelist") && bountyWhitelistEnabled) {
+            } else if (args[0].equalsIgnoreCase("whitelist") && bountyWhitelistEnabled && (adminPermission || sender.hasPermission("notbounties.whitelist"))) {
                 if (sender instanceof Player player) {
-                    if (!sender.hasPermission("notbounties.whitelist")) {
-                        if (!silent)
-                            sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
-                        return false;
-                    }
                     if (args.length == 1) {
                         openGUI(parser, "set-whitelist", 1);
                         return true;
@@ -466,16 +476,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(getPrefix() + ChatColor.RED + "Only players can use this command.");
                 }
                 return false;
-            } else if (args[0].equalsIgnoreCase("currency")) {
-                if (!sender.hasPermission(NotBounties.getAdminPermission())) {
-                    if (!silent)
-                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
-                    return false;
-                }
+            } else if (args[0].equalsIgnoreCase("currency") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                 CurrencySetup.onCommand(sender, args);
                 return true;
             } else if (args[0].equalsIgnoreCase("set")) {
-                if (sender.hasPermission("notbounties.set")) {
+                if ((adminPermission || sender.hasPermission("notbounties.set"))) {
                     if (sender instanceof Player) {
                         if (args.length > 1)
                             openGUI(parser, "set-bounty", 1, args[1]);
@@ -493,7 +498,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
                 }
-            } else if ((args[0].equalsIgnoreCase("bdc") || args[0].equalsIgnoreCase("broadcast")) && sender.hasPermission("notbounties.basic")) {
+            } else if ((args[0].equalsIgnoreCase("bdc") || args[0].equalsIgnoreCase("broadcast")) && (adminPermission || sender.hasPermission("notbounties.basic"))) {
                 if (sender instanceof Player player) {
                     PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
                     if (args.length > 1) {
@@ -528,7 +533,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 return true;
             } else if (args[0].equalsIgnoreCase("stat")) {
-                if (!sender.hasPermission("notbounties.view")) {
+                if (!(adminPermission || sender.hasPermission("notbounties.view"))) {
                     if (!silent)
                         sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
@@ -537,7 +542,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     Leaderboard.ALL.displayStats(parser, false);
                     return true;
                 }
-                if (args.length > 3 && !sender.hasPermission(NotBounties.getAdminPermission()) || args.length > 5) {
+                if (args.length > 3 && !(adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) || args.length > 5) {
                     // usage
                     if (!silent)
                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
@@ -576,7 +581,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     // admin part to edit or setValue
-                    if (!sender.hasPermission(NotBounties.getAdminPermission())) {
+                    if (!(adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                         if (!silent)
                             sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                         return false;
@@ -614,7 +619,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                 return true;
             } else if (args[0].equalsIgnoreCase("top")) {
-                if (sender.hasPermission("notbounties.view")) {
+                if ((adminPermission || sender.hasPermission("notbounties.view"))) {
                     Leaderboard leaderboard;
                     if (args.length > 1) {
                         try {
@@ -641,7 +646,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 return true;
             } else if (args[0].equalsIgnoreCase("reload")) {
-                if (sender.hasPermission(NotBounties.getAdminPermission())) {
+                if ((adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
                     try {
                         NotBounties.getInstance().loadConfig();
                     } catch (IOException e) {
@@ -660,7 +665,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (args.length > 1 && args[1].equalsIgnoreCase("remove")) {
                     if (args.length == 2) {
                         // reg command
-                        if (sender.hasPermission("notbounties.removeimmunity") || sender.hasPermission(NotBounties.getAdminPermission())) {
+                        if (adminPermission || sender.hasPermission("notbounties.removeimmunity") || sender.hasPermission(NotBounties.getAdminPermission())) {
                             if (sender instanceof Player player) {
                                 // remove immunity
                                 if (Immunity.removeImmunity(player.getUniqueId())) {
@@ -702,7 +707,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     } else if (args.length == 3) {
                         //admin command
-                        if (sender.hasPermission(NotBounties.getAdminPermission())) {
+                        if (adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) {
                             UUID pUUID = LoggedPlayers.getPlayer(args[2]);
                             if (pUUID == null) {
                                 if (!silent)
@@ -746,7 +751,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     } else {
                         // usage
-                        if (sender.hasPermission(NotBounties.getAdminPermission())) {
+                        if (adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) {
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                             sendHelpMessage(sender, getListMessage("help.admin"));
@@ -777,7 +782,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else {
                     if (sender instanceof Player) {
                         if (Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
-                            if (sender.hasPermission("notbounties.buyimmunity")) {
+                            if (adminPermission || sender.hasPermission("notbounties.buyimmunity")) {
                                 if (Immunity.getImmunityType() == Immunity.ImmunityType.PERMANENT) {
                                     double immunitySpent = Immunity.getImmunity(Objects.requireNonNull(parser).getUniqueId());
                                     if (immunitySpent < Immunity.getPermanentCost() && !sender.hasPermission("notbounties.immune")) {
@@ -854,7 +859,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     } else {
                                         // send immunity spend
 
-                                        return executeCommand(sender, new String[]{"stat", "immunity"}); // run /bounty stat immunity
+                                        return executeCommand(sender, new String[]{"stat", "immunity"}, adminPermission); // run /bounty stat immunity
                                     }
                                 }
                             } else {
@@ -878,7 +883,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             } else if (args[0].equalsIgnoreCase("buy")) {
                 if (sender instanceof Player) {
                     if (buyBack) {
-                        if (sender.hasPermission("notbounties.buyown")) {
+                        if (adminPermission || sender.hasPermission("notbounties.buyown")) {
                             if (hasBounty(parser.getUniqueId())) {
                                 Bounty bounty = getBounty(parser.getUniqueId());
                                 assert bounty != null;
@@ -939,7 +944,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("check")) {
-                if (sender.hasPermission("notbounties.view")) {
+                if (adminPermission || sender.hasPermission("notbounties.view")) {
                     if (args.length > 1) {
                         UUID pUUID = LoggedPlayers.getPlayer(args[1]);
                         if (pUUID == null) {
@@ -1009,7 +1014,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("list")) {
-                if (sender.hasPermission("notbounties.view")) {
+                if (adminPermission || sender.hasPermission("notbounties.view")) {
                     int page = 1;
                     if (args.length > 1) {
                         try {
@@ -1111,7 +1116,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sendHelpMessage(sender, getListMessage("help.admin"));
                         return false;
                     }
-                } else if (sender.hasPermission("notbounties.removeset") && sender instanceof Player) {
+                } else if (adminPermission || sender.hasPermission("notbounties.removeset") && sender instanceof Player) {
                     if (args.length != 2) {
                         // usage
                         if (!silent)
@@ -1290,7 +1295,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("poster") && ConfigOptions.postersEnabled) {
-                if (!(giveOwnMap || sender.hasPermission(NotBounties.getAdminPermission()))) {
+                if (!(giveOwnMap|| sender.hasPermission(NotBounties.getAdminPermission()))) {
                     // no permission
                     if (!silent)
                         sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
@@ -1323,7 +1328,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                     return false;
                 }
                 Bounty bounty = getBounty(playerUUID);
-                String playerName = bounty != null ? bounty.getName() : LoggedPlayers.getPlayerName(playerUUID);
                 Player receiver;
                 if (args.length > 2) {
                     receiver = Bukkit.getPlayer(args[2]);
@@ -1350,8 +1354,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                 // give a tracker that points toward a certain player with a bounty
                 if (BountyTracker.isEnabled())
                     // admins can do everything -                         Give own or write empty settings with the tracker perm
-                    if (sender.hasPermission(NotBounties.getAdminPermission()) || ((BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers()) && sender.hasPermission("notbounties.tracker"))) {
-                        if (!sender.hasPermission(NotBounties.getAdminPermission()) && sender instanceof Player) {
+                    if (sender.hasPermission(NotBounties.getAdminPermission()) || ((BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers()) && (adminPermission || sender.hasPermission("notbounties.tracker")))) {
+                        if (!adminPermission || sender.hasPermission(NotBounties.getAdminPermission()) && sender instanceof Player) {
                             if (giveOwnCooldown.containsKey(parser.getUniqueId()) && giveOwnCooldown.get(parser.getUniqueId()) > System.currentTimeMillis()) {
                                 // cooldown
                                 if (!silent)
@@ -1412,7 +1416,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 } else {
                                     // /bounty tracker (player)
                                     if (sender instanceof Player) {
-                                        if (!sender.hasPermission("notbounties.tracker") && !sender.hasPermission(NotBounties.getAdminPermission())) {
+                                        if (!(adminPermission || sender.hasPermission("notbounties.tracker")) && !sender.hasPermission(NotBounties.getAdminPermission())) {
                                             // no permission
                                             if (!silent)
                                                 sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
@@ -1477,7 +1481,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 return true;
             } else {
-                if (sender.hasPermission("notbounties.set")) {
+                if (adminPermission || sender.hasPermission("notbounties.set")) {
                     UUID playerUUID = LoggedPlayers.getPlayer(args[0]);
                     if (playerUUID == null) {
                         // can't find player
@@ -1518,8 +1522,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
 
                     // get whitelisted people
-                    Whitelist whitelist = (sender instanceof Player player) && sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled ? DataManager.getPlayerData(player.getUniqueId()).getWhitelist() : new Whitelist(new ArrayList<>(), false);
-                    if (args.length > 3 && sender.hasPermission("notbounties.whitelist")) {
+                    Whitelist whitelist = (sender instanceof Player player) && (adminPermission || sender.hasPermission("notbounties.whitelist")) && bountyWhitelistEnabled ? DataManager.getPlayerData(player.getUniqueId()).getWhitelist() : new Whitelist(new ArrayList<>(), false);
+                    if (args.length > 3 && (adminPermission || sender.hasPermission("notbounties.whitelist"))) {
                         List<UUID> newWhitelist = new ArrayList<>();
                         for (int i = 3; i < Math.min(args.length, 13); i++) {
                             if (args[i].equalsIgnoreCase("--confirm"))
@@ -1549,7 +1553,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 return false;
                             } else if (maxBounty > 0 && bounty.getTotalDisplayBounty() > maxBounty) {
                                 if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("max-bounty"), maxBounty, parser));
+                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("max-bounty"), args[0], maxBounty, parser));
                                 return false;
                             }
 
@@ -1692,7 +1696,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                     if (maxBounty > 0 && amount + currentBounty > maxBounty) {
                         if (!silent)
-                            sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("min-bounty"), maxBounty, parser));
+                            sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("max-bounty"), maxBounty, parser));
                         return false;
                     }
                     // total cost to place this bounty in currency
@@ -1835,7 +1839,7 @@ public class Commands implements CommandExecutor, TabCompleter {
         } else {
             // open gui
             if (sender instanceof Player) {
-                if (sender.hasPermission("notbounties.view")) {
+                if ((adminPermission || sender.hasPermission("notbounties.view"))) {
                     openGUI(parser, "bounty-gui", 1);
                 } else {
                     if (!silent)
@@ -1853,28 +1857,45 @@ public class Commands implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
-        boolean silent = false;
-        for (int i = 0; i < args.length; i++) {
-            // check if the argument has the -s
-            if (args[i].equalsIgnoreCase("-s")) {
-                silent = true;
-            }
-            // move everything backwards if a -s was found
-            if (silent && i < args.length - 1) {
-                args[i] = args[i + 1];
-            }
-        }
-        if (silent) {
-            // make sure length > 1
-            if (args.length == 1)
-                return new ArrayList<>();
-            // remove the last argument
-            String[] tempArgs = args;
-            args = new String[tempArgs.length - 1];
-            System.arraycopy(tempArgs, 0, args, 0, tempArgs.length - 1);
-        }
         List<String> tab = new ArrayList<>();
-        if (command.getName().equalsIgnoreCase("notbounties")) {
+        if (command.getName().equalsIgnoreCase("notbounties") || command.getName().equalsIgnoreCase("notbountiesadmin")) {
+            boolean silent = false;
+            for (int i = 0; i < args.length; i++) {
+                // check if the argument has the -s
+                if (args[i].equalsIgnoreCase("-s")) {
+                    silent = true;
+                }
+                // move everything backwards if a -s was found
+                if (silent && i < args.length - 1) {
+                    args[i] = args[i + 1];
+                }
+            }
+            if (silent) {
+                // make sure length > 1
+                if (args.length == 1)
+                    return new ArrayList<>();
+                // remove the last argument
+                String[] tempArgs = args;
+                args = new String[tempArgs.length - 1];
+                System.arraycopy(tempArgs, 0, args, 0, tempArgs.length - 1);
+            }
+            if (command.getName().equalsIgnoreCase("notbountiesadmin")) {
+                if (sender.hasPermission("notbounties.admin")) {
+                    if (args.length == 1) {
+                        return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+                    } else {
+                        Player player = Bukkit.getPlayer(args[0]);
+                        if (player != null) {
+                            sender = player;
+                        }
+                        String[] tempArgs = args;
+                        args = new String[tempArgs.length - 1];
+                        System.arraycopy(tempArgs, 1, args, 0, tempArgs.length - 1);
+                    }
+                } else {
+                    return tab;
+                }
+            }
             if (args.length == 1) {
                 if (sender.hasPermission("notbounties.basic")) {
                     tab.add("help");

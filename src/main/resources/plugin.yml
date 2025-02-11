@@ -22,6 +22,10 @@ softdepend:
 commands:
   notbounties:
     description: Use all of the bounty commands.
+  notbountiesadmin:
+    description: Open the GUI for other people.
+    aliases:
+      - bountyadmin
 permissions:
   notbounties.admin:
     default: op

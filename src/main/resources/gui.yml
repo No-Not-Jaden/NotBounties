@@ -59,13 +59,13 @@ custom-items:
     amount: 1
     name: '&c&lSet Bounty'
     commands:
-      - '[p] notbounties set'
+      - 'notbountiesadmin {player} set'
   set-whitelist:
     material: PAPER
     amount: 1
     name: '&f&lSet Whitelist'
     commands:
-      - '[p] notbounties whitelist'
+      - 'notbountiesadmin {player} whitelist'
   add1:
     material: LIME_STAINED_GLASS_PANE
     amount: 1
@@ -107,34 +107,34 @@ custom-items:
     amount: 1
     name: '&a&lYes'
     commands:
-      - '!@notbounties.admin [p] notbounties buy --confirm'
-      - '@notbounties.admin [p] notbounties remove {player1}'
+      - '!@notbounties.admin notbountiesadmin {player} buy --confirm'
+      - '@notbounties.admin notbountiesadmin {player} remove {player1}'
       - '[close]'
   yes-bounty:
     material: LIME_STAINED_GLASS_PANE
     amount: 1
     name: '&a&lYes'
     commands:
-      - '[p] notbounties {player1} {page} --confirm'
+      - 'notbountiesadmin {player} {player1} {page} --confirm'
       - '[close]'
   yes-bounty-item:
     material: LIME_STAINED_GLASS_PANE
     amount: 1
     name: '&a&lSet Bounty'
     commands:
-      - '[p] notbounties {data} --confirm' # {data} is a special placeholder for GUI data. In the case of the bounty-item-select GUI, it contains the uuid of the bountied player as well as the items in the GUI
+      - 'notbountiesadmin {player} {data} --confirm' # {data} is a special placeholder for GUI data. In the case of the bounty-item-select GUI, it contains the uuid of the bountied player as well as the items in the GUI
   cancel:
     material: RED_STAINED_GLASS_PANE
     amount: 1
     name: '&c&lCancel'
     commands:
-      - '[p] notbounties'
+      - 'notbountiesadmin {player}'
   no:
     material: RED_STAINED_GLASS_PANE
     amount: 1
     name: '&c&lNo'
     commands:
-      - '[p] notbounties'
+      - 'notbountiesadmin {player}'
   add-offline:
     material: LEVER
     amount: 1
@@ -146,7 +146,7 @@ custom-items:
     amount: 1
     name: '&fReset whitelist'
     commands:
-      - '[p] notbounties whitelist reset'
+      - 'notbountiesadmin {player} whitelist reset'
       - '[gui] set-whitelist 1'
   return:
     material: WHITE_BED
@@ -180,7 +180,7 @@ custom-items:
       - '&7Current mode: &f{mode}'
       - ''
     commands:
-      - '[p] notbounties whitelist toggle'
+      - 'notbountiesadmin {player} whitelist toggle'
       - '[gui] settings-gui'
   toggle-broadcast:
     material: CRIMSON_SIGN
@@ -191,7 +191,7 @@ custom-items:
       - '&7Receive broadcasts: &f{notification}'
       - ''
     commands:
-      - '[p] notbounties bdc'
+      - 'notbountiesadmin {player} bdc'
       - '[gui] settings-gui'
   settings:
     material: compass
@@ -223,7 +223,7 @@ custom-items:
       - '&3the player.'
       - ''
     commands:
-      - '[p] notbounties {player1}'
+      - 'notbountiesadmin {player} {player1}'
   next-challenge:
     material: CLOCK
     name: '&f&lNext Challenges in &e{next_challenges}'

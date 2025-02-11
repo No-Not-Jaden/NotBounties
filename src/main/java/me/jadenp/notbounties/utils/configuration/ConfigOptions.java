@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 import java.text.DateFormat;
 import java.util.*;
 
+
 public class ConfigOptions {
     // <TODO>Transition public static usage to private and make getters</TODO>
     public static int minBroadcast;
@@ -45,7 +46,7 @@ public class ConfigOptions {
     public static double buyBackInterest;
     public static boolean papiEnabled;
     public static List<String> hiddenNames = new ArrayList<>();
-    public static boolean updateNotification;
+    private static String updateNotification;
     public static final Map<String, CustomItem> customItems = new HashMap<>();
     public static boolean npcClaim;
     public static double deathTax;
@@ -351,7 +352,7 @@ public class ConfigOptions {
         RRLSetterLoreAddition = bounties.getConfig().getString("redeem-reward-later.setter-lore-addition");
         minBroadcast = bounties.getConfig().getInt("minimum-broadcast");
         hiddenNames = bounties.getConfig().getStringList("hide-stats");
-        updateNotification = bounties.getConfig().getBoolean("update-notification");
+        updateNotification = bounties.getConfig().getString("update-notification");
         npcClaim = bounties.getConfig().getBoolean("npc-claim");
         deathTax = bounties.getConfig().getDouble("death-tax");
         worldFilter = bounties.getConfig().getBoolean("world-filter.whitelist");
@@ -690,6 +691,16 @@ public class ConfigOptions {
         }
     }
 
+    public static String getUpdateNotification() {
+        return updateNotification;
+    }
+
+    public static void setUpdateNotification(String updateNotification) {
+        ConfigOptions.updateNotification = updateNotification;
+        NotBounties.getInstance().reloadConfig();
+        NotBounties.getInstance().getConfig().set("update-notification", updateNotification);
+        NotBounties.getInstance().saveConfig();
+    }
 
     public static LinkedHashMap<Integer, String> sortByValue(Map<Integer, String> hm) {
         // Create a list from elements of HashMap

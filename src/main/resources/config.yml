@@ -67,7 +67,7 @@ number-formatting:
     1000000000000: T
 # minimum amount of currency a bounty can be
 minimum-bounty: 1
-# maximum amount of currency a bounty can be
+# maximum amount of currency a bounty can be - set to -1 to disable
 maximum-bounty: -1
 # minimum amount of currency that will broadcast bounties
 minimum-broadcast: 50

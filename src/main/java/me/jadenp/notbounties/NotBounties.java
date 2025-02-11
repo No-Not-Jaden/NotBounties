@@ -67,7 +67,8 @@ public final class NotBounties extends JavaPlugin {
     public static final List<UUID> displayParticle = new ArrayList<>();
 
     private static NotBounties instance;
-    public static boolean latestVersion = true;
+    private static String latestVersion;
+    private static boolean updateAvailable = false;
     public static final Map<UUID, Integer> boardSetup = new HashMap<>();
 
     public static final String sessionKey = UUID.randomUUID().toString();
@@ -106,7 +107,9 @@ public final class NotBounties extends JavaPlugin {
         }
 
         // load commands and events
-        Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(new Commands());
+        Commands commands = new Commands();
+        Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(commands);
+        Objects.requireNonNull(this.getCommand("notbountiesadmin")).setExecutor(commands);
         events = new Events();
         Bukkit.getServer().getPluginManager().registerEvents(events, this);
         Bukkit.getServer().getPluginManager().registerEvents(new GUI(), this);
@@ -186,8 +189,9 @@ public final class NotBounties extends JavaPlugin {
         }
 
         // update checker
-        if (updateNotification) {
+        if (!ConfigOptions.getUpdateNotification().equalsIgnoreCase("false")) {
             new UpdateChecker(this, 104484).getVersion(version -> {
+                latestVersion = version;
                 if (getDescription().getVersion().contains("dev"))
                     return;
                 if (getDescription().getVersion().equals(version))
@@ -210,19 +214,16 @@ public final class NotBounties extends JavaPlugin {
                     } catch (NumberFormatException ignored) {
                     }
                 }
-                boolean needsUpdate = false;
                 for (int i = 0; i < currentNumbers.length; i++) {
                     if (currentNumbers[i] < versionNumbers[i]) {
-                        needsUpdate = true;
+                        updateAvailable = true;
                         break;
                     }
                 }
-                if (!needsUpdate && currentNumbers.length < versionNumbers.length)
-                    needsUpdate = true;
-                latestVersion = !needsUpdate;
-
-                if (needsUpdate) {
-                    Bukkit.getLogger().info("[NotBounties] " + parse(getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", version), null));
+                if (!updateAvailable && currentNumbers.length < versionNumbers.length)
+                    updateAvailable = true;
+                if (updateAvailable && !version.equals(ConfigOptions.getUpdateNotification())) {
+                    Bukkit.getLogger().info("[NotBounties] " + ChatColor.stripColor(parse(getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", version), null)));
                 }
             });
         }
@@ -353,6 +354,13 @@ public final class NotBounties extends JavaPlugin {
         started = true;
     }
 
+    public static boolean isUpdateAvailable() {
+        return updateAvailable;
+    }
+
+    public static String getLatestVersion() {
+        return latestVersion;
+    }
 
     public static NotBounties getInstance() {
         return instance;
@@ -641,7 +649,8 @@ public final class NotBounties extends JavaPlugin {
                 + ChatColor.YELLOW + " Connected: " + connected);
         sender.sendMessage(ChatColor.GOLD + "General > "
                 + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden"
-                + ChatColor.YELLOW + " Plugin Version: " + ChatColor.WHITE + getDescription().getVersion()
+                + ChatColor.YELLOW + " Current Plugin Version: " + ChatColor.WHITE + getDescription().getVersion()
+                + ChatColor.YELLOW + " Latest Plugin Version: " + ChatColor.WHITE + getLatestVersion()
                 + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE
                 + "1." + serverVersion + "." + serverSubVersion
                 + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug

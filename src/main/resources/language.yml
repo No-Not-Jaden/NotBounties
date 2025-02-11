@@ -146,7 +146,8 @@ bedrock-open-gui: '&eOpening Form...' # set to: '' if you don't want this messag
 paused: '&cNotBounties is paused. To use this feature again, do &a/bounty unpause' #
 bounty-set-cooldown: '&cPlease wait {time} before you can set another bounty.'
 update-notification: "&eA new update is available. Current version: &6{current} &eLatest Version: &a{latest} \n&eDownload a new version here: &7https://www.spigotmc.org/resources/104484/"
-disable-update-notification: '&7&o&nClick here to disable this notification.'
+skip-update: '&f&o&nClick to skip this update.'
+disable-update-notification: '&7&o&nClick to disable this notification.'
 edit-bounty-clickable: '&6To edit {receiver}''s bounty, &e&lClick this message &6and enter the amount to change. &7(e.g. 10, -500, or 10k)'
 edit-setter-clickable: '&6To edit {player}''s amount on {receiver}''s bounty, &e&lClick this message &6and enter the amount to change. &7(e.g. 10, -500, or 10k)'
 # These are some stat messages.
