@@ -528,6 +528,27 @@ bounty-tracker:
     position: false
     # show the world of your target
     world: false
+# Config to use with the MMOLib plugin
+MMOLib:
+  # whether this feature is enabled
+  enabled: false
+  # A stat modifier, 'attack-modifier' can be named whatever you want
+  attack-modifier:
+    # The bounty value where this modifier takes place
+    # '0-100' will apply this modifier when the player has a bounty in the range 0 (inclusive) to 100 (exclusive)
+    # '100' will apply this modifier when the player has a bounty greater than or equal to 100
+    bounty: '0-100'
+    # the stat to change
+    stat: ATTACK_DAMAGE
+    # the value to change
+    value: 10
+    # whether the value will multiply onto the base value or add to it
+    multiplicative: false
+  health-modifier:
+    bounty: '100'
+    stat: MAX_HEALTH
+    value: 10
+    multiplicative: true
 # Optional database connections for storing bounties and player stats
 # You can add as many as you want
 databases:

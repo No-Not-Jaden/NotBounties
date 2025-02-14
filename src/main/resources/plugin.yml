@@ -19,6 +19,7 @@ softdepend:
   - WorldGuard
   - Factions
   - Essentials
+  - MythicLib
 commands:
   notbounties:
     description: Use all of the bounty commands.
@@ -85,5 +86,5 @@ permissions:
     default: false
     description: Immune to timed auto-bounties.
 libraries:
-  - com.mysql:mysql-connector-j:9.1.0
-  - io.lettuce:lettuce-core:6.5.0.RELEASE
+  - com.mysql:mysql-connector-j:9.2.0
+  - io.lettuce:lettuce-core:6.5.3.RELEASE

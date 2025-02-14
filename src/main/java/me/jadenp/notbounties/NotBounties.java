@@ -612,6 +612,8 @@ public final class NotBounties extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        if (MMOLibClass.isMmoLibEnabled())
+            MMOLibClass.removeAllModifiers();
         SkinManager.shutdown();
         DataManager.shutdown();
         if (!started)
@@ -677,6 +679,7 @@ public final class NotBounties extends JavaPlugin {
                 ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
         String superiorSkyblock2 = BountyClaimRequirements.isSuperiorSkyblockEnabled()
                 ? ChatColor.GREEN + "SuperiorSkyblock2" : ChatColor.RED + "SuperiorSkyblock2";
+        String mMOLib = MMOLibClass.isMmoLibEnabled() ? ChatColor.GREEN + "MMOLib" : ChatColor.RED + "MMOLib";
         sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "["
                 + vault + ChatColor.GRAY + "|"
                 + papi + ChatColor.GRAY + "|"
@@ -690,7 +693,8 @@ public final class NotBounties extends JavaPlugin {
                 + kingdoms + ChatColor.GRAY + "|"
                 + lands + ChatColor.GRAY + "|"
                 + worldGuard + ChatColor.GRAY + "|"
-                + superiorSkyblock2 + ChatColor.GRAY + "]");
+                + superiorSkyblock2 + ChatColor.GRAY + "|"
+                + mMOLib + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218))
                 + "Support Discord: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://discord.gg/zEsUzwYEx7");

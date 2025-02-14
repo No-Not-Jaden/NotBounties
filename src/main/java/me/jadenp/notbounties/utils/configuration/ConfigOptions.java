@@ -18,6 +18,7 @@ import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
+import me.jadenp.notbounties.utils.external_api.MMOLibClass;
 import me.jadenp.notbounties.utils.external_api.SkinsRestorerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
@@ -108,7 +109,7 @@ public class ConfigOptions {
     public static boolean stealBounties;
     public static List<String> pluginBountyCommands;
     public static boolean geyserEnabled;
-    private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level", "databases"};
+    private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level", "databases", "MMOLib"};
     public static long bountyCooldown;
     public static int maxTabCompletePlayers;
     public static int autoSaveInterval;
@@ -123,6 +124,7 @@ public class ConfigOptions {
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
         floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
         geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
+        MMOLibClass.setMmoLibEnabled(Bukkit.getPluginManager().isPluginEnabled("MythicLib"));
 
         if (skinsRestorerEnabled)
             skinsRestorerClass = new SkinsRestorerClass();
@@ -336,6 +338,8 @@ public class ConfigOptions {
         GUIClicks.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-gui-clicks")));
         DataManager.loadDatabaseConfig(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("databases")));
         WantedTags.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag")));
+        if (MMOLibClass.isMmoLibEnabled())
+            MMOLibClass.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("MMOLib")));
 
         if (!firstStart) {
             Immunity.loadPlayerData();

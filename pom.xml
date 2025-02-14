@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>1.21.8</version>
+    <version>1.21.9</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -124,6 +124,10 @@
             <id>bg-repo</id>
             <url>https://repo.bg-software.com/repository/api/</url>
         </repository>
+        <repository>
+            <id>phoenix</id>
+            <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
+        </repository>
     </repositories>
     <dependencies>
 
@@ -144,7 +148,7 @@
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <version>9.1.0</version>
+            <version>9.2.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.arcaniax/HeadDatabase-API -->
@@ -254,7 +258,7 @@
         <dependency>
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
-            <version>6.5.2.RELEASE</version>
+            <version>6.5.3.RELEASE</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -281,6 +285,14 @@
             <artifactId>SuperiorSkyblockAPI</artifactId>
             <version>2024.4</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- https://gitlab.com/phoenix-dvpmt/mythiclib -->
+        <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>MythicLib-dist</artifactId>
+            <version>1.7.1-SNAPSHOT</version>
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

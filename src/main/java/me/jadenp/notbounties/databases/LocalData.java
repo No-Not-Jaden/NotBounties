@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.databases;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.DataManager;
@@ -18,6 +19,10 @@ import static me.jadenp.notbounties.NotBounties.isVanished;
 
 public class LocalData extends NotBountiesDatabase {
     protected final List<Bounty> activeBounties;
+    /**
+     * The bounties for online players.
+     */
+    private final Map<UUID, Bounty> onlineBounties = new HashMap<>();
     protected final Map<UUID, PlayerStat> playerStats;
 
     public LocalData() {
@@ -108,6 +113,9 @@ public class LocalData extends NotBountiesDatabase {
             }
             sortActiveBounties();
         }
+        if (getOnlinePlayers().containsKey(bounty.getUUID())) {
+            onlineBounties.put(bounty.getUUID(), bounty);
+        }
         return prevBounty;
     }
 
@@ -118,7 +126,9 @@ public class LocalData extends NotBountiesDatabase {
                 if (bounty != null) {
                     activeBounties.set(i, bounty);
                     sortActiveBounties();
+                    onlineBounties.put(uuid, bounty);
                 } else {
+                    onlineBounties.remove(uuid);
                     activeBounties.remove(i);
                 }
                 break;
@@ -128,6 +138,8 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public @Nullable Bounty getBounty(UUID uuid) {
+        if (onlineBounties.containsKey(uuid) && onlineBounties.get(uuid) != null)
+            return onlineBounties.get(uuid);
         for (Bounty bounty : activeBounties) {
             if (bounty.getUUID().equals(uuid))
                 return bounty;
@@ -178,6 +190,7 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public void removeBounty(UUID uuid) {
+        onlineBounties.remove(uuid);
         synchronized (activeBounties) {
             ListIterator<Bounty> bountyListIterator = activeBounties.listIterator();
             while (bountyListIterator.hasNext()) {
@@ -188,6 +201,7 @@ public class LocalData extends NotBountiesDatabase {
                 }
             }
         }
+
     }
 
     @Override
@@ -296,11 +310,15 @@ public class LocalData extends NotBountiesDatabase {
     @Override
     public void login(UUID uuid, String playerName) {
         // This data is local, so bukkit methods can be used to retrieve status
+        Bounty bounty = getBounty(uuid);
+        if (bounty != null)
+            onlineBounties.put(uuid, bounty);
     }
 
     @Override
     public void logout(UUID uuid) {
         // This data is local, so bukkit methods can be used to retrieve status
+        onlineBounties.remove(uuid);
     }
 
     /**

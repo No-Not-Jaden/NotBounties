@@ -16,6 +16,7 @@ import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.external_api.LocalTime;
+import me.jadenp.notbounties.utils.external_api.MMOLibClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -53,6 +54,9 @@ public class Events implements Listener {
 
         displayParticle.remove(event.getPlayer().getUniqueId());
         WantedTags.removeWantedTag(event.getPlayer().getUniqueId());
+
+        if (MMOLibClass.isMmoLibEnabled())
+            MMOLibClass.removeStats(event.getPlayer());
 
         RandomBounties.logout(event.getPlayer());
         MurderBounties.logout(event.getPlayer());
@@ -158,9 +162,8 @@ public class Events implements Listener {
 
         login(event.getPlayer());
 
-        if (hasBounty(event.getPlayer().getUniqueId())) {
-            Bounty bounty = getBounty(event.getPlayer().getUniqueId());
-            assert bounty != null;
+        Bounty bounty = getBounty(event.getPlayer().getUniqueId());
+        if (bounty != null) {
             bounty.setDisplayName(event.getPlayer().getName());
             DataManager.notifyBounty(event.getPlayer());
             // check if player should be given a wanted tag
@@ -168,6 +171,8 @@ public class Events implements Listener {
                 WantedTags.addWantedTag(event.getPlayer());
             }
 
+            if (MMOLibClass.isMmoLibEnabled())
+                MMOLibClass.addStats(event.getPlayer(), bounty.getTotalDisplayBounty());
         }
 
         PlayerData playerData = DataManager.getPlayerData(event.getPlayer().getUniqueId());

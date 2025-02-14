@@ -24,6 +24,7 @@ import me.jadenp.notbounties.utils.configuration.WantedTags;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.external_api.LocalTime;
+import me.jadenp.notbounties.utils.external_api.MMOLibClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -999,6 +1000,13 @@ public class DataManager {
             // remove bounty tag
             WantedTags.removeWantedTag(bounty.getUUID());
             NotBounties.debugMessage("Removed wanted tag.", false);
+        }
+        if (MMOLibClass.isMmoLibEnabled()) {
+            Player player = Bukkit.getPlayer(bountyCopy.getUUID());
+            if (player != null) {
+                MMOLibClass.removeStats(player);
+                MMOLibClass.addStats(player, bountyCopy.getTotalDisplayBounty());
+            }
         }
         if (bountyCopy.getSetters().isEmpty()) {
             deleteBounty(bounty.getUUID());

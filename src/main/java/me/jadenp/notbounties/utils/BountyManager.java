@@ -13,6 +13,7 @@ import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
+import me.jadenp.notbounties.utils.external_api.MMOLibClass;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -29,6 +30,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.sound.midi.Receiver;
 import java.awt.Color;
 import java.util.List;
 import java.util.*;
@@ -112,6 +114,11 @@ public class BountyManager {
         DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount);
         Bounty bounty = DataManager.insertBounty(setter, receiver, amount, items, whitelist);
 
+        if (MMOLibClass.isMmoLibEnabled() && receiver.isOnline()) {
+            MMOLibClass.removeStats(receiver.getPlayer());
+            MMOLibClass.addStats(receiver.getPlayer(), bounty.getTotalDisplayBounty());
+        }
+
         if (receiver.isOnline()) {
             Player onlineReceiver = receiver.getPlayer();
             assert onlineReceiver != null;
@@ -187,6 +194,11 @@ public class BountyManager {
 
         DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount);
         Bounty bounty = DataManager.insertBounty(null, receiver, amount, items, whitelist);
+
+        if (MMOLibClass.isMmoLibEnabled() && receiver.isOnline()) {
+            MMOLibClass.removeStats(receiver.getPlayer());
+            MMOLibClass.addStats(receiver.getPlayer(), bounty.getTotalDisplayBounty());
+        }
 
         if (receiver.isOnline()) {
             Player onlineReceiver = receiver.getPlayer();
@@ -304,8 +316,12 @@ public class BountyManager {
 
     public static void removeBounty(UUID uuid) {
         BountyTracker.stopTracking(uuid);
-        for (Player player : Bukkit.getOnlinePlayers())
+        for (Player player : Bukkit.getOnlinePlayers()) {
             BountyTracker.removeTracker(player);
+            if (player.getUniqueId().equals(uuid) && MMOLibClass.isMmoLibEnabled()) {
+                MMOLibClass.removeStats(player);
+            }
+        }
         WantedTags.removeWantedTag(uuid);
         displayParticle.remove(uuid);
         DataManager.deleteBounty(uuid);
