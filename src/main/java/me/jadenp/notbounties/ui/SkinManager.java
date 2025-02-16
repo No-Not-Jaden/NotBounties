@@ -212,14 +212,7 @@ public class SkinManager {
             return head;
 
         } catch (IOException e) {
-            if (NotBounties.debug)
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        Bukkit.getLogger().warning("[NotBountiesDebug] Error reading texture url for bounty poster.");
-                        Bukkit.getLogger().warning(e.toString());
-                    }
-                }.runTask(NotBounties.getInstance());
+            NotBounties.debugMessage("Error reading texture url for bounty poster.\n" + e, true);
 
         }
         return null;

@@ -45,7 +45,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEnabled;
@@ -53,36 +52,43 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
 /**
  * Folia
  * Team bounties
- * Cleanup this file's static usage.
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
- * max bounty
- * bounty admin command to open gui
  */
 public final class NotBounties extends JavaPlugin {
-
-    public static final Map<String, Long> repeatBuyCommand = new HashMap<>();
-    public static final Map<String, Long> repeatBuyCommand2 = new HashMap<>();
-
-    public static final List<UUID> displayParticle = new ArrayList<>();
 
     private static NotBounties instance;
     private static String latestVersion;
     private static boolean updateAvailable = false;
-    public static final Map<UUID, Integer> boardSetup = new HashMap<>();
 
-    public static final String sessionKey = UUID.randomUUID().toString();
-    public static NamespacedKey namespacedKey;
-    public static int serverVersion = 20;
-    public static int serverSubVersion = 0;
-    public static boolean debug = false;
+    public static final String SESSION_KEY = UUID.randomUUID().toString();
+    private static NamespacedKey namespacedKey;
+    private static int serverVersion = 20;
+    private static int serverSubVersion = 0;
+    private static boolean debug = false;
     private static boolean paused = false;
     private static Events events;
     private boolean started = false;
 
+    public static NamespacedKey getNamespacedKey() {
+        return namespacedKey;
+    }
+
+    public static void setNamespacedKey(NamespacedKey namespacedKey) {
+        NotBounties.namespacedKey = namespacedKey;
+    }
+
+    private static void setInstance(NotBounties instance) {
+        NotBounties.instance = instance;
+    }
+
+    public static void setEvents(Events events) {
+        NotBounties.events = events;
+    }
+
     @Override
     public void onLoad() {
-        instance = this;
+        setInstance(this);
         // register api flags
         if (getServer().getPluginManager().getPlugin("WorldGuard") != null)
             new WorldGuardClass().registerFlags();
@@ -110,7 +116,7 @@ public final class NotBounties extends JavaPlugin {
         Commands commands = new Commands();
         Objects.requireNonNull(this.getCommand("notbounties")).setExecutor(commands);
         Objects.requireNonNull(this.getCommand("notbountiesadmin")).setExecutor(commands);
-        events = new Events();
+        setEvents(new Events());
         Bukkit.getServer().getPluginManager().registerEvents(events, this);
         Bukkit.getServer().getPluginManager().registerEvents(new GUI(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new CurrencySetup(), this);
@@ -125,23 +131,9 @@ public final class NotBounties extends JavaPlugin {
 
 
         BountyMap.initialize();
-        namespacedKey = new NamespacedKey(this, "bounty-entity");
+        setNamespacedKey(new NamespacedKey(this, "bounty-entity"));
 
-        try {
-            // get the text version - ex: 1.20.3
-            String fullServerVersion = Bukkit.getBukkitVersion().substring(0, Bukkit.getBukkitVersion().indexOf("-"));
-            fullServerVersion = fullServerVersion.substring(2); // remove the '1.' in the version
-            if (fullServerVersion.contains(".")) {
-                // get the subversion - ex: 3
-                serverSubVersion = Integer.parseInt(fullServerVersion.substring(fullServerVersion.indexOf(".") + 1));
-                fullServerVersion = fullServerVersion.substring(0, fullServerVersion.indexOf(".")); // remove the subversion
-            }
-            serverVersion = Integer.parseInt(fullServerVersion);
-        } catch (NumberFormatException | IndexOutOfBoundsException e) {
-            Bukkit.getLogger().warning("[NotBounties] Could not get the server version. Some features may not function properly.");
-            serverVersion = 20;
-            serverSubVersion = 0;
-        }
+        readVersion();
 
         Bukkit.getServer().getPluginManager().registerEvents(new RemovePersistentEntitiesEvent(), this);
 
@@ -239,18 +231,7 @@ public final class NotBounties extends JavaPlugin {
                 BountyTracker.update();
 
                 // big bounty particle
-                if (BigBounty.getThreshold() != -1) {
-                    if (BigBounty.isParticle())
-                        for (UUID uuid : displayParticle) {
-                            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-                            if (player.isOnline()) {
-                                for (Player viewer : Bukkit.getOnlinePlayers()) {
-                                    if ((NotBounties.serverVersion >= 17 && viewer.canSee(Objects.requireNonNull(player.getPlayer()))) && viewer.getWorld().equals(player.getPlayer().getWorld()) && viewer.getLocation().distance(player.getPlayer().getLocation()) < 256 && !isVanished(player.getPlayer()))
-                                        viewer.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getPlayer().getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
-                                }
-                            }
-                        }
-                }
+                BigBounty.displayParticle();
 
                 Immunity.update();
                 RandomBounties.update();
@@ -488,6 +469,24 @@ public final class NotBounties extends JavaPlugin {
         saveBackup(playerDataFile);
     }
 
+    private static void readVersion() {
+        try {
+            // get the text version - ex: 1.20.3
+            String fullServerVersion = Bukkit.getBukkitVersion().substring(0, Bukkit.getBukkitVersion().indexOf("-"));
+            fullServerVersion = fullServerVersion.substring(2); // remove the '1.' in the version
+            if (fullServerVersion.contains(".")) {
+                // get the subversion - ex: 3
+                serverSubVersion = Integer.parseInt(fullServerVersion.substring(fullServerVersion.indexOf(".") + 1));
+                fullServerVersion = fullServerVersion.substring(0, fullServerVersion.indexOf(".")); // remove the subversion
+            }
+            serverVersion = Integer.parseInt(fullServerVersion);
+        } catch (NumberFormatException | IndexOutOfBoundsException e) {
+            Bukkit.getLogger().warning("[NotBounties] Could not get the server version. Some features may not function properly.");
+            serverVersion = 20;
+            serverSubVersion = 0;
+        }
+    }
+
     private void saveBackup(File file) throws IOException {
         if (!bountyBackups) {
             return;
@@ -589,19 +588,7 @@ public final class NotBounties extends JavaPlugin {
                 @Override
                 public void run() {
                     // check players to display particles
-                    displayParticle.clear();
-                    List<Bounty> topBounties = getAllBounties(2);
-
-                    for (Bounty bounty : topBounties) {
-                        if (bounty.getTotalDisplayBounty() >= BigBounty.getThreshold()) {
-                            OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
-                            if (player.isOnline()) {
-                                displayParticle.add(Objects.requireNonNull(player.getPlayer()).getUniqueId());
-                            }
-                        } else {
-                            break;
-                        }
-                    }
+                    BigBounty.refreshParticlePlayers();
                 }
             }.runTaskLater(NotBounties.getInstance(), 40);
         }
@@ -829,4 +816,15 @@ public final class NotBounties extends JavaPlugin {
         return ADMIN_PERMISSION;
     }
 
+    public static boolean isDebug() {
+        return debug;
+    }
+
+    public static void setDebug(boolean debug) {
+        NotBounties.debug = debug;
+    }
+
+    public static int getServerVersion() {
+        return serverVersion;
+    }
 }

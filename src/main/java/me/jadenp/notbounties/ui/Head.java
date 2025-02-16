@@ -25,7 +25,7 @@ public class Head {
         ItemStack item = null;
         if (usingBase64(data)){
             item = new ItemStack(Material.PLAYER_HEAD);
-            if (NotBounties.serverVersion >= 18) {
+            if (NotBounties.getServerVersion() >= 18) {
                 SkullMeta meta = (SkullMeta) item.getItemMeta();
                 assert meta != null;
                 meta.setOwnerProfile(createProfile(data));
@@ -45,7 +45,7 @@ public class Head {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
-        if (NotBounties.serverVersion >= 18) {
+        if (NotBounties.getServerVersion() >= 18) {
             PlayerProfile profile = Bukkit.createPlayerProfile(uuid);
             PlayerTextures textures = profile.getTextures();
             textures.setSkin(textureURL);

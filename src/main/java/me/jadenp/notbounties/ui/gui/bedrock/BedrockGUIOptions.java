@@ -220,16 +220,14 @@ public class BedrockGUIOptions {
 
             @Override
             public void run() {
-                    // load skins
+                // load skins
                 if (guiType == GUIType.SIMPLE) {
                     boolean loaded = true; // whether all the skin
                     for (DisplayItem displayItem : displayItems) {
                         if (displayItem instanceof PlayerItem playerItem && !SkinManager.isSkinLoaded(playerItem.getUuid())) {
                             // check if max requests hit
                             if (maxRequests <= 0) {
-                                if (NotBounties.debug) {
-                                    Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + LoggedPlayers.getPlayerName(playerItem.getUuid()));
-                                }
+                                NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(playerItem.getUuid()), false);
                             } else {
                                 if (loaded) {
                                     maxRequests--;
@@ -437,7 +435,8 @@ public class BedrockGUIOptions {
         double quantity = 0;
         try {
             quantity = NumberFormatting.tryParse(component.getButtonComponent().text());
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
         actions.addAll(parseCompletionCommands(component.getButtonComponent().text(), quantity, new ArrayList<>()));
         ActionCommands.executeCommands(player, actions);
     }
@@ -613,16 +612,16 @@ public class BedrockGUIOptions {
     private int rankComponent(GUIComponent component) {
         int componentRank = 0;
         if (component.getCommands().isEmpty() || component.getCommands().get(0).isEmpty())
-            componentRank+=3;
+            componentRank += 3;
         switch (component.getType()) {
             case INPUT:
-                componentRank+=3;
+                componentRank += 3;
                 break;
             case STEP_SLIDER:
-                componentRank+=2;
+                componentRank += 2;
                 break;
             case DROPDOWN:
-                componentRank+=1;
+                componentRank += 1;
                 break;
         }
         return componentRank;

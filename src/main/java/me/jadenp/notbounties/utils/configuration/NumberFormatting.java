@@ -30,7 +30,6 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.stream.IntStream;
 
-import static me.jadenp.notbounties.NotBounties.debug;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 
 public class NumberFormatting {
@@ -344,8 +343,7 @@ public class NumberFormatting {
                     enchantmentValues.put(enchantment, itemValuesConfig.getDouble("enchantment-values." + key));
                 } catch (IllegalArgumentException e) {
                     Bukkit.getLogger().warning("[NotBounties] Unknown enchantment for enchantment-values: " + key);
-                    if (debug)
-                        Bukkit.getLogger().warning(e.toString());
+                    NotBounties.debugMessage(e.toString(), true);
                 }
             }
     }
@@ -829,27 +827,23 @@ public class NumberFormatting {
     }
 
     public static void doAddCommands(Player p, double amount) {
-        if (debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Doing add commands for " + p.getName() + ". Amount: " + amount);
+            NotBounties.debugMessage("Doing add commands for " + p.getName() + ". Amount: " + amount, false);
         if (manualEconomy == ManualEconomy.MANUAL) {
             for (String addCommand : addCommands) {
                 if (addCommand.isEmpty())
                     continue;
                 String command = addCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount / Floats.toArray(currencyValues.values())[0])));
-                if (debug)
-                    Bukkit.getLogger().info("[NotBountiesDebug] Executing command: '" + command + "'");
+                NotBounties.debugMessage("Executing command: '" + command + "'", false);
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
 
             }
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Manual economy is enabled, no more actions will be performed.");
+            NotBounties.debugMessage("Manual economy is enabled, no more actions will be performed.", false);
             return;
         }
 
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.deposit(p, amount)) {
-                if (debug)
-                    Bukkit.getLogger().info("[NotBountiesDebug] Deposited money with vault!");
+                NotBounties.debugMessage("Deposited money with vault!", false);
                 return;
             } else {
                 Bukkit.getLogger().warning("Error depositing currency with vault!");
@@ -861,16 +855,13 @@ public class NumberFormatting {
         }
         List<String> modifiedAddCommands = new ArrayList<>(addCommands);
         // add empty spaces in list for item currencies
-        if (debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Currency: ");
+        NotBounties.debugMessage("Currency: ", false);
         for (int i = 0; i < currency.size(); i++) {
             if (!currency.get(i).contains("%")) {
                 modifiedAddCommands.add(i, "");
-                if (debug)
-                    Bukkit.getLogger().info("(item) " + currency.get(i));
+                NotBounties.debugMessage("(item) " + currency.get(i), false);
             } else {
-                if (debug)
-                    Bukkit.getLogger().info(currency.get(i));
+                NotBounties.debugMessage(currency.get(i), false);
             }
         }
         if (addSingleCurrency == CurrencyAddType.RATIO && currency.size() > 1) {
@@ -949,11 +940,9 @@ public class NumberFormatting {
             // descending
             float[] currencyWeightsCopy = Floats.toArray(currencyWeights);
             float[] currencyValuesCopy = Floats.toArray(currencyValues.values());
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Input Calculations: " + amount + " | " + Arrays.toString(currencyWeightsCopy) + " | " + Arrays.toString(currencyValuesCopy));
+            NotBounties.debugMessage("Input Calculations: " + amount + " | " + Arrays.toString(currencyWeightsCopy) + " | " + Arrays.toString(currencyValuesCopy), false);
             double[] descendingAdd = descendingAddCurrency(amount, currencyWeightsCopy, currencyValuesCopy);
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Output: " + Arrays.toString(descendingAdd));
+            NotBounties.debugMessage("Output: " + Arrays.toString(descendingAdd), false);
 
             if (modifiedAddCommands.size() < descendingAdd.length) {
                 Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
@@ -961,8 +950,7 @@ public class NumberFormatting {
             for (int i = 0; i < Math.min(descendingAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
                     String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(descendingAdd[i])));
-                    if (debug)
-                        Bukkit.getLogger().info("[NotBountiesDebug] Executing command for " + currency.get(i) + ": '" + command + "'");
+                    NotBounties.debugMessage("Executing command for " + currency.get(i) + ": '" + command + "'", false);
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
@@ -973,8 +961,7 @@ public class NumberFormatting {
                             item.setItemMeta(meta);
                         }
                     }
-                    if (debug)
-                        Bukkit.getLogger().info("[NotBountiesDebug] Giving item: " + currency.get(i) + " to " + p.getName() + ". Amount: " + (long) descendingAdd[i]);
+                    NotBounties.debugMessage("Giving item: " + currency.get(i) + " to " + p.getName() + ". Amount: " + (long) descendingAdd[i], false);
                     givePlayer(p, item, (long) descendingAdd[i]);
                 }
             }
@@ -1091,7 +1078,7 @@ public class NumberFormatting {
     private static HoverEvent getHoverEvent(ItemStack itemStack) {
         String nbt = null;
         if (itemStack.getItemMeta() != null)
-            nbt = NotBounties.serverVersion >= 18 ? itemStack.getItemMeta().getAsString() : itemStack.getItemMeta().toString();
+            nbt = NotBounties.getServerVersion() >= 18 ? itemStack.getItemMeta().getAsString() : itemStack.getItemMeta().toString();
         ItemTag itemTag = ItemTag.ofNbt(nbt);
         // item nbt doesn't work for 1.20.6 - could possibly be fixed manually by fixing the json
         return new HoverEvent(HoverEvent.Action.SHOW_ITEM, new Item(itemStack.getType().getKey().toString(), itemStack.getAmount(), itemTag));

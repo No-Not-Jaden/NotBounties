@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.ui.map;
 
-import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
@@ -21,9 +20,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.server.MapInitializeEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
-import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -44,7 +41,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.*;
 
-import static me.jadenp.notbounties.NotBounties.debug;
 import static me.jadenp.notbounties.utils.BountyManager.getBounty;
 import static me.jadenp.notbounties.utils.BountyManager.hasBounty;
 
@@ -119,7 +115,7 @@ public class BountyMap implements Listener {
         assert mapMeta != null;
 
         // will have persistent data of uuid if a isPoster returns true
-        UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.namespacedKey, PersistentDataType.STRING)));
+        UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.getNamespacedKey(), PersistentDataType.STRING)));
         if (uuid.equals(event.getPlayer().getUniqueId()))
             ChallengeManager.updateChallengeProgress(uuid, ChallengeType.HOLD_POSTER, 1);
 
@@ -132,7 +128,7 @@ public class BountyMap implements Listener {
         MapMeta mapMeta = (MapMeta) item.getItemMeta();
         assert mapMeta != null;
         MapView mapView = mapMeta.hasMapView() && mapMeta.getMapView() != null ? mapMeta.getMapView() : null;
-        UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.namespacedKey, PersistentDataType.STRING)));
+        UUID uuid = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(NotBounties.getNamespacedKey(), PersistentDataType.STRING)));
         if (mapView == null || !mapView.isVirtual()) {
             if (mapViews.containsKey(uuid)) {
                 mapMeta.setMapView(mapViews.get(uuid));
@@ -157,7 +153,7 @@ public class BountyMap implements Listener {
         if (!ConfigOptions.postersEnabled)
             return;
         for (Entity entity : event.getChunk().getEntities()) {
-            if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.serverVersion >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME)) {
+            if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME)) {
                 ItemFrame itemFrame = (ItemFrame) entity;
                 loadItem(itemFrame.getItem());
             }
@@ -199,8 +195,7 @@ public class BountyMap implements Listener {
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         if (meta.getOwningPlayer() == null) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Player head in crafting matrix has a null owner!");
+            NotBounties.debugMessage("Player head in crafting matrix has a null owner!", false);
             return;
         }
         UUID trackedPlayer = meta.getOwningPlayer().getUniqueId();
@@ -290,7 +285,7 @@ public class BountyMap implements Listener {
                 if (!event.getItemDrop().isValid())
                     return;
                 ItemStack map = new ItemStack(Material.MAP, event.getItemDrop().getItemStack().getAmount());
-                if ((NotBounties.serverVersion < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.serverVersion >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
+                if ((NotBounties.getServerVersion() < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.getServerVersion() >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
                     event.getItemDrop().getWorld().dropItem(event.getItemDrop().getLocation(), map);
                     event.getItemDrop().remove();
                 }
@@ -305,7 +300,7 @@ public class BountyMap implements Listener {
         if (meta == null)
             return false;
 
-        return meta.getPersistentDataContainer().has(NotBounties.namespacedKey);
+        return meta.getPersistentDataContainer().has(NotBounties.getNamespacedKey());
 
     }
 
@@ -358,7 +353,7 @@ public class BountyMap implements Listener {
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         meta.addItemFlags(ItemFlag.values()[5]);
-        meta.getPersistentDataContainer().set(NotBounties.namespacedKey, PersistentDataType.STRING, uuid.toString());
+        meta.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, uuid.toString());
         mapItem.setItemMeta(meta);
         return mapItem;
     }

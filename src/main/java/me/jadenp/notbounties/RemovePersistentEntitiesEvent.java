@@ -86,9 +86,9 @@ public class RemovePersistentEntitiesEvent implements Listener {
                     if (!isBountyEntity(entity))
                         continue;
                     PersistentDataContainer container = entity.getPersistentDataContainer();
-                    if (container.has(namespacedKey, PersistentDataType.STRING)) {
-                        String value = container.get(namespacedKey, PersistentDataType.STRING);
-                        if (value != null && !value.equals(sessionKey))
+                    if (container.has(getNamespacedKey(), PersistentDataType.STRING)) {
+                        String value = container.get(getNamespacedKey(), PersistentDataType.STRING);
+                        if (value != null && !value.equals(SESSION_KEY))
                             toRemove.add(entity);
                     }
                 }
@@ -101,7 +101,7 @@ public class RemovePersistentEntitiesEvent implements Listener {
     private static boolean isBountyEntity(Entity entity) {
         return entity != null
                 && (entity.getType() == EntityType.ARMOR_STAND || entity.getType() == EntityType.ITEM_FRAME
-                || (serverVersion >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME));
+                || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME));
     }
 
     /**

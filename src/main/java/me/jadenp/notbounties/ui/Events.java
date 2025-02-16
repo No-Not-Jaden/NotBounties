@@ -9,7 +9,6 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.UpdateChecker;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
@@ -22,7 +21,6 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -52,7 +50,7 @@ public class Events implements Listener {
         if (NotBounties.isPaused())
             return;
 
-        displayParticle.remove(event.getPlayer().getUniqueId());
+        BigBounty.removeParticle(event.getPlayer().getUniqueId());
         WantedTags.removeWantedTag(event.getPlayer().getUniqueId());
 
         if (MMOLibClass.isMmoLibEnabled())
@@ -105,17 +103,17 @@ public class Events implements Listener {
                 }
             }
 
-        } else if (event.getAction() == Action.LEFT_CLICK_BLOCK && NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId())) {
+        } else if (event.getAction() == Action.LEFT_CLICK_BLOCK && BountyBoard.getBoardSetup().containsKey(event.getPlayer().getUniqueId())) {
             event.setCancelled(true);
-            if (NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1) {
-                NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
+            if (BountyBoard.getBoardSetup().get(event.getPlayer().getUniqueId()) == -1) {
+                BountyBoard.getBoardSetup().remove(event.getPlayer().getUniqueId());
                 event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.RED + "Canceled board removal.", event.getPlayer()));
                 return;
             }
             Location location = Objects.requireNonNull(event.getClickedBlock()).getRelative(event.getBlockFace()).getLocation();
-            BountyBoard.addBountyBoard(new BountyBoard(location, event.getBlockFace(), NotBounties.boardSetup.get(event.getPlayer().getUniqueId())));
+            BountyBoard.addBountyBoard(new BountyBoard(location, event.getBlockFace(), BountyBoard.getBoardSetup().get(event.getPlayer().getUniqueId())));
             event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
-            NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
+            BountyBoard.getBoardSetup().remove(event.getPlayer().getUniqueId());
         }
     }
 
@@ -123,10 +121,10 @@ public class Events implements Listener {
     public void onEntityInteract(PlayerInteractEntityEvent event) {
         if (NotBounties.isPaused())
             return;
-        if (NotBounties.boardSetup.containsKey(event.getPlayer().getUniqueId()) && NotBounties.boardSetup.get(event.getPlayer().getUniqueId()) == -1 && (event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME))) {
+        if (BountyBoard.getBoardSetup().containsKey(event.getPlayer().getUniqueId()) && BountyBoard.getBoardSetup().get(event.getPlayer().getUniqueId()) == -1 && (event.getRightClicked().getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME))) {
             event.setCancelled(true);
             int removes = BountyBoard.removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
-            NotBounties.boardSetup.remove(event.getPlayer().getUniqueId());
+            BountyBoard.getBoardSetup().remove(event.getPlayer().getUniqueId());
             event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.GREEN + "Removed " + removes + " bounty boards.", event.getPlayer()));
         }
     }

@@ -894,7 +894,7 @@ public class DataManager {
             }
 
             if (bounty.getTotalDisplayBounty() > BigBounty.getThreshold()) {
-                displayParticle.add(player.getUniqueId());
+                BigBounty.addParticle(player.getUniqueId());
             }
         }
     }
@@ -995,7 +995,7 @@ public class DataManager {
         List<Setter> settersCopy = new ArrayList<>(bounty.getSetters());
         DataManager.removeSimilarSetters(bountyCopy.getSetters(), setters);
         if (bountyCopy.getTotalBounty() < BigBounty.getThreshold())
-            displayParticle.remove(bounty.getUUID());
+            BigBounty.removeParticle(bounty.getUUID());
         if (bountyCopy.getTotalDisplayBounty() < WantedTags.getMinWanted()) {
             // remove bounty tag
             WantedTags.removeWantedTag(bounty.getUUID());

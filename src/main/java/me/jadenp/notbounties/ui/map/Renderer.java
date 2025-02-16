@@ -71,13 +71,7 @@ public class Renderer extends MapRenderer {
                         // check if max requests hit
                         if (maxRequests <= 0) {
                             this.cancel();
-                            if (NotBounties.debug)
-                                new BukkitRunnable() {
-                                    @Override
-                                    public void run() {
-                                        Bukkit.getLogger().warning("[NotBounties] Timed out getting skin from \"" + name + "\" for a bounty poster. A question mark will be displayed instead.");
-                                    }
-                                }.runTask(NotBounties.getInstance());
+                            NotBounties.debugMessage("Timed out getting skin from \"" + name + "\" for a bounty poster. A question mark will be displayed instead.", true);
                             renderPoster(SkinManager.getPlayerFace(DataManager.GLOBAL_SERVER_ID), name, false);
                             return;
                         }
@@ -159,7 +153,7 @@ public class Renderer extends MapRenderer {
             for (int iy = 0; iy < Math.min(image.getHeight(), 128 - y); iy++) {
                 Color color = getColor(image.getRGB(ix, iy));
                 if (color.getAlpha() > 10) {
-                    if (NotBounties.serverVersion >= 19)
+                    if (NotBounties.getServerVersion() >= 19)
                         canvas.setPixelColor(x + ix, y + iy, color);
                     else
                         canvas.setPixel(x + ix, y + iy, MapPalette.matchColor(color));

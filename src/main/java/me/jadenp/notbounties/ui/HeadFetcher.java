@@ -81,8 +81,7 @@ public class HeadFetcher {
                             inventory.setContents(contents);
                         } else {
                             maxRequests = 0;
-                            if (NotBounties.debug)
-                                Bukkit.getLogger().info("[NotBountiesDebug] Player exited GUI while loading player heads.");
+                            NotBounties.debugMessage("Player exited GUI while loading player heads.", false);
                         }
 
                     }
@@ -90,7 +89,7 @@ public class HeadFetcher {
                 // check if max requests hit
                 if (maxRequests <= 0) {
                     this.cancel();
-                    if (NotBounties.debug) {
+                    if (NotBounties.isDebug()) {
                         i = 0;
                         for (QueuedHead queuedHead : heads) {
                             if (fetchedHeads[i] == null) {
@@ -134,14 +133,13 @@ public class HeadFetcher {
         try {
             meta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
         } catch (NullPointerException e) {
-            if (NotBounties.serverVersion >= 18) {
+            if (NotBounties.getServerVersion() >= 18) {
                 try {
                     PlayerProfile profile = Bukkit.createPlayerProfile(uuid, LoggedPlayers.getPlayerName(uuid));
                     meta.setOwnerProfile(profile);
                 } catch (IllegalArgumentException ignored) {
                     // The name of the profile is longer than 16 characters
-                    if (NotBounties.debug)
-                        Bukkit.getLogger().info("Could not get an unloaded head for: " + LoggedPlayers.getPlayerName(uuid));
+                    NotBounties.debugMessage("Could not get an unloaded head for: " + LoggedPlayers.getPlayerName(uuid), true);
                 }
             }
         }

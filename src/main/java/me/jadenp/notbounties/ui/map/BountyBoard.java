@@ -24,9 +24,14 @@ public class BountyBoard {
     private static final List<BountyBoard> bountyBoards = new ArrayList<>();
     private static long lastBountyBoardUpdate = System.currentTimeMillis();
     private static List<BountyBoard> queuedBoards = new ArrayList<>();
+    private static final Map<UUID, Integer> boardSetup = new HashMap<>();
 
     public static List<BountyBoard> getBountyBoards() {
         return bountyBoards;
+    }
+
+    public static Map<UUID, Integer> getBoardSetup() {
+        return boardSetup;
     }
 
     public static void addBountyBoards(List<BountyBoard> bountyBoards) {
@@ -120,13 +125,13 @@ public class BountyBoard {
             remove();
         }
         if (frame == null) {
-            EntityType type = ConfigOptions.boardGlow && NotBounties.serverVersion >= 17 ? EntityType.GLOW_ITEM_FRAME : EntityType.ITEM_FRAME;
+            EntityType type = ConfigOptions.boardGlow && NotBounties.getServerVersion() >= 17 ? EntityType.GLOW_ITEM_FRAME : EntityType.ITEM_FRAME;
             try {
                 ItemStack map = BountyMap.getMap(bounty);
                 if (map == null)
                     return;
                 frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, type);
-                frame.getPersistentDataContainer().set(NotBounties.namespacedKey, PersistentDataType.STRING, NotBounties.sessionKey);
+                frame.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
                 frame.setFacingDirection(direction, true);
                 ItemMeta mapMeta = map.getItemMeta();
                 assert mapMeta != null;
@@ -161,7 +166,7 @@ public class BountyBoard {
     public void remove() {
         // remove any duplicate frames
         for (Entity entity : Objects.requireNonNull(location.getWorld()).getNearbyEntities(location, 0.5,0.5,0.5)) {
-            if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.serverVersion >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01) {
+            if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01) {
                 entity.remove();
             }
         }

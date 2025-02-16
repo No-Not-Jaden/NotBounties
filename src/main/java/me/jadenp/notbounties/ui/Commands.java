@@ -35,7 +35,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.reopenBountiesGUI;
@@ -48,8 +47,10 @@ import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 public class Commands implements CommandExecutor, TabCompleter {
 
     private static final Map<UUID, Long> giveOwnCooldown = new HashMap<>();
-    private static final long cooldownTime = 3000;
+    private static final long GIVE_OWN_COOLDOWN_MS = 3000;
     private static final String[] allowedPausedAliases = new String[]{"check", "help", "cleanEntities", "unpause", "pause", "debug", "top", "reload"};
+    private static final Map<String, Long> repeatBuyBountyCommand = new HashMap<>();
+    private static final Map<String, Long> repeatBuyImmunityCommand = new HashMap<>();
 
     public Commands() {}
 
@@ -272,9 +273,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else {
                     boolean newValue;
                     newValue = args[1].equalsIgnoreCase("enable");
-                    if (newValue != debug) {
-                        debug = newValue;
-                        if (debug) {
+                    if (newValue != NotBounties.isDebug()) {
+                        NotBounties.setDebug(newValue);
+                        if (NotBounties.isDebug()) {
                             if (!silent) {
                                 sender.sendMessage(parse(getPrefix() + ChatColor.GREEN + "Debug messages will now be sent in console.", parser));
                             }
@@ -305,7 +306,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args[1].equalsIgnoreCase("remove")) {
                         if (!silent)
                             sender.sendMessage(parse(getPrefix() + ChatColor.RED + "Right click the bounty board to remove.", parser));
-                        NotBounties.boardSetup.put(parser.getUniqueId(), -1);
+                        BountyBoard.getBoardSetup().put(parser.getUniqueId(), -1);
                         return true;
                     }
                     try {
@@ -326,7 +327,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     rank = 1;
                 if (!silent)
                     sender.sendMessage(parse(getPrefix() + ChatColor.DARK_AQUA + ChatColor.BOLD + "<Rank " + rank + "> " + ChatColor.AQUA + "Punch a block to place the bounty board on.", parser));
-                NotBounties.boardSetup.put(parser.getUniqueId(), rank);
+                BountyBoard.getBoardSetup().put(parser.getUniqueId(), rank);
                 return true;
             } else if (args[0].equalsIgnoreCase("tutorial") && (adminPermission || sender.hasPermission("notbounties.basic"))) {
                 Tutorial.onCommand(sender, args);
@@ -786,9 +787,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (Immunity.getImmunityType() == Immunity.ImmunityType.PERMANENT) {
                                     double immunitySpent = Immunity.getImmunity(Objects.requireNonNull(parser).getUniqueId());
                                     if (immunitySpent < Immunity.getPermanentCost() && !sender.hasPermission("notbounties.immune")) {
-                                        if ((repeatBuyCommand2.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyCommand2.get((parser).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
+                                        if ((repeatBuyImmunityCommand.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyImmunityCommand.get((parser).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
                                             // try to find bounty and buy it
-                                            repeatBuyCommand2.remove((parser).getUniqueId().toString());
+                                            repeatBuyImmunityCommand.remove((parser).getUniqueId().toString());
                                             if (checkBalance(parser, Immunity.getPermanentCost())) {
                                                 NumberFormatting.doRemoveCommands(parser, Immunity.getPermanentCost(), new ArrayList<>());
                                                 // successfully bought perm immunity
@@ -805,7 +806,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                                         } else {
                                             // ask to repeat
-                                            repeatBuyCommand2.put((parser).getUniqueId().toString(), System.currentTimeMillis());
+                                            repeatBuyImmunityCommand.put((parser).getUniqueId().toString(), System.currentTimeMillis());
                                             if (!silent)
                                                 sender.sendMessage(parse(getPrefix() + getMessage("repeat-command-immunity"), Immunity.getPermanentCost(), parser));
                                             return true;
@@ -827,9 +828,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                                             return false;
                                         }
-                                        if ((repeatBuyCommand2.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyCommand2.get((parser).getUniqueId().toString()) < 30000) || args.length > 2 && args[2].equalsIgnoreCase("--confirm")) {
+                                        if ((repeatBuyImmunityCommand.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyImmunityCommand.get((parser).getUniqueId().toString()) < 30000) || args.length > 2 && args[2].equalsIgnoreCase("--confirm")) {
                                             // try to find bounty and buy it
-                                            repeatBuyCommand2.remove((parser).getUniqueId().toString());
+                                            repeatBuyImmunityCommand.remove((parser).getUniqueId().toString());
                                             if (checkBalance(parser, amount)) {
                                                 NumberFormatting.doRemoveCommands(parser, amount, new ArrayList<>());
                                                 // successfully bought scaling immunity - amount x scalingRatio
@@ -851,7 +852,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             }
                                         } else {
                                             // ask to repeat
-                                            repeatBuyCommand2.put((parser).getUniqueId().toString(), System.currentTimeMillis());
+                                            repeatBuyImmunityCommand.put((parser).getUniqueId().toString(), System.currentTimeMillis());
                                             if (!silent)
                                                 sender.sendMessage(parse(getPrefix() + getMessage("repeat-command-immunity"), amount, parser));
                                             return true;
@@ -887,9 +888,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (hasBounty(parser.getUniqueId())) {
                                 Bounty bounty = getBounty(parser.getUniqueId());
                                 assert bounty != null;
-                                if ((repeatBuyCommand.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyCommand.get((parser).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
+                                if ((repeatBuyBountyCommand.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyBountyCommand.get((parser).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
                                     // try to find bounty and buy it
-                                    repeatBuyCommand.remove((parser).getUniqueId().toString());
+                                    repeatBuyBountyCommand.remove((parser).getUniqueId().toString());
                                     if (checkBalance(parser, (bounty.getTotalDisplayBounty() * buyBackInterest))) {
                                         Bounty bought = new Bounty(bounty);
                                         BountyRemoveEvent event = new BountyRemoveEvent(sender, true, bought);
@@ -919,7 +920,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                 } else {
                                     // open gui
-                                    repeatBuyCommand.put(parser.getUniqueId().toString(), System.currentTimeMillis());
+                                    repeatBuyBountyCommand.put(parser.getUniqueId().toString(), System.currentTimeMillis());
                                     GUI.openGUI(parser, "confirm", 1, parser.getUniqueId(), (bounty.getTotalDisplayBounty() * buyBackInterest));
                                     return true;
                                 }
@@ -1308,7 +1309,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(parse(getPrefix() + getMessage("wait-command"), giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
                         return false;
                     }
-                    giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + cooldownTime);
+                    giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + GIVE_OWN_COOLDOWN_MS);
                 }
                 if (args.length == 1) {
                     // usage
@@ -1362,7 +1363,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(getPrefix() + getMessage("wait-command"), giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
                                 return false;
                             }
-                            giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + cooldownTime);
+                            giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + GIVE_OWN_COOLDOWN_MS);
                         }
                         if (args.length > 1) {
                             UUID playerUUID = LoggedPlayers.getPlayer(args[1]);
@@ -2010,7 +2011,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("clear");
                     tab.add("remove");
                 } else if (args[0].equalsIgnoreCase("debug") && sender.hasPermission(NotBounties.getAdminPermission())) {
-                    if (debug)
+                    if (NotBounties.isDebug())
                         tab.add("disable");
                     else
                         tab.add("enable");

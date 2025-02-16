@@ -88,8 +88,7 @@ public class ActionCommands {
     private static void execute(Player player, Player killer, @Nullable Bounty bounty, String command) {
         if (command.isEmpty())
             return;
-        if (NotBounties.debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Executing Command for " + player.getName() + " : " + command);
+        NotBounties.debugMessage("Executing Command for " + player.getName() + " : " + command, false);
         PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, "", new Object[0], new ArrayList<>(), "");
         double totalBounty = bounty != null ? bounty.getTotalDisplayBounty() : 0;
         double bountyCurrency = bounty != null ? bounty.getTotalBounty() : 0;
@@ -293,8 +292,7 @@ public class ActionCommands {
         if (canceled)
             return;
 
-        if (NotBounties.debug)
-          Bukkit.getLogger().info("[NotBountiesDebug] Parsed Action: \"" + command + "\"");
+        NotBounties.debugMessage("Parsed Action: \"" + command + "\"", false);
 
         if (command.startsWith("[player] ") || command.startsWith("[p] ")) {
             if (papiEnabled)

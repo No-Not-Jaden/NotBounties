@@ -111,9 +111,7 @@ public class WebhookOptions implements Listener {
                         // check if max requests hit
                         if (maxRequests <= 0) {
                             this.cancel();
-                            if (NotBounties.debug) {
-                                Bukkit.getLogger().warning("[NotBountiesDebug] Timed out loading skin for " + LoggedPlayers.getPlayerName(avatarUUID) + " or " + LoggedPlayers.getPlayerName(imageUUID));
-                            }
+                            NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(avatarUUID) + " or " + LoggedPlayers.getPlayerName(imageUUID), true);
                         }
                         maxRequests--;
                         return;

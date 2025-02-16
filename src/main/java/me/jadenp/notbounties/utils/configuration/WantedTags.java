@@ -221,10 +221,10 @@ public class WantedTags {
             }
             nextTextUpdateTime = System.currentTimeMillis() + wantedTextUpdateInterval;
         }
-        if (NotBounties.serverVersion >= 17 && player.canSee(armorStand))
+        if (NotBounties.getServerVersion() >= 17 && player.canSee(armorStand))
             player.hideEntity(NotBounties.getInstance(), armorStand);
         // a fix for 1.16, the random is to help with performance
-        if (NotBounties.serverVersion <= 16 && Math.random() <= 0.5) {
+        if (NotBounties.getServerVersion() <= 16 && Math.random() <= 0.5) {
             armorStand.setVisible(true);
             armorStand.setVisible(false);
             armorStand.setMarker(false);
@@ -299,8 +299,8 @@ public class WantedTags {
         armorStand.setCollidable(false);
         armorStand.setRemoveWhenFarAway(false);
         armorStand.setInvulnerable(true);
-        armorStand.getPersistentDataContainer().set(NotBounties.namespacedKey, PersistentDataType.STRING, NotBounties.sessionKey);
-        if (NotBounties.serverVersion >= 17)
+        armorStand.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
+        if (NotBounties.getServerVersion() >= 17)
             player.hideEntity(NotBounties.getInstance(), armorStand);
         if (lastLocation == null)
             lastLocation = armorStand.getLocation();

@@ -127,7 +127,7 @@ public class BountyManager {
             // send messages
             onlineReceiver.sendMessage(parse(getPrefix() + getMessage("bounty-receiver"), displayAmount, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(setter.getUniqueId())));
 
-            if (serverVersion <= 16) {
+            if (NotBounties.getServerVersion() <= 16) {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
             } else {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
@@ -140,7 +140,7 @@ public class BountyManager {
         // send messages
         setter.sendMessage(parse(getPrefix() + getMessage("bounty-success"), displayAmount, bounty.getTotalDisplayBounty(), receiver));
 
-        if (serverVersion <= 16) {
+        if (NotBounties.getServerVersion() <= 16) {
             setter.playSound(setter.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
         } else {
             setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1, 1);
@@ -208,7 +208,7 @@ public class BountyManager {
             // send messages
             onlineReceiver.sendMessage(parse(getPrefix() + getMessage("bounty-receiver"), consoleName, displayAmount, bounty.getTotalDisplayBounty(), receiver));
 
-            if (serverVersion <= 16) {
+            if (NotBounties.getServerVersion() <= 16) {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
             } else {
                 onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
@@ -323,28 +323,19 @@ public class BountyManager {
             }
         }
         WantedTags.removeWantedTag(uuid);
-        displayParticle.remove(uuid);
+        BigBounty.removeParticle(uuid);
         DataManager.deleteBounty(uuid);
     }
 
 
     public static boolean editBounty(@NotNull Bounty bounty, @Nullable UUID setterUUID, double change) {
         // remove particle if bounty reduced under threshold
-        bigBountyCheck(bounty, change);
+        BigBounty.bigBountyCheck(bounty, change);
         return DataManager.editBounty(bounty, setterUUID, change) != null;
 
     }
 
-    /**
-     * Checks if the bounty is still a big bounty after the change.
-     * If it is no longer a big bounty, the player will be removed from the displayParticle list.
-     * @param bounty Bounty to be changed.
-     * @param change Change in the bounty amount.
-     */
-    private static void bigBountyCheck(@NotNull Bounty bounty, double change) {
-        if (displayParticle.contains(bounty.getUUID()) && bounty.getTotalDisplayBounty() + change < BigBounty.getThreshold())
-            displayParticle.remove(bounty.getUUID());
-    }
+
 
 
     /**

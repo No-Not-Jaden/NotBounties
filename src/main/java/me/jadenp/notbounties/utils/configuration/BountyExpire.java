@@ -39,8 +39,7 @@ public class BountyExpire {
 
     public static void logout(Player player) {
         if (!logonTimes.containsKey(player.getUniqueId())) {
-            if (NotBounties.debug)
-                Bukkit.getLogger().warning("[NotBounties] No recorded logon time for " + player.getName());
+            NotBounties.debugMessage("No recorded login time for " + player.getName(), false);
             return;
         }
         long timePlayed = System.currentTimeMillis() - logonTimes.get(player.getUniqueId());

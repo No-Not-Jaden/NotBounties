@@ -335,7 +335,7 @@ public class GUI implements Listener {
         Player player = Bukkit.getPlayer(playerUUID);
         if (player == null)
             return true;
-        return isVanished(player) || (NotBounties.serverVersion >= 17 && seePlayerList && !guiViewer.canSee(player));
+        return isVanished(player) || (NotBounties.getServerVersion() >= 17 && seePlayerList && !guiViewer.canSee(player));
     }
 
     public static void openGUI(Player player, String name, long page, Object... data) {
@@ -375,7 +375,7 @@ public class GUI implements Listener {
             if (guiOpen) {
                 // already has the gui type open - update contents
                 player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
-                if (NotBounties.serverVersion >= 19)
+                if (NotBounties.getServerVersion() >= 19)
                     player.getOpenInventory().setTitle(title);
             } else {
                 player.openInventory(inventory);

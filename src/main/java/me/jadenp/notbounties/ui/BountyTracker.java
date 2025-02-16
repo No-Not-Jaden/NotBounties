@@ -3,7 +3,6 @@ package me.jadenp.notbounties.ui;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.ui.map.BountyMap;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
@@ -29,14 +28,12 @@ import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.map.MapView;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
-import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -114,11 +111,11 @@ public class BountyTracker implements Listener {
                     getEmptyTracker()
             );
             bountyTrackerCraftingPattern.shape(" AS", "ACA", "AA ");
-            if (NotBounties.serverVersion >= 18)
+            if (NotBounties.getServerVersion() >= 18)
                 bountyTrackerCraftingPattern.setIngredient('S', Material.SPYGLASS);
             else
                 bountyTrackerCraftingPattern.setIngredient('S', Material.TRIPWIRE_HOOK);
-            if (NotBounties.serverVersion >= 17)
+            if (NotBounties.getServerVersion() >= 17)
                 bountyTrackerCraftingPattern.setIngredient('A', Material.AMETHYST_SHARD);
             else
                 bountyTrackerCraftingPattern.setIngredient('A', Material.PAPER);
@@ -135,7 +132,7 @@ public class BountyTracker implements Listener {
         List<String> lore = new ArrayList<>();
         LanguageOptions.getListMessage("empty-tracker-lore").forEach(str -> lore.add(LanguageOptions.parse(str, null)));
         meta.setLore(lore);
-        meta.getPersistentDataContainer().set(namespacedKey, PersistentDataType.STRING, DataManager.GLOBAL_SERVER_ID.toString());
+        meta.getPersistentDataContainer().set(getNamespacedKey(), PersistentDataType.STRING, DataManager.GLOBAL_SERVER_ID.toString());
         item.setItemMeta(meta);
         return item;
     }
@@ -150,7 +147,7 @@ public class BountyTracker implements Listener {
         meta.setDisplayName(parse(getMessage("bounty-tracker-name"), player));
         ArrayList<String> lore = getListMessage("bounty-tracker-lore").stream().map(str -> parse(str, player)).collect(Collectors.toCollection(ArrayList::new));
         meta.setLore(lore);
-        meta.getPersistentDataContainer().set(namespacedKey, PersistentDataType.STRING, uuid.toString());
+        meta.getPersistentDataContainer().set(getNamespacedKey(), PersistentDataType.STRING, uuid.toString());
         if (NotBounties.isAboveVersion(20, 4)) {
             if (!meta.hasEnchantmentGlintOverride())
                 meta.setEnchantmentGlintOverride(true);
@@ -200,8 +197,8 @@ public class BountyTracker implements Listener {
             return null;
         ItemMeta meta = itemStack.getItemMeta();
         assert meta != null;
-        if (meta.getPersistentDataContainer().has(namespacedKey)) {
-            return UUID.fromString(Objects.requireNonNull(meta.getPersistentDataContainer().get(namespacedKey, PersistentDataType.STRING)));
+        if (meta.getPersistentDataContainer().has(getNamespacedKey())) {
+            return UUID.fromString(Objects.requireNonNull(meta.getPersistentDataContainer().get(getNamespacedKey(), PersistentDataType.STRING)));
         }
         // old ids
         int oldId = getTrackerID(itemStack);
@@ -210,7 +207,7 @@ public class BountyTracker implements Listener {
         if (oldId != -404 && trackedBounties.containsKey(oldId)) {
             // old tracked bounty
             UUID uuid = trackedBounties.get(oldId);
-            meta.getPersistentDataContainer().set(namespacedKey, PersistentDataType.STRING, uuid.toString());
+            meta.getPersistentDataContainer().set(getNamespacedKey(), PersistentDataType.STRING, uuid.toString());
             itemStack.setItemMeta(meta);
             return uuid;
         }
@@ -362,7 +359,7 @@ public class BountyTracker implements Listener {
             // no bounty
             return;
         Player trackedPlayer = Bukkit.getPlayer(uuid);
-        if (trackedPlayer != null && (NotBounties.serverVersion >= 17 && player.canSee(Objects.requireNonNull(trackedPlayer))) && !isVanished(trackedPlayer)) {
+        if (trackedPlayer != null && (NotBounties.getServerVersion() >= 17 && player.canSee(Objects.requireNonNull(trackedPlayer))) && !isVanished(trackedPlayer)) {
             // can track player
             if (!compassMeta.hasLodestone() || compassMeta.getLodestone() == null) {
                 compassMeta.setLodestone(trackedPlayer.getLocation().getBlock().getLocation());
@@ -480,7 +477,7 @@ public class BountyTracker implements Listener {
     // poster tracking
     @EventHandler
     public void onEntityInteract(PlayerInteractEntityEvent event) {
-        if (!posterTracking || !(event.getRightClicked().getType() == EntityType.ITEM_FRAME || (serverVersion >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)) || NotBounties.isPaused())
+        if (!posterTracking || !(event.getRightClicked().getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)) || NotBounties.isPaused())
             return;
         ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
         UUID trackedPlayer = getTrackedPlayer(item);
@@ -494,10 +491,10 @@ public class BountyTracker implements Listener {
         ItemStack frameItem = itemFrame.getItem();
         MapMeta mapMeta = (MapMeta) frameItem.getItemMeta();
         assert mapMeta != null;
-        if (!mapMeta.getPersistentDataContainer().has(namespacedKey))
+        if (!mapMeta.getPersistentDataContainer().has(getNamespacedKey()))
             return;
         event.setCancelled(true);
-        UUID posterPlayerUUID = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(namespacedKey, PersistentDataType.STRING)));
+        UUID posterPlayerUUID = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(getNamespacedKey(), PersistentDataType.STRING)));
         if (!hasBounty(posterPlayerUUID))
             return;
         removeEmptyTracker(event.getPlayer(), true); // remove one empty tracker
@@ -541,8 +538,7 @@ public class BountyTracker implements Listener {
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         if (meta.getOwningPlayer() == null) {
-            if (debug)
-                Bukkit.getLogger().info("[NotBountiesDebug] Player head in crafting matrix has a null owner!");
+            NotBounties.debugMessage("Player head in crafting matrix has a null owner!", false);
             return;
         }
         UUID trackedPlayer = meta.getOwningPlayer().getUniqueId();
@@ -638,7 +634,7 @@ public class BountyTracker implements Listener {
             public void run() {
                 if (!event.getItemDrop().isValid())
                     return;
-                if ((NotBounties.serverVersion < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.serverVersion >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
+                if ((NotBounties.getServerVersion() < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.getServerVersion() >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
                     ItemStack emptyTracker = getEmptyTracker().clone();
                     emptyTracker.setAmount(event.getItemDrop().getItemStack().getAmount());
                     event.getItemDrop().getWorld().dropItem(event.getItemDrop().getLocation(), emptyTracker);

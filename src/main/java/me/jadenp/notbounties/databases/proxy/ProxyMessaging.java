@@ -354,8 +354,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         out.writeShort(msgBytes.toByteArray().length); // This is the length.
         out.write(msgBytes.toByteArray()); // This is the message.
         sendMessage(CHANNEL, out.toByteArray());
-        if (NotBounties.debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Sent player skin request.");
+        NotBounties.debugMessage("Sent player skin request.", false);
     }
 
     /**
@@ -429,15 +428,13 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
             msgout.writeUTF(playerName);
             msgout.writeUTF(uuid.toString());
         } catch (IOException e) {
-            if (NotBounties.debug)
-                Bukkit.getLogger().warning(e.toString());
+            NotBounties.debugMessage(e.toString(), true);
             return;
         }
         out.writeShort(msgBytes.toByteArray().length); // This is the length.
         out.write(msgBytes.toByteArray()); // This is the message.
         sendMessage(CHANNEL, out.toByteArray());
-        if (NotBounties.debug)
-            Bukkit.getLogger().info("[NotBountiesDebug] Sent player skin request.");
+        NotBounties.debugMessage("Sent player skin request.", false);
     }
 
 }
