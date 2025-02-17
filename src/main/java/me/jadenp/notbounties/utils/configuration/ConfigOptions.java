@@ -92,6 +92,7 @@ public class ConfigOptions {
     public static String RRLSetterLoreAddition;
     private static boolean firstStart = true;
     public static boolean bountyBackups;
+    private static boolean offlineSet;
 
     public enum ClaimOrder {
         BEFORE, REGULAR, AFTER
@@ -418,6 +419,7 @@ public class ConfigOptions {
         autoSaveInterval = bounties.getConfig().getInt("auto-save-interval");
         postersEnabled = bounties.getConfig().getBoolean("bounty-posters.enabled");
         maxBounty = bounties.getConfig().getDouble("maximum-bounty");
+        offlineSet = bounties.getConfig().getBoolean("offline-set");
 
 
         wantedLevels.clear();
@@ -720,5 +722,9 @@ public class ConfigOptions {
             temp.put(aa.getKey(), aa.getValue());
         }
         return temp;
+    }
+
+    public static boolean isOfflineSet() {
+        return offlineSet;
     }
 }

@@ -1484,7 +1484,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             } else {
                 if (adminPermission || sender.hasPermission("notbounties.set")) {
                     UUID playerUUID = LoggedPlayers.getPlayer(args[0]);
-                    if (playerUUID == null) {
+                    if (playerUUID == null || (!ConfigOptions.isOfflineSet() && !NotBounties.getNetworkPlayers().containsKey(playerUUID))) {
                         // can't find player
                         if (args.length == 1) {
                             if (!silent)
@@ -2133,7 +2133,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             tab.removeIf(test -> test.toLowerCase(Locale.ROOT).indexOf(typed.toLowerCase(Locale.ROOT)) != 0);
             if (tab.isEmpty() && LoggedPlayers.getLoggedPlayers().size() <= maxTabCompletePlayers) {
                 if (args.length == 1 || args.length > 2) {
-                    if (sender.hasPermission("notbounties.set")) {
+                    if (sender.hasPermission("notbounties.set") && isOfflineSet()) {
                         for (Map.Entry<UUID, String> entry : LoggedPlayers.getLoggedPlayers().entrySet()) {
                             if (!selfSetting && sender instanceof Player player && player.getUniqueId().equals(entry.getKey()))
                                 continue;
