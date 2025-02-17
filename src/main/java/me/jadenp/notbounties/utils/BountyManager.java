@@ -116,7 +116,7 @@ public class BountyManager {
 
         if (MMOLibClass.isMmoLibEnabled() && receiver.isOnline()) {
             MMOLibClass.removeStats(receiver.getPlayer());
-            MMOLibClass.addStats(receiver.getPlayer(), bounty.getTotalDisplayBounty());
+            MMOLibClass.addStats(receiver.getPlayer(), displayAmount);
         }
 
         if (receiver.isOnline()) {
@@ -197,7 +197,7 @@ public class BountyManager {
 
         if (MMOLibClass.isMmoLibEnabled() && receiver.isOnline()) {
             MMOLibClass.removeStats(receiver.getPlayer());
-            MMOLibClass.addStats(receiver.getPlayer(), bounty.getTotalDisplayBounty());
+            MMOLibClass.addStats(receiver.getPlayer(), displayAmount);
         }
 
         if (receiver.isOnline()) {

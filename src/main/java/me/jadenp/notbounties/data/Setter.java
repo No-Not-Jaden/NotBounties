@@ -142,6 +142,21 @@ public class Setter implements Comparable<Setter>, Inconsistent {
     }
 
     @Override
+    public String toString() {
+        return "Setter{" +
+                "name='" + name + '\'' +
+                ", uuid=" + uuid +
+                ", amount=" + amount +
+                ", displayBounty=" + displayBounty +
+                ", items=" + items +
+                ", timeCreated=" + timeCreated +
+                ", notified=" + notified +
+                ", whitelist=" + whitelist +
+                ", receiverPlaytime=" + receiverPlaytime +
+                '}';
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime);
     }

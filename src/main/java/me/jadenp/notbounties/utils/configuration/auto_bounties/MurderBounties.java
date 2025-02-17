@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils.configuration.auto_bounties;
 
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
@@ -18,6 +19,11 @@ public class MurderBounties {
 
     private MurderBounties(){}
 
+    /**
+     * Whether the bounty-increase represents the percent of the current bounty added, or a flat number.
+     * If the multiplicative is set to true, and the current bounty is 0, the bounty will be set to the min-bounty.
+     */
+    private static boolean multiplicative;
     /**
      * The minimum time between bounties being placed on a player for murder.
      */
@@ -40,6 +46,7 @@ public class MurderBounties {
         murderCooldown = murderBounties.getInt("player-cooldown");
         murderBountyIncrease = murderBounties.getDouble("bounty-increase");
         murderExcludeClaiming = murderBounties.getBoolean("exclude-claiming");
+        multiplicative = murderBounties.getBoolean("multiplicative");
     }
 
     /**
@@ -65,13 +72,15 @@ public class MurderBounties {
         // check if we should increase the killer's bounty
         if (isEnabled() && !killer.hasMetadata("NPC")) { // don't raise bounty on a npc
             // check immunity
-            if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(killer, murderBountyIncrease) != Immunity.ImmunityType.DISABLE || hasImmunity(killer))
+            double bountyIncrease = getBountyIncrease(killer);
+            if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(killer, bountyIncrease) != Immunity.ImmunityType.DISABLE || hasImmunity(killer))
                 return;
             if ((!playerKills.containsKey(killer.getUniqueId()) ||
                     !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
-                    playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) && (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01)) {
+                    playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L)
+                    && (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01)) {
                 // increase
-                addBounty(killer, murderBountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
                 killer.sendMessage(parse(getPrefix() + getMessage("murder"), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), player));
                 Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
                 kills.put(player.getUniqueId(), System.currentTimeMillis());
@@ -80,6 +89,17 @@ public class MurderBounties {
 
         }
 
+    }
+
+    private static double getBountyIncrease(Player player) {
+        if (!multiplicative)
+            return murderBountyIncrease;
+        Bounty bounty = getBounty(player.getUniqueId());
+        if (bounty != null && bounty.getTotalDisplayBounty() > ConfigOptions.minBounty) {
+            return bounty.getTotalBounty() * murderBountyIncrease;
+        } else {
+            return ConfigOptions.minBounty;
+        }
     }
 
     public static boolean isEnabled() {

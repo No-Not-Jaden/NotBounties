@@ -326,6 +326,9 @@ trickle-bounties:
   bounty-transfer: 0
   # whether the player claiming the bounty will need a bounty on themselves for a trickle bounty to activate
   require-bounty: true
+  # the percent of the player's bounty that is lost when a player has a natural death (not from another player)
+  # 0 = 0%  0.25 = 25%  1 = 100%
+  natural-death-bounty-loss: 0
 auto-bounties:
   # number of days until auto bounties expire
   # overrides the bounty-expire value unless it is set to -1
@@ -342,6 +345,9 @@ auto-bounties:
     # how much the bounty increases per player kill. Consider raising minimum-broadcast if you change this if you don't want a message in chat
     # set to 0 to disable
     bounty-increase: 0
+    # whether the bounty-increase represents the percent of the current bounty added, or a flat number.
+    # if the multiplicative is set to true, and the current bounty is 0, the bounty will be set to the min-bounty.
+    multiplicative: false
     # you will be excluded from the bounty increase if you are claiming another bounty
     exclude-claiming: true
   # set a random bounty every once in a while

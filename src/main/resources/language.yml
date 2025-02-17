@@ -142,6 +142,7 @@ challenge-completion: '&5You''ve completed a challenge. Use &d/bounty challenges
 challenge-gui-claim: '&5Click to claim your reward'
 challenge-claim-deny: '&cYou can''t claim this challenge!'
 trickle-bounty: '&2{amount}&e of &6{player}''s &ebounty has been transferred to yours.'
+natural-death: '&2{amount}&e of your bounty has been lost for dying.'
 bedrock-open-gui: '&eOpening Form...' # set to: '' if you don't want this message sent
 paused: '&cNotBounties is paused. To use this feature again, do &a/bounty unpause' #
 bounty-set-cooldown: '&cPlease wait {time} before you can set another bounty.'

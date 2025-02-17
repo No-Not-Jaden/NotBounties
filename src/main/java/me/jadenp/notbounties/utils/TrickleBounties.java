@@ -8,6 +8,7 @@ import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -18,6 +19,7 @@ public class TrickleBounties {
     private static float givenReward;
     private static float bountyTransfer;
     private static boolean requireBounty;
+    private static double naturalDeathBountyLoss;
 
     private TrickleBounties(){}
 
@@ -25,6 +27,7 @@ public class TrickleBounties {
         givenReward = (float) configuration.getDouble("given-reward");
         bountyTransfer = (float) configuration.getDouble("bounty-transfer");
         requireBounty = configuration.getBoolean("require-bounty");
+        naturalDeathBountyLoss = configuration.getDouble("natural-death-bounty-loss");
     }
 
     /**
@@ -40,14 +43,7 @@ public class TrickleBounties {
         while (setterListIterator.hasNext()) {
             Setter setter = setterListIterator.next();
             if (setter.canClaim(claimer)) {
-                double newAmount;
-                if (setter.getAmount() < 0.01) {
-                    // amount too small, reward all of it
-                    newAmount = setter.getAmount();
-                } else {
-                    newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * givenReward : Math.floor(setter.getAmount() * givenReward);
-                }
-                Setter newSetter = new Setter(setter.getName(), setter.getUuid(), newAmount, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() + (newAmount - setter.getAmount()));
+                Setter newSetter = getSetterAmount(setter, givenReward);
                 setterListIterator.set(newSetter);
             } else {
                 setterListIterator.remove();
@@ -57,11 +53,42 @@ public class TrickleBounties {
     }
 
     /**
+     * Get bounty lost from a natural death.
+     * @param bounty Original Bounty.
+     * @return The bounty that is lost.
+     */
+    public static Bounty getLostBounty(Bounty bounty) {
+        Bounty lostBounty = new Bounty(bounty); // create a copy so the original isn't modified
+        ListIterator<Setter> setterListIterator = lostBounty.getSetters().listIterator();
+        while (setterListIterator.hasNext()) {
+            Setter setter = setterListIterator.next();
+            Setter newSetter = getSetterAmount(setter, naturalDeathBountyLoss);
+            if (newSetter.getAmount() == 0) {
+                setterListIterator.remove();
+            } else {
+                setterListIterator.set(newSetter);
+            }
+        }
+        return lostBounty;
+    }
+
+    private static @NotNull Setter getSetterAmount(Setter setter, double multiplier) {
+        double newAmount;
+        if (setter.getAmount() < 0.01) {
+            // amount too small, reward all of it
+            newAmount = setter.getAmount();
+        } else {
+            newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * multiplier : Math.floor(setter.getAmount() * multiplier);
+        }
+        return new Setter(setter.getName(), setter.getUuid(), newAmount, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() + (newAmount - setter.getAmount()));
+    }
+
+    /**
      * Transfers a percentage of a bounty to the claimer (rounded down).
      * Items are not transferred.
      * @param bounty Bounty that was claimed.
      * @param claimer Player who claimed the bounty and is receiving the transfer
-     * @return Bounty that was transfered
+     * @return Bounty that was transferred
      */
     public static Bounty transferBounty(Bounty bounty, Player claimer) {
         // check if a bounty should be transferred

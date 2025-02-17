@@ -991,6 +991,8 @@ public class DataManager {
      * @param setters Setters to be removed.
      */
     public static void removeSetters(@NotNull Bounty bounty, List<Setter> setters) {
+        if (setters.isEmpty())
+            return;
         Bounty bountyCopy = new Bounty(bounty);
         List<Setter> settersCopy = new ArrayList<>(bounty.getSetters());
         DataManager.removeSimilarSetters(bountyCopy.getSetters(), setters);

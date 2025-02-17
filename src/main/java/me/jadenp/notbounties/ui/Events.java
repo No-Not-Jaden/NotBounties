@@ -5,10 +5,13 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
 import me.jadenp.notbounties.data.PlayerData;
 import me.jadenp.notbounties.data.RewardHead;
+import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.map.BountyBoard;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
+import me.jadenp.notbounties.utils.TrickleBounties;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
@@ -21,6 +24,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -67,13 +71,28 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        if (claimOrder != ClaimOrder.REGULAR ||
-                !(event.getEntity() instanceof Player player) ||
-                event.getEntity().getKiller() == null ||
-                NotBounties.isPaused())
+        if (NotBounties.isPaused())
             return;
-        Player killer = event.getEntity().getKiller();
-        claimBounty(player, killer, event.getDrops(), false);
+        if (event.getEntity() instanceof Player player) {
+            if (event.getEntity().getKiller() == null) {
+                // natural death
+                Bounty currentBounty = BountyManager.getBounty(player.getUniqueId());
+                if (currentBounty != null) {
+                    Bounty lostBounty = TrickleBounties.getLostBounty(currentBounty);
+                    List<Setter> removedSetters = new LinkedList<>(lostBounty.getSetters());
+                    if (!removedSetters.isEmpty()) {
+                        player.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("natural-death"), lostBounty.getTotalBounty(), player));
+                        DataManager.removeSetters(currentBounty, removedSetters);
+                    }
+                }
+            } else {
+                if (claimOrder == ClaimOrder.REGULAR) {
+                    Player killer = event.getEntity().getKiller();
+                    claimBounty(player, killer, event.getDrops(), false);
+                }
+            }
+        }
+
     }
 
     @EventHandler

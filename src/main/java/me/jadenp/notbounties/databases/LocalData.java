@@ -114,7 +114,7 @@ public class LocalData extends NotBountiesDatabase {
             sortActiveBounties();
         }
         if (getOnlinePlayers().containsKey(bounty.getUUID())) {
-            onlineBounties.put(bounty.getUUID(), bounty);
+            onlineBounties.put(bounty.getUUID(), prevBounty);
         }
         return prevBounty;
     }
