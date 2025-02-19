@@ -85,6 +85,16 @@ public class LanguageOptions {
             bounties.getConfig().set("buy-own-bounties.lore-addition", null);
             bounties.saveConfig();
         }
+        // remove stats from help.view
+        if (!configuration.isSet("help.stats") && configuration.isSet("help.view")) {
+            List<String> statsList = Arrays.asList(
+                    "&9/bounty top (all/kills/claimed/deaths/set/immunity) <list> &8- &dLists the top 10 players with the respective stats.",
+                    "&9/bounty stat (all/kills/claimed/deaths/set/immunity) &8- &dView your bounty stats.",
+                    "&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) &8- &dView another player's stats.");
+            List<String> viewList = new ArrayList<>(configuration.getStringList("help.view"));
+            viewList.removeIf(statsList::contains);
+            configuration.set("help.view", viewList);
+        }
 
         // fill in any default options that aren't present
         if (NotBounties.getInstance().getResource("language.yml") != null) {
@@ -133,21 +143,23 @@ public class LanguageOptions {
             page = 1;
         if (page == 2 && !sender.hasPermission("notbounties.view"))
             page++;
-        if (page == 3 && !sender.hasPermission("notbounties.set"))
+        if (page == 3 && !sender.hasPermission("notbounties.stats"))
             page++;
-        if (page == 4 && !(sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled))
+        if (page == 4 && !sender.hasPermission("notbounties.set"))
             page++;
-        if (page == 5 && !(sender.hasPermission("notbounties.buyown") && buyBack) && !(sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE))
+        if (page == 5 && !(sender.hasPermission("notbounties.whitelist") && bountyWhitelistEnabled))
             page++;
-        if (page == 6 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
+        if (page == 6 && !(sender.hasPermission("notbounties.buyown") && buyBack) && !(sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE))
             page++;
-        if (page == 7 && !(sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap))
+        if (page == 7 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
             page++;
-        if (page == 8 && (!sender.hasPermission("notbounties.challenges") || !ChallengeManager.isEnabled()))
+        if (page == 8 && !(sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap))
             page++;
-        if (page == 9 && !sender.hasPermission(NotBounties.getAdminPermission()))
+        if (page == 9 && (!sender.hasPermission("notbounties.challenges") || !ChallengeManager.isEnabled()))
             page++;
-        if (page >= 10)
+        if (page == 10 && !sender.hasPermission(NotBounties.getAdminPermission()))
+            page++;
+        if (page >= 11)
             page = 1;
         return page;
     }
@@ -159,6 +171,9 @@ public class LanguageOptions {
         if (sender.hasPermission("notbounties.view")) {
             sendHelpMessage(sender, getListMessage("help.view"));
         }
+        if (sender.hasPermission("notbounties.stats")) {
+            sendHelpMessage(sender, getListMessage("help.stats"));
+        }
         if (sender.hasPermission("notbounties.set")) {
             sendHelpMessage(sender, getListMessage("help.set"));
         }
@@ -168,7 +183,7 @@ public class LanguageOptions {
                 sendHelpMessage(sender, getListMessage("help.blacklist"));
             }
         }
-        if (sender.hasPermission("notbounties.buyown") & buyBack) {
+        if (sender.hasPermission("notbounties.buyown") && buyBack) {
             sendHelpMessage(sender, getListMessage("help.buy-own"));
         }
         if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
@@ -236,16 +251,20 @@ public class LanguageOptions {
                 sendHelpMessage(sender, getListMessage("help.view"));
                 break;
             case 3:
+                // stats
+                sendHelpMessage(sender, getListMessage("help.stats"));
+                break;
+            case 4:
                 // set
                 sendHelpMessage(sender, getListMessage("help.set"));
                 break;
-            case 4:
+            case 5:
                 // whitelist
                 sendHelpMessage(sender, getListMessage("help.whitelist"));
                 if (enableBlacklist)
                     sendHelpMessage(sender, getListMessage("help.blacklist"));
                 break;
-            case 5:
+            case 6:
                 // buy
                 if (sender.hasPermission("notbounties.buyown") & buyBack) {
                     sendHelpMessage(sender, getListMessage("help.buy-own"));
@@ -264,14 +283,14 @@ public class LanguageOptions {
                     }
                 }
                 break;
-            case 6:
+            case 7:
                 // remove
                 if (sender.hasPermission("notbounties.removeimmunity"))
                     sendHelpMessage(sender, getListMessage("help.remove-immunity"));
                 if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission()))
                     sendHelpMessage(sender, getListMessage("help.remove-set"));
                 break;
-            case 7:
+            case 8:
                 // item
                 if (sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap) {
                     sendHelpMessage(sender, getListMessage("help.poster-own"));
@@ -285,10 +304,10 @@ public class LanguageOptions {
                             sendHelpMessage(sender, getListMessage("help.tracker-other"));
                     }
                 break;
-            case 8:
+            case 9:
                 sendHelpMessage(sender, getListMessage("help.challenges"));
                 break;
-            case 9:
+            case 10:
                 // admin
                 sendHelpMessage(sender, getListMessage("help.admin"));
                 break;
@@ -321,7 +340,7 @@ public class LanguageOptions {
         BaseComponent[] baseComponents = new BaseComponent[]{space, space, back, middle, next, space, space};
         if (previousPage <= 0)
             baseComponents[2] = space;
-        if (nextPage >= 9 || nextPage <= previousPage)
+        if (nextPage >= 10 || nextPage <= previousPage)
             baseComponents[4] = space;
         sender.spigot().sendMessage(baseComponents);
     }

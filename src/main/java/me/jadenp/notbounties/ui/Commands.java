@@ -534,7 +534,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 return true;
             } else if (args[0].equalsIgnoreCase("stat")) {
-                if (!(adminPermission || sender.hasPermission("notbounties.view"))) {
+                if (!(adminPermission || sender.hasPermission("notbounties.stats"))) {
                     if (!silent)
                         sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                     return false;
@@ -547,7 +547,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // usage
                     if (!silent)
                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                    sendHelpMessage(sender, getListMessage("help.view"));
+                    sendHelpMessage(sender, getListMessage("help.stats"));
                     return false;
                 }
                 Leaderboard leaderboard;
@@ -557,7 +557,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // more usage
                     if (!silent) {
                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                        sendHelpMessage(sender, getListMessage("help.view"));
+                        sendHelpMessage(sender, getListMessage("help.stats"));
                     }
                     return false;
                 }
@@ -620,7 +620,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                 return true;
             } else if (args[0].equalsIgnoreCase("top")) {
-                if ((adminPermission || sender.hasPermission("notbounties.view"))) {
+                if ((adminPermission || sender.hasPermission("notbounties.stats"))) {
                     Leaderboard leaderboard;
                     if (args.length > 1) {
                         try {
@@ -628,7 +628,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         } catch (IllegalArgumentException e) {
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                            sendHelpMessage(sender, getListMessage("help.view"));
+                            sendHelpMessage(sender, getListMessage("help.stats"));
                             return false;
                         }
                     } else {
@@ -1915,6 +1915,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("notbounties.view")) {
                     tab.add("check");
                     tab.add("list");
+                }
+                if (sender.hasPermission("notbounties.stats")) {
                     tab.add("top");
                     tab.add("stat");
                 }
@@ -1971,7 +1973,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("remove");
                     if ((sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.buyimmunity")) && Immunity.getImmunityType() == Immunity.ImmunityType.PERMANENT)
                         tab.add("--confirm");
-                } else if ((args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("stat")) && sender.hasPermission("notbounties.view")) {
+                } else if ((args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("stat")) && sender.hasPermission("notbounties.stats")) {
                     tab.add("all");
                     tab.add("kills");
                     tab.add("claimed");
@@ -2080,7 +2082,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("list");
                 } else if (args[0].equalsIgnoreCase("check") && sender.hasPermission("notbounties.view")) {
                     tab.add("list");
-                } else if (args[0].equalsIgnoreCase("stat") && sender.hasPermission("notbounties.view")) {
+                } else if (args[0].equalsIgnoreCase("stat") && sender.hasPermission("notbounties.stats")) {
                     for (Map.Entry<UUID, String> entry : NotBounties.getNetworkPlayers().entrySet()) {
                         if (entry.getValue().length() < 25)
                             tab.add(entry.getValue());
@@ -2142,7 +2144,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 }
                 if (args.length == 3) {
-                    if ((args[0].equalsIgnoreCase("immunity") && args[1].equalsIgnoreCase("remove") && sender.hasPermission(NotBounties.getAdminPermission())) || (args[0].equalsIgnoreCase("stat") && sender.hasPermission("notbounties.view"))) {
+                    if ((args[0].equalsIgnoreCase("immunity") && args[1].equalsIgnoreCase("remove") && sender.hasPermission(NotBounties.getAdminPermission())) || (args[0].equalsIgnoreCase("stat") && sender.hasPermission("notbounties.stats"))) {
                         tab.addAll(LoggedPlayers.getLoggedPlayers().values());
                     }
                 }

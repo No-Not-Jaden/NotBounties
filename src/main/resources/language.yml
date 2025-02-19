@@ -186,10 +186,11 @@ help:
   view:
     - '&9/bounty check (player) <list> &8- &dChecks a bounty.'
     - '&9/bounty list &8- &dLists all bounties.'
+    - '&9/bounty &8- &dOpens bounty GUI.'
+  stats:
     - '&9/bounty top (all/kills/claimed/deaths/set/immunity) <list> &8- &dLists the top 10 players with the respective stats.'
     - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) &8- &dView your bounty stats.'
     - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) &8- &dView another player''s stats.'
-    - '&9/bounty &8- &dOpens bounty GUI.'
   set:
     - '&9/bounty (player) (amount) <whitelisted players> &8- &dAdds a bounty to a player.'
     - '&9/bounty (player) (material):(amount),(material):(amount),... <whitelisted players> &8- &dAdds a bounty of items on a player.'

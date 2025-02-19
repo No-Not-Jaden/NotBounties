@@ -113,7 +113,17 @@ public class MMOLibClass implements Listener {
                 stat = "UNKNOWN";
                 Bukkit.getLogger().warning("[NotBounties] No stat string found in the MMOLib." + configuration.getName() + " configuration section!");
             }
-            ModifierType modifierType = configuration.getBoolean("multiplicative") ? ModifierType.ADDITIVE_MULTIPLIER : ModifierType.FLAT;
+            ModifierType modifierType;
+            if (configuration.getBoolean("multiplicative")) {
+                try {
+                    modifierType = ModifierType.ADDITIVE_MULTIPLIER;
+                } catch (NoSuchFieldError e){
+                    // not using latest version of MMOLib
+                    modifierType = ModifierType.RELATIVE;
+                }
+            } else {
+                modifierType = ModifierType.FLAT;
+            }
             statModifier = new StatModifier(NOTBOUNTIES_STAT_KEY, stat, configuration.getDouble("value"), modifierType);
         }
 

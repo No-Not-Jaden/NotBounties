@@ -37,6 +37,9 @@ permissions:
   notbounties.view:
     default: true
     description: View bounties and the bounty GUI.
+  notbounties.stats:
+    default: true
+    description: View your player stats and the leaderboard.
   notbounties.buyown:
     default: true
     description: Buy your own bounty.
