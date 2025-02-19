@@ -66,18 +66,23 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             }
         } else if (command.getName().equalsIgnoreCase("notbountiesadmin") && sender.hasPermission("notbounties.admin")) {
-            Player player = Bukkit.getPlayer(args[0]);
-            if (player != null) {
-                String[] newArgs = new String[args.length - 1];
-                System.arraycopy(args, 1, newArgs, 0, newArgs.length);
-                boolean commandResult = executeCommand(player, newArgs, true);
-                if (commandResult) {
-                    Prompt.successfulExecute(player.getUniqueId());
+            if (args.length > 0) {
+                Player player = Bukkit.getPlayer(args[0]);
+                if (player != null) {
+                    String[] newArgs = new String[args.length - 1];
+                    System.arraycopy(args, 1, newArgs, 0, newArgs.length);
+                    boolean commandResult = executeCommand(player, newArgs, true);
+                    if (commandResult) {
+                        Prompt.successfulExecute(player.getUniqueId());
+                    } else {
+                        Prompt.failExecute(player.getUniqueId());
+                    }
                 } else {
-                    Prompt.failExecute(player.getUniqueId());
+                    sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("unknown-player"), null));
                 }
             } else {
-                sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("unknown-player"), null));
+                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), null));
+                LanguageOptions.sendHelpMessage(sender, getListMessage("help.admin"));
             }
         }
         return true;
@@ -156,7 +161,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     // unknown command
                                     if (!silent) {
                                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                        sender.sendMessage(parse(getPrefix() + getListMessage("help.challenges"), parser));
+                                        LanguageOptions.sendHelpMessage(sender, getListMessage("help.challenges"));
                                     }
                                     return false;
                                 }
@@ -185,7 +190,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     // unknown command
                                     if (!silent) {
                                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                        sender.sendMessage(parse(getPrefix() + getListMessage("help.challenges"), parser));
+                                        LanguageOptions.sendHelpMessage(sender, getListMessage("help.challenges"));
                                     }
                                     return false;
                                 }
@@ -194,7 +199,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             // unknown command
                             if (!silent) {
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                sender.sendMessage(parse(getPrefix() + getListMessage("help.challenges"), parser));
+                                LanguageOptions.sendHelpMessage(sender, getListMessage("help.challenges"));
                             }
                             return false;
                         }
@@ -545,9 +550,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (args.length > 3 && !(adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) || args.length > 5) {
                     // usage
-                    if (!silent)
+                    if (!silent) {
                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                    sendHelpMessage(sender, getListMessage("help.stats"));
+                        sendHelpMessage(sender, getListMessage("help.stats"));
+                    }
                     return false;
                 }
                 Leaderboard leaderboard;
@@ -626,9 +632,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                         try {
                             leaderboard = Leaderboard.valueOf(args[1].toUpperCase());
                         } catch (IllegalArgumentException e) {
-                            if (!silent)
+                            if (!silent) {
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                            sendHelpMessage(sender, getListMessage("help.stats"));
+                                sendHelpMessage(sender, getListMessage("help.stats"));
+                            }
                             return false;
                         }
                     } else {
@@ -727,9 +734,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                         } else {
                             if (sender.hasPermission("notbounties.removeimmunity")) {
-                                if (!silent)
+                                if (!silent) {
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                sendHelpMessage(sender, getListMessage("help.remove-immunity"));
+                                    sendHelpMessage(sender, getListMessage("help.remove-immunity"));
+                                }
                             } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
@@ -753,13 +761,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } else {
                         // usage
                         if (adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) {
-                            if (!silent)
+                            if (!silent) {
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                            sendHelpMessage(sender, getListMessage("help.admin"));
+                                sendHelpMessage(sender, getListMessage("help.admin"));
+                            }
                         } else if (sender.hasPermission("notbounties.removeimmunity")) {
-                            if (!silent)
+                            if (!silent) {
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                            sendHelpMessage(sender, getListMessage("help.remove-immunity"));
+                                sendHelpMessage(sender, getListMessage("help.remove-immunity"));
+                            }
                         } else if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
@@ -1092,16 +1102,18 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                                 } else {
                                     // usage
-                                    if (!silent)
+                                    if (!silent) {
                                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                    sendHelpMessage(sender, getListMessage("help.admin"));
+                                        sendHelpMessage(sender, getListMessage("help.admin"));
+                                    }
                                     return false;
                                 }
                             } else {
                                 // usage
-                                if (!silent)
+                                if (!silent) {
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                sendHelpMessage(sender, getListMessage("help.admin"));
+                                    sendHelpMessage(sender, getListMessage("help.admin"));
+                                }
                                 return false;
                             }
                         } else {
@@ -1112,17 +1124,19 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     } else {
                         // usage
-                        if (!silent)
+                        if (!silent) {
                             sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                        sendHelpMessage(sender, getListMessage("help.admin"));
+                            sendHelpMessage(sender, getListMessage("help.admin"));
+                        }
                         return false;
                     }
                 } else if (adminPermission || sender.hasPermission("notbounties.removeset") && sender instanceof Player) {
                     if (args.length != 2) {
                         // usage
-                        if (!silent)
+                        if (!silent) {
                             sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                        sendHelpMessage(sender, getListMessage("help.remove-set"));
+                            sendHelpMessage(sender, getListMessage("help.remove-set"));
+                        }
                         return false;
                     }
                     Bounty toRemove = null;
@@ -1264,16 +1278,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                 } else {
                                     // usage
-                                    if (!silent)
+                                    if (!silent) {
                                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                    sendHelpMessage(sender, getListMessage("help.admin"));
+                                        sendHelpMessage(sender, getListMessage("help.admin"));
+                                    }
                                     return false;
                                 }
                             } else {
                                 // usage
-                                if (!silent)
+                                if (!silent) {
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                                sendHelpMessage(sender, getListMessage("help.admin"));
+                                    sendHelpMessage(sender, getListMessage("help.admin"));
+                                }
                                 return false;
                             }
                         } else {
@@ -1285,9 +1301,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                     } else {
                         // usage
-                        if (!silent)
+                        if (!silent) {
                             sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                        sendHelpMessage(sender, getListMessage("help.admin"));
+                            sendHelpMessage(sender, getListMessage("help.admin"));
+                        }
                         return false;
                     }
                 } else {
@@ -1313,12 +1330,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (args.length == 1) {
                     // usage
-                    if (!silent)
+                    if (!silent) {
                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                    sendHelpMessage(sender, getListMessage("help.poster-own"));
-                    if (sender.hasPermission(NotBounties.getAdminPermission()))
-                        sendHelpMessage(sender, getListMessage("help.poster-other"));
-
+                        sendHelpMessage(sender, getListMessage("help.poster-own"));
+                        if (sender.hasPermission(NotBounties.getAdminPermission()))
+                            sendHelpMessage(sender, getListMessage("help.poster-other"));
+                    }
                     return false;
                 }
                 UUID playerUUID = LoggedPlayers.getPlayer(args[1]);
@@ -1468,11 +1485,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                         } else {
                             // usage
-                            if (!silent)
+                            if (!silent) {
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                            sendHelpMessage(sender, getListMessage("help.tracker-own"));
-                            if (sender.hasPermission(NotBounties.getAdminPermission()))
-                                sendHelpMessage(sender, getListMessage("help.tracker-other"));
+                                sendHelpMessage(sender, getListMessage("help.tracker-own"));
+                                if (sender.hasPermission(NotBounties.getAdminPermission()))
+                                    sendHelpMessage(sender, getListMessage("help.tracker-other"));
+                            }
                             return false;
                         }
                     } else {
@@ -1487,9 +1505,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (playerUUID == null || (!ConfigOptions.isOfflineSet() && !NotBounties.getNetworkPlayers().containsKey(playerUUID))) {
                         // can't find player
                         if (args.length == 1) {
-                            if (!silent)
+                            if (!silent) {
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                            sendHelpMessage(sender, getListMessage("help.set"));
+                                sendHelpMessage(sender, getListMessage("help.set"));
+                            }
                         } else {
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[0], parser));
@@ -1684,9 +1703,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } else if (items.isEmpty()) {
                         // exclusive mode is enabled but player didn't specify any items
                         // unknown command
-                        if (!silent)
+                        if (!silent) {
                             sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                        sendHelpMessage(sender, getListMessage("help.set"));
+                            sendHelpMessage(sender, getListMessage("help.set"));
+                        }
                         return true;
                     }
 

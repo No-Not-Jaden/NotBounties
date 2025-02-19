@@ -242,6 +242,7 @@ help:
     - '&9/bounty reload &8- &dReloads the plugin.'
     - '&9/bounty debug &8- &dShows debugging info.'
     - '&9/bounty pause/unpause &8- &dPauses all bounty features except viewing.'
+    - '&9/bountyadmin (player) <bounty command> &7- &dRuns a bounty command for a player.'
   immune:
     - '&dNote: You are immune to having bounties placed on you.'
 tutorial:

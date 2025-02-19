@@ -340,7 +340,7 @@ public class LanguageOptions {
         BaseComponent[] baseComponents = new BaseComponent[]{space, space, back, middle, next, space, space};
         if (previousPage <= 0)
             baseComponents[2] = space;
-        if (nextPage >= 10 || nextPage <= previousPage)
+        if (nextPage >= 11 || nextPage <= previousPage)
             baseComponents[4] = space;
         sender.spigot().sendMessage(baseComponents);
     }

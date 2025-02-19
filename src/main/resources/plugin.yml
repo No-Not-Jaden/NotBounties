@@ -79,6 +79,7 @@ permissions:
       - notbounties.whitelist
       - notbounties.basic
       - notbounties.challenges
+      - notbounties.stats
   notbounties.immunity.murder:
     default: false
     description: Immune to murder auto-bounties.
