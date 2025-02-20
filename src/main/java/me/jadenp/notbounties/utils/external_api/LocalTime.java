@@ -2,6 +2,7 @@ package me.jadenp.notbounties.utils.external_api;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
@@ -187,9 +188,14 @@ class ResponseHandler implements HttpClientResponseHandler<TimeZone> {
             // return it as a String
             String result = EntityUtils.toString(entity);
             classicHttpResponse.close();
-
-            JsonObject input = new JsonParser().parse(result).getAsJsonObject();
             NotBounties.debugMessage("Receieved Timezone Response!", false);
+            JsonObject input;
+            try {
+                input = new JsonParser().parse(result).getAsJsonObject();
+            } catch (JsonSyntaxException e) {
+                NotBounties.debugMessage("Bad Syntax.", false);
+                throw new IOException("Bad Syntax.");
+            }
             if (input.has("location")) {
                 NotBounties.debugMessage("Valid location!", false);
                 JsonObject location = input.getAsJsonObject("location");
