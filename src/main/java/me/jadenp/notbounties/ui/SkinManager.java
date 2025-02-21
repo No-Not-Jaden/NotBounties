@@ -88,9 +88,9 @@ public class SkinManager {
     }
 
     /**
-     * Get the skin from a player. isSkinLoaded(UUID uuid) should be called before using this.
+     * Get the skin from a player. {@link #isSkinLoaded(UUID)} should be called before using this.
      * @param uuid UUID of a player
-     * @return The player's skin information.
+     * @return The player's skin information, or the information of a question mark skin if the skin isn't loaded.
      */
     public static PlayerSkin getSkin(UUID uuid) {
         if (!savedSkins.containsKey(uuid))

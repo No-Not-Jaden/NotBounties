@@ -107,13 +107,13 @@ public class WebhookOptions implements Listener {
                     UUID avatarUUID = webhook.isSwitchImages() ? receiver : player;
                     UUID imageUUID = webhook.isSwitchImages() ? player : receiver;
 
-                    if (!SkinManager.isSkinLoaded(avatarUUID) || !SkinManager.isSkinLoaded(imageUUID)) {
+                    // <TODO>If skin is loaded, check if UUID is online & use that link, or use username
+                    if ((!SkinManager.isSkinLoaded(avatarUUID) || !SkinManager.isSkinLoaded(imageUUID)) && maxRequests > 0) {
                         // check if max requests hit
+                        maxRequests--;
                         if (maxRequests <= 0) {
-                            this.cancel();
                             NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(avatarUUID) + " or " + LoggedPlayers.getPlayerName(imageUUID), true);
                         }
-                        maxRequests--;
                         return;
                     }
                     this.cancel();
