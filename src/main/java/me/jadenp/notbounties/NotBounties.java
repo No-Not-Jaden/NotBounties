@@ -54,6 +54,7 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEn
  * Team bounties
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
+ * allow other image sizes for bounty poster & center them
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -90,8 +91,10 @@ public final class NotBounties extends JavaPlugin {
     public void onLoad() {
         setInstance(this);
         // register api flags
-        if (getServer().getPluginManager().getPlugin("WorldGuard") != null)
-            new WorldGuardClass().registerFlags();
+        WorldGuardClass.setEnabled(getServer().getPluginManager().getPlugin("WorldGuard") != null);
+        if (WorldGuardClass.isEnabled()) {
+            WorldGuardClass.registerFlags();
+        }
         if (getServer().getPluginManager().getPlugin("Lands") != null)
             new LandsClass().registerClaimFlag();
     }
@@ -662,7 +665,7 @@ public final class NotBounties extends JavaPlugin {
         String kingdoms = BountyClaimRequirements.isKingdomsXEnabled()
                 ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
         String lands = BountyClaimRequirements.isLandsEnabled() ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
-        String worldGuard = BountyClaimRequirements.isWorldGuardEnabled()
+        String worldGuard = WorldGuardClass.isEnabled()
                 ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
         String superiorSkyblock2 = BountyClaimRequirements.isSuperiorSkyblockEnabled()
                 ? ChatColor.GREEN + "SuperiorSkyblock2" : ChatColor.RED + "SuperiorSkyblock2";

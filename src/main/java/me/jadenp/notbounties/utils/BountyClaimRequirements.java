@@ -48,10 +48,6 @@ public class BountyClaimRequirements {
     private static boolean landsLand;
     private static boolean landsLandAllies;
     /**
-     * WorldGuard
-     */
-    private static boolean worldGuardEnabled;
-    /**
      * Factions - SabreFactions or FactionsUUID
      */
     private static boolean factionsEnabled;
@@ -68,7 +64,6 @@ public class BountyClaimRequirements {
         betterTeamsEnabled = Bukkit.getPluginManager().isPluginEnabled("BetterTeams");
         townyAdvancedEnabled = Bukkit.getPluginManager().isPluginEnabled("Towny");
         landsEnabled = Bukkit.getPluginManager().isPluginEnabled("Lands");
-        worldGuardEnabled = Bukkit.getPluginManager().isPluginEnabled("WorldGuard");
         factionsEnabled = Bukkit.getPluginManager().isPluginEnabled("Factions");
         superiorSkyblockEnabled = Bukkit.getPluginManager().isPluginEnabled("SuperiorSkyblock2");
 
@@ -131,9 +126,8 @@ public class BountyClaimRequirements {
             if (placeholderAPIClass.parse(player, teamsPlaceholder).equals(placeholderAPIClass.parse(killer, teamsPlaceholder)))
                 return false;
         }
-        if (worldGuardEnabled) {
-            WorldGuardClass worldGuardClass = new WorldGuardClass();
-            if (!worldGuardClass.canClaim(killer, player.getLocation()))
+        if (WorldGuardClass.isEnabled()) {
+            if (!WorldGuardClass.canClaim(killer, player.getLocation()))
                 return false;
         }
         if (factionsEnabled) {
@@ -176,10 +170,6 @@ public class BountyClaimRequirements {
 
     public static boolean isSuperiorSkyblockEnabled() {
         return superiorSkyblockEnabled;
-    }
-
-    public static boolean isWorldGuardEnabled() {
-        return worldGuardEnabled;
     }
 
     public static boolean isTownyAdvancedEnabled() {

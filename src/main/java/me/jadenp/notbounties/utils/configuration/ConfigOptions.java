@@ -20,6 +20,7 @@ import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.external_api.MMOLibClass;
 import me.jadenp.notbounties.utils.external_api.SkinsRestorerClass;
+import me.jadenp.notbounties.utils.external_api.WorldGuardClass;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;

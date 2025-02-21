@@ -58,7 +58,7 @@ public class PVPRestrictions implements Listener {
 
 
     private void controlPVP(Player player, Player damager, Cancellable event) {
-        int localPVPRule = BountyClaimRequirements.isWorldGuardEnabled() ? new WorldGuardClass().getPVPRuleOverride(damager, player.getLocation()) : -1;
+        int localPVPRule = WorldGuardClass.isEnabled() ? WorldGuardClass.getPVPRuleOverride(damager, player.getLocation()) : -1;
 
         if (localPVPRule == -1 && (!worlds.contains(player.getWorld().getName()) && !worlds.isEmpty()))
             return;
@@ -111,7 +111,7 @@ public class PVPRestrictions implements Listener {
     }
 
     public static void checkCombatExpiry() {
-        if (combatLoggingTime < 1 && !BountyClaimRequirements.isWorldGuardEnabled()) // optimization return
+        if (combatLoggingTime < 1 && !WorldGuardClass.isEnabled()) // optimization return
             return;
         Iterator<Map.Entry<UUID, PVPHistory>> iterator = historyMap.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -140,8 +140,8 @@ public class PVPRestrictions implements Listener {
         Player onlinePlayer = player.getPlayer();
         if (onlinePlayer == null)
             return 0; // offline player should never have a combat logging time because they already combat logged
-        if (player.isOnline() && BountyClaimRequirements.isWorldGuardEnabled()) {
-            int value = new WorldGuardClass().getCombatLogOverride(player.getPlayer(), onlinePlayer.getLocation());
+        if (player.isOnline() && WorldGuardClass.isEnabled()) {
+            int value = WorldGuardClass.getCombatLogOverride(player.getPlayer(), onlinePlayer.getLocation());
             if (value != -1)
                 return value;
         }
@@ -158,7 +158,7 @@ public class PVPRestrictions implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         if (NotBounties.isPaused())
             return;
-        int localCombatLoggingTime = BountyClaimRequirements.isWorldGuardEnabled() ? new WorldGuardClass().getCombatLogOverride(event.getPlayer(), event.getPlayer().getLocation()) : -1;
+        int localCombatLoggingTime = WorldGuardClass.isEnabled() ? WorldGuardClass.getCombatLogOverride(event.getPlayer(), event.getPlayer().getLocation()) : -1;
         if ((combatLoggingTime < 1 && localCombatLoggingTime == -1) || localCombatLoggingTime == 0)
             return;
         if (localCombatLoggingTime == -1 && (!worlds.contains(event.getPlayer().getWorld().getName()) && !worlds.isEmpty()))
@@ -182,7 +182,7 @@ public class PVPRestrictions implements Listener {
 
     public static void onBountyClaim(Player receiver) {
         // send safe message if player has combat timer
-        int localCombatLoggingTime = BountyClaimRequirements.isWorldGuardEnabled() ? new WorldGuardClass().getCombatLogOverride(receiver, receiver.getLocation()) : -1;
+        int localCombatLoggingTime = WorldGuardClass.isEnabled() ? WorldGuardClass.getCombatLogOverride(receiver, receiver.getLocation()) : -1;
         if ((combatLoggingTime < 1 && localCombatLoggingTime == -1) || localCombatLoggingTime == 0)
             return;
         if (localCombatLoggingTime == -1 && (!worlds.contains(receiver.getWorld().getName()) && !worlds.isEmpty()))

@@ -46,8 +46,8 @@ import static me.jadenp.notbounties.utils.BountyManager.hasBounty;
 
 public class BountyMap implements Listener {
 
-    public static BufferedImage bountyPoster;
-    public static BufferedImage deadBounty;
+    private static BufferedImage bountyPoster;
+    private static BufferedImage deadBounty;
     private static Font playerFont = null;
     public static File posterDirectory;
     private static final Map<UUID, MapView> mapViews = new HashMap<>();
@@ -70,11 +70,59 @@ public class BountyMap implements Listener {
             NotBounties.getInstance().saveResource("posters/mapdata.yml", false);
 
         try {
-            bountyPoster = ImageIO.read(new File(posterDirectory + File.separator + "bounty poster.png"));
-            deadBounty = ImageIO.read(new File(posterDirectory + File.separator + "dead bounty.png"));
+            BufferedImage poster = ImageIO.read(new File(posterDirectory + File.separator + "bounty poster.png"));;
+            if (poster.getWidth() > 128 || poster.getHeight() > 128) {
+                poster = downscale(poster, 128, 128);
+            }
+            bountyPoster = poster;
+            BufferedImage dead = ImageIO.read(new File(posterDirectory + File.separator + "dead bounty.png"));
+            if (dead.getWidth() > 128 || dead.getHeight() > 128) {
+                dead = downscale(dead, 128, 128);
+            }
+            deadBounty = dead;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            Bukkit.getLogger().warning("[NotBounties] Could not load a poster image.");
+            Bukkit.getLogger().warning(e.toString());
         }
+    }
+
+    public static BufferedImage getBountyPoster() {
+        return bountyPoster;
+    }
+
+    public static BufferedImage getDeadBounty() {
+        return deadBounty;
+    }
+
+    /**
+     * Downscale a BufferedImage to the specified width and height.
+     * If the aspect ratio of the source image does not match the new dimensions,
+     * the image will be squished to fit.
+     *
+     * @param src         the source BufferedImage
+     * @param targetWidth the desired width
+     * @param targetHeight the desired height
+     * @return a new BufferedImage containing the downscaled image
+     */
+    public static BufferedImage downscale(BufferedImage src, int targetWidth, int targetHeight) {
+        // Create a new image with the target dimensions.
+        BufferedImage scaled = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+
+        // Get the Graphics2D context of the new image.
+        Graphics2D g2d = scaled.createGraphics();
+
+        // Set rendering hints for quality downscaling.
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Draw the original image into the new image, scaling it to fit the target dimensions.
+        g2d.drawImage(src, 0, 0, targetWidth, targetHeight, null);
+
+        // Dispose the graphics object to free resources.
+        g2d.dispose();
+
+        return scaled;
     }
 
     private static final List<String> posterFiles = Arrays.asList("bounty poster.png", "dead bounty.png", "mapdata.yml", "poster template.png", "READ_ME.txt", "playerfont.ttf", "Name Line.json", "Reward Line.json");
@@ -91,19 +139,6 @@ public class BountyMap implements Listener {
         if (deletedFiles > 0)
             Bukkit.getLogger().info("[NotBounties] Cleaned out " + deletedFiles + " poster templates.");
     }
-/*
-    @EventHandler
-    public void onMapInitialize(MapInitializeEvent event) {
-        MapView mapView = event.getMap();
-        if (mapIDs.containsKey(mapView.getId()) && ConfigOptions.postersEnabled) {
-            if (!mapView.isVirtual()) {
-                UUID uuid = mapIDs.get(mapView.getId());
-                mapView.setLocked(ConfigOptions.lockMap);
-                mapView.getRenderers().forEach(mapView::removeRenderer);
-                mapView.addRenderer(new Renderer(uuid));
-            }
-        }
-    }*/
 
     // method to initialize maps for 1.20.5 & update challenge for holding your own map
     @EventHandler

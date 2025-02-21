@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -68,7 +69,7 @@ public class BountyBoardTypeAdapter extends TypeAdapter<BountyBoard> {
     }
 
     @Override
-    public BountyBoard read(JsonReader jsonReader) throws IOException {
+    public @Nullable BountyBoard read(JsonReader jsonReader) throws IOException {
         if (jsonReader.peek() == JsonToken.NULL) {
             jsonReader.nextNull();
             return null;
@@ -89,6 +90,8 @@ public class BountyBoardTypeAdapter extends TypeAdapter<BountyBoard> {
             }
         }
         jsonReader.endObject();
+        if (location == null)
+            return null;
         return new BountyBoard(location, direction, rank);
     }
 }

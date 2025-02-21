@@ -89,7 +89,7 @@ public class Renderer extends MapRenderer {
 
     private void renderPoster(BufferedImage head, String name, boolean save) {
         if (image == null)
-            image = BountyMap.deepCopy(BountyMap.bountyPoster);
+            image = BountyMap.deepCopy(BountyMap.getBountyPoster());
         Graphics2D graphics = image.createGraphics();
         graphics.drawImage(head, 32, 32, null);
 
@@ -208,7 +208,7 @@ public class Renderer extends MapRenderer {
                     graphics.dispose();
                 }
                 if (currentCost == 0) {
-                    drawTransparentImage(28,28, BountyMap.deadBounty, canvas);
+                    drawTransparentImage(64 - BountyMap.getDeadBounty().getWidth() / 2,64 - BountyMap.getDeadBounty().getHeight() / 2, BountyMap.getDeadBounty(), canvas);
                 }
             }
         }

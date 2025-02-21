@@ -19,6 +19,7 @@ import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.external_api.LocalTime;
 import me.jadenp.notbounties.utils.external_api.MMOLibClass;
+import me.jadenp.notbounties.utils.external_api.WorldGuardClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -260,6 +261,20 @@ public class Events implements Listener {
         if (killer != null)
             claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
 
+    }
+
+    @EventHandler
+    public void onMove(PlayerMoveEvent event) {
+        if (!NotBounties.isPaused() && !event.isCancelled() && WorldGuardClass.isEnabled() && !WorldGuardClass.canMove(event.getPlayer(), event.getFrom(), event.getTo())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onTeleport(PlayerTeleportEvent event) {
+        if (!NotBounties.isPaused() && !event.isCancelled() && WorldGuardClass.isEnabled() && !WorldGuardClass.canTeleport(event.getPlayer(), event.getFrom(), event.getTo())) {
+            event.setCancelled(true);
+        }
     }
 
 }

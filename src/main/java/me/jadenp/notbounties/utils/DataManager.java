@@ -196,7 +196,11 @@ public class DataManager {
         reader.beginArray();
         BountyBoardTypeAdapter bountyBoardTypeAdapter = new BountyBoardTypeAdapter();
         while (reader.hasNext()) {
-            bountyBoards.add(bountyBoardTypeAdapter.read(reader));
+            BountyBoard bountyBoard = bountyBoardTypeAdapter.read(reader);
+            if (bountyBoard != null)
+                bountyBoards.add(bountyBoard);
+            else
+                Bukkit.getLogger().info("[NotBounties] Could not load a saved bounty board. (Location does not exist)");
         }
         reader.endArray();
 

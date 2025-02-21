@@ -57,6 +57,7 @@ public class LocalData extends NotBountiesDatabase {
         return playerStats.get(uuid);
     }
 
+
     @Override
     public Map<UUID, PlayerStat> getAllStats() {
         Map<UUID, PlayerStat> snapshot;
@@ -145,6 +146,10 @@ public class LocalData extends NotBountiesDatabase {
                 return bounty;
         }
         return null;
+    }
+
+    public @Nullable Bounty getOnlineBounty(UUID uuid) {
+        return onlineBounties.get(uuid);
     }
 
     @Override
