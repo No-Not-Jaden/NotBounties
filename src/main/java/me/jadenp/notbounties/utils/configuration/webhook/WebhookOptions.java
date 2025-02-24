@@ -107,8 +107,9 @@ public class WebhookOptions implements Listener {
                     UUID avatarUUID = webhook.isSwitchImages() ? receiver : player;
                     UUID imageUUID = webhook.isSwitchImages() ? player : receiver;
 
-                    // <TODO>If skin is loaded, check if UUID is online & use that link, or use username
-                    if ((!SkinManager.isSkinLoaded(avatarUUID) || !SkinManager.isSkinLoaded(imageUUID)) && maxRequests > 0) {
+                    boolean avatarLoaded = SkinManager.isSkinLoaded(avatarUUID);
+                    boolean imageLoaded = SkinManager.isSkinLoaded(imageUUID);
+                    if ((!avatarLoaded || !imageLoaded) && maxRequests > 0) {
                         // check if max requests hit
                         maxRequests--;
                         if (maxRequests <= 0) {
@@ -117,10 +118,25 @@ public class WebhookOptions implements Listener {
                         return;
                     }
                     this.cancel();
-                    String avatarTextureID = SkinManager.getSkin(avatarUUID).getId();
-                    String imageTextureID = SkinManager.getSkin(imageUUID).getId();
-                    String avatarURL = "https://mc-heads.net/head/" + avatarTextureID + ".png";
-                    String imageURL = "https://mc-heads.net/avatar/" + imageTextureID + "/128.png";
+                    String avatarIdentifier;
+                    if (avatarLoaded) {
+                        avatarIdentifier = SkinManager.getSkin(avatarUUID).getId();
+                    } else if (avatarUUID.version() == 4) {
+                        avatarIdentifier = avatarUUID.toString();
+                    } else {
+                        avatarIdentifier = LoggedPlayers.getPlayerName(avatarUUID);
+                    }
+                    String avatarURL = "https://mc-heads.net/head/" + avatarIdentifier + ".png";
+                    String imageIdentifier;
+                    if (imageLoaded) {
+                        imageIdentifier = SkinManager.getSkin(imageUUID).getId();
+                    } else if (imageUUID.version() == 4) {
+                        imageIdentifier = imageUUID.toString();
+                    } else {
+                        imageIdentifier = LoggedPlayers.getPlayerName(imageUUID);
+                    }
+                    String imageURL = "https://mc-heads.net/avatar/" + imageIdentifier + "/128.png";
+
                     if (sendEmbed) {
                         embed = new DiscordWebhook.EmbedObject()
                                 .setTitle(ChatColor.stripColor(LanguageOptions.parse(webhook.getTitle(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))))

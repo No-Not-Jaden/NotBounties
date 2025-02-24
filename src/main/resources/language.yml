@@ -151,6 +151,9 @@ skip-update: '&f&o&nClick to skip this update.'
 disable-update-notification: '&7&o&nClick to disable this notification.'
 edit-bounty-clickable: '&6To edit {receiver}''s bounty, &e&lClick this message &6and enter the amount to change. &7(e.g. 10, -500, or 10k)'
 edit-setter-clickable: '&6To edit {player}''s amount on {receiver}''s bounty, &e&lClick this message &6and enter the amount to change. &7(e.g. 10, -500, or 10k)'
+# These next 2 deny messages will not have a prefix when sent
+deny-entry: '&c&lHey! &7Sorry, but you cannot enter here with a bounty.'
+deny-exit: '&c&lHey! &7Sorry, but you cannot exit here with a bounty.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

@@ -4,6 +4,7 @@ import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.IntegerFlag;
 import com.sk89q.worldguard.protection.flags.StateFlag;
@@ -12,9 +13,14 @@ import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class WorldGuardClass {
     private static WorldGuard api = null;
@@ -27,6 +33,8 @@ public class WorldGuardClass {
     private static StateFlag bountyTeleportExit;
     private static boolean failedStartup = false;
     private static boolean enabled;
+    private static final Map<UUID, Long> lastMessages = new HashMap<>();
+    private static final long MESSAGE_INTERVAL_MS = 1000;
 
     public static void setEnabled(boolean enabled) {
         WorldGuardClass.enabled = enabled;
@@ -208,7 +216,7 @@ public class WorldGuardClass {
 
     public static boolean canMove(Player player, Location from, Location to) {
         // check if moved more than one block
-        if (from.getWorld() != null && from.getWorld().equals(to.getWorld()) && from.distance(to) > 1 && DataManager.getLocalData().getOnlineBounty(player.getUniqueId()) != null) {
+        if (from.getWorld() != null && from.getWorld().equals(to.getWorld()) && !from.getBlock().equals(to.getBlock()) && DataManager.getLocalData().getOnlineBounty(player.getUniqueId()) != null) {
             // query flags for the locations
             return canTranspose(player, from, to, false);
         }
@@ -233,15 +241,27 @@ public class WorldGuardClass {
      * @return True if the player can move.
      */
     private static boolean canTranspose(Player player, Location from, Location to, boolean teleport) {
-        RegionContainer container = WorldGuard.getInstance().getPlatform().getRegionContainer();
-        RegionQuery query = container.createQuery();
-        LocalPlayer localPlayer = WorldGuardPlugin.inst().wrapPlayer(player);
         com.sk89q.worldedit.util.Location fromLocation = BukkitAdapter.adapt(from);
         com.sk89q.worldedit.util.Location toLocation = BukkitAdapter.adapt(to);
+        RegionContainer container = WorldGuard.getInstance().getPlatform().getRegionContainer();
+        RegionQuery query = container.createQuery();
+
+        LocalPlayer localPlayer = WorldGuardPlugin.inst().wrapPlayer(player);
+
         StateFlag exitFlag = teleport ? bountyTeleportExit : bountyExit;
         StateFlag entryFlag = teleport ? bountyTeleportEntry : bountyEntry;
-        return query.testState(fromLocation, localPlayer, exitFlag)
-                && query.testState(toLocation, localPlayer, entryFlag);
+        boolean denyExit = !query.testState(fromLocation, localPlayer, exitFlag) && query.testState(toLocation, localPlayer, exitFlag);
+        boolean denyEntry = !query.testState(toLocation, localPlayer, entryFlag) && query.testState(fromLocation, localPlayer, entryFlag);
+        if (!lastMessages.containsKey(player.getUniqueId()) || System.currentTimeMillis() - lastMessages.get(player.getUniqueId()) > MESSAGE_INTERVAL_MS) {
+            if (denyEntry) {
+                player.sendMessage(LanguageOptions.parse(LanguageOptions.getMessage("deny-entry"), player));
+                lastMessages.put(player.getUniqueId(), System.currentTimeMillis());
+            } else if (denyExit) {
+                player.sendMessage(LanguageOptions.parse(LanguageOptions.getMessage("deny-exit"), player));
+                lastMessages.put(player.getUniqueId(), System.currentTimeMillis());
+            }
+        }
+        return !denyExit && !denyEntry;
     }
 
     public static boolean canClaim(Player player, Location claimLocation) {

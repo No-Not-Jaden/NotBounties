@@ -905,6 +905,7 @@ public class DataManager {
     public static void login(@NotNull Player player) {
         for (AsyncDatabaseWrapper database : databases)
             database.login(player.getUniqueId(), player.getName());
+        localData.login(player.getUniqueId(), player.getName());
     }
 
     public static void logout(@NotNull Player player) {

@@ -316,8 +316,9 @@ public class LocalData extends NotBountiesDatabase {
     public void login(UUID uuid, String playerName) {
         // This data is local, so bukkit methods can be used to retrieve status
         Bounty bounty = getBounty(uuid);
-        if (bounty != null)
+        if (bounty != null) {
             onlineBounties.put(uuid, bounty);
+        }
     }
 
     @Override
