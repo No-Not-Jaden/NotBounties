@@ -143,7 +143,8 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
             if (uuid != null)
                 playerStatMap.put(uuid, new PlayerStat(msgIn.readUTF()));
         }
-        DataManager.connectProxy(bounties, playerStatMap);
+        if (ProxyDatabase.isDatabaseSynchronization())
+            DataManager.connectProxy(bounties, playerStatMap);
     }
 
     private void receivePlayerSkin(DataInputStream msgIn) throws IOException, URISyntaxException {
@@ -183,11 +184,13 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         for (short i = 0; i < numBounties; i++) {
             BountyChange.ChangeType changeType = BountyChange.ChangeType.valueOf(msgIn.readUTF());
             Bounty bounty = new Bounty(msgIn.readUTF());
-            switch (changeType) {
-                case ADD_BOUNTY -> localData.addBounty(bounty);
-                case DELETE_BOUNTY -> localData.removeBounty(bounty);
-                case NOTIFY -> localData.notifyBounty(bounty.getUUID());
-                case REPLACE_BOUNTY -> localData.replaceBounty(bounty.getUUID(), bounty);
+            if (ProxyDatabase.isDatabaseSynchronization()) {
+                switch (changeType) {
+                    case ADD_BOUNTY -> localData.addBounty(bounty);
+                    case DELETE_BOUNTY -> localData.removeBounty(bounty);
+                    case NOTIFY -> localData.notifyBounty(bounty.getUUID());
+                    case REPLACE_BOUNTY -> localData.replaceBounty(bounty.getUUID(), bounty);
+                }
             }
         }
     }
@@ -204,7 +207,8 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         for (short i = 0; i < numStats; i++) {
             UUID uuid = UUID.fromString(msgIn.readUTF());
             PlayerStat playerStat = new PlayerStat(msgIn.readUTF());
-            localData.addStats(uuid, playerStat);
+            if (ProxyDatabase.isDatabaseSynchronization())
+                localData.addStats(uuid, playerStat);
         }
     }
 

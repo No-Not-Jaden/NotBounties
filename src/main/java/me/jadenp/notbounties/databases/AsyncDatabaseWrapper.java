@@ -117,8 +117,7 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
      * @param databaseStats Stats in the database.
      */
     public void updateData(List<Bounty> databaseBounties, Map<UUID, PlayerStat> databaseStats) {
-
-        NotBounties.debugMessage("Receiving " + database.getName() + " data.", false);
+        NotBounties.debugMessage("(Scheduled) Synchronizing database \"" + database.getName() + "\" with " + databaseBounties.size() + " bounties and "  + databaseStats.size() + " stat records.", false);
         LocalData localData = DataManager.getLocalData();
         localData.setStats(databaseStats);
 
@@ -135,6 +134,8 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
         // these should be empty because databases should be updated immediately on a change.
         addBounty(localAdded);
         removeBounty(localRemoved);
+
+        NotBounties.debugMessage("Since last sync: databaseAdded=" + databaseAdded.size() + " databaseRemoved=" + databaseRemoved.size() + " localAdded=" + localAdded.size() + " localRemoved=" + localRemoved.size(), false);
 
         database.setLastSync(System.currentTimeMillis());
 

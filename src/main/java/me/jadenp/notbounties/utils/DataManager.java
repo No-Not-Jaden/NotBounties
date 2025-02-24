@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
@@ -1109,6 +1108,7 @@ public class DataManager {
     }
 
     private static void syncDatabase(NotBountiesDatabase database, List<Bounty> databaseBounties, Map<UUID, PlayerStat> databaseStats) {
+        NotBounties.debugMessage("Synchronizing database \"" + database.getName() + "\" with " + databaseBounties.size() + " bounties and "  + databaseStats.size() + " stat records.", false);
         AsyncDatabaseWrapper databaseWrapper = null;
         for (AsyncDatabaseWrapper asyncDatabaseWrapper : databases) {
             if (asyncDatabaseWrapper.getName().equals(database.getName())) {

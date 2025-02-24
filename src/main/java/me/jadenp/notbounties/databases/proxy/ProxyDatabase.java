@@ -37,6 +37,9 @@ public class ProxyDatabase extends NotBountiesDatabase {
     private static boolean skins = false;
     private static boolean registeredListener = false;
 
+    public static boolean isDatabaseSynchronization() {
+        return databaseSynchronization;
+    }
 
     public ProxyDatabase(Plugin plugin, String name) {
         super(plugin, name);

@@ -104,7 +104,7 @@ public class BountyManager {
             refundBounty(new Bounty(setter, receiver, amount + amount * bountyTax + bountyWhitelistCost * whitelist.getList().size(), items, whitelist));
             return;
         }
-        // unlock recipies
+        // unlock recipes
         if (!setter.hasDiscoveredRecipe(BountyTracker.getBountyTrackerRecipe()))
             setter.discoverRecipe(BountyTracker.getBountyTrackerRecipe());
 
