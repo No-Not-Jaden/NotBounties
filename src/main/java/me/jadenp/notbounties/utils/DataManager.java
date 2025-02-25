@@ -18,6 +18,7 @@ import me.jadenp.notbounties.ui.map.BountyBoard;
 import me.jadenp.notbounties.ui.map.BountyBoardTypeAdapter;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.BigBounty;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.Immunity;
 import me.jadenp.notbounties.data.RewardHead;
 import me.jadenp.notbounties.utils.configuration.WantedTags;
@@ -1007,7 +1008,7 @@ public class DataManager {
             WantedTags.removeWantedTag(bounty.getUUID());
             NotBounties.debugMessage("Removed wanted tag.", false);
         }
-        if (MMOLibClass.isMmoLibEnabled()) {
+        if (ConfigOptions.isMmoLibEnabled()) {
             Player player = Bukkit.getPlayer(bountyCopy.getUUID());
             if (player != null) {
                 MMOLibClass.removeStats(player);

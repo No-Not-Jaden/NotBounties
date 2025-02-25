@@ -19,13 +19,12 @@ import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.external_api.LocalTime;
 import me.jadenp.notbounties.utils.external_api.MMOLibClass;
-import me.jadenp.notbounties.utils.external_api.WorldGuardClass;
+import me.jadenp.notbounties.utils.external_api.worldguard.WorldGuardClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -33,11 +32,14 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityMountEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -58,7 +60,7 @@ public class Events implements Listener {
         BigBounty.removeParticle(event.getPlayer().getUniqueId());
         WantedTags.removeWantedTag(event.getPlayer().getUniqueId());
 
-        if (MMOLibClass.isMmoLibEnabled())
+        if (ConfigOptions.isMmoLibEnabled())
             MMOLibClass.removeStats(event.getPlayer());
 
         RandomBounties.logout(event.getPlayer());
@@ -189,7 +191,7 @@ public class Events implements Listener {
                 WantedTags.addWantedTag(event.getPlayer());
             }
 
-            if (MMOLibClass.isMmoLibEnabled())
+            if (ConfigOptions.isMmoLibEnabled())
                 MMOLibClass.addStats(event.getPlayer(), bounty.getTotalDisplayBounty());
         }
 
@@ -261,20 +263,6 @@ public class Events implements Listener {
         if (killer != null)
             claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
 
-    }
-
-    @EventHandler
-    public void onMove(PlayerMoveEvent event) {
-        if (!NotBounties.isPaused() && !event.isCancelled() && WorldGuardClass.isEnabled() && !WorldGuardClass.canMove(event.getPlayer(), event.getFrom(), event.getTo())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onTeleport(PlayerTeleportEvent event) {
-        if (!NotBounties.isPaused() && !event.isCancelled() && WorldGuardClass.isEnabled() && !WorldGuardClass.canTeleport(event.getPlayer(), event.getFrom(), event.getTo())) {
-            event.setCancelled(true);
-        }
     }
 
 }

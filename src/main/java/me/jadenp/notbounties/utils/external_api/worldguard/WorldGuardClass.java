@@ -1,10 +1,9 @@
-package me.jadenp.notbounties.utils.external_api;
+package me.jadenp.notbounties.utils.external_api.worldguard;
 
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
-import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.IntegerFlag;
 import com.sk89q.worldguard.protection.flags.StateFlag;
@@ -12,11 +11,15 @@ import com.sk89q.worldguard.protection.flags.registry.FlagConflictException;
 import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
+import com.sk89q.worldguard.session.SessionManager;
+import com.sk89q.worldguard.session.handler.ExitFlag;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,34 +32,25 @@ public class WorldGuardClass {
     private static IntegerFlag bountyCombatLogTime;
     private static StateFlag bountyEntry;
     private static StateFlag bountyExit;
-    private static StateFlag bountyTeleportEntry;
     private static StateFlag bountyTeleportExit;
     private static boolean failedStartup = false;
-    private static boolean enabled;
-    private static final Map<UUID, Long> lastMessages = new HashMap<>();
-    private static final long MESSAGE_INTERVAL_MS = 1000;
-
-    public static void setEnabled(boolean enabled) {
-        WorldGuardClass.enabled = enabled;
-        if (enabled && api == null) {
-            api = WorldGuard.getInstance();
-        }
-    }
-
-    public static boolean isEnabled() {
-        return enabled;
-    }
 
     private WorldGuardClass() {}
 
     public static void registerFlags() {
+        api = WorldGuard.getInstance();
         registerClaimFlag();
         registerCombatLogFlag();
         registerPVPRuleFlag();
         registerBountyEntryFlag();
         registerBountyExitFlag();
-        registerBountyTeleportEntryFlag();
         registerBountyTeleportExitFlag();
+    }
+
+    public static void registerHandlers() {
+        SessionManager sessionManager = api.getPlatform().getSessionManager();
+        sessionManager.registerHandler(BountyEntryFlag.FACTORY, null);
+        sessionManager.registerHandler(BountyExitFlag.FACTORY, null);
     }
 
     private static void registerBountyEntryFlag() {
@@ -98,28 +92,6 @@ public class WorldGuardClass {
                 // types don't match - this is bad news! some other plugin conflicts with you
                 // hopefully this never actually happens
                 Bukkit.getLogger().warning("[NotBounties] Another plugin is using the same WorldGuard flag \"bounty-exit\", but with a different data type!");
-                failedStartup = true;
-            }
-        }
-    }
-
-    private static void registerBountyTeleportEntryFlag() {
-        FlagRegistry registry = api.getFlagRegistry();
-        try {
-            // create a flag, defaulting to true
-            StateFlag flag = new StateFlag("bounty-teleport-entry", true);
-            registry.register(flag);
-            bountyTeleportEntry = flag; // only set our field if there was no error
-        } catch (FlagConflictException e) {
-            // some other plugin registered a flag by the same name already.
-            // you can use the existing flag, but this may cause conflicts - be sure to check type
-            Flag<?> existing = registry.get("bounty-teleport-entry");
-            if (existing instanceof StateFlag stateFlag) {
-                bountyTeleportEntry = stateFlag;
-            } else {
-                // types don't match - this is bad news! some other plugin conflicts with you
-                // hopefully this never actually happens
-                Bukkit.getLogger().warning("[NotBounties] Another plugin is using the same WorldGuard flag \"bounty-teleport-entry\", but with a different data type!");
                 failedStartup = true;
             }
         }
@@ -214,56 +186,6 @@ public class WorldGuardClass {
         }
     }
 
-    public static boolean canMove(Player player, Location from, Location to) {
-        // check if moved more than one block
-        if (from.getWorld() != null && from.getWorld().equals(to.getWorld()) && !from.getBlock().equals(to.getBlock()) && DataManager.getLocalData().getOnlineBounty(player.getUniqueId()) != null) {
-            // query flags for the locations
-            return canTranspose(player, from, to, false);
-        }
-        return true;
-    }
-
-    public static boolean canTeleport(Player player, Location from, Location to) {
-        // check if moved more than one block
-        if (from.getWorld() != null && to.getWorld() != null && DataManager.getLocalData().getOnlineBounty(player.getUniqueId()) != null) {
-            // query flags for the locations
-            return canTranspose(player, from, to, true);
-        }
-        return true;
-    }
-
-    /**
-     * Check if a bountied player can move between locations.
-     * @param player Player that is moving.
-     * @param from The location that the player is moving from.
-     * @param to The location that the player is moving to.
-     * @param teleport Whether the player is teleporting to that location.
-     * @return True if the player can move.
-     */
-    private static boolean canTranspose(Player player, Location from, Location to, boolean teleport) {
-        com.sk89q.worldedit.util.Location fromLocation = BukkitAdapter.adapt(from);
-        com.sk89q.worldedit.util.Location toLocation = BukkitAdapter.adapt(to);
-        RegionContainer container = WorldGuard.getInstance().getPlatform().getRegionContainer();
-        RegionQuery query = container.createQuery();
-
-        LocalPlayer localPlayer = WorldGuardPlugin.inst().wrapPlayer(player);
-
-        StateFlag exitFlag = teleport ? bountyTeleportExit : bountyExit;
-        StateFlag entryFlag = teleport ? bountyTeleportEntry : bountyEntry;
-        boolean denyExit = !query.testState(fromLocation, localPlayer, exitFlag) && query.testState(toLocation, localPlayer, exitFlag);
-        boolean denyEntry = !query.testState(toLocation, localPlayer, entryFlag) && query.testState(fromLocation, localPlayer, entryFlag);
-        if (!lastMessages.containsKey(player.getUniqueId()) || System.currentTimeMillis() - lastMessages.get(player.getUniqueId()) > MESSAGE_INTERVAL_MS) {
-            if (denyEntry) {
-                player.sendMessage(LanguageOptions.parse(LanguageOptions.getMessage("deny-entry"), player));
-                lastMessages.put(player.getUniqueId(), System.currentTimeMillis());
-            } else if (denyExit) {
-                player.sendMessage(LanguageOptions.parse(LanguageOptions.getMessage("deny-exit"), player));
-                lastMessages.put(player.getUniqueId(), System.currentTimeMillis());
-            }
-        }
-        return !denyExit && !denyEntry;
-    }
-
     public static boolean canClaim(Player player, Location claimLocation) {
         if (failedStartup)
             return true;
@@ -308,4 +230,17 @@ public class WorldGuardClass {
             return -1;
         return value;
     }
+
+    public static StateFlag getBountyEntry() {
+        return bountyEntry;
+    }
+
+    public static StateFlag getBountyExit() {
+        return bountyExit;
+    }
+
+    public static StateFlag getBountyTeleportExit() {
+        return bountyTeleportExit;
+    }
 }
+

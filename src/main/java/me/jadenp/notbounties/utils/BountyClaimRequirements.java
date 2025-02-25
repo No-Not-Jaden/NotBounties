@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.external_api.*;
+import me.jadenp.notbounties.utils.external_api.worldguard.WorldGuardClass;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -126,7 +128,7 @@ public class BountyClaimRequirements {
             if (placeholderAPIClass.parse(player, teamsPlaceholder).equals(placeholderAPIClass.parse(killer, teamsPlaceholder)))
                 return false;
         }
-        if (WorldGuardClass.isEnabled()) {
+        if (ConfigOptions.isWorldGuardEnabled()) {
             if (!WorldGuardClass.canClaim(killer, player.getLocation()))
                 return false;
         }

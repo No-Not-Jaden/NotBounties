@@ -7,6 +7,7 @@ import io.lumine.mythic.lib.api.stat.modifier.StatModifier;
 import io.lumine.mythic.lib.player.modifier.ModifierType;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -18,7 +19,6 @@ import java.util.List;
 import java.util.Objects;
 
 public class MMOLibClass implements Listener {
-    private static boolean mmoLibEnabled;
     private static boolean enabled;
     private static final List<BountyStatModifier> modifiers = new ArrayList<>();
     private static final String NOTBOUNTIES_STAT_KEY = "NotBounties";
@@ -28,7 +28,7 @@ public class MMOLibClass implements Listener {
     public static void loadConfiguration(ConfigurationSection configuration) {
         removeAllModifiers();
 
-        enabled = configuration.getBoolean("enabled") && mmoLibEnabled;
+        enabled = configuration.getBoolean("enabled") && ConfigOptions.isMmoLibEnabled();
         modifiers.clear();
         for (String key : configuration.getKeys(false)) {
             if (configuration.isConfigurationSection(key))
@@ -44,7 +44,7 @@ public class MMOLibClass implements Listener {
     }
 
     public static void removeAllModifiers() {
-        if (mmoLibEnabled) {
+        if (ConfigOptions.isMmoLibEnabled()) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 MMOPlayerData playerData = MMOPlayerData.get(player);
                 StatMap statMap = playerData.getStatMap();
@@ -53,14 +53,6 @@ public class MMOLibClass implements Listener {
                 }
             }
         }
-    }
-
-    public static void setMmoLibEnabled(boolean mmoLibEnabled) {
-        MMOLibClass.mmoLibEnabled = mmoLibEnabled;
-    }
-
-    public static boolean isMmoLibEnabled() {
-        return mmoLibEnabled;
     }
 
     public static void addStats(Player player, double bountyAmount) {

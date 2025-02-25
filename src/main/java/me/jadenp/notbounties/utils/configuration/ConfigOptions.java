@@ -20,7 +20,6 @@ import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.external_api.MMOLibClass;
 import me.jadenp.notbounties.utils.external_api.SkinsRestorerClass;
-import me.jadenp.notbounties.utils.external_api.WorldGuardClass;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;
@@ -116,6 +115,8 @@ public class ConfigOptions {
     public static int maxTabCompletePlayers;
     public static int autoSaveInterval;
     public static double maxBounty;
+    private static boolean worldGuardEnabled;
+    private static boolean mmoLibEnabled;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -126,7 +127,7 @@ public class ConfigOptions {
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
         floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
         geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
-        MMOLibClass.setMmoLibEnabled(Bukkit.getPluginManager().isPluginEnabled("MythicLib"));
+        mmoLibEnabled = Bukkit.getPluginManager().isPluginEnabled("MythicLib");
 
         if (skinsRestorerEnabled)
             skinsRestorerClass = new SkinsRestorerClass();
@@ -340,7 +341,7 @@ public class ConfigOptions {
         GUIClicks.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-gui-clicks")));
         DataManager.loadDatabaseConfig(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("databases")));
         WantedTags.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("wanted-tag")));
-        if (MMOLibClass.isMmoLibEnabled())
+        if (ConfigOptions.isMmoLibEnabled())
             MMOLibClass.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("MMOLib")));
 
         if (!firstStart) {
@@ -728,4 +729,17 @@ public class ConfigOptions {
     public static boolean isOfflineSet() {
         return offlineSet;
     }
+
+    public static void setWorldGuardEnabled(boolean worldGuardEnabled) {
+        ConfigOptions.worldGuardEnabled = worldGuardEnabled;
+    }
+
+    public static boolean isWorldGuardEnabled() {
+        return worldGuardEnabled;
+    }
+
+    public static boolean isMmoLibEnabled() {
+        return mmoLibEnabled;
+    }
+
 }

@@ -114,7 +114,7 @@ public class BountyManager {
         DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount);
         Bounty bounty = DataManager.insertBounty(setter, receiver, amount, items, whitelist);
 
-        if (MMOLibClass.isMmoLibEnabled() && receiver.isOnline()) {
+        if (ConfigOptions.isMmoLibEnabled() && receiver.isOnline()) {
             MMOLibClass.removeStats(receiver.getPlayer());
             MMOLibClass.addStats(receiver.getPlayer(), displayAmount);
         }
@@ -195,7 +195,7 @@ public class BountyManager {
         DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount);
         Bounty bounty = DataManager.insertBounty(null, receiver, amount, items, whitelist);
 
-        if (MMOLibClass.isMmoLibEnabled() && receiver.isOnline()) {
+        if (ConfigOptions.isMmoLibEnabled() && receiver.isOnline()) {
             MMOLibClass.removeStats(receiver.getPlayer());
             MMOLibClass.addStats(receiver.getPlayer(), displayAmount);
         }
@@ -318,7 +318,7 @@ public class BountyManager {
         BountyTracker.stopTracking(uuid);
         for (Player player : Bukkit.getOnlinePlayers()) {
             BountyTracker.removeTracker(player);
-            if (player.getUniqueId().equals(uuid) && MMOLibClass.isMmoLibEnabled()) {
+            if (player.getUniqueId().equals(uuid) && ConfigOptions.isMmoLibEnabled()) {
                 MMOLibClass.removeStats(player);
             }
         }

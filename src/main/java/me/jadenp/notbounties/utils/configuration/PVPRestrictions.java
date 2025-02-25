@@ -2,10 +2,9 @@ package me.jadenp.notbounties.utils.configuration;
 
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.PVPHistory;
-import me.jadenp.notbounties.utils.BountyClaimRequirements;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.external_api.LocalTime;
-import me.jadenp.notbounties.utils.external_api.WorldGuardClass;
+import me.jadenp.notbounties.utils.external_api.worldguard.WorldGuardClass;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -58,7 +57,7 @@ public class PVPRestrictions implements Listener {
 
 
     private void controlPVP(Player player, Player damager, Cancellable event) {
-        int localPVPRule = WorldGuardClass.isEnabled() ? WorldGuardClass.getPVPRuleOverride(damager, player.getLocation()) : -1;
+        int localPVPRule = ConfigOptions.isWorldGuardEnabled() ? WorldGuardClass.getPVPRuleOverride(damager, player.getLocation()) : -1;
 
         if (localPVPRule == -1 && (!worlds.contains(player.getWorld().getName()) && !worlds.isEmpty()))
             return;
@@ -111,7 +110,7 @@ public class PVPRestrictions implements Listener {
     }
 
     public static void checkCombatExpiry() {
-        if (combatLoggingTime < 1 && !WorldGuardClass.isEnabled()) // optimization return
+        if (combatLoggingTime < 1 && !ConfigOptions.isWorldGuardEnabled()) // optimization return
             return;
         Iterator<Map.Entry<UUID, PVPHistory>> iterator = historyMap.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -140,7 +139,7 @@ public class PVPRestrictions implements Listener {
         Player onlinePlayer = player.getPlayer();
         if (onlinePlayer == null)
             return 0; // offline player should never have a combat logging time because they already combat logged
-        if (player.isOnline() && WorldGuardClass.isEnabled()) {
+        if (player.isOnline() && ConfigOptions.isWorldGuardEnabled()) {
             int value = WorldGuardClass.getCombatLogOverride(player.getPlayer(), onlinePlayer.getLocation());
             if (value != -1)
                 return value;
@@ -158,7 +157,7 @@ public class PVPRestrictions implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         if (NotBounties.isPaused())
             return;
-        int localCombatLoggingTime = WorldGuardClass.isEnabled() ? WorldGuardClass.getCombatLogOverride(event.getPlayer(), event.getPlayer().getLocation()) : -1;
+        int localCombatLoggingTime = ConfigOptions.isWorldGuardEnabled() ? WorldGuardClass.getCombatLogOverride(event.getPlayer(), event.getPlayer().getLocation()) : -1;
         if ((combatLoggingTime < 1 && localCombatLoggingTime == -1) || localCombatLoggingTime == 0)
             return;
         if (localCombatLoggingTime == -1 && (!worlds.contains(event.getPlayer().getWorld().getName()) && !worlds.isEmpty()))
@@ -182,7 +181,7 @@ public class PVPRestrictions implements Listener {
 
     public static void onBountyClaim(Player receiver) {
         // send safe message if player has combat timer
-        int localCombatLoggingTime = WorldGuardClass.isEnabled() ? WorldGuardClass.getCombatLogOverride(receiver, receiver.getLocation()) : -1;
+        int localCombatLoggingTime = ConfigOptions.isWorldGuardEnabled() ? WorldGuardClass.getCombatLogOverride(receiver, receiver.getLocation()) : -1;
         if ((combatLoggingTime < 1 && localCombatLoggingTime == -1) || localCombatLoggingTime == 0)
             return;
         if (localCombatLoggingTime == -1 && (!worlds.contains(receiver.getWorld().getName()) && !worlds.isEmpty()))

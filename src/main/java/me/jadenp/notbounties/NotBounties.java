@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import com.google.common.io.Files;
 import com.google.gson.stream.JsonWriter;
+import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
 import me.jadenp.notbounties.ui.BountyTracker;
@@ -23,6 +24,7 @@ import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
 import me.jadenp.notbounties.utils.external_api.*;
 import me.jadenp.notbounties.utils.external_api.bedrock.FloodGateClass;
 import me.jadenp.notbounties.utils.external_api.bedrock.GeyserMCClass;
+import me.jadenp.notbounties.utils.external_api.worldguard.WorldGuardClass;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -91,8 +93,8 @@ public final class NotBounties extends JavaPlugin {
     public void onLoad() {
         setInstance(this);
         // register api flags
-        WorldGuardClass.setEnabled(getServer().getPluginManager().getPlugin("WorldGuard") != null);
-        if (WorldGuardClass.isEnabled()) {
+        ConfigOptions.setWorldGuardEnabled(getServer().getPluginManager().getPlugin("WorldGuard") != null);
+        if (ConfigOptions.isWorldGuardEnabled()) {
             WorldGuardClass.registerFlags();
         }
         if (getServer().getPluginManager().getPlugin("Lands") != null)
@@ -182,6 +184,9 @@ public final class NotBounties extends JavaPlugin {
         for (Player player : Bukkit.getOnlinePlayers()) {
             Events.login(player);
         }
+
+        if (ConfigOptions.isWorldGuardEnabled())
+            WorldGuardClass.registerHandlers();
 
         // update checker
         if (!ConfigOptions.getUpdateNotification().equalsIgnoreCase("false")) {
@@ -602,7 +607,7 @@ public final class NotBounties extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        if (MMOLibClass.isMmoLibEnabled())
+        if (ConfigOptions.isMmoLibEnabled())
             MMOLibClass.removeAllModifiers();
         SkinManager.shutdown();
         DataManager.shutdown();
@@ -665,11 +670,11 @@ public final class NotBounties extends JavaPlugin {
         String kingdoms = BountyClaimRequirements.isKingdomsXEnabled()
                 ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
         String lands = BountyClaimRequirements.isLandsEnabled() ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
-        String worldGuard = WorldGuardClass.isEnabled()
+        String worldGuard = ConfigOptions.isWorldGuardEnabled()
                 ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
         String superiorSkyblock2 = BountyClaimRequirements.isSuperiorSkyblockEnabled()
                 ? ChatColor.GREEN + "SuperiorSkyblock2" : ChatColor.RED + "SuperiorSkyblock2";
-        String mMOLib = MMOLibClass.isMmoLibEnabled() ? ChatColor.GREEN + "MMOLib" : ChatColor.RED + "MMOLib";
+        String mMOLib = ConfigOptions.isMmoLibEnabled() ? ChatColor.GREEN + "MMOLib" : ChatColor.RED + "MMOLib";
         sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "["
                 + vault + ChatColor.GRAY + "|"
                 + papi + ChatColor.GRAY + "|"
