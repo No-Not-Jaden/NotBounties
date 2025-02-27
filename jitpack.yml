@@ -1,5 +1,5 @@
 jdk:
   - openjdk17
 install:
-  - mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
-  - ./mvnw install -DskipTests=true
+  - 'mvn -N io.takari:maven:wrapper -Dmaven=3.6.3'
+  - './mvnw install -DskipTests=true'
