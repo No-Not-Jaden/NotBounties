@@ -408,6 +408,7 @@ public class LanguageOptions {
             str = str.replace("{mode_raw}", mode);
             String notification = playerData.isDisableBroadcast() ? "false" : "true";
             str = str.replace("{notification}", notification);
+            str = str.replace("{immunity}", NumberFormatting.formatNumber(Immunity.getImmunity(receiver.getUniqueId())));
             // {whitelist2} turns into the name of the second player in the receiver's whitelist
             while (str.contains("{whitelist") && str.substring(str.indexOf("{whitelist")).contains("}")) {
                 int num;

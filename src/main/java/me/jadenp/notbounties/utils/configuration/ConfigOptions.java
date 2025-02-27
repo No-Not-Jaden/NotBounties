@@ -628,65 +628,25 @@ public class ConfigOptions {
             guiChanges = true;
         }
         if (!guiConfig.isSet("bounty-item-select")) {
-            guiConfig.set("bounty-item-select.size", 54);
-            guiConfig.set("bounty-item-select.gui-name", "&d&lSelect &9&lBounty Items");
-            guiConfig.set("bounty-item-select.add-page", false);
-            guiConfig.set("bounty-item-select.remove-page-items", true);
-            guiConfig.set("bounty-item-select.player-slots", Arrays.asList("40", "0-35"));
-            guiConfig.set("bounty-item-select.layout.1.item", "fill");
-            guiConfig.set("bounty-item-select.layout.1.slot", "36-53");
-            guiConfig.set("bounty-item-select.layout.2.item", "next");
-            guiConfig.set("bounty-item-select.layout.2.slot", "44");
-            guiConfig.set("bounty-item-select.layout.3.item", "back");
-            guiConfig.set("bounty-item-select.layout.3.slot", "36");
-            guiConfig.set("bounty-item-select.layout.4.item", "return-set-bounty");
-            guiConfig.set("bounty-item-select.layout.4.slot", "49");
-            guiConfig.set("bounty-item-select.layout.5.item", "yes-bounty-item");
-            guiConfig.set("bounty-item-select.layout.5.slot", "51-53");
-            guiConfig.set("bounty-item-select.layout.6.item", "cancel");
-            guiConfig.set("bounty-item-select.layout.6.slot", "45-47");
-            guiConfig.set("bounty-item-select.head-name", "&eTax: &a{tax}");
-            guiConfig.set("bounty-item-select.head-lore", Arrays.asList("&7&oYou will be required to pay", "&7&othis amount in tax.", "", "&7{player}", ""));
-            guiConfig.set("custom-items.yes-bounty-item.material", "LIME_STAINED_GLASS_PANE");
-            guiConfig.set("custom-items.yes-bounty-item.amount", 1);
-            guiConfig.set("custom-items.yes-bounty-item.name", "&a&lSet Bounty");
-            guiConfig.set("custom-items.yes-bounty-item.commands", Arrays.asList("[p] notbounties {data} --confirm", "[close]"));
-            guiConfig.set("custom-items.cancel.material", "RED_STAINED_GLASS_PANE");
-            guiConfig.set("custom-items.cancel.amount", 1);
-            guiConfig.set("custom-items.cancel.name", "&c&lCancel");
-            guiConfig.set("custom-items.cancel.commands", Collections.singletonList("[p] notbounties"));
+            saveConfigurationSection("gui.yml", guiConfig, "bounty-item-select");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.yes-bounty-item");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.cancel");
             guiChanges = true;
         }
         if (!guiConfig.isSet("challenges")) {
-            guiConfig.set("challenges.size", 27);
-            guiConfig.set("challenges.gui-name", "&c&lChallenges");
-            guiConfig.set("challenges.player-slots", Arrays.asList("11", "13", "15"));
-            guiConfig.set("challenges.layout.1.item", "fill");
-            guiConfig.set("challenges.layout.1.slot", "0-26");
-            guiConfig.set("challenges.layout.2.item", "return");
-            guiConfig.set("challenges.layout.2.slot", "26");
+            saveConfigurationSection("gui.yml", guiConfig, "challenges");
             guiChanges = true;
         }
         if (!guiConfig.isSet("view-bounty")) {
-            guiConfig.set("view-bounty.size", 54);
-            guiConfig.set("view-bounty.gui-name", "&d&l{player}'s &9&lBounty: &2{amount}");
-            guiConfig.set("view-bounty.remove-page-items", true);
-            guiConfig.set("view-bounty.add-page", false);
-            guiConfig.set("view-bounty.player-slots", List.of("0-44"));
-            guiConfig.set("view-bounty.head-name", "&e&l{player}");
-            guiConfig.set("view-bounty.head-lore", Arrays.asList("", "&6Contribution: {amount}", ""));
-            guiConfig.set("view-bounty.layout.1.item", "fill");
-            guiConfig.set("view-bounty.layout.1.slot", "45-53");
-            guiConfig.set("view-bounty.layout.2.item", "return");
-            guiConfig.set("view-bounty.layout.2.slot", "49");
-            guiConfig.set("view-bounty.layout.3.item", "back");
-            guiConfig.set("view-bounty.layout.3.slot", "45");
-            guiConfig.set("view-bounty.layout.4.item", "next");
-            guiConfig.set("view-bounty.layout.4.slot", "53");
-            guiConfig.set("custom-items.general-currency-item.material", "SUNFLOWER");
-            guiConfig.set("custom-items.general-currency-item.name", "{amount}");
-            guiConfig.set("custom-items.general-currency-item.enchanted", true);
-            guiConfig.set("custom-items.general-currency-item.hide-nbt", true);
+            saveConfigurationSection("gui.yml", guiConfig, "view-bounty");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.general-currency-item");
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("confirm-remove-immunity")) {
+            saveConfigurationSection("gui.yml", guiConfig, "confirm-remove-immunity");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.remove-immunity");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.yes-remove-immunity");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.no-setting");
             guiChanges = true;
         }
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
@@ -696,6 +656,22 @@ public class ConfigOptions {
         for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)) {
             CustomItem customItem = new CustomItem(Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items." + key)));
             customItems.put(key, customItem);
+        }
+    }
+
+    /**
+     * Saves the default configuration section from a resource to a YamlConfiguration.
+     * @param resourceName The resource to obtain the defaults from.
+     * @param configuration The configuration to save the defaults to.
+     * @param section The section to be saved.
+     */
+    public static void saveConfigurationSection(String resourceName, YamlConfiguration configuration, String section) {
+        if (NotBounties.getInstance().getResource(resourceName) != null) {
+            YamlConfiguration resourceConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource(resourceName))));
+            if (resourceConfig.isConfigurationSection(section))
+                for (String key : Objects.requireNonNull(resourceConfig.getConfigurationSection(section)).getKeys(true)) {
+                    configuration.set(section + "." + key, resourceConfig.get(section + "." + key));
+                }
         }
     }
 

@@ -18,6 +18,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.geysermc.cumulus.component.impl.DropdownComponentImpl;
 import org.geysermc.cumulus.form.CustomForm;

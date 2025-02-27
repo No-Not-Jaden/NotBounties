@@ -4,6 +4,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.display_items.DisplayItem;
+import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -18,17 +19,18 @@ public class BedrockGUI {
 
     private static boolean enabled;
     private static final Map<String, BedrockGUIOptions> customGuis = new HashMap<>();
+    private static final String FILE_NAME = "bedrock-gui.yml";
 
     private BedrockGUI(){}
 
     public static void reloadOptions(){
         if (!getFile().exists())
-            NotBounties.getInstance().saveResource("bedrock-gui.yml", false);
+            NotBounties.getInstance().saveResource(FILE_NAME, false);
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(getFile());
         if (configuration.getKeys(true).size() <= 2) {
             Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the bedrock-gui.yml file. Fix the YAML formatting errors, or the GUI may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
-            if (NotBounties.getInstance().getResource("bedrock-gui.yml") != null) {
-                configuration = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("bedrock-gui.yml"))));
+            if (NotBounties.getInstance().getResource(FILE_NAME) != null) {
+                configuration = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource(FILE_NAME))));
                 loadGUI(configuration);
             }
         } else {
@@ -41,17 +43,20 @@ public class BedrockGUI {
         // add options from new updates
         boolean changes = false;
         if (!configuration.isConfigurationSection("challenges")) {
-            configuration.set("challenges.enabled", true);
-            configuration.set("challenges.gui-name", "&c&lChallenges");
-            configuration.set("challenges.override-type", "SIMPLE");
-            configuration.set("challenges.components.-1", "return-selection");
+            ConfigOptions.saveConfigurationSection(FILE_NAME, configuration, "challenges");
             changes = true;
         }
         if (!configuration.isConfigurationSection("view-bounty")) {
-            configuration.set("view-bounty.enabled", true);
-            configuration.set("view-bounty.gui-name", "&d&l{player}'s &9&lBounty: &2{amount}");
-            configuration.set("view-bounty.player-text", "&e{player} &7> &a{amount} &7{items}");
-            configuration.set("view-bounty.components.1", "view-bounties");
+            ConfigOptions.saveConfigurationSection(FILE_NAME, configuration, "view-bounty");
+            ConfigOptions.saveConfigurationSection(FILE_NAME, configuration, "custom-components.view-bounties");
+            changes = true;
+        }
+        if (!configuration.isConfigurationSection("confirm-remove-immunity")) {
+            ConfigOptions.saveConfigurationSection(FILE_NAME, configuration, "confirm-remove-immunity");
+            ConfigOptions.saveConfigurationSection(FILE_NAME, configuration, "custom-components.remove-immunity");
+            ConfigOptions.saveConfigurationSection(FILE_NAME, configuration, "custom-components.remove-immunity-label");
+            ConfigOptions.saveConfigurationSection(FILE_NAME, configuration, "custom-components.yes-remove-immunity");
+            ConfigOptions.saveConfigurationSection(FILE_NAME, configuration, "custom-components.no-setting");
             changes = true;
         }
 
@@ -89,7 +94,7 @@ public class BedrockGUI {
     }
 
     private static File getFile() {
-        return new File(NotBounties.getInstance().getDataFolder() + File.separator + "bedrock-gui.yml");
+        return new File(NotBounties.getInstance().getDataFolder() + File.separator + FILE_NAME);
     }
 
     public static boolean isEnabled() {

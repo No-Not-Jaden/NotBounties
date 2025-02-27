@@ -671,20 +671,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                 return true;
             } else if (args[0].equalsIgnoreCase("immunity")) {
                 if (args.length > 1 && args[1].equalsIgnoreCase("remove")) {
-                    if (args.length == 2) {
+                    if (args.length == 2 || (args.length == 3 && args[2].equalsIgnoreCase("--confirm"))) {
                         // reg command
                         if (adminPermission || sender.hasPermission("notbounties.removeimmunity") || sender.hasPermission(NotBounties.getAdminPermission())) {
                             if (sender instanceof Player player) {
-                                // remove immunity
-                                if (Immunity.removeImmunity(player.getUniqueId())) {
-                                    if (!silent)
-                                        sender.sendMessage(parse(getPrefix() + getMessage("removed-immunity"), parser));
-                                    return true;
+                                if (args.length == 3 && args[2].equalsIgnoreCase("--confirm")) {
+                                    // remove immunity
+                                    if (Immunity.removeImmunity(player.getUniqueId())) {
+                                        if (!silent)
+                                            sender.sendMessage(parse(getPrefix() + getMessage("removed-immunity"), parser));
+                                        return true;
+                                    } else {
+                                        // doesn't have immunity
+                                        if (!silent)
+                                            sender.sendMessage(parse(getPrefix() + getMessage("no-immunity"), parser));
+                                        return false;
+                                    }
                                 } else {
-                                    // doesn't have immunity
-                                    if (!silent)
-                                        sender.sendMessage(parse(getPrefix() + getMessage("no-immunity"), parser));
-                                    return false;
+                                    openGUI(player, "confirm-remove-immunity", 1);
+                                    return true;
                                 }
                             } else {
                                 Bukkit.getLogger().info("You don't have immunity!");
