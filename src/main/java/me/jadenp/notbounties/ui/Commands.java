@@ -1623,10 +1623,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (!requestedItems.isEmpty()) {
                             // definitely items
                             // get materials from inventory
-                            if (sender instanceof Player) {
+                            if (sender instanceof Player player) {
                                 // check if they have the bounty-item-select GUI open
-                                if (GUI.playerInfo.containsKey(((Player) sender).getUniqueId())) {
-                                    PlayerGUInfo info = GUI.playerInfo.get(((Player) sender).getUniqueId());
+                                if (GUI.playerInfo.containsKey(player.getUniqueId())) {
+                                    PlayerGUInfo info = GUI.playerInfo.get(player.getUniqueId());
                                     if (info.guiType().equals("bounty-item-select")) {
                                         usingGUI = true;
                                         // get items from data
@@ -1637,7 +1637,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     }
                                 }
                                 if (!usingGUI) {
-                                    ItemStack[] contents = ((Player) sender).getInventory().getContents();
+                                    ItemStack[] contents = player.getInventory().getContents();
                                     for (ItemStack content : contents) {
                                         if (content == null)
                                             // empty slot
@@ -1669,7 +1669,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         // iterate through requested items to get missing items and their amounts and add to string builder
                                         StringBuilder brokeAmount = new StringBuilder();
                                         for (Map.Entry<Material, Integer> missingItems : requestedItems.entrySet()) {
-                                            if (brokeAmount.length() != 0)
+                                            if (!brokeAmount.isEmpty())
                                                 brokeAmount.append(",");
                                             brokeAmount.append(missingItems.getKey().name()).append("x").append(missingItems.getValue());
                                         }

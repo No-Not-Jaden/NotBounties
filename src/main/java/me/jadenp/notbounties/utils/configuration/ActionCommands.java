@@ -666,7 +666,7 @@ public class ActionCommands {
             if (operator.equalsIgnoreCase("!=")) {
                 return a != b;
             }
-            if (operator.equalsIgnoreCase("=")) {
+            if (operator.equalsIgnoreCase("=") || operator.equalsIgnoreCase("==")) {
                 return a == b;
             }
             if (operator.equalsIgnoreCase(">=")) {
@@ -688,7 +688,7 @@ public class ActionCommands {
             if (operator.equalsIgnoreCase("!=")) {
                 return a != b;
             }
-            if (operator.equalsIgnoreCase("=")) {
+            if (operator.equalsIgnoreCase("=") || operator.equalsIgnoreCase("==")) {
                 return a == b;
             }
             if (operator.equalsIgnoreCase(">=")) {
