@@ -1378,14 +1378,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (BountyTracker.isEnabled())
                     // admins can do everything -                         Give own or write empty settings with the tracker perm
                     if (sender.hasPermission(NotBounties.getAdminPermission()) || ((BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers()) && (adminPermission || sender.hasPermission("notbounties.tracker")))) {
-                        if (!adminPermission || sender.hasPermission(NotBounties.getAdminPermission()) && sender instanceof Player) {
-                            if (giveOwnCooldown.containsKey(parser.getUniqueId()) && giveOwnCooldown.get(parser.getUniqueId()) > System.currentTimeMillis()) {
+                        if (!(adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) && sender instanceof Player player) {
+                            if (giveOwnCooldown.containsKey(parser.getUniqueId()) && giveOwnCooldown.get(player.getUniqueId()) > System.currentTimeMillis()) {
                                 // cooldown
                                 if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + getMessage("wait-command"), giveOwnCooldown.get(parser.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("wait-command"), giveOwnCooldown.get(player.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, player));
                                 return false;
                             }
-                            giveOwnCooldown.put(parser.getUniqueId(), System.currentTimeMillis() + GIVE_OWN_COOLDOWN_MS);
+                            giveOwnCooldown.put(player.getUniqueId(), System.currentTimeMillis() + GIVE_OWN_COOLDOWN_MS);
                         }
                         if (args.length > 1) {
                             UUID playerUUID = LoggedPlayers.getPlayer(args[1]);
@@ -1396,6 +1396,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[0], parser));
                                 return false;
                             }
+                            // if giveEmpty, then playerUUID != null
 
                             if (giveEmpty || hasBounty(playerUUID)) {
                                 if (!giveEmpty && getBounty(playerUUID).getTotalDisplayBounty() < BountyTracker.getMinBounty()) {

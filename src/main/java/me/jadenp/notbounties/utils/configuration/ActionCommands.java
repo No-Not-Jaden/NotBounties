@@ -600,7 +600,7 @@ public class ActionCommands {
             String value = requirement.substring(requirement.lastIndexOf(" ") + 1);
             Object parsedValue = parseValue(value);
 
-            if (placeholder.contains("%") && papiEnabled) {
+            if ((placeholder.contains("%") && papiEnabled) || (placeholder.contains("{") && placeholder.contains("}"))) {
                 String parsed = LanguageOptions.parse(placeholder, player);
                 Object parsedPlaceholder = parseValue(parsed);
 

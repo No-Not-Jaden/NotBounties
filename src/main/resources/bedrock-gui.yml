@@ -234,7 +234,8 @@ custom-components:
     text: '&c&lRemove {immunity} &c&lImmunity'
     type: BUTTON
     commands:
-      - '[gui] confirm-remove-immunity 1'
+      - '~player({immunity} > 0) [gui] confirm-remove-immunity 1'
+      - '~player({immunity} = 0) [message_player] &cYou don''t have any immunity!'
   remove-immunity-label:
     text: 'Do you really want to remove your immunity of {immunity}&r?'
     type: LABEL
@@ -397,7 +398,7 @@ confirm-remove-immunity:
   gui-name: '&6&lAre you sure?'
   components:
     1: remove-immunity-label
-    2: yes-immunity-remove
+    2: yes-remove-immunity
     3: no-setting
 
 

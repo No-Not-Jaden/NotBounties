@@ -518,9 +518,12 @@ bounty-tracker:
   # 2 - check inventories every 5 minutes
   # 3 - check inventory every time player opens a container
   remove: 2
-  # how many blocks away until it the player starts glowing - 0 to disable
-  # this is also how many blocks away until the tracked player gets a message about being tracked
+  # how many blocks away until it the player starts glowing
+  # 0 to disable, -1 to set glowing from any distance
   glow: 10
+  # how many blocks away until the tracked player gets a message about being tracked
+  # 0 to disable, -1 to send a message from any distance
+  alert: 500
   # information to show when a player is holding a tracker
   # with everything enabled it would look something like:
   # Not_Jaden - 25m - 13x 63y 20z - world

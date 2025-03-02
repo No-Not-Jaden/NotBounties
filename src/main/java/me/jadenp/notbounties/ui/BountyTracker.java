@@ -61,6 +61,7 @@ public class BountyTracker implements Listener {
     private static boolean craftTracker;
     private static boolean resetRemovedTrackers;
     private static double minBounty;
+    private static int alert;
 
     private static long lastInventorySearch = 0;
     private static BiMap<Integer, UUID> trackedBounties = HashBiMap.create();
@@ -79,6 +80,7 @@ public class BountyTracker implements Listener {
         resetRemovedTrackers = configuration.getBoolean("reset-removed-trackers");
         craftTracker = configuration.getBoolean("craft-tracker");
         minBounty = configuration.getDouble("minimum-bounty");
+        alert = configuration.getInt("alert");
 
         // tracker action bar settings
         TABShowAlways = configuration.getBoolean("action-bar.show-always");
@@ -372,11 +374,14 @@ public class BountyTracker implements Listener {
             }
 
 
-            if (trackerGlow > 0 && trackedPlayer.getWorld().equals(player.getWorld()) && player.getLocation().distance(trackedPlayer.getLocation()) < trackerGlow) {
+            // give tracked player glow if close enough
+            if ((trackerGlow > 0 && trackedPlayer.getWorld().equals(player.getWorld()) && player.getLocation().distance(trackedPlayer.getLocation()) < trackerGlow) || trackerGlow == -1) {
                 trackedPlayer.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 45, 0));
+            }
+            // give tracked player alert if close enough
+            if ((alert > 0 && trackedPlayer.getWorld().equals(player.getWorld()) && player.getLocation().distance(trackedPlayer.getLocation()) < alert) || alert == -1) {
                 trackedPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(getMessage("tracked-notify"), trackedPlayer)));
             }
-
 
             // build actionbar
             if (trackerActionBar && (TABShowAlways || force)) {

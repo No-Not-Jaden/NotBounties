@@ -224,7 +224,9 @@ custom-items:
       - '&7Click to remove.'
       - ''
     commands:
-      '[gui] confirm-remove-immunity 1'
+      - '~player({immunity} > 0) [gui] confirm-remove-immunity 1'
+      - '~player({immunity} = 0) [message_player] &cYou don''t have any immunity!'
+      - '~player({immunity} = 0) [close]'
   set-item-bounty:
     material: CHEST
     amount: 1

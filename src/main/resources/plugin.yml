@@ -50,7 +50,7 @@ permissions:
     default: true
     description: Buy immunity.
   notbounties.removeimmunity:
-    default: false
+    default: true
     description: Remove own immunity.
   notbounties.tracker:
     default: true

@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.databases;
 
-import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.DataManager;
