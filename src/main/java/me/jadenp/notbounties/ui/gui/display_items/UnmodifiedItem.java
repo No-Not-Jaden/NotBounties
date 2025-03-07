@@ -18,7 +18,7 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
     private final List<String> additionalLore;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore) {
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData) {
         ItemStack item = itemStack.clone();
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
@@ -29,6 +29,8 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
         }
         previousLore.addAll(additionalLore);
         meta.setLore(previousLore.stream().map(string -> LanguageOptions.parse(string, Bukkit.getOfflinePlayer(owningPlayer))).toList());
+        if (customModelData != -1)
+            meta.setCustomModelData(customModelData);
         item.setItemMeta(meta);
         return item;
     }

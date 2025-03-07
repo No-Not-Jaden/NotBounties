@@ -29,7 +29,7 @@ public class PlayerItem implements DisplayItem, AmountItem{
     private final List<String> additionalLore;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore) {
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData) {
         ItemStack item = HeadFetcher.getUnloadedHead(uuid);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         if (meta == null)
@@ -38,6 +38,8 @@ public class PlayerItem implements DisplayItem, AmountItem{
         lore = new ArrayList<>(lore); // create a copy so the original lore isn't edited
         lore.addAll(additionalLore);
         meta.setLore(lore.stream().map(string -> parseText(string, player)).toList());
+        if (customModelData != -1)
+            meta.setCustomModelData(customModelData);
         item.setItemMeta(meta);
         return item;
     }

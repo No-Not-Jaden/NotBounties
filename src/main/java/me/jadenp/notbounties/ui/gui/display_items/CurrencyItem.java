@@ -21,7 +21,7 @@ public class CurrencyItem implements DisplayItem, AmountItem{
     private final List<String> additionalLore;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore) {
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData) {
         ItemStack item = GUI.getGeneralCurrencyItem().getFormattedItem(player, new String[] {"", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix, "", ""});
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
@@ -32,6 +32,8 @@ public class CurrencyItem implements DisplayItem, AmountItem{
         }
         previousLore.addAll(additionalLore);
         meta.setLore(previousLore.stream().map(string -> LanguageOptions.parse(string, amount, player)).toList());
+        if (customModelData != -1)
+            meta.setCustomModelData(customModelData);
         item.setItemMeta(meta);
         return item;
     }

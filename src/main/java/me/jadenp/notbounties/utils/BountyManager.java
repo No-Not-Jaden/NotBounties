@@ -448,15 +448,21 @@ public class BountyManager {
         RewardHead rewardHead = new RewardHead(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer));
         if (rewardHeadSetter) {
             // reward head for setters
+            Set<UUID> givenHead = new HashSet<>(); // record whose head has been given out
+            givenHead.add(DataManager.GLOBAL_SERVER_ID); // console id added so a head isn't attempted to be given to it
             for (Setter setter : claimedBounties) {
-                if (!setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID)) { // can't give reward head to the console
+                if (!givenHead.contains(setter.getUuid())) {
+                    givenHead.add(setter.getUuid());
                     Player p = Bukkit.getPlayer(setter.getUuid());
                     if (p != null) {
                         // setter is online
+                        if (killer.getUniqueId().equals(setter.getUuid()) && droppedHead != null)
+                            // if the killer is a setter, remove the dropped head, so they only get one for being a setter
+                            droppedHead.remove();
                         // check to make sure the setter isn't the killer and won't get another head for claiming
                         if (!rewardHeadClaimed || !Objects.requireNonNull(killer).getUniqueId().equals(setter.getUuid())) {
                             NumberFormatting.givePlayer(p, rewardHead.getItem(), 1); // give head ;)
-                            NotBounties.debugMessage("Gave "  + p.getName() + " a player skull for the bounty.", false);
+                            NotBounties.debugMessage("Gave " + p.getName() + " a player skull for the bounty.", false);
                         }
                     } else {
                         // Setter is offline.

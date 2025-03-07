@@ -33,6 +33,7 @@ public class GUIOptions {
     private final String type;
     private final Map<Integer, CustomItem> pageReplacements = new HashMap<>();
     private final InventoryType inventoryType;
+    private final int customModelData;
 
     public GUIOptions(ConfigurationSection settings) {
         InventoryType inventoryType1;
@@ -60,6 +61,7 @@ public class GUIOptions {
         removePageItems = settings.getBoolean("remove-page-items");
         headName = settings.isSet("head-name") ? settings.getString("head-name") : "{player}";
         headLore = settings.isSet("head-lore") ? settings.getStringList("head-lore") : new ArrayList<>();
+        customModelData = settings.isSet("custom-model-data") ? settings.getInt("custom-model-data") : -1;
         customItems = new CustomItem[size];
         if (settings.isConfigurationSection("layout"))
             for (String key : Objects.requireNonNull(settings.getConfigurationSection("layout")).getKeys(false)) {
@@ -199,7 +201,7 @@ public class GUIOptions {
         boolean isSinglePlayerSlot = type.equals("select-price") || type.equals("confirm-bounty") || type.equals("bounty-item-select") || type.equals("challenges");
         for (int i = isSinglePlayerSlot ? 0 : (int) ((page - 1) * playerSlots.size()); i < Math.min(playerSlots.size() * page, displayItems.size()); i++) {
             DisplayItem displayItem = displayItems.get(i);
-            ItemStack item = displayItem.getFormattedItem(player, headName, headLore);
+            ItemStack item = displayItem.getFormattedItem(player, headName, headLore, customModelData);
             int slot = isSinglePlayerSlot ? playerSlots.get(i) : (playerSlots.get((int) (i - playerSlots.size() * (page-1))));
 
             if (displayItem instanceof PlayerItem playerItem)

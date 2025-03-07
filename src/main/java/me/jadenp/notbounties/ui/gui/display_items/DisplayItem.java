@@ -13,6 +13,6 @@ public interface DisplayItem {
      * @param lore lore of the item
      * @return
      */
-    ItemStack getFormattedItem(Player player, String headName, List<String> lore);
+    ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData);
     String parseText(String text, Player player);
 }

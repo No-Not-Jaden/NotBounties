@@ -16,8 +16,8 @@ public class WhitelistedPlayerItem extends PlayerItem{
     private final String playerPrefix;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore) {
-        ItemStack itemStack = super.getFormattedItem(player, headName, lore);
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData) {
+        ItemStack itemStack = super.getFormattedItem(player, headName, lore, customModelData);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null)
             return itemStack;

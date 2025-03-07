@@ -1911,10 +1911,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args.length == 1) {
                         return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
                     } else {
-                        Player player = Bukkit.getPlayer(args[0]);
-                        if (player != null) {
-                            sender = player;
-                        }
                         String[] tempArgs = args;
                         args = new String[tempArgs.length - 1];
                         System.arraycopy(tempArgs, 1, args, 0, tempArgs.length - 1);
