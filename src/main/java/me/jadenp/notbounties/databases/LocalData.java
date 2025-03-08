@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.databases;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.DataManager;
@@ -8,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -113,8 +115,23 @@ public class LocalData extends NotBountiesDatabase {
             }
             sortActiveBounties();
         }
-        if (getOnlinePlayers().containsKey(bounty.getUUID())) {
-            onlineBounties.put(bounty.getUUID(), prevBounty);
+        // add bounty to online bounties
+        if (onlineBounties.containsKey(prevBounty.getUUID())) {
+            onlineBounties.replace(prevBounty.getUUID(), prevBounty);
+        } else {
+            // synchronous task to check if the player is online
+            Bounty finalPrevBounty = prevBounty;
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (Bukkit.getPlayer(finalPrevBounty.getUUID()) != null) {
+                        // need to get an accurate bounty
+                        Bounty newBounty = getBounty(finalPrevBounty.getUUID());
+                        if (newBounty != null)
+                            onlineBounties.put(finalPrevBounty.getUUID(), newBounty);
+                    }
+                }
+            }.runTask(NotBounties.getInstance());
         }
         return prevBounty;
     }
@@ -126,7 +143,8 @@ public class LocalData extends NotBountiesDatabase {
                 if (bounty != null) {
                     activeBounties.set(i, bounty);
                     sortActiveBounties();
-                    onlineBounties.put(uuid, bounty);
+                    if (onlineBounties.containsKey(uuid))
+                        onlineBounties.replace(uuid, bounty);
                 } else {
                     onlineBounties.remove(uuid);
                     activeBounties.remove(i);
@@ -160,8 +178,11 @@ public class LocalData extends NotBountiesDatabase {
                 // if no master setters are left over, remove bounty entirely from active bounties
                 if (bountyCopy.getSetters().isEmpty()) {
                     activeBounties.remove(i);
+                    onlineBounties.remove(bountyCopy.getUUID());
                 } else {
                     activeBounties.set(i, bountyCopy);
+                    if (onlineBounties.containsKey(bountyCopy.getUUID()))
+                        onlineBounties.replace(bountyCopy.getUUID(), bountyCopy);
                     sortActiveBounties();
                 }
                 break;

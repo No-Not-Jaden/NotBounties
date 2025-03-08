@@ -292,7 +292,7 @@ bounty-gui:
     - '&4&oreceive this reward'
     - '&7<&m                        &7>'
   # if you want to apply custom model data to the heads
-  custom-model-data: 123
+  custom-model-data: 334113539
   layout:
     1:
       # use custom items here or preset items such as 'exit' 'next' 'back'
