@@ -125,7 +125,7 @@ public class CurrencySetup implements Listener {
                 break;
             case 1:
                 admin.sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.YELLOW + "Do you want to change the add and remove commands?" + ChatColor.GRAY + " (Click)", admin));
-                TextComponent start2 = new TextComponent(LanguageOptions.parse(getPrefix() + ChatColor.GRAY + "If an item is set as the currency or you are hooked into vault, you do not need add or remove commands. Click", admin));
+                TextComponent start2 = (TextComponent) TextComponent.fromLegacy(LanguageOptions.parse(getPrefix() + ChatColor.GRAY + "If an item is set as the currency or you are hooked into vault, you do not need add or remove commands. Click", admin));
                 TextComponent here2 = new TextComponent(ChatColor.WHITE + "" + ChatColor.ITALIC + " here ");
                 here2.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 8"));
                 here2.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GRAY + "Clear add and remove commands")));
@@ -141,7 +141,7 @@ public class CurrencySetup implements Listener {
                 admin.sendMessage(" ");
                 break;
             case 2:
-                TextComponent start = new TextComponent(LanguageOptions.parse(getPrefix() + ChatColor.YELLOW + "Type in chat the " + ChatColor.BOLD + "add " + ChatColor.YELLOW + "command without the \"/\" or click", admin));
+                TextComponent start = (TextComponent) TextComponent.fromLegacy(LanguageOptions.parse(getPrefix() + ChatColor.YELLOW + "Type in chat the " + ChatColor.BOLD + "add " + ChatColor.YELLOW + "command without the \"/\" or click", admin));
                 TextComponent here = new TextComponent(ChatColor.GOLD + "" + ChatColor.ITALIC + " here ");
                 here.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " currency 7"));
                 here.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GRAY + "eco give/take {player} {amount}")));

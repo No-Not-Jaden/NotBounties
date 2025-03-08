@@ -347,7 +347,7 @@ public class BountyTracker implements Listener {
             }
             if (!DataManager.GLOBAL_SERVER_ID.equals(uuid)) // not an empty tracker
                 if (trackerActionBar && (TABShowAlways || force)) {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(getMessage("tracker-no-permission"), player)));
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(LanguageOptions.parse(getMessage("tracker-no-permission"), player)));
                 }
 
             if (previousLocation == null || !Objects.equals(previousLocation.getWorld(), Objects.requireNonNull(compassMeta.getLodestone()).getWorld())) {
@@ -380,7 +380,7 @@ public class BountyTracker implements Listener {
             }
             // give tracked player alert if close enough
             if ((alert > 0 && trackedPlayer.getWorld().equals(player.getWorld()) && player.getLocation().distance(trackedPlayer.getLocation()) < alert) || alert == -1) {
-                trackedPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(getMessage("tracked-notify"), trackedPlayer)));
+                trackedPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(parse(getMessage("tracked-notify"), trackedPlayer)));
             }
 
             // build actionbar
@@ -409,7 +409,7 @@ public class BountyTracker implements Listener {
         } else {
             // player offline -
             if (trackerActionBar && (TABShowAlways || force)) {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(getMessage("tracker-offline"), player)));
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(LanguageOptions.parse(getMessage("tracker-offline"), player)));
             }
             if (Bukkit.getWorlds().size() > 1) {
                 for (World world : Bukkit.getWorlds()) {

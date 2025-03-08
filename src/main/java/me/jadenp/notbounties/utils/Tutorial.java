@@ -7,6 +7,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -63,8 +64,8 @@ public class Tutorial {
      * @return The first valid page.
      */
     private static int getNextValidPage(int page, int step) {
-        if (page > 16 || page < 1)
-            page = 1;
+        if (page < 0)
+            page = 0;
         while (isInvalidPage(page))
             page += step;
         return page;
@@ -125,20 +126,17 @@ public class Tutorial {
             if (i == 0)
                 firstLineLength = lineLength;
         }
-        if (maxTextLength > 0) {
-            String prefix = parse(getPrefix(), parser);
-            sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + " ".repeat(maxTextLength));
-            int spacerLength = (maxTextLength - firstLineLength) / 2;
-            TextComponent[] textComponents = new TextComponent[text.get(0).length + 1];
-            System.arraycopy(text.get(0), 0, textComponents, 1, text.get(0).length);
-            textComponents[0] = new TextComponent(" ".repeat(spacerLength));
-            sender.spigot().sendMessage(textComponents);
-            for (int i = 1; i < text.size(); i++) {
-                sender.spigot().sendMessage(text.get(i));
-            }
-
-            sendPageMessage(sender, page, maxTextLength);
+        String prefix = parse(getPrefix(), parser);
+        sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + " ".repeat(Math.max((int) (maxTextLength * 1.5), 15)));
+        int spacerLength = (maxTextLength - firstLineLength) / 2;
+        TextComponent[] textComponents = new TextComponent[text.get(0).length + 1];
+        System.arraycopy(text.get(0), 0, textComponents, 1, text.get(0).length);
+        textComponents[0] = new TextComponent(" ".repeat(spacerLength));
+        sender.spigot().sendMessage(textComponents);
+        for (int i = 1; i < text.size(); i++) {
+            sender.spigot().sendMessage(text.get(i));
         }
+        sendPageMessage(sender, page, maxTextLength);
 
     }
 
@@ -152,7 +150,7 @@ public class Tutorial {
             baseComponents.add(new TextComponent(before));
             builder.delete(0, builder.indexOf(RUN_COMMAND_PREFIX));
             String commandText = builder.substring(13, builder.indexOf("}"));
-            TextComponent command = new TextComponent(parse(lastColors + commandText, parser));
+            TextComponent command = (TextComponent) TextComponent.fromLegacy(parse(lastColors + commandText, parser));
 
             command.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(runCommandHover, parser))));
             command.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, commandText));
@@ -167,7 +165,7 @@ public class Tutorial {
             baseComponents.add(new TextComponent(before));
             builder.delete(0, builder.indexOf(SUGGEST_COMMAND_PREFIX));
             String commandText = builder.substring(17, builder.indexOf("}"));
-            TextComponent command = new TextComponent(parse(lastColors + commandText, parser));
+            TextComponent command = (TextComponent) TextComponent.fromLegacy(parse(lastColors + commandText, parser));
             // don't send parenthesis options in command
             if (commandText.contains("("))
                 commandText = commandText.substring(0, commandText.indexOf("("));
@@ -176,7 +174,7 @@ public class Tutorial {
             baseComponents.add(command);
             builder.delete(0, builder.indexOf("}") + 1);
         }
-        baseComponents.add(new TextComponent(parse(builder.toString(), parser)));
+        baseComponents.add((TextComponent) TextComponent.fromLegacy(parse(builder.toString(), parser)));
         return baseComponents.toArray(new TextComponent[0]);
     }
 
@@ -202,12 +200,14 @@ public class Tutorial {
         TextComponent next = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋙⋙⋙");
         back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(previousPageHover, null))));
         next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(nextPageHover, null))));
-        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + getNextValidPage(page - 1, -1)));
-        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + getNextValidPage(page + 1, 1)));
+        int nextPage = getNextValidPage(page + 1, 1);
+        int lastPage = getNextValidPage(page - 1, -1);
+        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + lastPage));
+        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + nextPage));
         BaseComponent[] baseComponents = new BaseComponent[]{extraSpace, back, middle, next};
-        if (page == 1)
+        if (lastPage == 0)
             baseComponents[1] = space;
-        if (page == maxPage)
+        if (nextPage > maxPage)
             baseComponents[3] = space;
         sender.spigot().sendMessage(baseComponents);
     }

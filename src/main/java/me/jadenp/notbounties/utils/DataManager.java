@@ -912,6 +912,7 @@ public class DataManager {
     public static void logout(@NotNull Player player) {
         for (AsyncDatabaseWrapper database : databases)
             database.logout(player.getUniqueId());
+        localData.logout(player.getUniqueId());
     }
 
     /**

@@ -212,11 +212,11 @@ public class Events implements Listener {
                 && !ConfigOptions.getUpdateNotification().equalsIgnoreCase(getLatestVersion())
                 && event.getPlayer().hasPermission(NotBounties.getAdminPermission())) {
             event.getPlayer().sendMessage(parse(getPrefix() + getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", NotBounties.getLatestVersion()), event.getPlayer()));
-            TextComponent prefixMsg = new TextComponent(parse(getPrefix(), event.getPlayer()));
-            TextComponent disableUpdate = new TextComponent(parse(getMessage("disable-update-notification"), event.getPlayer()));
+            TextComponent prefixMsg = (TextComponent) TextComponent.fromLegacy(parse(getPrefix(), event.getPlayer()));
+            TextComponent disableUpdate = (TextComponent) TextComponent.fromLegacy(parse(getMessage("disable-update-notification"), event.getPlayer()));
             disableUpdate.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: false")));
             disableUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + pluginBountyCommands.get(0) + " update-notification false"));
-            TextComponent skipUpdate = new TextComponent(parse(getMessage("skip-update"), event.getPlayer()));
+            TextComponent skipUpdate = (TextComponent) TextComponent.fromLegacy(parse(getMessage("skip-update"), event.getPlayer()));
             skipUpdate.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: " + getLatestVersion())));
             skipUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + pluginBountyCommands.get(0) + " update-notification " + getLatestVersion()));
             BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg, skipUpdate};

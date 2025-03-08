@@ -7,13 +7,9 @@ import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -149,8 +145,9 @@ public class GUIClicks {
                 if (player.hasPermission(NotBounties.getAdminPermission())) {
                     player.getOpenInventory().close();
                     String messageText = LanguageOptions.parse(LanguageOptions.getMessage("edit-bounty-clickable").replace("{receiver}", bounty.getName()), player);
-                    TextComponent message = new TextComponent(messageText);
-                    TextComponent prefix = new TextComponent(LanguageOptions.parse(LanguageOptions.getPrefix(), player));
+                    TextComponent message = (TextComponent) TextComponent.fromLegacy(messageText);
+
+                    BaseComponent prefix = TextComponent.fromLegacy(LanguageOptions.parse(LanguageOptions.getPrefix(), player));
                     message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(messageText)));
                     message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + pluginBountyCommands.get(0) + " edit " + bounty.getName() + " "));
                     prefix.addExtra(message);
