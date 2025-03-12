@@ -334,7 +334,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     sender.sendMessage(parse(getPrefix() + ChatColor.DARK_AQUA + ChatColor.BOLD + "<Rank " + rank + "> " + ChatColor.AQUA + "Punch a block to place the bounty board on.", parser));
                 BountyBoard.getBoardSetup().put(parser.getUniqueId(), rank);
                 return true;
-            } else if (args[0].equalsIgnoreCase("tutorial") && (adminPermission || sender.hasPermission("notbounties.basic"))) {
+            } else if (args[0].equalsIgnoreCase("tutorial") && (adminPermission || sender.hasPermission("notbounties.basic.tutorial"))) {
                 Tutorial.onCommand(sender, args);
                 return true;
             } else if (args[0].equalsIgnoreCase("whitelist") && bountyWhitelistEnabled && (adminPermission || sender.hasPermission("notbounties.whitelist"))) {
@@ -1924,6 +1924,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("help");
                     tab.add("bdc");
                     tab.add("broadcast");
+                }
+                if (sender.hasPermission("notbounties.basic.tutorial")) {
                     tab.add("tutorial");
                 }
                 if (sender.hasPermission("notbounties.set")) {
