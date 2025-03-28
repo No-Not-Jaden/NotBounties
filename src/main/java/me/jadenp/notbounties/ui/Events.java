@@ -25,6 +25,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -262,6 +263,33 @@ public class Events implements Listener {
         Player killer = player.getKiller();
         if (killer != null)
             claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
+
+    }
+
+    @EventHandler
+    public void onCommandSend(PlayerCommandPreprocessEvent event) {
+        if (DataManager.getLocalData().getOnlineBounty(event.getPlayer().getUniqueId()) == null)
+            return;
+        String message = event.getMessage().toLowerCase();
+        // remove starting /
+        if (message.startsWith("/"))
+            message = message.substring(1);
+        // remove trailing space
+        if (message.charAt(message.length() - 1) == ' ') {
+            message = message.substring(0, message.length() - 1);
+        }
+        // remove plugin specific command identifier.
+        if (message.contains(" ") && message.substring(0, message.indexOf(" ")).contains(":")) {
+            message = message.substring(message.indexOf(":") + 1);
+        }
+
+        for (String command : getBlockedBountyCommands()) {
+            if (message.startsWith(command)) {
+                event.setCancelled(true);
+                event.getPlayer().sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("blocked-bounty-command"), event.getPlayer()));
+                return;
+            }
+        }
 
     }
 

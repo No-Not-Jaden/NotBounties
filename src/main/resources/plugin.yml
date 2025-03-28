@@ -20,6 +20,8 @@ softdepend:
   - Factions
   - Essentials
   - MythicLib
+  - Duels
+  - SimpleClans
 commands:
   notbounties:
     description: Use all of the bounty commands.

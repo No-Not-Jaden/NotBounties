@@ -13,6 +13,8 @@ import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
+import me.jadenp.notbounties.utils.external_api.DuelsClass;
+import me.jadenp.notbounties.utils.external_api.LocalTime;
 import me.jadenp.notbounties.utils.external_api.MMOLibClass;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -27,6 +29,8 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +47,8 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 public class BountyManager {
 
     private static final int length = 10;
+
+    private static Map<Integer, BukkitRunnable> delayedTasks = new HashMap<>();
 
     private BountyManager(){}
 
@@ -285,13 +291,10 @@ public class BountyManager {
     }
 
     private static void addRefund(UUID uuid, double amount) {
-        if (!uuid.equals(DataManager.GLOBAL_SERVER_ID)) {
             DataManager.getPlayerData(uuid).addRefund(amount);
-        }
     }
 
     private static void addRefund(UUID uuid, List<ItemStack> items) {
-        if (!items.isEmpty() && !uuid.equals(DataManager.GLOBAL_SERVER_ID))
             DataManager.getPlayerData(uuid).addRefund(items);
     }
 
@@ -529,16 +532,18 @@ public class BountyManager {
         NotBounties.debugMessage("Redeeming Reward: of " + rewardedBounty.getTotalDisplayBounty(), false);
         if (!redeemRewardLater) {
             // give currency
-            if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
-                // partial economy means only auto bounties are given by the console
-                NotBounties.debugMessage("Directly giving auto-bounty reward.", false);
-                NumberFormatting.doAddCommands(killer, rewardedBounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(killer));
+            // check if the player is in a duel or reward later is set in the config
+            if (isDuelsEnabled() && DuelsClass.isEnabled() && DuelsClass.isDelayReward() && DuelsClass.isInDuel(killer)) {
+                // delayed reward because killer is in duel
+                giveDelayedReward(killer, rewardedBounty, DuelsClass.getTeleportDelay() * 1000 + 100);
+            } else if (ConfigOptions.getRewardDelay() > 0) {
+                // delayed reward from config
+                giveDelayedReward(killer, rewardedBounty, ConfigOptions.getRewardDelay() * 1000);
             } else {
-                NotBounties.debugMessage("Directly giving total claimed bounty.", false);
-                NumberFormatting.doAddCommands(killer, rewardedBounty.getTotalBounty(killer));
-                if (manualEconomy == ManualEconomy.AUTOMATIC)
-                    NumberFormatting.givePlayer(killer, bounty.getTotalItemBounty(killer), false); // give bountied items
+                // give reward now
+                rewardBounty(killer.getUniqueId(), rewardedBounty);
             }
+
         } else {
             // will add these to a voucher later, or will I?
             if (manualEconomy == ManualEconomy.AUTOMATIC)
@@ -631,6 +636,62 @@ public class BountyManager {
         Immunity.startGracePeriod(player);
         GUI.reopenBountiesGUI();
         ActionCommands.executeBountyClaim(player, killer, claimedBounty);
+    }
+
+    /**
+     * Gives the player a reward at a later time. All delayed rewards are handed out if the server restarts.
+     * @param player Player to give the reward to.
+     * @param bounty Bounty to be rewarded.
+     * @param delayMS The delay in milliseconds before the reward is given.
+     */
+    private static void giveDelayedReward(Player player, Bounty bounty, int delayMS) {
+        NotBounties.debugMessage("Delaying the reward for " + player.getName() + " by "
+                + LocalTime.formatTime(delayMS, LocalTime.TimeFormat.RELATIVE), false);
+        BukkitRunnable task = new DelayedRewardTask(bounty, player);
+        task.runTaskLaterAsynchronously(NotBounties.getInstance(), delayMS / 50);
+        delayedTasks.put(task.getTaskId(), task);
+    }
+
+    private static void rewardBounty(UUID uuid, Bounty bounty) {
+        if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
+            // partial economy means only auto bounties are given by the console
+            NotBounties.debugMessage("(Partial Economy) Directly giving auto-bounty reward.", false);
+            refundPlayer(uuid, bounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(uuid), Collections.emptyList());
+        } else {
+            NotBounties.debugMessage("Directly giving total claimed bounty.", false);
+            double rewardAmount = bounty.getTotalBounty(uuid);
+            List<ItemStack> rewardItems = manualEconomy == ManualEconomy.AUTOMATIC ? bounty.getTotalItemBounty(uuid) : Collections.emptyList();
+            refundPlayer(uuid, rewardAmount, rewardItems);
+        }
+    }
+
+    public static void shutdown() {
+        for (Map.Entry<Integer, BukkitRunnable> entry : delayedTasks.entrySet()) {
+            entry.getValue().cancel();
+            entry.getValue().run();
+        }
+    }
+
+    private static class DelayedRewardTask extends BukkitRunnable {
+
+        // copying bounty in case it gets modified before the reward is given out
+        final Bounty finalBounty;
+        // save the uuid, so no access of the player object is needed in the future.
+        final UUID uuid;
+
+        public DelayedRewardTask(Bounty bounty, Player player) {
+            finalBounty = new Bounty(bounty);
+            uuid = player.getUniqueId();
+        }
+
+        @Override
+        public void run() {
+            rewardBounty(uuid, finalBounty);
+            if (NotBounties.getInstance().isEnabled()) {
+                delayedTasks.remove(this.getTaskId());
+            }
+        }
+
     }
 
 }

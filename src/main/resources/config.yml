@@ -82,12 +82,12 @@ death-tax: 0.0
 # make old bounties expire after a while
 bounty-expire:
   # how many real days until bounties expire | -1 to disable
-  # the lowest this can go is 0.00346 which is 5 minutes
+  # the lowest this can go is around 0.00346 (5 minutes). Expired bounties are checked every 5 minutes.
   # check auto-bounties for their expiry time
   time: -1
   # track the player while they are offline
   offline-tracking: true
-  # give the bounty amount to the receiver if it expires.
+  # give the bounty amount to the receiver if it expires. false means that the setter gets the refund.
   # if you change this, change the expired-bounty message in language.yml because it won't be accurate anymore
   reward-receiver: false
 # These player's bounty stats will be hidden from bounties top
@@ -97,6 +97,8 @@ hide-stats:
 update-notification: true
 # allow a npc to claim a bounty
 npc-claim: false
+# allow players with the same ip address to claim bounties on each other
+same-ip-claim: true
 # limit bounties to a max number of setters - other players can't set a bounty on a player if the maximum has been hit - (-1) to disable
 max-setters: -1
 # allow players to set bounties on people who are offline
@@ -132,6 +134,8 @@ auto-save-interval: 15
 bounty-backups: true
 # How long a player has to wait before setting another bounty - measured in seconds
 bounty-cooldown: 2
+# The delay in seconds before the reward is given and bounty claim commands are executed
+reward-delay: 0
 # The commands players can use to use bounties.
 # The first option is the one the plugin uses when forcing players to execute a command.
 # A restart is required after making changes.
@@ -179,6 +183,7 @@ teams:
   scoreboard-claim: true
   # players with the same placeholder result will not be able to claim each other's bounties (Must have PlaceholderAPI installed)
   # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
+  # you can also use a list if you want multiple placeholders to be compared
   placeholder: ''
   # Team bounties - WIP feature
   bounties:
@@ -231,9 +236,16 @@ teams:
     faction: false
     # claim if allied
     ally: false
+  # <===> SuperiorSkyblock2 <===>
   superior-skyblock-2:
     # claim if part of the same island
     island-member: false
+  # <===> SimpleClans<===>
+  simple-clans:
+    # claim if in the same clan
+    clan: false
+    # claim if allied
+    ally: false
 # auto-updating bounty poster board
 bounty-board:
   # 0 oldest bounties
@@ -284,6 +296,10 @@ wanted-tag:
 bounty-claim-commands: []
 # commands to be executed when a bounty is set
 bounty-set-commands: []
+# blocks commands if they start with the following text
+blocked-bounty-commands:
+  - 'teamPlugin leave'
+  - 'teamPlugin join'
 # prompt feature settings for action commands
 prompts:
   # how many attempts the player gets before the prompt is canceled
@@ -560,6 +576,15 @@ MMOLib:
     stat: MAX_HEALTH
     value: 10
     multiplicative: true
+# Integration for the Duels plugin
+Duels:
+  enabled: true
+  # whether bounties can be claimed in a duel
+  claim-bounties: true
+  # whether the reward should be delayed until after the killer has been teleported out of the duel
+  delay-reward: true
+  # whether murder bounties will be applied when winning a duel
+  murder-bounty: false
 # Optional database connections for storing bounties and player stats
 # You can add as many as you want
 databases:

@@ -154,6 +154,7 @@ edit-setter-clickable: '&6To edit {player}''s amount on {receiver}''s bounty, &e
 # These next 2 deny messages will not have a prefix when sent
 deny-entry: '&c&lHey! &7Sorry, but you cannot enter here with a bounty.'
 deny-exit: '&c&lHey! &7Sorry, but you cannot exit here with a bounty.'
+blocked-bounty-command: '&cYou can''t use this command when you have a bounty! &7&o(/bounty)'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

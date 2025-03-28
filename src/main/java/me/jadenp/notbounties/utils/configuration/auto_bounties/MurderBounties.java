@@ -5,6 +5,7 @@ import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.Immunity;
+import me.jadenp.notbounties.utils.external_api.DuelsClass;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -70,7 +71,7 @@ public class MurderBounties {
      */
     public static void killPlayer(Player player, Player killer) {
         // check if we should increase the killer's bounty
-        if (isEnabled() && !killer.hasMetadata("NPC")) { // don't raise bounty on a npc
+        if (isEnabled() && !killer.hasMetadata("NPC") && !(ConfigOptions.isDuelsEnabled() && !DuelsClass.isMurderBounty() && DuelsClass.isInDuel(killer))) { // don't raise bounty on a npc
             // check immunity
             double bountyIncrease = getBountyIncrease(killer);
             if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(killer, bountyIncrease) != Immunity.ImmunityType.DISABLE || hasImmunity(killer))

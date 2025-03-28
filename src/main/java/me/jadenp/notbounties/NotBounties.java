@@ -52,11 +52,20 @@ import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEnabled;
 
 /**
+ * same ip claim x
+ * duels integration
+ * simpleClans integration
+ * blocked bounty commands x
+ * give delayed reward x
+ * bounty expire bug
+ * worldguard zip file closed x
+ *
  * Folia
  * Team bounties
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
  * allow other image sizes for bounty poster & center them
+ * Redo vouchers with persistent data, give items, & reward delay
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -257,8 +266,6 @@ public final class NotBounties extends JavaPlugin {
                 if (paused)
                     return;
                 MurderBounties.cleanPlayerKills();
-                // if they have expire-time enabled
-                BountyExpire.removeExpiredBounties();
 
                 SkinManager.removeOldData();
 
@@ -272,6 +279,14 @@ public final class NotBounties extends JavaPlugin {
                 }
             }
         }.runTaskTimerAsynchronously(this, autoSaveInterval * 60 * 20L + 69, autoSaveInterval * 60 * 20L);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration
+                BountyExpire.removeExpiredBounties();
+            }
+        }.runTaskTimerAsynchronously(this, 5 * 60 * 20L + 2007, 5 * 60 * 20L);
         // Check for banned players
         //         * Runs every hour and will check a few players at a time
         //         * Every player will be guaranteed to be checked after 12 hours
@@ -609,6 +624,7 @@ public final class NotBounties extends JavaPlugin {
             MMOLibClass.removeAllModifiers();
         SkinManager.shutdown();
         DataManager.shutdown();
+        BountyManager.shutdown();
         if (!started)
             // Plugin failed to start.
             // Returning, so save data isn't overwritten.

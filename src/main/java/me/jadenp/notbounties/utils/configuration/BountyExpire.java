@@ -136,7 +136,7 @@ public class BountyExpire {
         boolean change = false;
         // go through all the bounties and remove setters if it has been more than expire time
 
-            Map<UUID, List<Setter>> settersToRemove = new HashMap<>();
+            Map<Bounty, List<Setter>> settersToRemove = new HashMap<>();
             for (Bounty bounty : BountyManager.getAllBounties(-1)) {
                 for (Setter setter : bounty.getSetters()) {
                     if (isExpired(bounty.getUUID(), setter)) {
@@ -157,18 +157,18 @@ public class BountyExpire {
                                 }
                             }.runTask(NotBounties.getInstance());
                         }
-                        if (settersToRemove.containsKey(bounty.getUUID())) {
-                            settersToRemove.get(bounty.getUUID()).add(setter);
+                        if (settersToRemove.containsKey(bounty)) {
+                            settersToRemove.get(bounty).add(setter);
                         } else {
-                            settersToRemove.put(bounty.getUUID(), new ArrayList<>(List.of(setter)));
+                            settersToRemove.put(bounty, new ArrayList<>(List.of(setter)));
                         }
 
                         change = true;
                     }
                 }
             }
-            for (Map.Entry<UUID, List<Setter>> entry : settersToRemove.entrySet()) {
-                DataManager.removeSetters(getBounty(entry.getKey()), entry.getValue());
+            for (Map.Entry<Bounty, List<Setter>> entry : settersToRemove.entrySet()) {
+                DataManager.removeSetters(entry.getKey(), entry.getValue());
             }
 
         return change;

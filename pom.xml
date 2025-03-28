@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>1.21.22</version>
+    <version>dev_1.21.23.8</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -127,6 +127,10 @@
         <repository>
             <id>phoenix</id>
             <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>roinujnosde-repo</id>
+            <url>https://repo.roinujnosde.me/releases/</url>
         </repository>
     </repositories>
     <dependencies>
@@ -293,6 +297,20 @@
             <version>1.7.1-SNAPSHOT</version>
             <scope>provided</scope>
             <optional>true</optional>
+        </dependency>
+        <!-- https://github.com/Realizedd/Duels/tree/master -->
+        <dependency>
+            <groupId>com.github.Realizedd.Duels</groupId>
+            <artifactId>duels-api</artifactId>
+            <version>3.5.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- https://github.com/RoinujNosde/SimpleClans/releases -->
+        <dependency>
+            <groupId>net.sacredlabyrinth.phaed.simpleclans</groupId>
+            <artifactId>SimpleClans</artifactId>
+            <version>2.19.2</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

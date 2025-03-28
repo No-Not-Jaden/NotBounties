@@ -14,6 +14,7 @@ import com.sk89q.worldguard.session.MoveType;
 import com.sk89q.worldguard.session.Session;
 import com.sk89q.worldguard.session.handler.FlagValueChangeHandler;
 import com.sk89q.worldguard.session.handler.Handler;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 
@@ -59,7 +60,7 @@ public class BountyExitFlag extends FlagValueChangeHandler<State> {
 
     @Override
     protected boolean onSetValue(LocalPlayer player, Location from, Location to, ApplicableRegionSet toSet, State currentValue, State lastValue, MoveType moveType) {
-        if (getSession().getManager().hasBypass(player, (World) from.getExtent())) {
+        if (!NotBounties.getInstance().isEnabled() || getSession().getManager().hasBypass(player, (World) from.getExtent())) {
             return true;
         }
 
@@ -81,7 +82,7 @@ public class BountyExitFlag extends FlagValueChangeHandler<State> {
 
     @Override
     protected boolean onAbsentValue(LocalPlayer player, Location from, Location to, ApplicableRegionSet toSet, State lastValue, MoveType moveType) {
-        if (getSession().getManager().hasBypass(player, (World) from.getExtent())) {
+        if (!NotBounties.getInstance().isEnabled() || getSession().getManager().hasBypass(player, (World) from.getExtent())) {
             return true;
         }
 

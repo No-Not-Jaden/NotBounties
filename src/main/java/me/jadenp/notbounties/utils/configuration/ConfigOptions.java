@@ -18,6 +18,7 @@ import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
+import me.jadenp.notbounties.utils.external_api.DuelsClass;
 import me.jadenp.notbounties.utils.external_api.MMOLibClass;
 import me.jadenp.notbounties.utils.external_api.SkinsRestorerClass;
 import org.bukkit.Bukkit;
@@ -32,6 +33,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.text.DateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class ConfigOptions {
@@ -117,6 +119,10 @@ public class ConfigOptions {
     public static double maxBounty;
     private static boolean worldGuardEnabled;
     private static boolean mmoLibEnabled;
+    private static boolean duelsEnabled;
+    private static int rewardDelay;
+    private static boolean sameIPClaim;
+    private static Set<String> blockedBountyCommands;
 
     public static void reloadOptions() throws IOException {
         BountyMap.loadFont();
@@ -128,9 +134,13 @@ public class ConfigOptions {
         floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
         geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
         mmoLibEnabled = Bukkit.getPluginManager().isPluginEnabled("MythicLib");
+        duelsEnabled = Bukkit.getPluginManager().isPluginEnabled("Duels");
 
         if (skinsRestorerEnabled)
             skinsRestorerClass = new SkinsRestorerClass();
+
+        if (duelsEnabled)
+            DuelsClass.readConfig();
 
         bounties.reloadConfig();
 
@@ -422,6 +432,9 @@ public class ConfigOptions {
         postersEnabled = bounties.getConfig().getBoolean("bounty-posters.enabled");
         maxBounty = bounties.getConfig().getDouble("maximum-bounty");
         offlineSet = bounties.getConfig().getBoolean("offline-set");
+        rewardDelay = bounties.getConfig().getInt("reward-delay");
+        sameIPClaim = bounties.getConfig().getBoolean("same-ip-claim");
+        blockedBountyCommands = bounties.getConfig().getStringList("blocked-bounty-commands").stream().map(String::toLowerCase).collect(Collectors.toSet());
 
 
         wantedLevels.clear();
@@ -716,6 +729,38 @@ public class ConfigOptions {
 
     public static boolean isMmoLibEnabled() {
         return mmoLibEnabled;
+    }
+
+    /**
+     * Check if the Duels plugin is enabled on the server.
+     * @return True if the Duels plugin is enabled.
+     */
+    public static boolean isDuelsEnabled() {
+        return duelsEnabled;
+    }
+
+    /**
+     * Get the delay between claiming a bounty and receiving the reward in seconds.
+     * @return The reward delay.
+     */
+    public static int getRewardDelay() {
+        return rewardDelay;
+    }
+
+    /**
+     * Check if players with the same IP should be able to claim bounties on themselves.
+     * @return If players can claim each other's bounties with the same IP.
+     */
+    public static boolean isSameIPClaim() {
+        return sameIPClaim;
+    }
+
+    /**
+     * Get a list of the blocked commands for players with bounties.
+     * @return The commands that are blocked.
+     */
+    public static Set<String> getBlockedBountyCommands() {
+        return blockedBountyCommands;
     }
 
 }
