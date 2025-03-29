@@ -51,14 +51,6 @@ import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEnabled;
 
 /**
- * same ip claim x
- * duels integration
- * simpleClans integration
- * blocked bounty commands x
- * give delayed reward x
- * bounty expire bug
- * worldguard zip file closed x
- *
  * Folia
  * Team bounties
  * Bungee support.
@@ -688,6 +680,11 @@ public final class NotBounties extends JavaPlugin {
         String superiorSkyblock2 = BountyClaimRequirements.isSuperiorSkyblockEnabled()
                 ? ChatColor.GREEN + "SuperiorSkyblock2" : ChatColor.RED + "SuperiorSkyblock2";
         String mMOLib = ConfigOptions.isMmoLibEnabled() ? ChatColor.GREEN + "MMOLib" : ChatColor.RED + "MMOLib";
+        String simpleClans = BountyClaimRequirements.isSimpleClansEnabled()
+                ? ChatColor.GREEN + "SimpleClans" : ChatColor.RED + "SimpleClans";
+        String factions = BountyClaimRequirements.isFactionsEnabled()
+                ? ChatColor.GREEN + "Factions" : ChatColor.RED + "Factions";
+        String duels = ConfigOptions.isDuelsEnabled() ? ChatColor.GREEN + "Duels" : ChatColor.RED + "Duels";
         sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "["
                 + vault + ChatColor.GRAY + "|"
                 + papi + ChatColor.GRAY + "|"
@@ -702,7 +699,10 @@ public final class NotBounties extends JavaPlugin {
                 + lands + ChatColor.GRAY + "|"
                 + worldGuard + ChatColor.GRAY + "|"
                 + superiorSkyblock2 + ChatColor.GRAY + "|"
-                + mMOLib + ChatColor.GRAY + "]");
+                + mMOLib + ChatColor.GRAY
+                + simpleClans + ChatColor.GRAY + "|"
+                + factions + ChatColor.GRAY + "|"
+                + duels + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218))
                 + "Support Discord: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://discord.gg/zEsUzwYEx7");

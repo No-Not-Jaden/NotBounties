@@ -231,4 +231,8 @@ public class BountyClaimRequirements {
     public static boolean isTownyAdvancedEnabled() {
         return townyAdvancedEnabled;
     }
+
+    public static boolean isSimpleClansEnabled() {
+        return simpleClansEnabled;
+    }
 }
