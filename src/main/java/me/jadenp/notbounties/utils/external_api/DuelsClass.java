@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.utils.external_api;
 
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.realized.duels.api.Duels;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -10,26 +9,31 @@ public class DuelsClass {
 
     private DuelsClass(){}
 
-    private static Duels api = null;
     private static int teleportDelay;
     private static boolean enabled;
     private static boolean claimBounties;
     private static boolean murderBounty;
     private static boolean delayReward;
-
-    private static Duels getApi() {
-        if (api == null) {
-            api = (Duels) Bukkit.getPluginManager().getPlugin("Duels");
-        }
-        return api;
-    }
+    private static final String PLUGIN_NAME = "Duels";
 
     /**
      * Read the duels config for their teleport delay.
      */
     public static void readConfig() {
-        getApi().reloadConfig();
-        teleportDelay = getApi().getConfig().getInt("duel.teleport-delay", 5);
+        try {
+            me.realized.duels.api.Duels duels = (me.realized.duels.api.Duels) Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+            if (duels != null) {
+                duels.reloadConfig();
+                teleportDelay = duels.getConfig().getInt("duel.teleport-delay", 5);
+            }
+        } catch (NoClassDefFoundError | ClassCastException e) {
+            com.meteordevelopments.duels.api.Duels duels = (com.meteordevelopments.duels.api.Duels) Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+            if (duels != null) {
+                duels.reloadConfig();
+                teleportDelay = duels.getConfig().getInt("duel.teleport-delay", 5);
+            }
+        }
+
     }
 
     /**
@@ -48,7 +52,18 @@ public class DuelsClass {
     }
 
     public static boolean isInDuel(Player player) {
-        return getApi().getArenaManager().isInMatch(player);
+        try {
+            me.realized.duels.api.Duels duels = (me.realized.duels.api.Duels) Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+            if (duels != null) {
+                return duels.getArenaManager().isInMatch(player);
+            }
+        } catch (NoClassDefFoundError | ClassCastException e) {
+            com.meteordevelopments.duels.api.Duels duels = (com.meteordevelopments.duels.api.Duels) Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+            if (duels != null) {
+                return duels.getArenaManager().isInMatch(player);
+            }
+        }
+        return false;
     }
 
     /**

@@ -2,7 +2,6 @@ package me.jadenp.notbounties;
 
 import com.google.common.io.Files;
 import com.google.gson.stream.JsonWriter;
-import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
 import me.jadenp.notbounties.ui.BountyTracker;
