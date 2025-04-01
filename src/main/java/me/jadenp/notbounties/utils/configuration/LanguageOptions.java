@@ -462,6 +462,7 @@ public class LanguageOptions {
 
     public static String parse(String str, double amount, OfflinePlayer receiver) {
         str = str.replace("{amount}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
+        str = str.replace("{amount_plain}", NumberFormatting.formatNumber(amount));
         return parse(str, receiver);
     }
 
@@ -484,11 +485,13 @@ public class LanguageOptions {
      */
     public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
         str = str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
+        str = str.replace("{bounty_plain}", NumberFormatting.formatNumber(bounty));
         return parse(str, player, amount, receiver);
     }
 
     public static String parse(String str, double amount, double bounty, OfflinePlayer receiver) {
         str = str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty) + NumberFormatting.currencySuffix));
+        str = str.replace("{bounty_plain}", NumberFormatting.formatNumber(bounty));
         return parse(str, amount, receiver);
     }
 
@@ -534,6 +537,7 @@ public class LanguageOptions {
 
     public static String parse(String str, OfflinePlayer player, double amount, double totalBounty, OfflinePlayer receiver) {
         str = str.replace("{bounty}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.currencySuffix));
+        str = str.replace("{bounty_plain}", NumberFormatting.formatNumber(totalBounty));
         return parse(str, player, amount, receiver);
     }
 
