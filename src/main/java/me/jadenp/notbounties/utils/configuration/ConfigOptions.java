@@ -695,6 +695,10 @@ public class ConfigOptions {
     public static void setUpdateNotification(String updateNotification) {
         ConfigOptions.updateNotification = updateNotification;
         NotBounties.getInstance().reloadConfig();
+        if (NotBounties.getInstance().getConfig().getKeys(true).size() <= 2) {
+            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the config.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+            return;
+        }
         NotBounties.getInstance().getConfig().set("update-notification", updateNotification);
         NotBounties.getInstance().saveConfig();
     }

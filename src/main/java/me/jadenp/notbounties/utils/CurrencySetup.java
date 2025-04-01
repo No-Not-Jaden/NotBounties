@@ -12,6 +12,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -56,9 +58,15 @@ public class CurrencySetup implements Listener {
                 currencySetupStage = 0;
             }
         }
-
+        NotBounties nb = NotBounties.getInstance();
+        nb.reloadConfig();
+        if (nb.getConfig().getKeys(true).size() <= 2) {
+            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the config.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+            admin.sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.RED + "Cannot edit the config.yml file! There are YAML formatting errors you must fix before continuing.", admin));
+            return;
+        }
         if (currencySetupStage == 7) {
-            NotBounties nb = NotBounties.getInstance();
+
             nb.getConfig().set("currency.add-commands", Collections.singletonList("eco give {player} {amount}"));
             nb.getConfig().set("currency.remove-commands", Collections.singletonList("eco take {player} {amount}"));
             nb.saveConfig();
@@ -66,7 +74,6 @@ public class CurrencySetup implements Listener {
             currencySetupStage = 4;
         }
         if (currencySetupStage == 8) {
-            NotBounties nb = NotBounties.getInstance();
             nb.getConfig().set("currency.add-commands", new ArrayList<>());
             nb.getConfig().set("currency.remove-commands", new ArrayList<>());
             nb.saveConfig();
@@ -74,7 +81,6 @@ public class CurrencySetup implements Listener {
             currencySetupStage = 4;
         }
         if (currencySetupStage == 10) {
-            NotBounties nb = NotBounties.getInstance();
             if (nb.getConfig().getBoolean("currency.override-vault")) {
                 admin.sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.YELLOW + "Vault is staying overridden.", admin));
             } else {
@@ -85,7 +91,6 @@ public class CurrencySetup implements Listener {
             currencySetupStage = 0;
         }
         if (currencySetupStage == 11) {
-            NotBounties nb = NotBounties.getInstance();
             if (!nb.getConfig().getBoolean("currency.override-vault")) {
                 admin.sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.YELLOW + "Vault is staying used.", admin));
             } else {
@@ -203,6 +208,16 @@ public class CurrencySetup implements Listener {
             event.setCancelled(true);
             return;
         }
+        NotBounties.getInstance().reloadConfig();
+        FileConfiguration config = NotBounties.getInstance().getConfig();
+        if (config.getKeys(true).size() <= 2) {
+            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the config.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+            currencySetupPlayer = null;
+            currencySetupStage = 0;
+            event.getPlayer().sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.RED + "Cannot edit the config.yml file! There are YAML formatting errors you must fix before continuing.", event.getPlayer()));
+            event.setCancelled(true);
+            return;
+        }
         switch (currencySetupStage) {
             case 0:
                 String currency;
@@ -251,21 +266,19 @@ public class CurrencySetup implements Listener {
                     currency = material.toString();
                     event.getPlayer().sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.YELLOW + "Currency is now set to the item: " + ChatColor.WHITE + currency, event.getPlayer()));
                 }
-                NotBounties.getInstance().reloadConfig();
-                NotBounties.getInstance().getConfig().set("currency.object", currency);
+
+                config.set("currency.object", currency);
                 NotBounties.getInstance().saveConfig();
                 break;
             case 2:
                 List<String> aList = event.getMessage().equalsIgnoreCase("skip") ? new ArrayList<>() : Collections.singletonList(event.getMessage());
-                NotBounties.getInstance().reloadConfig();
-                NotBounties.getInstance().getConfig().set("currency.add-commands", aList);
+                config.set("currency.add-commands", aList);
                 NotBounties.getInstance().saveConfig();
                 event.getPlayer().sendMessage(getPrefix() + ChatColor.YELLOW + "Add command is now set to: " + ChatColor.WHITE + aList);
                 break;
             case 3:
                 List<String> rList = event.getMessage().equalsIgnoreCase("skip") ? new ArrayList<>() : Collections.singletonList(event.getMessage());
-                NotBounties.getInstance().reloadConfig();
-                NotBounties.getInstance().getConfig().set("currency.remove-commands", rList);
+                config.set("currency.remove-commands", rList);
                 NotBounties.getInstance().saveConfig();
                 event.getPlayer().sendMessage(getPrefix() + ChatColor.YELLOW + "Remove command is now set to: " + ChatColor.WHITE + rList);
                 break;
@@ -273,8 +286,7 @@ public class CurrencySetup implements Listener {
                 String prefix = event.getMessage();
                 if (prefix.equalsIgnoreCase("skip"))
                     prefix = "";
-                NotBounties.getInstance().reloadConfig();
-                NotBounties.getInstance().getConfig().set("currency.prefix", prefix);
+                config.set("currency.prefix", prefix);
                 NotBounties.getInstance().saveConfig();
                 event.getPlayer().sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + ChatColor.YELLOW + "Prefix is now set to: '" + ChatColor.WHITE + prefix + ChatColor.YELLOW + "'", event.getPlayer()));
                 break;
@@ -282,8 +294,7 @@ public class CurrencySetup implements Listener {
                 String suffix = event.getMessage();
                 if (suffix.equalsIgnoreCase("skip"))
                     suffix = "";
-                NotBounties.getInstance().reloadConfig();
-                NotBounties.getInstance().getConfig().set("currency.suffix", suffix);
+                config.set("currency.suffix", suffix);
                 NotBounties.getInstance().saveConfig();
                 event.getPlayer().sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + ChatColor.YELLOW + "Suffix is now set to: '" + ChatColor.WHITE + suffix + ChatColor.YELLOW + "'", event.getPlayer()));
                 currencySetupStage = -2;
