@@ -544,14 +544,14 @@ public class BedrockGUIOptions {
                         float sliderValue = customFormResponse.asSlider();
                         inputs.add(NumberFormatting.getValue(sliderValue));
                         quantity.put(component, (double) sliderValue); // possible to be used as quantity
-                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (NumberFormatting.getValue(sliderValue)))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (NumberFormatting.getValue(sliderValue)))).toList());
                         break;
                     case STEP_SLIDER:
                         int stepSliderIndex = customFormResponse.asStepSlider();
                         String stepValue = component.getListOptions().get(stepSliderIndex);
                         inputs.add(stepValue);
                         value.put(component, stepValue);
-                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (stepValue))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (stepValue))).toList());
                         break;
                     case INPUT:
                         String input = customFormResponse.asInput();
@@ -565,7 +565,7 @@ public class BedrockGUIOptions {
                         } catch (NumberFormatException e) {
                             value.put(component, input);
                         }
-                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (input))).collect(Collectors.toList()));
+                        ActionCommands.executeCommands(player, component.getCommands().stream().map(command -> command.replace("{value}", (input))).toList());
                         break;
                 }
             } catch (IllegalStateException e) {

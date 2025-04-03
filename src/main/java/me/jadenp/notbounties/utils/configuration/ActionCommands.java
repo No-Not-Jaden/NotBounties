@@ -59,7 +59,7 @@ public class ActionCommands {
             @Override
             public void run() {
                 for (String command : bountySetCommands) {
-                    command = command.replace("{receiever}", LoggedPlayers.getPlayerName(receiver));
+                    command = command.replace("{receiver}", LoggedPlayers.getPlayerName(receiver));
                     execute(setter, setter, bounty, command);
                 }
             }
@@ -96,6 +96,7 @@ public class ActionCommands {
         String bountyItems = bounty != null ? NumberFormatting.listItems(bounty.getTotalItemBounty(), ':') : "";
         String killerName = killer != null ? killer.getName() : "";
 
+        command = command.replace("{viewer}", player.getName());
         command = command.replace("{player}", (player.getName()));
         command = command.replace("{killer}", (killerName));
         command = command.replace("{amount}", (NumberFormatting.getValue(totalBounty)));
