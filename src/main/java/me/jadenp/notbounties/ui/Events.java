@@ -275,9 +275,12 @@ public class Events implements Listener {
         if (message.startsWith("/"))
             message = message.substring(1);
         // remove trailing space
-        if (message.charAt(message.length() - 1) == ' ') {
+        if (!message.isEmpty() && message.charAt(message.length() - 1) == ' ') {
             message = message.substring(0, message.length() - 1);
         }
+        // check if message has anything left
+        if (message.isEmpty())
+            return;
         // remove plugin specific command identifier.
         if (message.contains(" ") && message.substring(0, message.indexOf(" ")).contains(":")) {
             message = message.substring(message.indexOf(":") + 1);
