@@ -60,6 +60,8 @@ public class GUI implements Listener {
     public static GUIOptions getGUI(String guiName) {
         if (customGuis.containsKey(guiName))
             return customGuis.get(guiName);
+        Bukkit.getLogger().warning("[NotBounties] Invalid GUI requested: \"" + guiName + "\"");
+        Bukkit.getLogger().warning("[NotBounties] Ensure that you have this GUI configured in the plugins/NotBounties/gui.yml file.");
         return null;
     }
 

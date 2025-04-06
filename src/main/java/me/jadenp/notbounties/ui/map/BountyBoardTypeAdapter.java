@@ -90,7 +90,7 @@ public class BountyBoardTypeAdapter extends TypeAdapter<BountyBoard> {
             }
         }
         jsonReader.endObject();
-        if (location == null)
+        if (location == null || location.getWorld() == null)
             return null;
         return new BountyBoard(location, direction, rank);
     }
