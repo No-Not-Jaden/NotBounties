@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils.configuration.auto_bounties;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -12,9 +13,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 import static me.jadenp.notbounties.utils.BountyManager.addBounty;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.liteBansEnabled;
@@ -89,38 +90,20 @@ public class RandomBounties {
                 // check immunity
                 if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(player, price[0]) != Immunity.ImmunityType.DISABLE || hasImmunity(player))
                     return;
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        if (!player.isBanned()) {
-                            if (liteBansEnabled) {
-                                if (new LiteBansClass().isPlayerNotBanned(player.getUniqueId())) {
-                                    // back into sync thread
-                                    if (!NumberFormatting.shouldUseDecimals())
-                                        price[0] = (long) price[0];
-                                    double finalPrice = price[0];
-                                    new BukkitRunnable() {
-                                        @Override
-                                        public void run() {
-                                            addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
-                                        }
-                                    }.runTask(NotBounties.getInstance());
-                                }
-                            } else {
-                                if (!NumberFormatting.shouldUseDecimals())
-                                    price[0] = (long) price[0];
-                                double finalPrice = price[0];
-                                new BukkitRunnable() {
-                                    @Override
-                                    public void run() {
-                                        addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
-                                    }
-                                }.runTask(NotBounties.getInstance());
-                            }
-                            setNextRandomBounty();
+                NotBounties.getServerImplementation().async().runNow(task -> {
+                    if (!player.isBanned() && (!liteBansEnabled || new LiteBansClass().isPlayerNotBanned(player.getUniqueId()))) {
+                        if (!NumberFormatting.shouldUseDecimals()) {
+                            price[0] = (long) price[0];
                         }
+                        double finalPrice = price[0];
+
+                        NotBounties.getServerImplementation().global().run((Consumer<TaskImplementation<Void>>) task1 ->
+                                addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new ArrayList<>(), false)));
+
+                        setNextRandomBounty();
                     }
-                }.runTaskAsynchronously(NotBounties.getInstance());
+                });
+
             } catch (IllegalArgumentException e) {
                 Bukkit.getLogger().info("[NotBounties] Invalid UUID of picked player for random bounty: " + uuid);
             }

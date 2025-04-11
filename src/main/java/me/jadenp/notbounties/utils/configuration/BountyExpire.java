@@ -8,7 +8,6 @@ import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -142,20 +141,17 @@ public class BountyExpire {
                     if (isExpired(bounty.getUUID(), setter)) {
                         if (!setter.getUuid().equals(new UUID(0, 0))) {
                             // check if setter is online
-                            new BukkitRunnable() {
-                                @Override
-                                public void run() {
-                                    Player player = Bukkit.getPlayer(setter.getUuid());
-                                    if (player != null) {
-                                        player.sendMessage(parse(getPrefix() + getMessage("expired-bounty"), setter.getDisplayAmount(), Bukkit.getOfflinePlayer(bounty.getUUID())));
-                                    }
-                                    if (rewardReceiver) {
-                                        refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems());
-                                    } else {
-                                        refundSetter(setter);
-                                    }
+                            NotBounties.getServerImplementation().global().run(task -> {
+                                Player player = Bukkit.getPlayer(setter.getUuid());
+                                if (player != null) {
+                                    player.sendMessage(parse(getPrefix() + getMessage("expired-bounty"), setter.getDisplayAmount(), Bukkit.getOfflinePlayer(bounty.getUUID())));
                                 }
-                            }.runTask(NotBounties.getInstance());
+                                if (rewardReceiver) {
+                                    refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems());
+                                } else {
+                                    refundSetter(setter);
+                                }
+                            });
                         }
                         if (settersToRemove.containsKey(bounty)) {
                             settersToRemove.get(bounty).add(setter);

@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils.configuration.auto_bounties;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
@@ -10,7 +11,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -103,29 +103,21 @@ public class TimedBounties {
                 if (player.isOnline() && isVanished(Objects.requireNonNull(player.getPlayer())))
                     continue;
                 // set bounty
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        if (player.isBanned() || (liteBansEnabled && !new LiteBansClass().isPlayerNotBanned(player.getUniqueId()))) {
-                            nextBounties.remove(entry.getKey());
-                            return;
+                TaskImplementation<Boolean> checkBounty = NotBounties.getServerImplementation().async().runNow(task -> player.isBanned() || (liteBansEnabled && !new LiteBansClass().isPlayerNotBanned(player.getUniqueId())));
+                checkBounty.asFuture().thenRun(() -> NotBounties.getServerImplementation().global().run(nextTask -> {
+                    if (Boolean.TRUE.equals(checkBounty.getCallback())) {
+                        if (player.isOnline() || offlineTracking)
+                            nextBounties.replace(entry.getKey(), System.currentTimeMillis() + time * 1000);
+                        else nextBounties.replace(entry.getKey(), time * 1000);
+                        if (!hasBounty(player.getUniqueId()) || !isMaxed(Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty())) {
+                            // check immunity
+                            if ((ConfigOptions.autoBountyOverrideImmunity || Immunity.getAppliedImmunity(player, bountyIncrease) == Immunity.ImmunityType.DISABLE) && !hasImmunity(player))
+                                addBounty(player, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
                         }
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                if (player.isOnline() || offlineTracking)
-                                    nextBounties.replace(entry.getKey(), System.currentTimeMillis() + time * 1000);
-                                else nextBounties.replace(entry.getKey(), time * 1000);
-                                if (!hasBounty(player.getUniqueId()) || !isMaxed(Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty())) {
-                                    // check immunity
-                                    if ((ConfigOptions.autoBountyOverrideImmunity || Immunity.getAppliedImmunity(player, bountyIncrease) == Immunity.ImmunityType.DISABLE) && !hasImmunity(player))
-                                        addBounty(player, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
-                                }
-                            }
-                        }.runTask(NotBounties.getInstance());
-
+                    } else {
+                        nextBounties.remove(entry.getKey());
                     }
-                }.runTaskAsynchronously(NotBounties.getInstance());
+                }));
             }
         }
     }

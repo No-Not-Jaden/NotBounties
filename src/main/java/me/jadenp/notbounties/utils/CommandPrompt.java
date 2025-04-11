@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.utils;
 
-import com.mysql.cj.log.Log;
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
@@ -8,15 +8,13 @@ import me.jadenp.notbounties.utils.configuration.Prompt;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.parse;
 
 public class CommandPrompt {
     private final String command;
     private final boolean playerPrompt;
-    private BukkitTask expireTask = null;
+    private TaskImplementation<Void> expireTask = null;
     private boolean silentCancel = false;
     private boolean expired = false;
     private final Player player;
@@ -57,15 +55,12 @@ public class CommandPrompt {
     private void refreshExpireTask(){
         if (expireTask != null)
             expireTask.cancel();
-        expireTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                expired = true;
-                if (!silentCancel)
-                    if (player.isOnline())
-                        player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("prompt-expire"), player));
-            }
-        }.runTaskLater(NotBounties.getInstance(), Prompt.timeLimit * 20L);
+        expireTask = NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
+            expired = true;
+            if (!silentCancel && player.isOnline())
+                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("prompt-expire"), player));
+        }, Prompt.timeLimit * 20L);
+
     }
 
     public String getCommand() {
@@ -103,32 +98,26 @@ public class CommandPrompt {
         message = ChatColor.stripColor(message);
         String command = this.command.replace("<~placeholder~>", message);
         String finalMessage = message;
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (playerPrompt) {
-                    Bukkit.dispatchCommand(player, command);
-                } else {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+        NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
+            if (playerPrompt) {
+                Bukkit.dispatchCommand(player, command);
+            } else {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            }
+        }, 1);
+        NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
+            if (responseType == ResponseType.NUMBER) {
+                try {
+                    NumberFormatting.tryParse(finalMessage);
+                } catch (NumberFormatException e) {
+                    Prompt.failExecute(player.getUniqueId());
+                }
+            } else if (responseType == ResponseType.PLAYER) {
+                if (!LoggedPlayers.isLogged(finalMessage)) {
+                    Prompt.failExecute(player.getUniqueId());
                 }
             }
-        }.runTaskLater(NotBounties.getInstance(), 1);
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (responseType == ResponseType.NUMBER) {
-                    try {
-                        NumberFormatting.tryParse(finalMessage);
-                    } catch (NumberFormatException e) {
-                        Prompt.failExecute(player.getUniqueId());
-                    }
-                } else if (responseType == ResponseType.PLAYER) {
-                    if (!LoggedPlayers.isLogged(finalMessage)) {
-                        Prompt.failExecute(player.getUniqueId());
-                    }
-                }
-            }
-        }.runTaskLater(NotBounties.getInstance(), 2);
+        }, 1);
 
         silentCancel = true;
 

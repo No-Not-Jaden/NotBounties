@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.databases;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
@@ -54,7 +55,7 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     }
 
     private final NotBountiesDatabase database;
-    private BukkitTask asyncUpdateTask = null;
+    private TaskImplementation<Void> asyncUpdateTask = null;
     private static final long MIN_UPDATE_INTERVAL = 20000L; // the minimum amount of time between database updates
     private int refreshInterval;
     private long lastOnlinePlayerRequest = 0;
@@ -73,12 +74,7 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
         if (asyncUpdateTask != null)
             asyncUpdateTask.cancel();
         long startTime = getSafeStartTime(database.getName(), refreshInterval * 1000L);
-        asyncUpdateTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                readDatabaseData(true);
-            }
-        }.runTaskTimerAsynchronously(NotBounties.getInstance(), (startTime - System.currentTimeMillis()) / 50L, refreshInterval * 20L);
+        asyncUpdateTask = NotBounties.getServerImplementation().async().runAtFixedRate(() -> readDatabaseData(true), (startTime - System.currentTimeMillis()) / 50L, refreshInterval * 20L);
     }
 
     /**
