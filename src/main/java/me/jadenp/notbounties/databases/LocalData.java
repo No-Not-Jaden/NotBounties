@@ -9,7 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -121,17 +120,14 @@ public class LocalData extends NotBountiesDatabase {
         } else {
             // synchronous task to check if the player is online
             Bounty finalPrevBounty = prevBounty;
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (Bukkit.getPlayer(finalPrevBounty.getUUID()) != null) {
-                        // need to get an accurate bounty
-                        Bounty newBounty = getBounty(finalPrevBounty.getUUID());
-                        if (newBounty != null)
-                            onlineBounties.put(finalPrevBounty.getUUID(), newBounty);
-                    }
+            NotBounties.getServerImplementation().global().run(() -> {
+                if (Bukkit.getPlayer(finalPrevBounty.getUUID()) != null) {
+                    // need to get an accurate bounty
+                    Bounty newBounty = getBounty(finalPrevBounty.getUUID());
+                    if (newBounty != null)
+                        onlineBounties.put(finalPrevBounty.getUUID(), newBounty);
                 }
-            }.runTask(NotBounties.getInstance());
+            });
         }
         return prevBounty;
     }

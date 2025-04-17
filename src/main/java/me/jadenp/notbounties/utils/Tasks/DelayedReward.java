@@ -13,6 +13,7 @@ public class DelayedReward extends CancelableTask{
     private final UUID uuid;
 
     public DelayedReward(Bounty bounty, Player player) {
+        super();
         finalBounty = new Bounty(bounty);
         uuid = player.getUniqueId();
     }

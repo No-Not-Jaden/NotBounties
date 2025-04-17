@@ -13,6 +13,7 @@ public class MultipleItemGive extends CancelableTask{
     private int index = 0;
 
     public MultipleItemGive(Player p, List<ItemStack> itemStackList) {
+        super();
         this.p = p;
         this.itemStackList = itemStackList;
     }

@@ -7,8 +7,6 @@ import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -96,12 +94,7 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
             if (sync) {
                 updateData();
             } else {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        updateData();
-                    }
-                }.runTaskAsynchronously(NotBounties.getInstance());
+                NotBounties.getServerImplementation().async().runNow(this::updateData);
             }
         }
 
@@ -168,24 +161,21 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
      */
     @Override
     public void addStats(UUID uuid, PlayerStat stats) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!isConnected()) {
-                    if (System.currentTimeMillis() - getLastSync() < DataManager.CONNECTION_REMEMBRANCE_MS) {
-                        if (statChanges.containsKey(uuid)) {
-                            statChanges.replace(uuid, statChanges.get(uuid).combineStats(stats));
-                        } else {
-                            statChanges.put(uuid, stats);
-                        }
+        NotBounties.getServerImplementation().async().runNow(() -> {
+            if (!isConnected()) {
+                if (System.currentTimeMillis() - getLastSync() < DataManager.CONNECTION_REMEMBRANCE_MS) {
+                    if (statChanges.containsKey(uuid)) {
+                        statChanges.replace(uuid, statChanges.get(uuid).combineStats(stats));
+                    } else {
+                        statChanges.put(uuid, stats);
                     }
-                    return;
                 }
-                if (isPermDatabase())
-                    stats.setServerID(DataManager.GLOBAL_SERVER_ID);
-                database.addStats(uuid, stats);
+                return;
             }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+            if (isPermDatabase())
+                stats.setServerID(DataManager.GLOBAL_SERVER_ID);
+            database.addStats(uuid, stats);
+        });
     }
 
     @Override
@@ -201,39 +191,28 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) {
         if (!playerStats.isEmpty())
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (isPermDatabase())
-                        playerStats.forEach((k, v) -> v.setServerID(DataManager.GLOBAL_SERVER_ID));
-                    database.addStats(playerStats);
-                    statChanges.clear();
-                }
-            }.runTaskAsynchronously(NotBounties.getInstance());
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                if (isPermDatabase())
+                    playerStats.forEach((k, v) -> v.setServerID(DataManager.GLOBAL_SERVER_ID));
+                database.addStats(playerStats);
+                statChanges.clear();
+            });
     }
 
     @Override
     public void addBounty(List<Bounty> bounties) {
         if (!bounties.isEmpty())
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (isPermDatabase())
-                        bounties.forEach(bounty -> bounty.setServerID(DataManager.GLOBAL_SERVER_ID));
-                    database.addBounty(bounties);
-                }
-            }.runTaskAsynchronously(NotBounties.getInstance());
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                if (isPermDatabase())
+                    bounties.forEach(bounty -> bounty.setServerID(DataManager.GLOBAL_SERVER_ID));
+                database.addBounty(bounties);
+            });
     }
 
     @Override
     public void removeBounty(List<Bounty> bounties) {
         if (!bounties.isEmpty())
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    database.removeBounty(bounties);
-                }
-            }.runTaskAsynchronously(NotBounties.getInstance());
+            NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(bounties));
     }
 
     /**
@@ -244,34 +223,26 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     @Override
     public Bounty addBounty(@NotNull Bounty bounty) {
         if (isConnected()) {
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    try {
-                        Bounty newbounty = database.addBounty(bounty);
-                        if (newbounty != null && !newbounty.equals(bounty)) {
-                            bounty.getSetters().clear();
-                            bounty.getSetters().addAll(newbounty.getSetters());
-                        }
-                        if (isPermDatabase())
-                            bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
-                    } catch (IOException e) {
-                        disconnect();
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                try {
+                    Bounty newbounty = database.addBounty(bounty);
+                    if (newbounty != null && !newbounty.equals(bounty)) {
+                        bounty.getSetters().clear();
+                        bounty.getSetters().addAll(newbounty.getSetters());
                     }
+                    if (isPermDatabase())
+                        bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
+                } catch (IOException e) {
+                    disconnect();
                 }
-            }.runTaskAsynchronously(NotBounties.getInstance());
+            });
         }
         return bounty;
     }
 
     @Override
     public void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                database.replaceBounty(uuid, bounty);
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        NotBounties.getServerImplementation().async().runNow(() -> database.replaceBounty(uuid, bounty));
     }
 
     @Override
@@ -286,22 +257,12 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     @Override
     public void removeBounty(UUID uuid) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                database.removeBounty(uuid);
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(uuid));
     }
 
     @Override
     public void removeBounty(Bounty bounty) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                database.removeBounty(bounty);
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(bounty));
     }
 
     @Override
@@ -402,12 +363,7 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     @Override
     public void reloadConfig() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                database.reloadConfig();
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        NotBounties.getServerImplementation().async().runNow(database::reloadConfig);
 
     }
 
@@ -418,32 +374,17 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     @Override
     public void notifyBounty(UUID uuid) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                database.notifyBounty(uuid);
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        NotBounties.getServerImplementation().async().runNow(() -> database.notifyBounty(uuid));
     }
 
     @Override
     public void login(UUID uuid, String playerName) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                database.login(uuid, playerName);
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        NotBounties.getServerImplementation().async().runNow(() -> database.login(uuid, playerName));
     }
 
     @Override
     public void logout(UUID uuid) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                database.logout(uuid);
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        NotBounties.getServerImplementation().async().runNow(() -> database.logout(uuid));
     }
 
     public boolean isPermDatabase() {

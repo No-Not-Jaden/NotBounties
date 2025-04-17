@@ -23,6 +23,7 @@ public class SingleItemGive extends CancelableTask{
 
     @Override
     public void cancel() {
+        super.cancel();
         if (toGive > 0) {
             // refund the rest of the items
             itemStack.setAmount((int) toGive);
