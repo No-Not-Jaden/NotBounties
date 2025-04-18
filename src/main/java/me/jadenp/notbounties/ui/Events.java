@@ -19,13 +19,11 @@ import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.utils.external_api.LocalTime;
 import me.jadenp.notbounties.utils.external_api.MMOLibClass;
-import me.jadenp.notbounties.utils.external_api.worldguard.WorldGuardClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -33,16 +31,12 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.event.entity.EntityMountEvent;
 import org.bukkit.event.player.*;
-import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -160,20 +154,17 @@ public class Events implements Listener {
         DataManager.login(player);
         LoggedPlayers.login(player);
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                // make sure they are online still
-                if (!player.isOnline())
-                    return;
+        NotBounties.getServerImplementation().entity(player).runDelayed(() -> {
+            // make sure they are online still
+            if (!player.isOnline())
+                return;
 
-                // log timezone
-                LocalTime.formatTime(0, LocalTime.TimeFormat.PLAYER, player);
+            // log timezone
+            LocalTime.formatTime(0, LocalTime.TimeFormat.PLAYER, player);
 
-                // get skin info
-                SkinManager.isSkinLoaded(player.getUniqueId());
-            }
-        }.runTaskLater(NotBounties.getInstance(), 40L);
+            // get skin info
+            SkinManager.isSkinLoaded(player.getUniqueId());
+        }, 40);
     }
 
     @EventHandler

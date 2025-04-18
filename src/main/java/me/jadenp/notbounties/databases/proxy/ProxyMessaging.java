@@ -12,13 +12,11 @@ import me.jadenp.notbounties.utils.BountyChange;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.data.PlayerStat;
-import me.jadenp.notbounties.utils.Tasks.SingleItemGive;
-import me.jadenp.notbounties.utils.Tasks.SkinRequest;
+import me.jadenp.notbounties.utils.tasks.SkinRequest;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.messaging.PluginMessageListener;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -399,12 +397,6 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                     skinRequest.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(skinRequest,5, 5));
                 }
             });
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-
-                }
-            }.runTask(NotBounties.getInstance());
         }
     }
 

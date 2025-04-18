@@ -30,7 +30,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -41,7 +40,6 @@ import static me.jadenp.notbounties.ui.gui.GUI.reopenBountiesGUI;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 
 public class Commands implements CommandExecutor, TabCompleter {
@@ -1795,57 +1793,48 @@ public class Commands implements CommandExecutor, TabCompleter {
                             double finalTotal = total;
                             boolean finalUsingGUI = usingGUI;
                             boolean finalSilent = silent;
-                            new BukkitRunnable() {
-                                @Override
-                                public void run() {
-                                    // async ban check
-                                    if (!player.isOnline() && removeBannedPlayers && (player.isBanned() || (liteBansEnabled && !(new LiteBansClass().isPlayerNotBanned(playerUUID))))) {
-                                        new BukkitRunnable() {
-                                            @Override
-                                            public void run() {
-                                                // has permanent immunity
-                                                if (!finalSilent)
-                                                    sender.sendMessage(parse(getPrefix() + getMessage("permanent-immunity"), Immunity.getImmunity(playerUUID), player));
-                                            }
-                                        }.runTask(NotBounties.getInstance());
-                                    } else {
-                                        new BukkitRunnable() {
-                                            @Override
-                                            public void run() {
-                                                if (!items.isEmpty()) {
-                                                    // check to see if player is still online after the async check
-                                                    if (!parser.isOnline())
-                                                        return;
-                                                    String result = "";
-                                                    if (finalUsingGUI && GUI.playerInfo.containsKey(parser.getUniqueId()) && GUI.playerInfo.get(parser.getUniqueId()).guiType().equals("bounty-item-select")) {
-                                                        if (manualEconomy != ManualEconomy.AUTOMATIC) {
-                                                            // give items back
-                                                            GUI.safeCloseGUI(parser, false);
-                                                        } else {
-                                                            // erase data from gui
-                                                            GUI.playerInfo.remove(parser.getUniqueId());
-                                                            parser.getOpenInventory().close();
-                                                        }
-                                                    } else {
-                                                        result = NumberFormatting.removeItems(parser, new ArrayList<>(items), manualEconomy == ManualEconomy.AUTOMATIC);
-                                                    }
-
-                                                    if (!result.isEmpty()) {
-                                                        // didn't have all the items
-                                                        if (!finalSilent)
-                                                            sender.sendMessage(parse(getPrefix() + getMessage("broke").replace("{amount}", result), parser));
-                                                        return;
-                                                    }
+                            NotBounties.getServerImplementation().async().runNow(() -> {
+                                // async ban check
+                                if (!player.isOnline() && removeBannedPlayers && (player.isBanned() || (liteBansEnabled && !(new LiteBansClass().isPlayerNotBanned(playerUUID))))) {
+                                    NotBounties.getServerImplementation().global().run(() -> {
+                                        // has permanent immunity
+                                        if (!finalSilent)
+                                            sender.sendMessage(parse(getPrefix() + getMessage("permanent-immunity"), Immunity.getImmunity(playerUUID), player));
+                                    });
+                                } else {
+                                    NotBounties.getServerImplementation().global().run(() -> {
+                                        if (!items.isEmpty()) {
+                                            // check to see if player is still online after the async check
+                                            if (!parser.isOnline())
+                                                return;
+                                            String result = "";
+                                            if (finalUsingGUI && GUI.playerInfo.containsKey(parser.getUniqueId()) && GUI.playerInfo.get(parser.getUniqueId()).guiType().equals("bounty-item-select")) {
+                                                if (manualEconomy != ManualEconomy.AUTOMATIC) {
+                                                    // give items back
+                                                    GUI.safeCloseGUI(parser, false);
+                                                } else {
+                                                    // erase data from gui
+                                                    GUI.playerInfo.remove(parser.getUniqueId());
+                                                    parser.getOpenInventory().close();
                                                 }
-                                                if (manualEconomy != ManualEconomy.PARTIAL)
-                                                    NumberFormatting.doRemoveCommands(parser, finalTotal, new ArrayList<>());
-                                                addBounty(parser, player, finalAmount, items, whitelist);
-                                                reopenBountiesGUI();
+                                            } else {
+                                                result = NumberFormatting.removeItems(parser, new ArrayList<>(items), manualEconomy == ManualEconomy.AUTOMATIC);
                                             }
-                                        }.runTask(NotBounties.getInstance());
-                                    }
+
+                                            if (!result.isEmpty()) {
+                                                // didn't have all the items
+                                                if (!finalSilent)
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("broke").replace("{amount}", result), parser));
+                                                return;
+                                            }
+                                        }
+                                        if (manualEconomy != ManualEconomy.PARTIAL)
+                                            NumberFormatting.doRemoveCommands(parser, finalTotal, new ArrayList<>());
+                                        addBounty(parser, player, finalAmount, items, whitelist);
+                                        reopenBountiesGUI();
+                                    });
                                 }
-                            }.runTaskAsynchronously(NotBounties.getInstance());
+                            });
                         } else {
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("broke"), total, parser));

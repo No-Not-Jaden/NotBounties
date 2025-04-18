@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.utils.Tasks;
+package me.jadenp.notbounties.utils.tasks;
 
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;

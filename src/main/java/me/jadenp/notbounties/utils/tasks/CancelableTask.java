@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.utils.Tasks;
+package me.jadenp.notbounties.utils.tasks;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
 

@@ -10,7 +10,7 @@ import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
-import me.jadenp.notbounties.utils.Tasks.DelayedReward;
+import me.jadenp.notbounties.utils.tasks.DelayedReward;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
