@@ -409,6 +409,12 @@ public class GUI implements Listener {
     }
     private static String createTitle(String name, String type, int numPlayerSlots, boolean addPage, Player viewer, long page, List<DisplayItem> displayItems, Object[] data) {
         String title = name;
+        if (type.equals("leaderboard") && data.length > 0 && data[0] instanceof String string) {
+            try {
+                Leaderboard leaderboard = Leaderboard.valueOf(string.toUpperCase());
+                title = title.replace("{leaderboard}", leaderboard.toString()).replace("{leaderboard_name}", leaderboard.getDisplayName());
+            } catch (IllegalArgumentException ignored) {}
+        }
         if (type.equals("view-bounty") && data.length > 0 && data[0] instanceof UUID uuid) {
             double amount = 0;
             Bounty bounty = BountyManager.getBounty(uuid);

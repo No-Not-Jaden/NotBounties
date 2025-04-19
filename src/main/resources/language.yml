@@ -117,7 +117,7 @@ reward-head-lore:
   - '&4bounty on it claimed by'
   - '&c&o{killer}'
   - ''
-update-stat: '&6{player}''s &f{leaderboard} &evalue has now been set to {amount}.'
+update-stat: '&6{player}''s &f{leaderboard_name} &evalue has now been set to {amount}.'
 self-set-deny: '&4You can''t set a bounty on yourself.'
 entity-remove: '&a{amount} entities were removed.'
 prompt-cancel: '&eYou have canceled the prompt.'
@@ -160,23 +160,31 @@ blocked-bounty-command: '&cYou can''t use this command when you have a bounty! &
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
 bounty-stat:
   all:
+    name: "All-Time"
     long: '&eYour all-time bounty is &2{amount}&e.'
     short: '&6All-time bounty: &e{amount}'
   kills:
+    name: 'Bounty Kills'
     long: '&eYou have killed &6{amount}&e players with bounties.'
     short: '&6Bounty kills: &e{amount}'
   claimed:
+    name: 'Claimed Rewards'
     long: '&eYou have claimed &2{amount}&e from bounties.'
     short: '&6Bounty rewards: &e{amount}'
   deaths:
+    name: 'Bounty Deaths'
     long: '&eYou have died &6{amount}&e times with a bounty.'
     short: '&6Bounty deaths: &e{amount}'
   set:
+    name: 'Bounties Set'
     long: '&eYou have set &6{amount}&e successful bounties.'
     short: '&6Bounties set: &e{amount}'
   immunity:
+    name: 'Immunity'
     long: '&eYou have spent &2{amount}&e on immunity.'
     short: '&6Bounty immunity: &e{amount}'
+  current:
+    name: 'Current'
 help:
   next-page: '&7Next Page'
   previous-page: '&7Previous Page'

@@ -99,6 +99,7 @@ public class CustomItem {
 
     private String parseReplacements(String str, OfflinePlayer player, String[] replacements) {
         return parse(str.replace("{leaderboard}", replacements[0])
+                .replace("{leaderboard_name}", replacements[1])
                 .replace("{amount}", replacements[1])
                 .replace("{tax}", replacements[2])
                 .replace("{amount_tax}", replacements[3]), player);

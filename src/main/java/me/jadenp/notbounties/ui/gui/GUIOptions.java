@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.ui.gui;
 
+import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.ui.HeadFetcher;
 import me.jadenp.notbounties.ui.QueuedHead;
 import me.jadenp.notbounties.ui.gui.display_items.DisplayItem;
@@ -156,7 +157,13 @@ public class GUIOptions {
         if (data.length == 0) {
             replacements = new String[0];
         } else if (type.equals("leaderboard") && data[0] instanceof String string) {
-            replacements = new String[]{string,"","",""};
+            try {
+                Leaderboard leaderboard = Leaderboard.valueOf(string.toUpperCase());
+                replacements = new String[]{leaderboard.toString(), leaderboard.getDisplayName(), "", ""};
+            } catch (IllegalArgumentException ignored) {
+                replacements = new String[] {string, string, "", ""};
+            }
+
         } else if (type.equals("select-price") || type.equals("confirm-bounty")) {
             double tax = page * ConfigOptions.bountyTax + DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList().size() * ConfigOptions.bountyWhitelistCost;
             double total = page + tax;
