@@ -302,7 +302,7 @@ leaderboard:
   # rank is number in linked hashmap in customgui create inv
   head-lore:
     - '&7<&m                        &7>'
-    - '&8&l{leaderboard}'
+    - '&8&l{leaderboard_name}'
     #- '&6%notbounties_top_{rank}_{leaderboard}%' this is better if you are using placeholderAPI
     - '&6{rank}&8: &7{amount}'
     - '&7<&m                        &7>'

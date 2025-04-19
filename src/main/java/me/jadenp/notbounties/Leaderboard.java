@@ -4,6 +4,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
+import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -260,6 +261,10 @@ public enum Leaderboard {
             newMap.put(key, map.get(key));
         }
         return newMap;
+    }
+
+    public String getDisplayName() {
+        return LanguageOptions.getMessage("bounty-stat." + this.name().toLowerCase() + ".name");
     }
 
     @Override

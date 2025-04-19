@@ -325,7 +325,10 @@ leaderboard:
   # 4 for reverse alphabetically
   sort-type: 1
   size: 36
-  gui-name: '&d&lBounties &9&lTop'
+  # in all text in this GUI, including text coming from custom items,
+  # {leaderboard} will be replaced with the raw leaderboard name (good for commands)
+  # {leaderboard_name} will be replaced with the name from the language.yml file under bounty-stats.(leaderboard).name
+  gui-name: '&d&lBounties &9&lTop: &7{leaderboard_name}'
   add-page: false
   remove-page-items: true
   player-slots:
@@ -334,10 +337,9 @@ leaderboard:
     - '15'
     - '19-25'
   head-name: '&e&l{player}'
-  # rank is number in linked hashmap in customgui create inv
   head-lore:
     - '&7<&m                        &7>'
-    - '&8&l{leaderboard}'
+    - '&8&l{leaderboard_name}'
     #- '&6%notbounties_top_{rank}_{leaderboard}%' this is better if you are using placeholderAPI
     - '&6{rank}&8: &7{amount}'
     - '&7<&m                        &7>'

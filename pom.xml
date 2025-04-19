@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>dev_1.21.29.0</version>
+    <version>1.21.29</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -324,12 +324,6 @@
             <artifactId>SimpleClans</artifactId>
             <version>2.19.2</version>
             <scope>provided</scope>
-        </dependency>
-        <!-- https://central.sonatype.com/artifact/com.cjcrafter/foliascheduler -->
-        <dependency>
-            <groupId>com.cjcrafter</groupId>
-            <artifactId>foliascheduler</artifactId>
-            <version>0.6.3</version>
         </dependency>
     </dependencies>
 </project>
