@@ -368,34 +368,36 @@ public class LanguageOptions {
             String timeString = formatTime(System.currentTimeMillis(), LocalTime.TimeFormat.PLAYER, receiver.getPlayer());
             str = str.replace("{time}", (timeString));
         }
-        str = str.replace("{next_challenges}", formatTime(ChallengeManager.getNextChallengeChange() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE));
-        str = str.replace("{min_bounty}", (NumberFormatting.getValue(ConfigOptions.minBounty)));
-        str = str.replace("{c_prefix}", (NumberFormatting.currencyPrefix));
-        str = str.replace("{c_suffix}", (NumberFormatting.currencySuffix));
-        str = str.replace("{whitelist_cost}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix);
-        str = str.replace("{tax}", (NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)));
-        str = str.replace("{buy_back_interest}", (NumberFormatting.formatNumber(ConfigOptions.buyBackInterest * 100)));
-        str = str.replace("{permanent_cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
-        str = str.replace("{scaling_ratio}", (NumberFormatting.formatNumber(Immunity.getScalingRatio())));
-        str = str.replace("{time_immunity}", (formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
+        str = str.replace("{next_challenges}", formatTime(ChallengeManager.getNextChallengeChange() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE))
+                .replace("{min_bounty}", (NumberFormatting.getValue(ConfigOptions.minBounty)))
+                .replace("{c_prefix}", (NumberFormatting.currencyPrefix))
+                .replace("{c_suffix}", (NumberFormatting.currencySuffix))
+                .replace("{whitelist_cost}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix)
+                .replace("{tax}", (NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)))
+                .replace("{buy_back_interest}", (NumberFormatting.formatNumber(ConfigOptions.buyBackInterest * 100)))
+                .replace("{permanent_cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix))
+                .replace("{scaling_ratio}", (NumberFormatting.formatNumber(Immunity.getScalingRatio())))
+                .replace("{time_immunity}", (formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
 
         if (receiver != null) {
             Bounty bounty = BountyManager.getBounty(receiver.getUniqueId());
             if (bounty != null) {
-                str = str.replace("{min_expire}", (formatTime(BountyExpire.getLowestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
-                str = str.replace("{max_expire}", (formatTime(BountyExpire.getHighestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
-                str = str.replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalDisplayBounty()) + NumberFormatting.currencySuffix);
-                str = str.replace("{bounty_value}", NumberFormatting.getValue(bounty.getTotalDisplayBounty()) );
+                str = str.replace("{min_expire}", (formatTime(BountyExpire.getLowestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)))
+                        .replace("{max_expire}", (formatTime(BountyExpire.getHighestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)))
+                        .replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalDisplayBounty()) + NumberFormatting.currencySuffix)
+                        .replace("{bounty_value}", NumberFormatting.getValue(bounty.getTotalDisplayBounty()) );
             } else {
                 str = str.replace("{min_expire}", "");
                 str = str.replace("{max_expire}", "");
             }
             if (receiver.getName() != null) {
-                str = str.replace("{player}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
-                str = str.replace("{receiver}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
+                str = str.replace("{player}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"))
+                        .replace("{receiver}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"))
+                        .replace("{viewer}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
             } else {
-                str = str.replace("{player}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-prefix"));
-                str = str.replace("{receiver}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"));
+                str = str.replace("{player}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-prefix"))
+                        .replace("{receiver}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"))
+                        .replace("{viewer}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"));
             }
             if (str.contains("{balance}"))
                 str = str.replace("{balance}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));

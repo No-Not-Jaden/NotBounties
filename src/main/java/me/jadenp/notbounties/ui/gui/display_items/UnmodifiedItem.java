@@ -37,8 +37,9 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
 
     @Override
     public String parseText(String text, Player player) {
-        text = text.replace("{amount}", NumberFormatting.formatNumber(getAmount()));
-        text = text.replace("{items}", NumberFormatting.listItems(Collections.singletonList(itemStack), 'x'));
+        text = text.replace("{amount}", NumberFormatting.formatNumber(getAmount()))
+                .replace("{items}", NumberFormatting.listItems(Collections.singletonList(itemStack), 'x'))
+                .replace("{viewer}", LanguageOptions.getMessage("player-prefix") + player.getName() + LanguageOptions.getMessage("player-suffix"));
         return LanguageOptions.parse(text, Bukkit.getOfflinePlayer(owningPlayer));
     }
 

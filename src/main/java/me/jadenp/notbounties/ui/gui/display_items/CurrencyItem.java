@@ -40,7 +40,8 @@ public class CurrencyItem implements DisplayItem, AmountItem{
 
     @Override
     public String parseText(String text, Player player) {
-        text = text.replace("{items}", "");
+        text = text.replace("{items}", "")
+                .replace("{viewer}", LanguageOptions.getMessage("player-prefix") + player.getName() + LanguageOptions.getMessage("player-suffix"));
         return LanguageOptions.parse(text, amount, Bukkit.getOfflinePlayer(owningPlayer));
     }
 
