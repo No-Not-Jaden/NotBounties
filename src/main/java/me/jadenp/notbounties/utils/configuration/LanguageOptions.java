@@ -151,7 +151,7 @@ public class LanguageOptions {
             page++;
         if (page == 6 && !(sender.hasPermission("notbounties.buyown") && buyBack) && !(sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE))
             page++;
-        if (page == 7 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
+        if (page == 7 && !(sender.hasPermission("notbounties.removeimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
             page++;
         if (page == 8 && !(sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap))
             page++;
@@ -266,7 +266,7 @@ public class LanguageOptions {
                 break;
             case 6:
                 // buy
-                if (sender.hasPermission("notbounties.buyown") & buyBack) {
+                if (sender.hasPermission("notbounties.buyown") && buyBack) {
                     sendHelpMessage(sender, getListMessage("help.buy-own"));
                 }
                 if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
@@ -285,7 +285,7 @@ public class LanguageOptions {
                 break;
             case 7:
                 // remove
-                if (sender.hasPermission("notbounties.removeimmunity"))
+                if (sender.hasPermission("notbounties.removeimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE)
                     sendHelpMessage(sender, getListMessage("help.remove-immunity"));
                 if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission()))
                     sendHelpMessage(sender, getListMessage("help.remove-set"));
