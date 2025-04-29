@@ -223,7 +223,7 @@ public class LanguageOptions {
             sendHelpMessage(sender, getListMessage("help.admin"));
         }
 
-        if (sender.hasPermission("notbounties.immune")) {
+        if (Immunity.isPermissionImmunity() && sender.hasPermission("notbounties.immune")) {
             sendHelpMessage(sender, getListMessage("help.immune"));
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
@@ -242,7 +242,7 @@ public class LanguageOptions {
             case 1:
                 // basic
                 sendHelpMessage(sender, getListMessage("help.basic"));
-                if (sender.hasPermission("notbounties.immune")) {
+                if (Immunity.isPermissionImmunity() && sender.hasPermission("notbounties.immune")) {
                     sendHelpMessage(sender, getListMessage("help.immune"));
                 }
                 break;
@@ -321,6 +321,7 @@ public class LanguageOptions {
     }
 
     public static void sendPageLine(CommandSender sender, int currentPage) {
+        Player parser = sender instanceof Player player ? player : null;
         int previousPage = currentPage-1;
         int calculatedPrevPage = getAdjustedPage(sender, previousPage);
         while (previousPage > 0 && calculatedPrevPage >= currentPage) {
@@ -328,25 +329,48 @@ public class LanguageOptions {
             calculatedPrevPage = getAdjustedPage(sender, previousPage);
         }
         int nextPage = getAdjustedPage(sender, currentPage + 1);
-        // end points are 0 and 9 (no next page or previous page)
-        TextComponent space = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "     ");
-        TextComponent back = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋘⋘⋘");
-        TextComponent middle = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "             " + ChatColor.GRAY + "[" + currentPage + "]" + ChatColor.STRIKETHROUGH + "              ");
-        TextComponent next = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋙⋙⋙");
-        back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
-        next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
-        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + previousPage));
-        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + nextPage));
-        BaseComponent[] baseComponents = new BaseComponent[]{space, space, back, middle, next, space, space};
-        if (previousPage <= 0)
-            baseComponents[2] = space;
-        if (nextPage >= 11 || nextPage <= previousPage)
-            baseComponents[4] = space;
+
+
+        String footer = LanguageOptions.getMessage("help.footer");
+        String before = "";
+        String middle = "";
+        if (footer.contains("{prev}"))
+            before = footer.substring(0, footer.indexOf("{prev}"));
+        if (footer.contains("{next}"))
+            middle = footer.substring(before.length() + 6, footer.indexOf("{next}"));
+        String after = footer.substring(before.length() + middle.length() + 12).replace("{page}", currentPage + "").replace("{page}", currentPage + "");
+
+        TextComponent prevComponent;
+        if (previousPage <= 0) {
+            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-deny"), parser));
+        } else {
+            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-text"), parser));
+            prevComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
+            prevComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + previousPage));
+        }
+
+        TextComponent nextComponent;
+        if (nextPage >= 11 || nextPage <= previousPage) {
+            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-deny"), parser));
+        } else {
+            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-text"), parser));
+            nextComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
+            nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + nextPage));
+        }
+
+
+        BaseComponent[] baseComponents = new BaseComponent[]{
+                new TextComponent(parse(before.replace("{page}", currentPage + ""), parser)),
+                prevComponent,
+                new TextComponent(parse(middle.replace("{page}", currentPage + ""), parser)),
+                nextComponent,
+                new TextComponent(parse(after, parser))
+        };
         sender.spigot().sendMessage(baseComponents);
     }
 
     public static void sendHelpMessage(CommandSender sender, List<String> message) {
-        Player parser = sender instanceof Player ? (Player) sender : null;
+        Player parser = sender instanceof Player player ? player : null;
         for (String str : message) {
             str = str.replace("{whitelist}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix));
             sender.sendMessage(parse(str, parser));

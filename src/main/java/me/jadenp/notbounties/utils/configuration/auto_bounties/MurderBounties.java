@@ -108,6 +108,8 @@ public class MurderBounties {
     }
 
     private static boolean hasImmunity(OfflinePlayer player) {
+        if (!Immunity.isPermissionImmunity())
+            return false;
         if (player.isOnline())
             return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.murder");
         return DataManager.getPlayerData(player.getUniqueId()).hasMurderImmunity();

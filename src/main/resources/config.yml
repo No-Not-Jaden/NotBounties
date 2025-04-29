@@ -472,6 +472,9 @@ immunity:
   # SCALING
   # TIME
   type: SCALING
+  # Allow the notbounties.immune and other immunity permissions to give a player immunity.
+  # Note: Anyone with the * permission will also have this. Fix: https://github.com/No-Not-Jaden/NotBounties/wiki/FAQ#how-do-i-make-operatorsadmins-not-immune-to-bounties
+  permission-immunity: false
   # immunity will never run out
   permanent-immunity:
     cost: 128

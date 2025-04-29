@@ -801,7 +801,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             if (adminPermission || sender.hasPermission("notbounties.buyimmunity")) {
                                 if (Immunity.getImmunityType() == Immunity.ImmunityType.PERMANENT) {
                                     double immunitySpent = Immunity.getImmunity(Objects.requireNonNull(parser).getUniqueId());
-                                    if (immunitySpent < Immunity.getPermanentCost() && !sender.hasPermission("notbounties.immune")) {
+                                    if (immunitySpent < Immunity.getPermanentCost() && !(sender.hasPermission("notbounties.immune") && Immunity.isPermissionImmunity())) {
                                         if ((repeatBuyImmunityCommand.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyImmunityCommand.get((parser).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
                                             // try to find bounty and buy it
                                             repeatBuyImmunityCommand.remove((parser).getUniqueId().toString());

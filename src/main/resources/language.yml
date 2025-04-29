@@ -186,9 +186,14 @@ bounty-stat:
   current:
     name: 'Current'
 help:
-  next-page: '&7Next Page'
-  previous-page: '&7Previous Page'
   title: '&7&m                     &9&l Not&d&lBounties &7&m                     '
+  footer: '&7&m          {prev}&7&m             &7[{page}]&7&m             {next}&7&m          '
+  next-page: '&7Next Page' # hover text of {next}
+  next-text: '&a&l⋙⋙⋙' # replaces {next} if there is a next page
+  next-deny: '&7&m     ' # replaces {next} if there isn't a next page
+  previous-page: '&7Previous Page' # hover text of {prev}
+  prev-text: '&a&l⋘⋘⋘' # replaces {prev} if there is a previous page
+  prev-deny: '&7&m     ' # replaces {prev} if there isn't a previous page
   basic:
     - '&1Bounty tax is currently: &5{tax}%'
     - '&1Whitelist cost is currently: {whitelist_cost} per player.'
