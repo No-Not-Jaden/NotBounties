@@ -12,11 +12,11 @@ import me.jadenp.notbounties.utils.BountyChange;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.data.PlayerStat;
+import me.jadenp.notbounties.utils.tasks.SkinRequest;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.messaging.PluginMessageListener;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -219,14 +219,11 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      */
     public static void sendMessage(String identifier, byte[] data) {
         if (ProxyDatabase.isEnabled())
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (!Bukkit.getOnlinePlayers().isEmpty()) {
-                        sendMessage(identifier, data, Bukkit.getOnlinePlayers().iterator().next());
-                    }
+            NotBounties.getServerImplementation().global().run(() -> {
+                if (!Bukkit.getOnlinePlayers().isEmpty()) {
+                    sendMessage(identifier, data, Bukkit.getOnlinePlayers().iterator().next());
                 }
-            }.runTask(NotBounties.getInstance());
+            });
 
     }
 
@@ -388,40 +385,22 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      */
     public static void requestPlayerSkin(UUID uuid) {
         if (ProxyDatabase.areSkinRequestsEnabled()) {
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (Bukkit.getOnlinePlayers().isEmpty()) {
-                        SkinManager.failRequest(uuid);
-                        queuedSkinRequests.add(uuid);
-                    } else {
-                        sendSkinRequest(uuid);
-                        UUID[] skinsToSend = queuedSkinRequests.toArray(new UUID[0]);
-                        queuedSkinRequests.clear();
-                        new BukkitRunnable() {
-                            int index = 0;
-
-                            @Override
-                            public void run() {
-                                if (index >= skinsToSend.length) {
-                                    this.cancel();
-                                    return;
-                                }
-                                sendSkinRequest(skinsToSend[index]);
-                                index++;
-                                if (index >= skinsToSend.length) {
-                                    this.cancel();
-                                }
-
-                            }
-                        }.runTaskTimer(NotBounties.getInstance(), 5, 5);
-                    }
+            NotBounties.getServerImplementation().global().run(() -> {
+                if (Bukkit.getOnlinePlayers().isEmpty()) {
+                    SkinManager.failRequest(uuid);
+                    queuedSkinRequests.add(uuid);
+                } else {
+                    sendSkinRequest(uuid);
+                    UUID[] skinsToSend = queuedSkinRequests.toArray(new UUID[0]);
+                    queuedSkinRequests.clear();
+                    SkinRequest skinRequest = new SkinRequest(skinsToSend);
+                    skinRequest.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(skinRequest,5, 5));
                 }
-            }.runTask(NotBounties.getInstance());
+            });
         }
     }
 
-    private static void sendSkinRequest(UUID uuid) {
+    public static void sendSkinRequest(UUID uuid) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("PlayerSkin");
 

@@ -21,7 +21,6 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -44,26 +43,20 @@ public class ActionCommands {
     }
 
     public static void executeBountyClaim(Player player, Player killer, Bounty bounty) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (String command : bountyClaimCommands) {
-                    execute(player, killer, bounty, command);
-                }
+        NotBounties.getServerImplementation().global().runDelayed(task -> {
+            for (String command : bountyClaimCommands) {
+                execute(player, killer, bounty, command);
             }
-        }.runTaskLater(NotBounties.getInstance(), 10);
+        }, 10);
     }
 
     public static void executeBountySet(UUID receiver, Player setter, Bounty bounty) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (String command : bountySetCommands) {
-                    command = command.replace("{receiver}", LoggedPlayers.getPlayerName(receiver));
-                    execute(setter, setter, bounty, command);
-                }
+        NotBounties.getServerImplementation().global().runDelayed(task -> {
+            for (String command : bountySetCommands) {
+                command = command.replace("{receiver}", LoggedPlayers.getPlayerName(receiver));
+                execute(setter, setter, bounty, command);
             }
-        }.runTaskLater(NotBounties.getInstance(), 10);
+        }, 10);
     }
 
     public static void executeCommands(Player player, List<String> commands) {
@@ -74,14 +67,11 @@ public class ActionCommands {
     }
 
     public static void executeBigBounty(Player player, Bounty bounty) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (String command : bigBountyCommands) {
-                    execute(player, player, bounty, command);
-                }
+        NotBounties.getServerImplementation().global().runDelayed(task -> {
+            for (String command : bigBountyCommands) {
+                execute(player, player, bounty, command);
             }
-        }.runTaskLater(NotBounties.getInstance(), 10);
+        }, 10);
     }
 
     // <TODO> move some string parsing to LanguageOptions.parse</TODO>

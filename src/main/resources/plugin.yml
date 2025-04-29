@@ -4,6 +4,7 @@ main: me.jadenp.notbounties.NotBounties
 api-version: 1.13
 authors: [ Not_Jaden ]
 description: kill...
+folia-supported: true
 softdepend:
   - PlaceholderAPI
   - HeadDataBase

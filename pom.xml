@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>1.21.30</version>
+    <version>dev_1.21.31.6</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -56,12 +56,22 @@
                                 <exclude>build.properties</exclude>
                             </excludes>
                         </filter>
+                        <filter>
+                            <artifact>com.cjcrafter:foliascheduler</artifact>
+                            <includes>
+                                <include>**</include> <!-- include all files from this artifact -->
+                            </includes>
+                        </filter>
                     </filters>
                     <relocations>
                         <relocation>
                             <pattern>io.lettuce.lettuce-core</pattern>
                             <shadedPattern>me.jadenp.notbounties.internal.lettuce-core
                             </shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.cjcrafter.foliascheduler</pattern>
+                            <shadedPattern>me.jadenp.notbounties.internal.foliascheduler</shadedPattern>
                         </relocation>
                     </relocations>
                 </configuration>
@@ -324,6 +334,13 @@
             <artifactId>SimpleClans</artifactId>
             <version>2.19.2</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- https://central.sonatype.com/artifact/com.cjcrafter/foliascheduler -->
+        <dependency>
+            <groupId>com.cjcrafter</groupId>
+            <artifactId>foliascheduler</artifactId>
+            <version>0.6.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

@@ -10,6 +10,7 @@ import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
+import me.jadenp.notbounties.utils.tasks.DelayedReward;
 import me.jadenp.notbounties.utils.configuration.*;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
 import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
@@ -28,18 +29,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.sound.midi.Receiver;
 import java.awt.Color;
 import java.util.List;
 import java.util.*;
 
-import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
 import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
@@ -47,8 +43,6 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 public class BountyManager {
 
     private static final int length = 10;
-
-    private static Map<Integer, BukkitRunnable> delayedTasks = new HashMap<>();
 
     private BountyManager(){}
 
@@ -647,12 +641,12 @@ public class BountyManager {
     private static void giveDelayedReward(Player player, Bounty bounty, int delayMS) {
         NotBounties.debugMessage("Delaying the reward for " + player.getName() + " by "
                 + LocalTime.formatTime(delayMS, LocalTime.TimeFormat.RELATIVE), false);
-        BukkitRunnable task = new DelayedRewardTask(bounty, player);
-        task.runTaskLaterAsynchronously(NotBounties.getInstance(), delayMS / 50);
-        delayedTasks.put(task.getTaskId(), task);
+
+        DelayedReward task = new DelayedReward(bounty, player);
+        task.setTaskImplementation(NotBounties.getServerImplementation().async().runDelayed(task, delayMS / 50));
     }
 
-    private static void rewardBounty(UUID uuid, Bounty bounty) {
+    public static void rewardBounty(UUID uuid, Bounty bounty) {
         if (NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.PARTIAL) {
             // partial economy means only auto bounties are given by the console
             NotBounties.debugMessage("(Partial Economy) Directly giving auto-bounty reward.", false);
@@ -665,33 +659,7 @@ public class BountyManager {
         }
     }
 
-    public static void shutdown() {
-        for (Map.Entry<Integer, BukkitRunnable> entry : delayedTasks.entrySet()) {
-            entry.getValue().cancel();
-            entry.getValue().run();
-        }
-    }
 
-    private static class DelayedRewardTask extends BukkitRunnable {
 
-        // copying bounty in case it gets modified before the reward is given out
-        final Bounty finalBounty;
-        // save the uuid, so no access of the player object is needed in the future.
-        final UUID uuid;
-
-        public DelayedRewardTask(Bounty bounty, Player player) {
-            finalBounty = new Bounty(bounty);
-            uuid = player.getUniqueId();
-        }
-
-        @Override
-        public void run() {
-            rewardBounty(uuid, finalBounty);
-            if (NotBounties.getInstance().isEnabled()) {
-                delayedTasks.remove(this.getTaskId());
-            }
-        }
-
-    }
 
 }

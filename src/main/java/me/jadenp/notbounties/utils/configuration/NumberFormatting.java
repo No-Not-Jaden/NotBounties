@@ -2,8 +2,9 @@ package me.jadenp.notbounties.utils.configuration;
 
 import com.google.common.primitives.Floats;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ItemValue;
+import me.jadenp.notbounties.utils.tasks.MultipleItemGive;
+import me.jadenp.notbounties.utils.tasks.SingleItemGive;
 import me.jadenp.notbounties.utils.external_api.EssentialsXClass;
 import me.jadenp.notbounties.utils.external_api.PlaceholderAPIClass;
 import me.jadenp.notbounties.utils.external_api.VaultClass;
@@ -19,7 +20,6 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -1103,41 +1103,11 @@ public class NumberFormatting {
         return false;
     }
 
-    // use this instead?
-    public static void givePlayer(Player p, ItemStack itemStack, long amount) {
-        new BukkitRunnable() {
-            long toGive = amount;
-            @Override
-            public synchronized void cancel() {
-                super.cancel();
-                if (toGive > 0) {
-                    // refund the rest of the items
-                    itemStack.setAmount((int) toGive);
-                    BountyManager.refundPlayer(p.getUniqueId(), 0, new ArrayList<>(List.of(itemStack)));
-                }
-            }
-            @Override
-            public void run() {
-                if (toGive <= 0) {
-                    this.cancel();
-                    return;
-                }
-                if (p.isOnline()) {
-                    if (toGive > itemStack.getMaxStackSize()) {
-                        itemStack.setAmount(itemStack.getMaxStackSize());
-                        toGive -= itemStack.getMaxStackSize();
-                    } else {
-                        itemStack.setAmount((int) toGive);
-                        toGive = 0;
-                    }
-                    p.playSound(p.getEyeLocation(), Sound.ENTITY_ITEM_PICKUP, 1, 1);
-                    givePlayerInstantly(p, itemStack, itemStack.getAmount());
-                } else {
-                    this.cancel();
-                }
 
-            }
-        }.runTaskTimer(NotBounties.getInstance(), 0, 5);
+
+    public static void givePlayer(Player p, ItemStack itemStack, long amount) {
+        SingleItemGive delayedGive = new SingleItemGive(p, itemStack, amount);
+        delayedGive.setTaskImplementation(NotBounties.getServerImplementation().entity(p).runAtFixedRate(delayedGive,1, 5));
     }
 
     public static void givePlayerInstantly(Player p, ItemStack itemStack, long amount) {
@@ -1170,30 +1140,8 @@ public class NumberFormatting {
             }
             return;
         }
-        List<ItemStack> finalItemStacks = itemStacks;
-        new BukkitRunnable() {
-            int index = 0;
-            @Override
-            public synchronized void cancel() {
-                super.cancel();
-                if (index < finalItemStacks.size()) {
-                    // refund the rest of the items
-                    BountyManager.refundPlayer(p.getUniqueId(), 0, finalItemStacks.subList(index, finalItemStacks.size()));
-                }
-            }
-            @Override
-            public void run() {
-                if (p.isOnline()) {
-                    givePlayer(p, finalItemStacks.get(index), finalItemStacks.get(index).getAmount());
-                    index++;
-                    if (index >= finalItemStacks.size())
-                        this.cancel();
-                } else {
-                    // cancel -> will add to refund
-                    this.cancel();
-                }
-            }
-        }.runTaskTimer(NotBounties.getInstance(), 0, 5);
+        MultipleItemGive multipleItemGive = new MultipleItemGive(p, itemStacks);
+        multipleItemGive.setTaskImplementation(NotBounties.getServerImplementation().entity(p).runAtFixedRate(multipleItemGive, 1, 5));
     }
 
 

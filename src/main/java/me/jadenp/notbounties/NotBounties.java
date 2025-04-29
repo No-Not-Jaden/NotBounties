@@ -1,5 +1,7 @@
 package me.jadenp.notbounties;
 
+import com.cjcrafter.foliascheduler.FoliaCompatibility;
+import com.cjcrafter.foliascheduler.ServerImplementation;
 import com.google.common.io.Files;
 import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.data.*;
@@ -33,7 +35,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.awt.Color;
 import java.io.File;
@@ -72,6 +73,7 @@ public final class NotBounties extends JavaPlugin {
     private static boolean paused = false;
     private static Events events;
     private boolean started = false;
+    private static ServerImplementation serverImplementation;
 
     public static NamespacedKey getNamespacedKey() {
         return namespacedKey;
@@ -104,6 +106,7 @@ public final class NotBounties extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        setServerImplementation(new FoliaCompatibility(this).getServerImplementation());
         Random random = new Random(System.currentTimeMillis());
         // Plugin startup logic
         if (random.nextInt(10) == 3) {
@@ -227,64 +230,51 @@ public final class NotBounties extends JavaPlugin {
         }
 
         // make bounty tracker work & big bounty particle & time immunity
-        new BukkitRunnable() {
+        getServerImplementation().global().runAtFixedRate(() -> {
+            if (paused)
+                return;
+            // update bounty tracker
+            BountyTracker.update();
 
-            @Override
-            public void run() {
-                if (paused)
-                    return;
-                // update bounty tracker
-                BountyTracker.update();
+            // big bounty particle
+            BigBounty.displayParticle();
 
-                // big bounty particle
-                BigBounty.displayParticle();
+            Immunity.update();
+            RandomBounties.update();
+            TimedBounties.update();
 
-                Immunity.update();
-                RandomBounties.update();
-                TimedBounties.update();
+            PVPRestrictions.checkCombatExpiry();
+            ChallengeManager.checkChallengeChange();
 
-                PVPRestrictions.checkCombatExpiry();
-                ChallengeManager.checkChallengeChange();
-
-                BountyBoard.update();
-
-            }
-        }.runTaskTimer(this, 100, 40);
+            BountyBoard.update();
+        }, 100, 40);
         // auto save bounties & do some ram cleaning
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (paused)
-                    return;
-                MurderBounties.cleanPlayerKills();
+        getServerImplementation().async().runAtFixedRate(() -> {
+            if (paused)
+                return;
+            MurderBounties.cleanPlayerKills();
 
-                SkinManager.removeOldData();
+            SkinManager.removeOldData();
 
-                RemovePersistentEntitiesEvent.checkRemovedEntities();
+            RemovePersistentEntitiesEvent.checkRemovedEntities();
 
-                try {
-                    save();
-                } catch (IOException e) {
-                    Bukkit.getLogger().severe("[NotBounties] Error autosaving saving data!");
-                    Bukkit.getLogger().severe(e.toString());
-                }
+            try {
+                save();
+            } catch (IOException e) {
+                Bukkit.getLogger().severe("[NotBounties] Error autosaving saving data!");
+                Bukkit.getLogger().severe(e.toString());
             }
-        }.runTaskTimerAsynchronously(this, autoSaveInterval * 60 * 20L + 69, autoSaveInterval * 60 * 20L);
+        }, autoSaveInterval * 60 * 20L + 69, autoSaveInterval * 60 * 20L);
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration
-                BountyExpire.removeExpiredBounties();
-            }
-        }.runTaskTimerAsynchronously(this, 5 * 60 * 20L + 2007, 5 * 60 * 20L);
+        // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration
+        getServerImplementation().async().runAtFixedRate(BountyExpire::removeExpiredBounties, 5 * 60 * 20L + 2007, 5 * 60 * 20L);
+
         // Check for banned players
         //         * Runs every hour and will check a few players at a time
         //         * Every player will be guaranteed to be checked after 12 hours
-        new BukkitRunnable() {
+        getServerImplementation().global().runAtFixedRate(new Runnable() {
             List<Bounty> bountyListCopy = new ArrayList<>();
             int playersPerRun = 1;
-
             @Override
             public void run() {
                 if (!removeBannedPlayers || paused)
@@ -298,14 +288,11 @@ public final class NotBounties extends JavaPlugin {
                         break;
                     Bounty bounty = bountyListCopy.get(i);
                     OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            if (player.isBanned() || (liteBansEnabled && !(new LiteBansClass().isPlayerNotBanned(bounty.getUUID())))) {
-                                BountyManager.removeBounty(bounty.getUUID());
-                            }
+                    getServerImplementation().async().runNow(() -> {
+                        if (player.isBanned() || (liteBansEnabled && !(new LiteBansClass().isPlayerNotBanned(bounty.getUUID())))) {
+                            BountyManager.removeBounty(bounty.getUUID());
                         }
-                    }.runTaskAsynchronously(NotBounties.getInstance());
+                    });
                 }
                 if (playersPerRun > 0) {
                     if (bountyListCopy.size() > playersPerRun)
@@ -314,14 +301,13 @@ public final class NotBounties extends JavaPlugin {
                         bountyListCopy.clear();
                 }
             }
-        }.runTaskTimer(NotBounties.getInstance(), 101, 72006);
+        }, 101, 72006);
 
         // wanted text
-        new BukkitRunnable() {
+        getServerImplementation().global().runAtFixedRate(new Runnable() {
             static final int MAX_UPDATE_TIME = 10;
             int lastUpdateTime = 0; // time it took for the stands to update last
             long lastRunTime = 0;
-
             @Override
             public void run() {
                 if (!Bukkit.getOnlinePlayers().isEmpty()) {
@@ -341,7 +327,7 @@ public final class NotBounties extends JavaPlugin {
                     }
                 }
             }
-        }.runTaskTimer(this, 20, 1);
+        }, 20, 1);
 
         // plugin was enabled successfully
         started = true;
@@ -596,13 +582,9 @@ public final class NotBounties extends JavaPlugin {
         ConfigOptions.reloadOptions();
 
         if (!NotBounties.isPaused()) {
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    // check players to display particles
-                    BigBounty.refreshParticlePlayers();
-                }
-            }.runTaskLater(NotBounties.getInstance(), 40);
+            // check players to display particles
+            getServerImplementation().global().runDelayed(BigBounty::refreshParticlePlayers, 40);
+
         }
 
 
@@ -615,7 +597,6 @@ public final class NotBounties extends JavaPlugin {
             MMOLibClass.removeAllModifiers();
         SkinManager.shutdown();
         DataManager.shutdown();
-        BountyManager.shutdown();
         if (!started)
             // Plugin failed to start.
             // Returning, so save data isn't overwritten.
@@ -750,12 +731,7 @@ public final class NotBounties extends JavaPlugin {
         NotBounties notBounties = NotBounties.getInstance();
         if (notBounties.isEnabled()) {
             String finalMessage = message;
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    consoleMessage(finalMessage, warning);
-                }
-            }.runTask(notBounties);
+            getServerImplementation().global().run(() -> consoleMessage(finalMessage, warning));
         } else {
             consoleMessage(message, warning);
         }
@@ -847,5 +823,13 @@ public final class NotBounties extends JavaPlugin {
 
     public static int getServerVersion() {
         return serverVersion;
+    }
+
+    public static ServerImplementation getServerImplementation() {
+        return serverImplementation;
+    }
+
+    private static void setServerImplementation(ServerImplementation serverImplementation) {
+        NotBounties.serverImplementation = serverImplementation;
     }
 }

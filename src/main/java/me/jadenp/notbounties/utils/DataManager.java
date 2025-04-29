@@ -36,7 +36,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -160,12 +159,9 @@ public class DataManager {
                     case "wantedTagLocations" -> {
                         List<Location> locations = getWantedTagLocations(reader);
                         if (!locations.isEmpty()) {
-                            new BukkitRunnable() {
-                                @Override
-                                public void run() {
-                                    RemovePersistentEntitiesEvent.cleanChunks(locations);
-                                }
-                            }.runTaskLater(NotBounties.getInstance(), 100L);
+                            NotBounties.getServerImplementation().global().runDelayed(task -> {
+                                RemovePersistentEntitiesEvent.cleanChunks(locations);
+                            }, 100);
                         }
                     }
                     default -> {
@@ -313,16 +309,13 @@ public class DataManager {
 
     public static void connectProxy(List<Bounty> bounties, Map<UUID, PlayerStat> playerStatMap) {
         // turn local data into proxy database
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (AsyncDatabaseWrapper database : databases) {
-                    if (database.getDatabase() instanceof ProxyDatabase) {
-                        syncDatabase(database.getDatabase(), bounties, playerStatMap);
-                    }
+        NotBounties.getServerImplementation().async().runNow(task -> {
+            for (AsyncDatabaseWrapper database : databases) {
+                if (database.getDatabase() instanceof ProxyDatabase) {
+                    syncDatabase(database.getDatabase(), bounties, playerStatMap);
                 }
             }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+        });
 
     }
 
@@ -567,12 +560,9 @@ public class DataManager {
                 }
                 if (configuration.isList("wanted-tags")) {
                     List<Location> locations = stringListToLocationList(configuration.getStringList("wanted-tags"));
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            RemovePersistentEntitiesEvent.cleanChunks(locations);
-                        }
-                    }.runTaskLater(NotBounties.getInstance(), 100L);
+                    NotBounties.getServerImplementation().global().runDelayed(task -> {
+                        RemovePersistentEntitiesEvent.cleanChunks(locations);
+                    }, 100);
                 }
 
                 // delete old file
@@ -1091,23 +1081,20 @@ public class DataManager {
      */
     public static void databaseConnect(NotBountiesDatabase database) {
         // hasConnectedBefore will be false if this is the first time connecting
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                List<Bounty> databaseBounties;
-                Map<UUID, PlayerStat> databaseStats;
+        NotBounties.getServerImplementation().async().runNow(task -> {
+            List<Bounty> databaseBounties;
+            Map<UUID, PlayerStat> databaseStats;
 
-                try {
-                    databaseBounties = database.getAllBounties(2);
-                    databaseStats = database.getAllStats();
-                } catch (IOException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Incomplete connection to " + database.getName());
-                    return;
-                }
-
-                syncDatabase(database, databaseBounties, databaseStats);
+            try {
+                databaseBounties = database.getAllBounties(2);
+                databaseStats = database.getAllStats();
+            } catch (IOException e) {
+                Bukkit.getLogger().warning("[NotBounties] Incomplete connection to " + database.getName());
+                return;
             }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+
+            syncDatabase(database, databaseBounties, databaseStats);
+        });
     }
 
     private static void syncDatabase(NotBountiesDatabase database, List<Bounty> databaseBounties, Map<UUID, PlayerStat> databaseStats) {

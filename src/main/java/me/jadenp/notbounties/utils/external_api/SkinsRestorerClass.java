@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils.external_api;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.databases.proxy.ProxyDatabase;
 import me.jadenp.notbounties.ui.PlayerSkin;
@@ -13,8 +14,6 @@ import net.skinsrestorer.api.exception.DataRequestException;
 import net.skinsrestorer.api.property.SkinProperty;
 import net.skinsrestorer.api.storage.PlayerStorage;
 import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -26,7 +25,7 @@ public class SkinsRestorerClass {
     private long lastHookError = 0;
     private boolean firstConnect = true;
     private final Map<UUID, Long> delayedChecks = new LinkedHashMap<>();
-    private BukkitTask delayedCheckTask = null;
+    private TaskImplementation<Void> delayedCheckTask = null;
     private static final long MIN_DELAY = 4000L;
     private static final long MAX_DELAY = 6000L;
 
@@ -41,12 +40,7 @@ public class SkinsRestorerClass {
         } catch (IllegalStateException e) {
             if (!Bukkit.getOnlinePlayers().isEmpty()) {
                 // set first connect to false in 5 seconds (give the proxy time to respond)
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        firstConnect = false;
-                    }
-                }.runTaskLater(NotBounties.getInstance(), 5 * 20L);
+                NotBounties.getServerImplementation().global().runDelayed(() -> firstConnect = false, 5 * 20L);
             }
             if (!firstConnect && lastHookError < System.currentTimeMillis()) {
                     Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
@@ -58,15 +52,12 @@ public class SkinsRestorerClass {
 
 
     private void addDelayedSkinCheck(UUID uuid) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                delayedChecks.computeIfAbsent(uuid, key -> System.currentTimeMillis() + MAX_DELAY);
-                if (delayedCheckTask == null) {
-                    scheduleNextDelayedCheck();
-                }
+        NotBounties.getServerImplementation().global().run(() -> {
+            delayedChecks.computeIfAbsent(uuid, key -> System.currentTimeMillis() + MAX_DELAY);
+            if (delayedCheckTask == null) {
+                scheduleNextDelayedCheck();
             }
-        }.runTask(NotBounties.getInstance());
+        });
     }
 
     private void scheduleNextDelayedCheck() {
@@ -81,33 +72,30 @@ public class SkinsRestorerClass {
         delayedCheckTask = createDelayedCheckTask(tickDelay);
     }
 
-    private BukkitTask createDelayedCheckTask(long tickDelay) {
-        return new BukkitRunnable() {
-            @Override
-            public void run() {
-                Iterator<Map.Entry<UUID, Long>> mapIterator = delayedChecks.entrySet().iterator();
-                while (mapIterator.hasNext()) {
-                    Map.Entry<UUID, Long> entry = mapIterator.next();
-                    if (entry.getValue() - System.currentTimeMillis() < MAX_DELAY - MIN_DELAY) {
-                        // do check
-                        if (!SkinManager.isSkinLoaded(entry.getKey())) {
-                            NotBounties.debugMessage("Proxy skin request timed out for player: " + entry.getKey().toString(), true);
-                            requestSkinManually(entry.getKey());
-                        }
-                        mapIterator.remove();
-                    } else {
-                        // map should be in ascending order, so all the following values will be too large
-                        break;
+    private TaskImplementation<Void> createDelayedCheckTask(long tickDelay) {
+        return NotBounties.getServerImplementation().global().runDelayed(() -> {
+            Iterator<Map.Entry<UUID, Long>> mapIterator = delayedChecks.entrySet().iterator();
+            while (mapIterator.hasNext()) {
+                Map.Entry<UUID, Long> entry = mapIterator.next();
+                if (entry.getValue() - System.currentTimeMillis() < MAX_DELAY - MIN_DELAY) {
+                    // do check
+                    if (!SkinManager.isSkinLoaded(entry.getKey())) {
+                        NotBounties.debugMessage("Proxy skin request timed out for player: " + entry.getKey().toString(), true);
+                        requestSkinManually(entry.getKey());
                     }
-                }
-                // schedule next runnable if more are in the map
-                if (!delayedChecks.isEmpty()) {
-                    scheduleNextDelayedCheck();
+                    mapIterator.remove();
                 } else {
-                    delayedCheckTask = null;
+                    // map should be in ascending order, so all the following values will be too large
+                    break;
                 }
             }
-        }.runTaskLater(NotBounties.getInstance(), tickDelay);
+            // schedule next runnable if more are in the map
+            if (!delayedChecks.isEmpty()) {
+                scheduleNextDelayedCheck();
+            } else {
+                delayedCheckTask = null;
+            }
+        }, tickDelay);
     }
 
     public void saveSkin(UUID uuid) {

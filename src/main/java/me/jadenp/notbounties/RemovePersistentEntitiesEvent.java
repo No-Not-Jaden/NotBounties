@@ -15,7 +15,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -78,24 +77,21 @@ public class RemovePersistentEntitiesEvent implements Listener {
      * @param entities Entities to check
      */
     public static void cleanAsync(List<Entity> entities, CommandSender sender) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                List<Entity> toRemove = new ArrayList<>();
-                for (Entity entity : entities) {
-                    if (!isBountyEntity(entity))
-                        continue;
-                    PersistentDataContainer container = entity.getPersistentDataContainer();
-                    if (container.has(getNamespacedKey(), PersistentDataType.STRING)) {
-                        String value = container.get(getNamespacedKey(), PersistentDataType.STRING);
-                        if (value != null && !value.equals(SESSION_KEY))
-                            toRemove.add(entity);
-                    }
+        NotBounties.getServerImplementation().async().runNow(() -> {
+            List<Entity> toRemove = new ArrayList<>();
+            for (Entity entity : entities) {
+                if (!isBountyEntity(entity))
+                    continue;
+                PersistentDataContainer container = entity.getPersistentDataContainer();
+                if (container.has(getNamespacedKey(), PersistentDataType.STRING)) {
+                    String value = container.get(getNamespacedKey(), PersistentDataType.STRING);
+                    if (value != null && !value.equals(SESSION_KEY))
+                        toRemove.add(entity);
                 }
-
-                removeSync(toRemove, sender);
             }
-        }.runTaskAsynchronously(NotBounties.getInstance());
+
+            removeSync(toRemove, sender);
+        });
     }
 
     private static boolean isBountyEntity(Entity entity) {
@@ -113,18 +109,15 @@ public class RemovePersistentEntitiesEvent implements Listener {
         if (toRemove.isEmpty() && sender == null)
             // nothing to remove and no message to be sent.
             return;
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Entity entity : toRemove) {
-                    entity.remove();
-                    removedEntities.add(entity);
-                }
-                if (sender != null) {
-                    Player parser = sender instanceof Player player ? player : null;
-                    sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("entity-remove").replace("{amount}", NumberFormatting.formatNumber(toRemove.size())), parser));
-                }
+        NotBounties.getServerImplementation().global().run(() -> {
+            for (Entity entity : toRemove) {
+                entity.remove();
+                removedEntities.add(entity);
             }
-        }.runTask(NotBounties.getInstance());
+            if (sender != null) {
+                Player parser = sender instanceof Player player ? player : null;
+                sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("entity-remove").replace("{amount}", NumberFormatting.formatNumber(toRemove.size())), parser));
+            }
+        });
     }
 }

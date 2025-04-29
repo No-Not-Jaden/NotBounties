@@ -2,14 +2,13 @@ package me.jadenp.notbounties.ui.map;
 
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.configuration.ConfigOptions;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.external_api.PlaceholderAPIClass;
+import me.jadenp.notbounties.utils.tasks.RenderPoster;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -18,7 +17,6 @@ import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -33,10 +31,10 @@ import java.util.UUID;
 public class Renderer extends MapRenderer {
     private BufferedImage image = null;
     private final BufferedImage reward = new BufferedImage(128, 14, BufferedImage.TYPE_INT_ARGB);
-    private static final float maxFont = 20f;
+    private static final float MAX_FONT_SIZE = 20f;
     private double currentCost = -1;
     private final OfflinePlayer player;
-    private static final float rewardFont = 13f;
+    private static final float REWARD_FONT_SIZE = 13f;
     private long lastRender = System.currentTimeMillis();
 
     public Renderer(UUID uuid) {
@@ -58,36 +56,12 @@ public class Renderer extends MapRenderer {
             }
             return;
         }
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (Bukkit.getOnlinePlayers().isEmpty())
-                    return;
-                this.cancel();
-                new BukkitRunnable() {
-                    int maxRequests = 50;
-                    @Override
-                    public void run() {
-                        // check if max requests hit
-                        if (maxRequests <= 0) {
-                            this.cancel();
-                            NotBounties.debugMessage("Timed out getting skin from \"" + name + "\" for a bounty poster. A question mark will be displayed instead.", true);
-                            renderPoster(SkinManager.getPlayerFace(DataManager.GLOBAL_SERVER_ID), name, false);
-                            return;
-                        }
-                        maxRequests--;
-                        if (!SkinManager.isSkinLoaded(uuid))
-                            return;
-                        renderPoster(SkinManager.getPlayerFace(uuid), name, true);
-                        this.cancel();
-                    }
-                }.runTaskTimerAsynchronously(NotBounties.getInstance(),10,4);
-            }
-        }.runTaskTimer(NotBounties.getInstance(), 0, 40);
+        RenderPoster renderPoster = new RenderPoster(name, this);
+        renderPoster.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(renderPoster, 0, 40));
 
     }
 
-    private void renderPoster(BufferedImage head, String name, boolean save) {
+    public void renderPoster(BufferedImage head, String name, boolean save) {
         if (image == null)
             image = BountyMap.deepCopy(BountyMap.getBountyPoster());
         Graphics2D graphics = image.createGraphics();
@@ -95,7 +69,7 @@ public class Renderer extends MapRenderer {
 
         // center of text is y112
         // head display ends at y95
-        float fontSize = maxFont;
+        float fontSize = MAX_FONT_SIZE;
         graphics.setFont(BountyMap.getPlayerFont(fontSize, true));
         String displayName = ConfigOptions.nameLine.replace("{name}", (name));
 
@@ -108,6 +82,7 @@ public class Renderer extends MapRenderer {
                 int x = 64 - setBiggestFontSize(graphics, displayName, true, fontSize) / 2;
                 drawColors(displayName, graphics, x, y);
             } catch (Throwable throwable) {
+                // this usually happens when the server doesn't have a font configuration, or doesn't have access to it.
                 Bukkit.getLogger().warning("[NotBounties] Unable to access font configuration on this system. Reverting to backup font!");
                 BackupFontManager.loadBackupFonts();
                 int x = 64 - BackupFontManager.getNameLine().getWidth(displayName) / 2;
@@ -192,7 +167,7 @@ public class Renderer extends MapRenderer {
                     int y = 12;
                     if (BackupFontManager.isUsingTraditionalFont()) {
                         try {
-                            int x = 64 - setBiggestFontSize(graphics, rewardText, false, rewardFont) / 2;
+                            int x = 64 - setBiggestFontSize(graphics, rewardText, false, REWARD_FONT_SIZE) / 2;
                             drawColors(rewardText, graphics, x, y);
                         } catch (Throwable throwable) {
                             Bukkit.getLogger().warning("[NotBounties] Unable to access font configuration on this system. Reverting to backup font!");
@@ -280,5 +255,9 @@ public class Renderer extends MapRenderer {
         }
         graphics.setColor(currentColor);
         graphics.drawString(currentText, x, y);
+    }
+
+    public OfflinePlayer getPlayer() {
+        return player;
     }
 }

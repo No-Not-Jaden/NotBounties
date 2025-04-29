@@ -31,7 +31,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -569,16 +568,13 @@ public class BountyTracker implements Listener {
         int amountCrafted = 1;
         switch (event.getAction()){
             case PICKUP_SOME, PICKUP_HALF, PICKUP_ALL, PICKUP_ONE:
-                new BukkitRunnable() {
-                    final int previousAmount = event.getCursor() != null ? event.getCursor().getAmount() : 0;
-                    final ItemStack result = inventory.getResult();
-                    @Override
-                    public void run() {
-                        assert result != null;
+                final int previousAmount = event.getCursor() != null ? event.getCursor().getAmount() : 0;
+                final ItemStack result = inventory.getResult();
+                NotBounties.getServerImplementation().entity(event.getWhoClicked()).runDelayed(() -> {
+                    if (result != null)
                         result.setAmount(previousAmount + 1);
-                        event.getWhoClicked().getOpenInventory().setCursor(result);
-                    }
-                }.runTaskLater(NotBounties.getInstance(), 1);
+                    event.getWhoClicked().getOpenInventory().setCursor(result);
+                }, 1);
                 break;
             case DROP_ONE_SLOT, DROP_ONE_CURSOR, DROP_ALL_CURSOR, DROP_ALL_SLOT:
                 if (inventory.getResult() != null)
@@ -634,19 +630,16 @@ public class BountyTracker implements Listener {
         if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer))
             // not a tracker or it's an empty tracker
             return;
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!event.getItemDrop().isValid())
-                    return;
-                if ((NotBounties.getServerVersion() < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.getServerVersion() >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
-                    ItemStack emptyTracker = getEmptyTracker().clone();
-                    emptyTracker.setAmount(event.getItemDrop().getItemStack().getAmount());
-                    event.getItemDrop().getWorld().dropItem(event.getItemDrop().getLocation(), emptyTracker);
-                    event.getItemDrop().remove();
-                }
+        NotBounties.getServerImplementation().entity(event.getItemDrop()).runDelayed(() -> {
+            if (!event.getItemDrop().isValid())
+                return;
+            if ((NotBounties.getServerVersion() < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.getServerVersion() >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
+                ItemStack emptyTracker = getEmptyTracker().clone();
+                emptyTracker.setAmount(event.getItemDrop().getItemStack().getAmount());
+                event.getItemDrop().getWorld().dropItem(event.getItemDrop().getLocation(), emptyTracker);
+                event.getItemDrop().remove();
             }
-        }.runTaskLater(NotBounties.getInstance(), 40);
+        }, 40);
     }
 
 }

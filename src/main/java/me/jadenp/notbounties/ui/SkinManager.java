@@ -1,10 +1,10 @@
 package me.jadenp.notbounties.ui;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.MalformedJsonException;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -16,8 +16,6 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.StatusLine;
 import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
@@ -127,12 +125,8 @@ public class SkinManager {
     private static boolean isSafeToRequest(){
         List<Long> rateLimitCopy = new ArrayList<>(rateLimit);
         // remove on main thread
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                rateLimit.removeIf(l -> l < System.currentTimeMillis() - 60000); // remove times more than 1 minute ago
-            }
-        }.runTask(NotBounties.getInstance());
+        // remove times more than 1 minute ago
+        NotBounties.getServerImplementation().global().run(() -> rateLimit.removeIf(l -> l < System.currentTimeMillis() - 60000));
         rateLimitCopy.removeIf(l -> l < System.currentTimeMillis() - 60000);
         if (rateLimitCopy.size() < 66)
             return true;
@@ -159,27 +153,19 @@ public class SkinManager {
         if (queuedRequests.isEmpty() && !rateLimit.isEmpty()) {
             queuedRequests.add(uuid);
             long nextRequestTime = 70000 - (System.currentTimeMillis() - rateLimit.get(0)); // 10 seconds after the first item in the rate limit expires.
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    List<UUID> requests = new ArrayList<>(queuedRequests);
-                    queuedRequests.clear();
-                    for (UUID currentUUID : requests)
-                        isSkinLoaded(currentUUID);
-                }
-            }.runTaskLaterAsynchronously(NotBounties.getInstance(), nextRequestTime);
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                List<UUID> requests = new ArrayList<>(queuedRequests);
+                queuedRequests.clear();
+                for (UUID currentUUID : requests)
+                    isSkinLoaded(currentUUID);
+            });
         } else {
             queuedRequests.add(uuid);
         }
     }
 
     public static void incrementMojangRate() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                rateLimit.add(System.currentTimeMillis());
-            }
-        }.runTask(NotBounties.getInstance());
+        NotBounties.getServerImplementation().global().run(() -> rateLimit.add(System.currentTimeMillis()));
 
     }
 
@@ -257,7 +243,7 @@ record SkinRequestType(UUID uuid, SkinType skinType) {}
 
 class SkinResponseHandler {
     private SkinResponseHandler() {}
-    private static BukkitTask client = null;
+    private static TaskImplementation<Void> client = null;
     private static final Queue<SkinRequestType> requestQueue = new ConcurrentLinkedQueue<>();
 
     private static long lastRequest = System.currentTimeMillis();
@@ -284,32 +270,29 @@ class SkinResponseHandler {
         if (client != null)
             return;
         NotBounties.debugMessage("Creating new skin request client.", false);
-        client = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (requestQueue.isEmpty())
-                    return;
-                UUID uuid = null;
-                try (final CloseableHttpClient httpclient = HttpClients.createDefault()) {
-                    SkinRequestType skinRequestType = requestQueue.poll();
-                    while (skinRequestType != null) {
-                        uuid = skinRequestType.uuid();
-                        PlayerSkin playerSkin = requestPlayerSkin(skinRequestType, httpclient);
-                        // a null player skin means it was requested using skinsrestorer
-                        if (playerSkin != null) {
-                            SkinManager.saveSkin(uuid, playerSkin);
-                        }
-                        skinRequestType = requestQueue.poll();
+        client = NotBounties.getServerImplementation().async().runAtFixedRate(() -> {
+            if (requestQueue.isEmpty())
+                return;
+            UUID uuid = null;
+            try (final CloseableHttpClient httpclient = HttpClients.createDefault()) {
+                SkinRequestType skinRequestType = requestQueue.poll();
+                while (skinRequestType != null) {
+                    uuid = skinRequestType.uuid();
+                    PlayerSkin playerSkin = requestPlayerSkin(skinRequestType, httpclient);
+                    // a null player skin means it was requested using skinsrestorer
+                    if (playerSkin != null) {
+                        SkinManager.saveSkin(uuid, playerSkin);
                     }
-                } catch(IOException | IllegalStateException e){
-                    // skin request fail
-                    SkinManager.failRequest(uuid);
-                    NotBounties.debugMessage("Failed to request skin: " + uuid, true);
-                    NotBounties.debugMessage(e.toString(), true);
+                    skinRequestType = requestQueue.poll();
                 }
-                setLastRequest();
+            } catch(IOException | IllegalStateException e){
+                // skin request fail
+                SkinManager.failRequest(uuid);
+                NotBounties.debugMessage("Failed to request skin: " + uuid, true);
+                NotBounties.debugMessage(e.toString(), true);
             }
-        }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 3);
+            setLastRequest();
+        }, 0, 3);
     }
 
     private static @Nullable PlayerSkin requestPlayerSkin(SkinRequestType skinRequestType, CloseableHttpClient httpClient) throws IOException {

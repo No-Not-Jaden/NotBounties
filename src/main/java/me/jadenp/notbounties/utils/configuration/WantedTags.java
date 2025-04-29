@@ -152,8 +152,13 @@ public class WantedTags {
     }
 
     public static void update() {
-        for (WantedTags wantedTags : activeTags.values())
-            wantedTags.updateArmorStand();
+        for (WantedTags wantedTags : activeTags.values()) {
+            if (wantedTags.player != null && wantedTags.player.isOnline()) {
+                NotBounties.getServerImplementation().entity(wantedTags.player).run(wantedTags::updateArmorStand);
+            } else {
+                wantedTags.updateArmorStand();
+            }
+        }
     }
 
     /**
@@ -269,7 +274,7 @@ public class WantedTags {
     }
 
     private void teleport() {
-        armorStand.teleport(player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
+        NotBounties.getServerImplementation().teleportAsync(armorStand, player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
     }
 
     public void disable() {

@@ -13,12 +13,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -237,18 +235,12 @@ public class CurrencySetup implements Listener {
                         event.getPlayer().sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.RED + "PlaceholderAPI must be installed to use this!", event.getPlayer()));
                     if (currency.equalsIgnoreCase("%vault_eco_balance%")) {
                         if (papiEnabled) {
-                            new BukkitRunnable() {
-                                @Override
-                                public void run() {
-                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "papi ecloud download Vault");
-                                }
-                            }.runTask(NotBounties.getInstance());
-                            new BukkitRunnable() {
-                                @Override
-                                public void run() {
-                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "papi reload");
-                                }
-                            }.runTaskLater(NotBounties.getInstance(), 20);
+                            NotBounties.getServerImplementation().global().run(task -> {
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "papi ecloud download Vault");
+                            });
+                            NotBounties.getServerImplementation().global().runDelayed(task -> {
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "papi reload");
+                            }, 20);
                         }
                         if (!Bukkit.getPluginManager().isPluginEnabled("Vault"))
                             event.getPlayer().sendMessage(LanguageOptions.parse(getPrefix() + ChatColor.RED + "Vault must be installed to use this!", event.getPlayer()));
