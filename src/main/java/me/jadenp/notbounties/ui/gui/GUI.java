@@ -20,7 +20,6 @@ import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -33,7 +32,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -669,33 +667,30 @@ public class GUI implements Listener {
 
                     if (!bottomInventory)
                         // reopen gui to update tax
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                // check to make sure the gui is still open
-                                if (!((Player) event.getWhoClicked()).isOnline())
-                                    return;
-                                if (playerInfo.containsKey(event.getWhoClicked().getUniqueId())) {
-                                    PlayerGUInfo newOptions = playerInfo.get(event.getWhoClicked().getUniqueId());
-                                    if (info.page() == newOptions.page() && newOptions.guiType().equals(info.guiType())) {
-                                        // page hasn't changed
-                                        GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
-                                        if (guiOptions == null)
-                                            return; // this shouldn't be reached
-                                        // read current inventory
-                                        ItemStack[] currentContents = new ItemStack[GUI.getMaxBountyItemSlots()];
-                                        for (int i = 0; i < currentContents.length; i++) {
-                                            currentContents[i] = event.getInventory().getContents()[guiOptions.getPlayerSlots().get(i + 1)];
-                                        }
-                                        // get all items
-                                        ItemStack[][] allItems = newOptions.data().length > 1 && newOptions.data()[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[GUI.getMaxBountyItemSlots()][(int) newOptions.page()];
-                                        allItems[(int) newOptions.page()-1] = currentContents; // set current content
-                                        // open gui
-                                        openGUI((Player) event.getWhoClicked(), "bounty-item-select", newOptions.page(), newOptions.data()[0], allItems);
+                        NotBounties.getServerImplementation().entity(event.getWhoClicked()).runDelayed(() -> {
+                            // check to make sure the gui is still open
+                            if (!((Player) event.getWhoClicked()).isOnline())
+                                return;
+                            if (playerInfo.containsKey(event.getWhoClicked().getUniqueId())) {
+                                PlayerGUInfo newOptions = playerInfo.get(event.getWhoClicked().getUniqueId());
+                                if (info.page() == newOptions.page() && newOptions.guiType().equals(info.guiType())) {
+                                    // page hasn't changed
+                                    GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
+                                    if (guiOptions == null)
+                                        return; // this shouldn't be reached
+                                    // read current inventory
+                                    ItemStack[] currentContents = new ItemStack[GUI.getMaxBountyItemSlots()];
+                                    for (int i = 0; i < currentContents.length; i++) {
+                                        currentContents[i] = event.getInventory().getContents()[guiOptions.getPlayerSlots().get(i + 1)];
                                     }
+                                    // get all items
+                                    ItemStack[][] allItems = newOptions.data().length > 1 && newOptions.data()[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[GUI.getMaxBountyItemSlots()][(int) newOptions.page()];
+                                    allItems[(int) newOptions.page()-1] = currentContents; // set current content
+                                    // open gui
+                                    openGUI((Player) event.getWhoClicked(), "bounty-item-select", newOptions.page(), newOptions.data()[0], allItems);
                                 }
                             }
-                        }.runTaskLater(NotBounties.getInstance(), 1);
+                        }, 1);
                 }
                 return;
             }

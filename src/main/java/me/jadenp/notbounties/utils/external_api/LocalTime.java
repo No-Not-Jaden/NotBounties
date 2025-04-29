@@ -20,7 +20,6 @@ import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -90,13 +89,7 @@ public class LocalTime {
         if (address == null)
             return formatTime(time, player.getLocale());
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                registerTimeZone(player);
-            }
-        }.runTaskAsynchronously(NotBounties.getInstance());
-
+        NotBounties.getServerImplementation().async().runNow(() -> registerTimeZone(player));
 
         return formatTime(time, player.getLocale());
     }

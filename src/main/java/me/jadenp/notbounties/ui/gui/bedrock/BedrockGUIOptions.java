@@ -7,21 +7,18 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIClicks;
 import me.jadenp.notbounties.ui.gui.display_items.*;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.challenges.ChallengeManager;
 import me.jadenp.notbounties.utils.configuration.ActionCommands;
 import me.jadenp.notbounties.utils.configuration.LanguageOptions;
 import me.jadenp.notbounties.utils.configuration.NumberFormatting;
 import me.jadenp.notbounties.utils.external_api.bedrock.FloodGateClass;
 import me.jadenp.notbounties.utils.external_api.bedrock.GeyserMCClass;
+import me.jadenp.notbounties.utils.tasks.OpenBedrockGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.geysermc.cumulus.component.impl.DropdownComponentImpl;
-import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.cumulus.form.ModalForm;
 import org.geysermc.cumulus.form.SimpleForm;
 import org.geysermc.cumulus.form.util.FormBuilder;
@@ -52,7 +49,7 @@ public class BedrockGUIOptions {
     private final List<String> playerButtonCommands;
     private LinkedHashMap<Integer, GUIComponent> components = new LinkedHashMap<>();
 
-    private enum GUIType {
+    public enum GUIType {
         CUSTOM, SIMPLE, MODAL
     }
 
@@ -143,7 +140,7 @@ public class BedrockGUIOptions {
         return sortType;
     }
 
-    private List<GUIComponent> addPlayerComponents(SimpleForm.Builder builder, Player player, long page, List<DisplayItem> displayItems, Object[] data) {
+    public List<GUIComponent> addPlayerComponents(SimpleForm.Builder builder, Player player, long page, List<DisplayItem> displayItems, Object[] data) {
         // keeping track of added components
         List<GUIComponent> playerComponents = new ArrayList<>();
         // iterate through players to add
@@ -188,7 +185,7 @@ public class BedrockGUIOptions {
         return playerComponents;
     }
 
-    private List<String> getPlayerText(Player player, long page, List<DisplayItem> displayItems, Object[] data) {
+    public List<String> getPlayerText(Player player, long page, List<DisplayItem> displayItems, Object[] data) {
         List<String> text = new ArrayList<>();
         if (playerText == null)
             return text;
@@ -215,149 +212,12 @@ public class BedrockGUIOptions {
             player.sendMessage(LanguageOptions.parse(getPrefix() + getMessage("bedrock-open-gui").replace("{page}", page + ""), player));
         }
         player.getOpenInventory().close();
-        new BukkitRunnable() {
-            long finalPage = page;
-            int maxRequests = 10;
-
-            @Override
-            public void run() {
-                // load skins
-                if (guiType == GUIType.SIMPLE) {
-                    boolean loaded = true; // whether all the skin
-                    for (DisplayItem displayItem : displayItems) {
-                        if (displayItem instanceof PlayerItem playerItem && !SkinManager.isSkinLoaded(playerItem.getUuid())) {
-                            // check if max requests hit
-                            if (maxRequests <= 0) {
-                                NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(playerItem.getUuid()), false);
-                            } else {
-                                if (loaded) {
-                                    maxRequests--;
-                                    loaded = false;
-                                }
-                            }
-                        }
-                    }
-                    if (!loaded) // not all skins are loaded
-                        return;
-                }
-                this.cancel();
-
-                if (finalPage < 1) {
-                    finalPage = 1;
-                }
-
-                List<GUIComponent> usedGUIComponents = new ArrayList<>();
-
-                switch (guiType) {
-                    case SIMPLE:
-                        SimpleForm.Builder simpleBuilder = SimpleForm.builder().title(title);
-                        StringBuilder content = new StringBuilder();
-                        // before player values
-                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                            if (entry.getKey() > 0)
-                                break;
-                            GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, displayItems.size()))
-                                continue;
-
-                            if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON) {
-                                simpleBuilder.button(component.getButtonComponent());
-                                usedGUIComponents.add(component.copy());
-                            } else {
-                                content.append(component.getComponent().text()).append("\n");
-                            }
-                        }
-                        // player values
-                        List<GUIComponent> addedComponents = addPlayerComponents(simpleBuilder, player, page, displayItems, data);
-                        // add all components because they will all be buttons from this method
-                        usedGUIComponents.addAll(addedComponents);
-                        // after player values
-                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                            if (entry.getKey() < 1)
-                                continue;
-                            GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, displayItems.size()))
-                                continue;
-                            if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON) {
-                                simpleBuilder.button(component.getButtonComponent());
-                                usedGUIComponents.add(component.copy());
-                            } else {
-                                content.append(component.getComponent().text()).append("\n");
-                            }
-                        }
-                        simpleBuilder.content(content.toString());
-                        simpleBuilder.validResultHandler(simpleFormResponse -> doClickActions(player, simpleFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                        sendForm(player, simpleBuilder);
-
-                        break;
-                    case MODAL:
-                        ModalForm.Builder modalBuilder = ModalForm.builder().title(title);
-                        StringBuilder modalContent = new StringBuilder();
-                        int buttons = 0;
-                        // before player values
-                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                            GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, displayItems.size()))
-                                continue;
-                            if (entry.getValue().getType() == GUIComponent.ComponentType.BUTTON && buttons < 2) {
-                                if (buttons == 0)
-                                    modalBuilder.button1(component.getButtonComponent().text());
-                                else if (buttons == 1)
-                                    modalBuilder.button2(component.getButtonComponent().text());
-                                buttons++;
-                                usedGUIComponents.add(component.copy());
-                            } else {
-                                modalContent.append(component.getComponent().text()).append("\n");
-                            }
-                        }
-                        // add player values to content
-                        for (String text : getPlayerText(player, page, displayItems, data)) {
-                            modalContent.append(text).append("\n");
-                        }
-                        modalBuilder.content(modalContent.toString());
-                        modalBuilder.validResultHandler(modalFormResponse -> doClickActions(player, modalFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                        sendForm(player, modalBuilder);
-
-                        break;
-                    case CUSTOM:
-                        CustomForm.Builder customBuilder = CustomForm.builder().title(title);
-                        // before player items
-                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                            if (entry.getKey() > 0)
-                                break;
-                            GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, displayItems.size()))
-                                continue;
-                            usedGUIComponents.add(component.copy());
-
-                            customBuilder.component(component.getComponent());
-                        }
-                        // player items
-                        for (String text : getPlayerText(player, page, displayItems, data)) {
-                            customBuilder.label(text);
-                        }
-                        // after player items
-                        for (Map.Entry<Integer, GUIComponent> entry : components.entrySet()) {
-                            if (entry.getKey() < 1)
-                                continue;
-                            GUIComponent component = entry.getValue().buildComponent(player);
-                            if (skipItem(component.getCommands(), page, displayItems.size()))
-                                continue;
-                            usedGUIComponents.add(component.copy());
-
-                            customBuilder.component(component.getComponent());
-                        }
-                        customBuilder.validResultHandler(customFormResponse -> doClickActions(player, customFormResponse, usedGUIComponents)).closedOrInvalidResultHandler(() -> GUI.playerInfo.remove(player.getUniqueId()));
-                        sendForm(player, customBuilder);
-
-                        break;
-                }
-            }
-        }.runTaskTimer(NotBounties.getInstance(), 0, 4);
+        OpenBedrockGUI openBedrockGUI = new OpenBedrockGUI(player, page, this, displayItems, title, data);
+        openBedrockGUI.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(openBedrockGUI, 0, 4));
 
     }
 
-    private void sendForm(Player player, FormBuilder<?, ?, ?> formBuilder) {
+    public void sendForm(Player player, FormBuilder<?, ?, ?> formBuilder) {
         if (player.isOnline()) {
             if (floodgateEnabled) {
                 new FloodGateClass().sendForm(player.getUniqueId(), formBuilder);
@@ -367,7 +227,7 @@ public class BedrockGUIOptions {
         }
     }
 
-    private boolean skipItem(List<String> commands, long page, long maxSize) {
+    public boolean skipItem(List<String> commands, long page, long maxSize) {
         if (!type.equals("select-price") && removePageItems) {
             // page items
             return (getPageType(commands) == 1 && page * maxPlayers >= maxSize) || (getPageType(commands) == 2 && page == 1);
@@ -398,7 +258,7 @@ public class BedrockGUIOptions {
     }
 
     // simple
-    private void doClickActions(Player player, SimpleFormResponse simpleFormResponse, List<GUIComponent> usedGUIComponents) {
+    public void doClickActions(Player player, SimpleFormResponse simpleFormResponse, List<GUIComponent> usedGUIComponents) {
         if (simpleFormResponse.clickedButtonId() >= usedGUIComponents.size()) {
             Bukkit.getLogger().warning(() -> "[NotBounties] This is a bug! User clicked an unregistered button in " + type + " bedrock gui.");
             return;
@@ -425,7 +285,7 @@ public class BedrockGUIOptions {
     }
 
     // modal
-    private void doClickActions(Player player, ModalFormResponse modalFormResponse, List<GUIComponent> usedGUIComponents) {
+    public void doClickActions(Player player, ModalFormResponse modalFormResponse, List<GUIComponent> usedGUIComponents) {
         if (modalFormResponse.clickedButtonId() >= usedGUIComponents.size()) {
             //Bukkit.getLogger().warning("[NotBounties] This is a bug! User clicked an unregistered button in " + type + " bedrock gui.");
             // buttons will appear even if none are specified
@@ -451,7 +311,7 @@ public class BedrockGUIOptions {
     }
 
     // custom
-    private void doClickActions(Player player, CustomFormResponse customFormResponse, List<GUIComponent> usedGUIComponents) {
+    public void doClickActions(Player player, CustomFormResponse customFormResponse, List<GUIComponent> usedGUIComponents) {
         Map<GUIComponent, Double> quantity = new HashMap<>();
         Map<GUIComponent, String> value = new HashMap<>();
         List<String> inputs = new ArrayList<>();
@@ -642,5 +502,13 @@ public class BedrockGUIOptions {
             temp.put(aa.getKey(), aa.getValue());
         }
         return temp;
+    }
+
+    public Map<Integer, GUIComponent> getComponents() {
+        return components;
+    }
+
+    public GUIType getGuiType() {
+        return guiType;
     }
 }

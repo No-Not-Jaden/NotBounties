@@ -9,7 +9,7 @@ public abstract class CancelableTask implements Runnable {
     private TaskImplementation<Void> taskImplementation;
     private final int taskId;
     private static int taskCounter = 0;
-    public static Map<Integer, CancelableTask> cancelableTaskMap = new HashMap<>();
+    private static final Map<Integer, CancelableTask> cancelableTaskMap = new HashMap<>();
 
     public static void shutdown() {
         cancelableTaskMap.values().forEach(CancelableTask::cancel);

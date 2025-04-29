@@ -28,7 +28,6 @@ import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.map.MapView;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -253,17 +252,14 @@ public class BountyMap implements Listener {
         int amountCrafted = 1;
         switch (event.getAction()){
             case PICKUP_ONE,PICKUP_ALL,PICKUP_HALF,PICKUP_SOME:
-                new BukkitRunnable() {
-
-                    final int previousAmount = event.getCursor() != null ? event.getCursor().getAmount() : 0;
-                    final ItemStack result = inventory.getResult();
-                    @Override
-                    public void run() {
-                        assert result != null;
+                final int previousAmount = event.getCursor() != null ? event.getCursor().getAmount() : 0;
+                final ItemStack result = inventory.getResult();
+                NotBounties.getServerImplementation().entity(event.getWhoClicked()).runDelayed(() -> {
+                    if (result != null) {
                         result.setAmount(previousAmount + 1);
                         event.getWhoClicked().getOpenInventory().setCursor(result);
                     }
-                }.runTaskLater(NotBounties.getInstance(), 1);
+                }, 1);
                 break;
             case DROP_ONE_CURSOR,DROP_ALL_CURSOR,DROP_ALL_SLOT,DROP_ONE_SLOT:
                 event.getWhoClicked().getWorld().dropItem(event.getWhoClicked().getEyeLocation(), inventory.getResult());
@@ -314,18 +310,15 @@ public class BountyMap implements Listener {
         if (!ConfigOptions.washPoster || !ConfigOptions.postersEnabled || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused())
             return;
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!event.getItemDrop().isValid())
-                    return;
-                ItemStack map = new ItemStack(Material.MAP, event.getItemDrop().getItemStack().getAmount());
-                if ((NotBounties.getServerVersion() < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.getServerVersion() >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
-                    event.getItemDrop().getWorld().dropItem(event.getItemDrop().getLocation(), map);
-                    event.getItemDrop().remove();
-                }
+        NotBounties.getServerImplementation().entity(event.getItemDrop()).runDelayed(() -> {
+            if (!event.getItemDrop().isValid())
+                return;
+            ItemStack map = new ItemStack(Material.MAP, event.getItemDrop().getItemStack().getAmount());
+            if ((NotBounties.getServerVersion() < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.getServerVersion() >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
+                event.getItemDrop().getWorld().dropItem(event.getItemDrop().getLocation(), map);
+                event.getItemDrop().remove();
             }
-        }.runTaskLater(NotBounties.getInstance(), 40);
+        }, 40);
     }
 
     public static boolean isPoster(ItemStack itemStack) {

@@ -6,19 +6,14 @@ import me.jadenp.notbounties.bounty_events.BountyClaimEvent;
 import me.jadenp.notbounties.bounty_events.BountyEditEvent;
 import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
 import me.jadenp.notbounties.bounty_events.BountySetEvent;
-import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import me.jadenp.notbounties.utils.tasks.WebhookBuilder;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -96,80 +91,13 @@ public class WebhookOptions implements Listener {
     
     private void buildWebhook(Webhook webhook, UUID receiver, UUID player, double amount, double total){
         if (webhook.isEnabled()) {
-            new BukkitRunnable() {
-                int maxRequests = 50;
-
-                @Override
-                public void run() {
-
-                    boolean sendEmbed = !webhook.getTitle().isEmpty() || !webhook.getDescription().isEmpty() || !webhook.getFooterText().isEmpty() || webhook.isSendImage();
-                    DiscordWebhook.EmbedObject embed = null;
-                    UUID avatarUUID = webhook.isSwitchImages() ? receiver : player;
-                    UUID imageUUID = webhook.isSwitchImages() ? player : receiver;
-
-                    boolean avatarLoaded = SkinManager.isSkinLoaded(avatarUUID);
-                    boolean imageLoaded = SkinManager.isSkinLoaded(imageUUID);
-                    if ((!avatarLoaded || !imageLoaded) && maxRequests > 0) {
-                        // check if max requests hit
-                        maxRequests--;
-                        if (maxRequests <= 0) {
-                            NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(avatarUUID) + " or " + LoggedPlayers.getPlayerName(imageUUID), true);
-                        }
-                        return;
-                    }
-                    this.cancel();
-                    String avatarIdentifier;
-                    if (avatarLoaded) {
-                        avatarIdentifier = SkinManager.getSkin(avatarUUID).getId();
-                    } else if (avatarUUID.version() == 4) {
-                        avatarIdentifier = avatarUUID.toString();
-                    } else {
-                        avatarIdentifier = LoggedPlayers.getPlayerName(avatarUUID);
-                    }
-                    String avatarURL = "https://mc-heads.net/head/" + avatarIdentifier + ".png";
-                    String imageIdentifier;
-                    if (imageLoaded) {
-                        imageIdentifier = SkinManager.getSkin(imageUUID).getId();
-                    } else if (imageUUID.version() == 4) {
-                        imageIdentifier = imageUUID.toString();
-                    } else {
-                        imageIdentifier = LoggedPlayers.getPlayerName(imageUUID);
-                    }
-                    String imageURL = "https://mc-heads.net/avatar/" + imageIdentifier + "/128.png";
-
-                    if (sendEmbed) {
-                        embed = new DiscordWebhook.EmbedObject()
-                                .setTitle(ChatColor.stripColor(LanguageOptions.parse(webhook.getTitle(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))))
-                                .setDescription(ChatColor.stripColor(LanguageOptions.parse(webhook.getDescription(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))))
-                                .setColor(webhook.getColor())
-                                .setFooter(ChatColor.stripColor(LanguageOptions.parse(webhook.getFooterText(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), webhook.getFooterURL());
-                        for (WebhookField field : webhook.getContent())
-                            embed.addField(ChatColor.stripColor(LanguageOptions.parse(field.getName(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), ChatColor.stripColor(LanguageOptions.parse(field.getValue(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), field.isInline());
-                        embed.setImage(imageURL);
-                    }
-                    String username = ChatColor.stripColor(LanguageOptions.parse(webhook.getUsername(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver)));
-                    String content = ChatColor.stripColor(LanguageOptions.parse(webhook.getMessage(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver)));
-                    try {
-                        sendEmbed(embed, username, avatarURL, content);
-                    } catch (IOException e) {
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                Bukkit.getLogger().warning("[NotBounties] Could not send a discord webhook!");
-                                Bukkit.getLogger().warning(e.toString());
-                            }
-                        }.runTask(NotBounties.getInstance());
-
-                    }
-                }
-
-
-            }.runTaskTimerAsynchronously(NotBounties.getInstance(), 0, 4);
+            WebhookBuilder webhookBuilder = new WebhookBuilder(webhook, this, receiver, player, amount, total);
+            webhookBuilder.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(webhookBuilder, 0, 4));
         }
 
     }
 
-    private void sendEmbed(DiscordWebhook.EmbedObject embed, String username, String avatarURL, String content) throws IOException {
+    public void sendEmbed(DiscordWebhook.EmbedObject embed, String username, String avatarURL, String content) throws IOException {
         if (link.equals(UNSET_LINK))
             return;
         DiscordWebhook webhook = new DiscordWebhook(link);
