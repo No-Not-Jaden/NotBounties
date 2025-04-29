@@ -151,7 +151,7 @@ public class LanguageOptions {
             page++;
         if (page == 6 && !(sender.hasPermission("notbounties.buyown") && buyBack) && !(sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE))
             page++;
-        if (page == 7 && !sender.hasPermission("notbounties.removeimmunity") && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
+        if (page == 7 && !(sender.hasPermission("notbounties.removeimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
             page++;
         if (page == 8 && !(sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission(NotBounties.getAdminPermission()) || giveOwnMap))
             page++;
@@ -223,7 +223,7 @@ public class LanguageOptions {
             sendHelpMessage(sender, getListMessage("help.admin"));
         }
 
-        if (sender.hasPermission("notbounties.immune")) {
+        if (Immunity.isPermissionImmunity() && sender.hasPermission("notbounties.immune")) {
             sendHelpMessage(sender, getListMessage("help.immune"));
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
@@ -242,7 +242,7 @@ public class LanguageOptions {
             case 1:
                 // basic
                 sendHelpMessage(sender, getListMessage("help.basic"));
-                if (sender.hasPermission("notbounties.immune")) {
+                if (Immunity.isPermissionImmunity() && sender.hasPermission("notbounties.immune")) {
                     sendHelpMessage(sender, getListMessage("help.immune"));
                 }
                 break;
@@ -266,7 +266,7 @@ public class LanguageOptions {
                 break;
             case 6:
                 // buy
-                if (sender.hasPermission("notbounties.buyown") & buyBack) {
+                if (sender.hasPermission("notbounties.buyown") && buyBack) {
                     sendHelpMessage(sender, getListMessage("help.buy-own"));
                 }
                 if (sender.hasPermission("notbounties.buyimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE) {
@@ -285,7 +285,7 @@ public class LanguageOptions {
                 break;
             case 7:
                 // remove
-                if (sender.hasPermission("notbounties.removeimmunity"))
+                if (sender.hasPermission("notbounties.removeimmunity") && Immunity.getImmunityType() != Immunity.ImmunityType.DISABLE)
                     sendHelpMessage(sender, getListMessage("help.remove-immunity"));
                 if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission()))
                     sendHelpMessage(sender, getListMessage("help.remove-set"));
@@ -321,6 +321,7 @@ public class LanguageOptions {
     }
 
     public static void sendPageLine(CommandSender sender, int currentPage) {
+        Player parser = sender instanceof Player player ? player : null;
         int previousPage = currentPage-1;
         int calculatedPrevPage = getAdjustedPage(sender, previousPage);
         while (previousPage > 0 && calculatedPrevPage >= currentPage) {
@@ -328,25 +329,48 @@ public class LanguageOptions {
             calculatedPrevPage = getAdjustedPage(sender, previousPage);
         }
         int nextPage = getAdjustedPage(sender, currentPage + 1);
-        // end points are 0 and 9 (no next page or previous page)
-        TextComponent space = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "     ");
-        TextComponent back = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋘⋘⋘");
-        TextComponent middle = new TextComponent(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "             " + ChatColor.GRAY + "[" + currentPage + "]" + ChatColor.STRIKETHROUGH + "              ");
-        TextComponent next = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋙⋙⋙");
-        back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
-        next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
-        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + previousPage));
-        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + nextPage));
-        BaseComponent[] baseComponents = new BaseComponent[]{space, space, back, middle, next, space, space};
-        if (previousPage <= 0)
-            baseComponents[2] = space;
-        if (nextPage >= 11 || nextPage <= previousPage)
-            baseComponents[4] = space;
+
+
+        String footer = LanguageOptions.getMessage("help.footer");
+        String before = "";
+        String middle = "";
+        if (footer.contains("{prev}"))
+            before = footer.substring(0, footer.indexOf("{prev}"));
+        if (footer.contains("{next}"))
+            middle = footer.substring(before.length() + 6, footer.indexOf("{next}"));
+        String after = footer.substring(before.length() + middle.length() + 12).replace("{page}", currentPage + "").replace("{page}", currentPage + "");
+
+        TextComponent prevComponent;
+        if (previousPage <= 0) {
+            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-deny"), parser));
+        } else {
+            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-text"), parser));
+            prevComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
+            prevComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + previousPage));
+        }
+
+        TextComponent nextComponent;
+        if (nextPage >= 11 || nextPage <= previousPage) {
+            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-deny"), parser));
+        } else {
+            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-text"), parser));
+            nextComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
+            nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " help " + nextPage));
+        }
+
+
+        BaseComponent[] baseComponents = new BaseComponent[]{
+                new TextComponent(parse(before.replace("{page}", currentPage + ""), parser)),
+                prevComponent,
+                new TextComponent(parse(middle.replace("{page}", currentPage + ""), parser)),
+                nextComponent,
+                new TextComponent(parse(after, parser))
+        };
         sender.spigot().sendMessage(baseComponents);
     }
 
     public static void sendHelpMessage(CommandSender sender, List<String> message) {
-        Player parser = sender instanceof Player ? (Player) sender : null;
+        Player parser = sender instanceof Player player ? player : null;
         for (String str : message) {
             str = str.replace("{whitelist}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix));
             sender.sendMessage(parse(str, parser));
@@ -368,34 +392,36 @@ public class LanguageOptions {
             String timeString = formatTime(System.currentTimeMillis(), LocalTime.TimeFormat.PLAYER, receiver.getPlayer());
             str = str.replace("{time}", (timeString));
         }
-        str = str.replace("{next_challenges}", formatTime(ChallengeManager.getNextChallengeChange() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE));
-        str = str.replace("{min_bounty}", (NumberFormatting.getValue(ConfigOptions.minBounty)));
-        str = str.replace("{c_prefix}", (NumberFormatting.currencyPrefix));
-        str = str.replace("{c_suffix}", (NumberFormatting.currencySuffix));
-        str = str.replace("{whitelist_cost}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix);
-        str = str.replace("{tax}", (NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)));
-        str = str.replace("{buy_back_interest}", (NumberFormatting.formatNumber(ConfigOptions.buyBackInterest * 100)));
-        str = str.replace("{permanent_cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix));
-        str = str.replace("{scaling_ratio}", (NumberFormatting.formatNumber(Immunity.getScalingRatio())));
-        str = str.replace("{time_immunity}", (formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
+        str = str.replace("{next_challenges}", formatTime(ChallengeManager.getNextChallengeChange() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE))
+                .replace("{min_bounty}", (NumberFormatting.getValue(ConfigOptions.minBounty)))
+                .replace("{c_prefix}", (NumberFormatting.currencyPrefix))
+                .replace("{c_suffix}", (NumberFormatting.currencySuffix))
+                .replace("{whitelist_cost}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(ConfigOptions.bountyWhitelistCost) + NumberFormatting.currencySuffix)
+                .replace("{tax}", (NumberFormatting.formatNumber(ConfigOptions.bountyTax * 100)))
+                .replace("{buy_back_interest}", (NumberFormatting.formatNumber(ConfigOptions.buyBackInterest * 100)))
+                .replace("{permanent_cost}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(Immunity.getPermanentCost()) + NumberFormatting.currencySuffix))
+                .replace("{scaling_ratio}", (NumberFormatting.formatNumber(Immunity.getScalingRatio())))
+                .replace("{time_immunity}", (formatTime((long) (Immunity.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
 
         if (receiver != null) {
             Bounty bounty = BountyManager.getBounty(receiver.getUniqueId());
             if (bounty != null) {
-                str = str.replace("{min_expire}", (formatTime(BountyExpire.getLowestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
-                str = str.replace("{max_expire}", (formatTime(BountyExpire.getHighestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)));
-                str = str.replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalDisplayBounty()) + NumberFormatting.currencySuffix);
-                str = str.replace("{bounty_value}", NumberFormatting.getValue(bounty.getTotalDisplayBounty()) );
+                str = str.replace("{min_expire}", (formatTime(BountyExpire.getLowestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)))
+                        .replace("{max_expire}", (formatTime(BountyExpire.getHighestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE)))
+                        .replace("{bounty}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(bounty.getTotalDisplayBounty()) + NumberFormatting.currencySuffix)
+                        .replace("{bounty_value}", NumberFormatting.getValue(bounty.getTotalDisplayBounty()) );
             } else {
                 str = str.replace("{min_expire}", "");
                 str = str.replace("{max_expire}", "");
             }
             if (receiver.getName() != null) {
-                str = str.replace("{player}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
-                str = str.replace("{receiver}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
+                str = str.replace("{player}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"))
+                        .replace("{receiver}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"))
+                        .replace("{viewer}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
             } else {
-                str = str.replace("{player}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-prefix"));
-                str = str.replace("{receiver}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"));
+                str = str.replace("{player}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-prefix"))
+                        .replace("{receiver}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"))
+                        .replace("{viewer}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"));
             }
             if (str.contains("{balance}"))
                 str = str.replace("{balance}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.currencySuffix));

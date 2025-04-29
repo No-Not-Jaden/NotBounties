@@ -72,6 +72,10 @@ public class Immunity {
      */
     private static long gracePeriod;
     /**
+     * Whether the notbounties.immune permission and other permission nodes gives players immunity
+     */
+    private static boolean permissionImmunity;
+    /**
      * Time immunity tracking. This will either display at what time in milliseconds that the immunity expires,
      * or how many milliseconds the player has left in their immunity.
      */
@@ -98,6 +102,7 @@ public class Immunity {
         permanentCost = configuration.getDouble("permanent-immunity.cost");
         scalingRatio = configuration.getDouble("scaling-immunity.ratio");
         gracePeriod = configuration.getLong("grace-period");
+        permissionImmunity = configuration.getBoolean("permission-immunity");
 
         if (immunityType == ImmunityType.TIME) {
             // convert saved times if necessary
@@ -262,7 +267,10 @@ public class Immunity {
     public static ImmunityType getAppliedImmunity(OfflinePlayer receiver, double amount) {
         if (getGracePeriod(receiver.getUniqueId()) > 0)
             return ImmunityType.GRACE_PERIOD;
-        if (receiver.getUniqueId().equals(DataManager.GLOBAL_SERVER_ID) || (receiver.isOnline() && Objects.requireNonNull(receiver.getPlayer()).hasPermission("notbounties.immune")) || (!receiver.isOnline() && DataManager.getPlayerData(receiver.getUniqueId()).hasGeneralImmunity())) {
+        if (receiver.getUniqueId().equals(DataManager.GLOBAL_SERVER_ID)
+                || (permissionImmunity
+                    && (receiver.isOnline() && Objects.requireNonNull(receiver.getPlayer()).hasPermission("notbounties.immune"))
+                        || (!receiver.isOnline() && DataManager.getPlayerData(receiver.getUniqueId()).hasGeneralImmunity()))) {
             return ImmunityType.PERMANENT;
         }
         switch (immunityType) {
@@ -308,5 +316,9 @@ public class Immunity {
 
     public static ImmunityType getImmunityType() {
         return immunityType;
+    }
+
+    public static boolean isPermissionImmunity() {
+        return permissionImmunity;
     }
 }

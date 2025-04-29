@@ -58,7 +58,8 @@ public class PlayerItem implements DisplayItem, AmountItem{
         text = text.replace("{rank}", (index + 1) + "")
                 .replace("{leaderboard}", displayType.toString())
                 .replace("{leaderboard_name}", displayType.getDisplayName())
-                .replace("{items}", "");
+                .replace("{items}", "")
+                .replace("{viewer}", LanguageOptions.getMessage("player-prefix") + player.getName() + LanguageOptions.getMessage("player-suffix"));
         return LanguageOptions.parse(text, amount, time, LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(uuid));
     }
 

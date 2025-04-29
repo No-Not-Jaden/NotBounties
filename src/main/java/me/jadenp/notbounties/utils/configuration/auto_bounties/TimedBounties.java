@@ -172,6 +172,8 @@ public class TimedBounties {
     }
 
     private static boolean hasImmunity(OfflinePlayer player) {
+        if (!Immunity.isPermissionImmunity())
+            return false;
         if (player.isOnline())
             return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.timed");
         return DataManager.getPlayerData(player.getUniqueId()).hasTimedImmunity();

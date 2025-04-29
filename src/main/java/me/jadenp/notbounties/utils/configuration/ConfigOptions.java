@@ -319,6 +319,11 @@ public class ConfigOptions {
             bounties.getConfig().set("databases.example-proxy.database-sync", true);
         }
 
+        // set permission immunity to true if updating
+        if (!bounties.getConfig().isSet("immunity.permission-immunity")) {
+            bounties.getConfig().set("immunity.permission-immunity", true);
+        }
+
         boolean saveChanges = true;
         if (bounties.getConfig().getKeys(true).size() <= 2) {
             saveChanges = false;
