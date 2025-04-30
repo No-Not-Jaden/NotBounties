@@ -20,10 +20,7 @@ import me.jadenp.notbounties.utils.external_api.LiteBansClass;
 import me.jadenp.notbounties.utils.external_api.LocalTime;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -1733,36 +1730,45 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // check if it is a player
                     if (sender instanceof Player) {
                         // check for immunity
-                        boolean usingImmunity = false;
+                        boolean usingImmunity = true;
                         switch (Immunity.getAppliedImmunity(player, amount)) {
                             case GRACE_PERIOD:
                                 if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("grace-period").replace("{time}", (LocalTime.formatTime(Immunity.getGracePeriod(playerUUID), LocalTime.TimeFormat.RELATIVE))), player));
-                                usingImmunity = true;
+                                    sender.sendMessage(parse(getPrefix()
+                                            + LanguageOptions.getMessage("grace-period")
+                                            .replace("{time}", (LocalTime.formatTime(
+                                                    Immunity.getGracePeriod(playerUUID)
+                                                    , LocalTime.TimeFormat.RELATIVE))), player));
+                                break;
+                            case NEW_PLAYER:
+                                if (!silent)
+                                    sender.sendMessage(parse(getPrefix()
+                                            + LanguageOptions.getMessage("new-player-immunity")
+                                            .replace("{time}", (LocalTime.formatTime(
+                                                    (Immunity.getNewPlayerImmunity() - player.getStatistic(Statistic.PLAY_ONE_MINUTE)) * 1000L,
+                                                    LocalTime.TimeFormat.RELATIVE))), player));
                                 break;
                             case PERMANENT:
                                 if (bountyItemsOverrideImmunity && !items.isEmpty())
                                     break;
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + getMessage("permanent-immunity"), Immunity.getImmunity(playerUUID), player));
-                                usingImmunity = true;
                                 break;
                             case SCALING:
                                 if (bountyItemsOverrideImmunity && !items.isEmpty())
                                     break;
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + getMessage("scaling-immunity"), Immunity.getImmunity(playerUUID), player));
-                                usingImmunity = true;
                                 break;
                             case TIME:
                                 if (bountyItemsOverrideImmunity && !items.isEmpty())
                                     break;
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("time-immunity").replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(player), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(playerUUID), player));
-                                usingImmunity = true;
                                 break;
                             default:
                                 // Not using immunity
+                                usingImmunity = false;
                                 break;
                         }
                         if (usingImmunity) {

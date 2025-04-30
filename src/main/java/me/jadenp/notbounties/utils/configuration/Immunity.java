@@ -4,6 +4,7 @@ import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Statistic;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
@@ -33,6 +34,10 @@ public class Immunity {
          * Grace period immunity - a bounty was just claimed on this person
          */
         GRACE_PERIOD,
+        /**
+         * New player immunity - this player is new to the server, so bounties can't be set on them.
+         */
+        NEW_PLAYER,
         /**
          * Auto bounty murder immunity - bounties can't be placed on this person for murdering another player
          */
@@ -68,9 +73,13 @@ public class Immunity {
      */
     private static double scalingRatio;
     /**
-     *  The time in seconds that a player has immunity for after a bounty is claimed on them.
+     * The time in seconds that a player has immunity for after a bounty is claimed on them.
      */
     private static long gracePeriod;
+    /**
+     * The time in seconds that a new player must have in playtime before a bounty can be set on them.
+     */
+    private static long newPlayerImmunity;
     /**
      * Whether the notbounties.immune permission and other permission nodes gives players immunity
      */
@@ -102,6 +111,7 @@ public class Immunity {
         permanentCost = configuration.getDouble("permanent-immunity.cost");
         scalingRatio = configuration.getDouble("scaling-immunity.ratio");
         gracePeriod = configuration.getLong("grace-period");
+        newPlayerImmunity = configuration.getLong("new-player-immunity");
         permissionImmunity = configuration.getBoolean("permission-immunity");
 
         if (immunityType == ImmunityType.TIME) {
@@ -265,14 +275,19 @@ public class Immunity {
      * @return The immunity type preventing the bounty or ImmunityType.DISABLE if there is none
      */
     public static ImmunityType getAppliedImmunity(OfflinePlayer receiver, double amount) {
+        // check for grace period
         if (getGracePeriod(receiver.getUniqueId()) > 0)
             return ImmunityType.GRACE_PERIOD;
+        // check for permanent immunity
         if (receiver.getUniqueId().equals(DataManager.GLOBAL_SERVER_ID)
                 || (permissionImmunity
                     && (receiver.isOnline() && Objects.requireNonNull(receiver.getPlayer()).hasPermission("notbounties.immune"))
                         || (!receiver.isOnline() && DataManager.getPlayerData(receiver.getUniqueId()).hasGeneralImmunity()))) {
             return ImmunityType.PERMANENT;
         }
+        // check for new player immunity
+        if (receiver.getStatistic(Statistic.PLAY_ONE_MINUTE) < newPlayerImmunity) return ImmunityType.NEW_PLAYER;
+        // check for bought immunity
         switch (immunityType) {
             case TIME:
                 if (hasTimeImmunity(receiver))
@@ -320,5 +335,9 @@ public class Immunity {
 
     public static boolean isPermissionImmunity() {
         return permissionImmunity;
+    }
+
+    public static long getNewPlayerImmunity() {
+        return newPlayerImmunity;
     }
 }

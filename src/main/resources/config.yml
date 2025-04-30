@@ -494,6 +494,8 @@ immunity:
     offline-tracking: true
   # in SECONDS how long before a player can set a bounty on a player that was just killed with a bounty
   grace-period: 10
+  # in MINUTES how much playtime a player must have before a bounty can be set on them
+  new-player-immunity: 5 # 300 = 5 hr, 720 = 12 hr
 # give players with big bounties perks
 big-bounties:
   # how big their bounty must be for the effects to take place

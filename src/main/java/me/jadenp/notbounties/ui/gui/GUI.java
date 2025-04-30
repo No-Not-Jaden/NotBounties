@@ -244,8 +244,11 @@ public class GUI implements Listener {
                                 break;
                             if (!addedPlayers.contains(uuid) && !cantSeePlayer(player, onlinePlayers, uuid)) {
                                 Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(Bukkit.getOfflinePlayer(uuid), 69);
-                                if (immunityType == Immunity.ImmunityType.PERMANENT || immunityType == Immunity.ImmunityType.GRACE_PERIOD || immunityType == Immunity.ImmunityType.TIME) {
-                                    // skip if they are immune
+                                if (immunityType == Immunity.ImmunityType.PERMANENT
+                                        || immunityType == Immunity.ImmunityType.GRACE_PERIOD
+                                        || immunityType == Immunity.ImmunityType.TIME
+                                        || immunityType == Immunity.ImmunityType.NEW_PLAYER) {
+                                    // skip if they would be immune to this bounty regardless of the bounty amount
                                     NotBounties.debugMessage(uuid + " has immunity.", false);
                                     continue;
                                 }
@@ -260,7 +263,10 @@ public class GUI implements Listener {
                             if (!addedPlayers.contains(entry.getKey())) {
 
                                 Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(Bukkit.getOfflinePlayer(entry.getKey()), 69);
-                                if (immunityType == Immunity.ImmunityType.PERMANENT || immunityType == Immunity.ImmunityType.GRACE_PERIOD || immunityType == Immunity.ImmunityType.TIME) {
+                                if (immunityType == Immunity.ImmunityType.PERMANENT
+                                        || immunityType == Immunity.ImmunityType.GRACE_PERIOD
+                                        || immunityType == Immunity.ImmunityType.TIME
+                                        || immunityType == Immunity.ImmunityType.NEW_PLAYER) {
                                     // skip if they are immune
                                     continue;
                                 }
