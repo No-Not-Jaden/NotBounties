@@ -111,7 +111,7 @@ public class TimedBounties {
                         else nextBounties.replace(entry.getKey(), time * 1000);
                         if (!hasBounty(player.getUniqueId()) || !isMaxed(Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty())) {
                             // check immunity
-                            if ((ConfigOptions.autoBountyOverrideImmunity || Immunity.getAppliedImmunity(player, bountyIncrease) == Immunity.ImmunityType.DISABLE) && !hasImmunity(player))
+                            if ((ConfigOptions.autoBountyOverrideImmunity || Immunity.getAppliedImmunity(player.getUniqueId(), bountyIncrease) == Immunity.ImmunityType.DISABLE) && !hasImmunity(player))
                                 addBounty(player, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
                         }
                     } else {
@@ -145,7 +145,6 @@ public class TimedBounties {
     public static void logout(Player player) {
         if (time != 0 && bountyIncrease != 0 && !offlineTracking && nextBounties.containsKey(player.getUniqueId()))
             nextBounties.replace(player.getUniqueId(), nextBounties.get(player.getUniqueId()) - System.currentTimeMillis());
-        DataManager.getPlayerData(player.getUniqueId()).setTimedImmunity(player.hasPermission("notbounties.immunity.timed"));
     }
     public static void setNextBounties(Map<UUID, Long> nextBounties) {
         TimedBounties.nextBounties = nextBounties;

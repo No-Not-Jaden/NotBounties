@@ -43,6 +43,7 @@ import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
 public class GUI implements Listener {
 
     public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
+    private static final Map<UUID, Long> lastPageSwitch = new HashMap<>();
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
     private static final String[] allowedPausedGUIs = new String[]{"bounty-gui", "leaderboard", "view-bounty", "selection-gui"};
     private static final String GENERAL_CURRENCY_ITEM_NAME = "general-currency-item";
@@ -243,7 +244,7 @@ public class GUI implements Listener {
                             if (reducePageCalculations && displayItems.size() > gui.getPlayerSlots().size() * page)
                                 break;
                             if (!addedPlayers.contains(uuid) && !cantSeePlayer(player, onlinePlayers, uuid)) {
-                                Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(Bukkit.getOfflinePlayer(uuid), 69);
+                                Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(uuid, 69);
                                 if (immunityType == Immunity.ImmunityType.PERMANENT
                                         || immunityType == Immunity.ImmunityType.GRACE_PERIOD
                                         || immunityType == Immunity.ImmunityType.TIME
@@ -262,7 +263,7 @@ public class GUI implements Listener {
                                 break;
                             if (!addedPlayers.contains(entry.getKey())) {
 
-                                Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(Bukkit.getOfflinePlayer(entry.getKey()), 69);
+                                Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(entry.getKey(), 69);
                                 if (immunityType == Immunity.ImmunityType.PERMANENT
                                         || immunityType == Immunity.ImmunityType.GRACE_PERIOD
                                         || immunityType == Immunity.ImmunityType.TIME
@@ -352,10 +353,13 @@ public class GUI implements Listener {
     private static boolean cantSeePlayer(Player guiViewer, Set<UUID> onlinePlayers, UUID playerUUID) {
         if (!onlinePlayers.contains(playerUUID))
             return true;
-        Player player = Bukkit.getPlayer(playerUUID);
-        if (player == null)
-            return true;
-        return (NotBounties.getServerVersion() >= 17 && seePlayerList && !guiViewer.canSee(player));
+        if (NotBounties.getServerVersion() >= 17 && seePlayerList) {
+            Player player = Bukkit.getPlayer(playerUUID);
+            if (player == null)
+                return true;
+            return !guiViewer.canSee(player);
+        }
+        return false;
     }
 
     public static void openGUI(Player player, String name, long page, Object... data) {
@@ -377,31 +381,38 @@ public class GUI implements Listener {
         if (page < 1)
             page = 1;
 
-        List<DisplayItem> displayItems = getGUIValues(player, name, page, data);
+        long finalPage = page;
+        NotBounties.getServerImplementation().async().runNow(() -> {
+            List<DisplayItem> displayItems = getGUIValues(player, name, finalPage, data);
 
-        if (((floodgateEnabled && new FloodGateClass().isBedrockPlayer(player.getUniqueId())) || (geyserEnabled && new GeyserMCClass().isBedrockPlayer(player.getUniqueId()))) && BedrockGUI.isEnabled() && BedrockGUI.isGUIEnabled(name)) {
-            // open bedrock gui
-            BedrockGUI.openGUI(player, name, page, displayItems, data);
-        } else {
-            // open java gui
-            if (!customGuis.containsKey(name))
-                return;
-            GUIOptions gui = customGuis.get(name);
-            String title = createTitle(gui, player, page, displayItems, data);
-            PlayerGUInfo info = new PlayerGUInfo(page, name, data, displayItems, title);
-            boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).title());
-            playerInfo.put(player.getUniqueId(), info);
-            Inventory inventory = gui.createInventory(player, page, displayItems, title, data);
-            if (guiOpen) {
-                // already has the gui type open - update contents
-                player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
-                if (NotBounties.getServerVersion() >= 19)
-                    player.getOpenInventory().setTitle(title);
+            if ((floodgateEnabled || geyserEnabled) && NotBounties.isBedrockPlayer(player.getUniqueId()) && BedrockGUI.isEnabled() && BedrockGUI.isGUIEnabled(name)) {
+                // open bedrock gui
+                BedrockGUI.openGUI(player, name, finalPage, displayItems, data);
             } else {
-                player.openInventory(inventory);
+                // open java gui
+                if (!customGuis.containsKey(name))
+                    return;
+                GUIOptions gui = customGuis.get(name);
+                String title = createTitle(gui, player, finalPage, displayItems, data);
+                PlayerGUInfo info = new PlayerGUInfo(finalPage, name, data, displayItems, title);
+                boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).title());
+                playerInfo.put(player.getUniqueId(), info);
+                Inventory inventory = gui.createInventory(player, finalPage, displayItems, title, data);
+                NotBounties.getServerImplementation().entity(player).run(() -> {
+                    if (guiOpen) {
+                        // already has the gui type open - update contents
+                        player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
+                        if (NotBounties.getServerVersion() >= 19)
+                            player.getOpenInventory().setTitle(title);
+                    } else {
+                        player.openInventory(inventory);
+                    }
+                    playerInfo.put(player.getUniqueId(), info);
+                });
+
             }
-            playerInfo.put(player.getUniqueId(), info);
-        }
+        });
+
 
     }
 
@@ -700,7 +711,13 @@ public class GUI implements Listener {
                 }
                 return;
             }
+            // check for page switch cooldown
+            if (lastPageSwitch.containsKey(event.getWhoClicked().getUniqueId()) && System.currentTimeMillis() - lastPageSwitch.get(event.getWhoClicked().getUniqueId()) < 50) {
+                // clicking too fast
+                return;
+            }
             ActionCommands.executeCommands((Player) event.getWhoClicked(), customItem.getCommands());
+            lastPageSwitch.put(event.getWhoClicked().getUniqueId(), System.currentTimeMillis());
         }
     }
 

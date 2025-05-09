@@ -2,10 +2,7 @@ package me.jadenp.notbounties.data;
 
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.*;
 
 public class PlayerData {
 
@@ -21,6 +18,15 @@ public class PlayerData {
     private final List<RewardHead> rewardHeads = new LinkedList<>();
     private long bountyCooldown = 0;
     private Whitelist whitelist = new Whitelist(new ArrayList<>(), false);
+    private boolean newPlayer = true;
+
+    public void setNewPlayer(boolean newPlayer) {
+        this.newPlayer = newPlayer;
+    }
+
+    public boolean isNewPlayer() {
+        return newPlayer;
+    }
 
     public void setPlayerName(String playerName) {
         this.playerName = playerName;

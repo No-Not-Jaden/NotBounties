@@ -88,7 +88,7 @@ public class RandomBounties {
             try {
                 OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
                 // check immunity
-                if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(player, price[0]) != Immunity.ImmunityType.DISABLE || hasImmunity(player))
+                if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(player.getUniqueId(), price[0]) != Immunity.ImmunityType.DISABLE || hasImmunity(player))
                     return;
                 NotBounties.getServerImplementation().async().runNow(task -> {
                     if (!player.isBanned() && (!liteBansEnabled || new LiteBansClass().isPlayerNotBanned(player.getUniqueId()))) {
@@ -132,9 +132,5 @@ public class RandomBounties {
         if (player.isOnline())
             return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.random");
         return DataManager.getPlayerData(player.getUniqueId()).hasRandomImmunity();
-    }
-
-    public static void logout(Player player) {
-        DataManager.getPlayerData(player.getUniqueId()).setRandomImmunity(player.hasPermission("notbounties.immunity.random"));
     }
 }

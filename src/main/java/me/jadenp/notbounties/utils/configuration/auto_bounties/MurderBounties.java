@@ -74,7 +74,7 @@ public class MurderBounties {
         if (isEnabled() && !killer.hasMetadata("NPC") && !(ConfigOptions.isDuelsEnabled() && !DuelsClass.isMurderBounty() && DuelsClass.isInDuel(killer))) { // don't raise bounty on a npc
             // check immunity
             double bountyIncrease = getBountyIncrease(killer);
-            if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(killer, bountyIncrease) != Immunity.ImmunityType.DISABLE || hasImmunity(killer))
+            if (!ConfigOptions.autoBountyOverrideImmunity && Immunity.getAppliedImmunity(killer.getUniqueId(), bountyIncrease) != Immunity.ImmunityType.DISABLE || hasImmunity(killer))
                 return;
             if ((!playerKills.containsKey(killer.getUniqueId()) ||
                     !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
@@ -113,9 +113,5 @@ public class MurderBounties {
         if (player.isOnline())
             return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.murder");
         return DataManager.getPlayerData(player.getUniqueId()).hasMurderImmunity();
-    }
-
-    public static void logout(Player player) {
-        DataManager.getPlayerData(player.getUniqueId()).setMurderImmunity(player.hasPermission("notbounties.immunity.murder"));
     }
 }

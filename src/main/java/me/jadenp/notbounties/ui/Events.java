@@ -58,8 +58,6 @@ public class Events implements Listener {
         if (ConfigOptions.isMmoLibEnabled())
             MMOLibClass.removeStats(event.getPlayer());
 
-        RandomBounties.logout(event.getPlayer());
-        MurderBounties.logout(event.getPlayer());
         TimedBounties.logout(event.getPlayer());
         Immunity.logout(event.getPlayer());
         BountyExpire.logout(event.getPlayer());

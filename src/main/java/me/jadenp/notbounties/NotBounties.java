@@ -229,6 +229,9 @@ public final class NotBounties extends JavaPlugin {
             });
         }
 
+        // check permission immunity every 5 mins
+        getServerImplementation().global().runAtFixedRate(Immunity::checkOnlinePermissionImmunity, 3611, 3600);
+
         // make bounty tracker work & big bounty particle & time immunity
         getServerImplementation().global().runAtFixedRate(() -> {
             if (paused)
@@ -253,9 +256,7 @@ public final class NotBounties extends JavaPlugin {
             if (paused)
                 return;
             MurderBounties.cleanPlayerKills();
-
             SkinManager.removeOldData();
-
             RemovePersistentEntitiesEvent.checkRemovedEntities();
 
             try {
@@ -265,6 +266,7 @@ public final class NotBounties extends JavaPlugin {
                 Bukkit.getLogger().severe(e.toString());
             }
         }, autoSaveInterval * 60 * 20L + 69, autoSaveInterval * 60 * 20L);
+
 
         // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration
         getServerImplementation().async().runAtFixedRate(BountyExpire::removeExpiredBounties, 5 * 60 * 20L + 2007, 5 * 60 * 20L);

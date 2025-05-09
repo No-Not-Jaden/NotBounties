@@ -851,7 +851,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                         sender.sendMessage(parse(getPrefix() + getMessage("buy-scaling-immunity"), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getScalingRatio(), parser));
                                                 } else {
                                                     if (!silent)
-                                                        sender.sendMessage(parse(getPrefix() + getMessage("buy-time-immunity").replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(parser), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getTime(), parser));
+                                                        sender.sendMessage(parse(getPrefix() + getMessage("buy-time-immunity").replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(parser.getUniqueId()), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(parser.getUniqueId()) * Immunity.getTime(), parser));
                                                 }
                                                 return true;
                                             } else {
@@ -1731,7 +1731,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (sender instanceof Player) {
                         // check for immunity
                         boolean usingImmunity = true;
-                        switch (Immunity.getAppliedImmunity(player, amount)) {
+                        switch (Immunity.getAppliedImmunity(playerUUID, amount)) {
                             case GRACE_PERIOD:
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix()
@@ -1764,7 +1764,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (bountyItemsOverrideImmunity && !items.isEmpty())
                                     break;
                                 if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("time-immunity").replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(player), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(playerUUID), player));
+                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("time-immunity").replace("{time}", (LocalTime.formatTime(Immunity.getTimeImmunity(playerUUID), LocalTime.TimeFormat.RELATIVE))), Immunity.getImmunity(playerUUID), player));
                                 break;
                             default:
                                 // Not using immunity
