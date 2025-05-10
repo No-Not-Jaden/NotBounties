@@ -1,5 +1,5 @@
 package me.jadenp.notbounties.utils;
-import org.bukkit.Bukkit;
+import me.jadenp.notbounties.NotBounties;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.IOException;
@@ -21,7 +21,7 @@ public class UpdateChecker {
     }
 
     public void getVersion(final Consumer<String> consumer) {
-        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+        NotBounties.getServerImplementation().async().runNow(() -> {
             try (InputStream inputStream = new URI("https://api.spigotmc.org/legacy/update.php?resource=" + this.resourceId).toURL().openStream(); Scanner scanner = new Scanner(inputStream)) {
                 if (scanner.hasNext()) {
                     consumer.accept(scanner.next());

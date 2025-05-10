@@ -61,9 +61,12 @@ public class ActionCommands {
 
     public static void executeCommands(Player player, List<String> commands) {
         Bounty bounty = BountyManager.getBounty(player.getUniqueId());
-        for (String command : commands) {
-            execute(player, player, bounty, command);
-        }
+        NotBounties.getServerImplementation().global().run(() -> {
+            for (String command : commands) {
+                execute(player, player, bounty, command);
+            }
+        });
+
     }
 
     public static void executeBigBounty(Player player, Bounty bounty) {
