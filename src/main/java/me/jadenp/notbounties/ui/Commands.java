@@ -1747,6 +1747,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             .replace("{time}", (LocalTime.formatTime(
                                                     (Immunity.getNewPlayerImmunity() - player.getStatistic(Statistic.PLAY_ONE_MINUTE)) * 1000L,
                                                     LocalTime.TimeFormat.RELATIVE))), player));
+                                if (player.isOnline())
+                                    Immunity.checkPermissionImmunity(Objects.requireNonNull(player.getPlayer()));
                                 break;
                             case PERMANENT:
                                 if (bountyItemsOverrideImmunity && !items.isEmpty())

@@ -682,7 +682,7 @@ public final class NotBounties extends JavaPlugin {
                 + lands + ChatColor.GRAY + "|"
                 + worldGuard + ChatColor.GRAY + "|"
                 + superiorSkyblock2 + ChatColor.GRAY + "|"
-                + mMOLib + ChatColor.GRAY
+                + mMOLib + ChatColor.GRAY + "|"
                 + simpleClans + ChatColor.GRAY + "|"
                 + factions + ChatColor.GRAY + "|"
                 + duels + ChatColor.GRAY + "]");
