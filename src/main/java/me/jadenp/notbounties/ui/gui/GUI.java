@@ -395,10 +395,10 @@ public class GUI implements Listener {
                 GUIOptions gui = customGuis.get(name);
                 String title = createTitle(gui, player, finalPage, displayItems, data);
                 PlayerGUInfo info = new PlayerGUInfo(finalPage, name, data, displayItems, title);
-                boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).title());
-                playerInfo.put(player.getUniqueId(), info);
                 Inventory inventory = gui.createInventory(player, finalPage, displayItems, title, data);
                 NotBounties.getServerImplementation().entity(player).run(() -> {
+                    boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).title());
+                    playerInfo.put(player.getUniqueId(), info);
                     if (guiOpen) {
                         // already has the gui type open - update contents
                         player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
