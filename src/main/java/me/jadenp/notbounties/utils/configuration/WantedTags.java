@@ -147,7 +147,7 @@ public class WantedTags {
         activeTags.put(player.getUniqueId(), new WantedTags(player));
     }
 
-    public static List<Location> getLocations() {
+    public static List<Location> getLastLocations() {
         return activeTags.values().stream().map(WantedTags::getLastLocation).toList();
     }
 
@@ -265,16 +265,15 @@ public class WantedTags {
 
 
         if (armorStand != null) {
+            // I think this just loads the chunk anyway and always is true (which probably is a good thing)
             if (armorStand.getLocation().getChunk().isLoaded()) {
                 teleport();
-            } else {
-                removeStand();
             }
         }
     }
 
     private void teleport() {
-        NotBounties.getServerImplementation().teleportAsync(armorStand, player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
+        armorStand.teleport(player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
     }
 
     public void disable() {

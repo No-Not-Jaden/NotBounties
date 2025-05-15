@@ -453,7 +453,7 @@ public final class NotBounties extends JavaPlugin {
             writer.name("serverID").value(DataManager.getDatabaseServerID(false).toString());
             writer.name("paused").value(NotBounties.isPaused());
 
-            List<String> wantedTagLocations = DataManager.locationListToStringList(WantedTags.getLocations());
+            List<String> wantedTagLocations = DataManager.locationListToStringList(WantedTags.getLastLocations());
             if (!wantedTagLocations.isEmpty()) {
                 writer.name("wantedTagLocations");
                 writer.beginArray();
