@@ -1,10 +1,9 @@
 package me.jadenp.notbounties.ui.gui.bedrock;
 
-import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;

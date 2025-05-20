@@ -1,9 +1,9 @@
 package me.jadenp.notbounties;
 
-import me.jadenp.notbounties.ui.map.BountyBoard;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import me.jadenp.notbounties.utils.configuration.WantedTags;
+import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.features.settings.display.WantedTags;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;

@@ -4,7 +4,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.display_items.DisplayItem;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
+import me.jadenp.notbounties.features.ConfigOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;

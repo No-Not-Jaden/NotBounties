@@ -3,11 +3,11 @@ package me.jadenp.notbounties.utils.tasks;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.webhook.DiscordWebhook;
-import me.jadenp.notbounties.utils.configuration.webhook.Webhook;
-import me.jadenp.notbounties.utils.configuration.webhook.WebhookField;
-import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.webhook.DiscordWebhook;
+import me.jadenp.notbounties.features.webhook.Webhook;
+import me.jadenp.notbounties.features.webhook.WebhookField;
+import me.jadenp.notbounties.features.webhook.WebhookOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
@@ -54,7 +54,7 @@ public class WebhookBuilder extends CancelableTask{
         this.cancel();
         String avatarIdentifier;
         if (avatarLoaded) {
-            avatarIdentifier = SkinManager.getSkin(avatarUUID).getId();
+            avatarIdentifier = SkinManager.getSkin(avatarUUID).id();
         } else if (avatarUUID.version() == 4) {
             avatarIdentifier = avatarUUID.toString();
         } else {
@@ -63,7 +63,7 @@ public class WebhookBuilder extends CancelableTask{
         String avatarURL = "https://mc-heads.net/head/" + avatarIdentifier + ".png";
         String imageIdentifier;
         if (imageLoaded) {
-            imageIdentifier = SkinManager.getSkin(imageUUID).getId();
+            imageIdentifier = SkinManager.getSkin(imageUUID).id();
         } else if (imageUUID.version() == 4) {
             imageIdentifier = imageUUID.toString();
         } else {

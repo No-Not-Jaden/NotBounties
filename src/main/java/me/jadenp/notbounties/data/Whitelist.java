@@ -1,10 +1,46 @@
 package me.jadenp.notbounties.data;
 
 import me.jadenp.notbounties.utils.LoggedPlayers;
+import org.bukkit.configuration.ConfigurationSection;
 
 import java.util.*;
 
 public class Whitelist {
+
+    private static boolean enabled;
+    private static double cost;
+    private static boolean showWhitelistedBounties;
+    private static boolean variableWhitelist;
+    private static boolean enableBlacklist;
+
+    public static void loadConfiguration(ConfigurationSection config) {
+        enabled = config.getBoolean("enabled");
+        cost = config.getDouble("cost");
+        showWhitelistedBounties = config.getBoolean("show-all-bounty");
+        variableWhitelist = config.getBoolean("variable-whitelist");
+        enableBlacklist = config.getBoolean("enable-blacklist");
+    }
+
+    public static boolean isEnabled() {
+        return enabled;
+    }
+
+    public static double getCost() {
+        return cost;
+    }
+
+    public static boolean isEnableBlacklist() {
+        return enableBlacklist;
+    }
+
+    public static boolean isShowWhitelistedBounties() {
+        return showWhitelistedBounties;
+    }
+
+    public static boolean isVariableWhitelist() {
+        return variableWhitelist;
+    }
+
     private List<UUID> list;
     private boolean blacklist;
 

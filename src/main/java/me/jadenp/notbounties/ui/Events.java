@@ -6,19 +6,20 @@ import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
 import me.jadenp.notbounties.data.PlayerData;
 import me.jadenp.notbounties.data.RewardHead;
 import me.jadenp.notbounties.data.Setter;
-import me.jadenp.notbounties.ui.gui.GUI;
-import me.jadenp.notbounties.ui.map.BountyBoard;
+import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
+import me.jadenp.notbounties.features.settings.display.WantedTags;
+import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
+import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.TrickleBounties;
-import me.jadenp.notbounties.utils.challenges.ChallengeManager;
-import me.jadenp.notbounties.utils.configuration.*;
-import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
-import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
-import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
-import me.jadenp.notbounties.utils.external_api.LocalTime;
-import me.jadenp.notbounties.utils.external_api.MMOLibClass;
+import me.jadenp.notbounties.features.settings.auto_bounties.TrickleBounties;
+import me.jadenp.notbounties.features.challenges.ChallengeManager;
+import me.jadenp.notbounties.features.*;
+import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
+import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
+import me.jadenp.notbounties.features.settings.integrations.external_api.MMOLibClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -42,8 +43,8 @@ import java.util.*;
 
 import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
+
+import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public class Events implements Listener {
 
@@ -55,11 +56,11 @@ public class Events implements Listener {
         BigBounty.removeParticle(event.getPlayer().getUniqueId());
         WantedTags.removeWantedTag(event.getPlayer().getUniqueId());
 
-        if (ConfigOptions.isMmoLibEnabled())
+        if (ConfigOptions.getIntegrations().isMmoLibEnabled())
             MMOLibClass.removeStats(event.getPlayer());
 
         TimedBounties.logout(event.getPlayer());
-        Immunity.logout(event.getPlayer());
+        ImmunityManager.logout(event.getPlayer());
         BountyExpire.logout(event.getPlayer());
         DataManager.logout(event.getPlayer());
 
@@ -82,9 +83,9 @@ public class Events implements Listener {
                     }
                 }
             } else {
-                if (claimOrder == ClaimOrder.REGULAR) {
+                if (ConfigOptions.getClaimOrder() == ConfigOptions.ClaimOrder.REGULAR) {
                     Player killer = event.getEntity().getKiller();
-                    claimBounty(player, killer, event.getDrops(), false);
+                    claimBounty(player, killer, event.getDrops(), false, ConfigOptions.getMoney().getDeathTax());
                 }
             }
         }
@@ -96,7 +97,7 @@ public class Events implements Listener {
         if (NotBounties.isPaused())
             return;
         // redeem reward later
-        if (event.getAction() == Action.RIGHT_CLICK_AIR && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC && event.getItem() != null) {
+        if (event.getAction() == Action.RIGHT_CLICK_AIR && NumberFormatting.getManualEconomy() == NumberFormatting.ManualEconomy.AUTOMATIC && event.getItem() != null) {
             ItemStack item = event.getItem();
             Player player = event.getPlayer();
             if (item.getType() == Material.PAPER && item.getItemMeta() != null && item.getItemMeta().getLore() != null) {
@@ -146,7 +147,7 @@ public class Events implements Listener {
 
     public static void login(Player player) {
         TimedBounties.login(player);
-        Immunity.login(player);
+        ImmunityManager.login(player);
         BountyExpire.login(player);
         ChallengeManager.login(player);
         DataManager.login(player);
@@ -181,7 +182,7 @@ public class Events implements Listener {
                 WantedTags.addWantedTag(event.getPlayer());
             }
 
-            if (ConfigOptions.isMmoLibEnabled())
+            if (ConfigOptions.getIntegrations().isMmoLibEnabled())
                 MMOLibClass.addStats(event.getPlayer(), bounty.getTotalDisplayBounty());
         }
 
@@ -192,10 +193,6 @@ public class Events implements Listener {
         }
         playerData.getRewardHeads().clear();
 
-        if (BountyExpire.removeExpiredBounties()) {
-            GUI.reopenBountiesGUI();
-        }
-
         // check for updates
         if (NotBounties.isUpdateAvailable() && !ConfigOptions.getUpdateNotification().equals("false")
                 && NotBounties.getLatestVersion() != null
@@ -205,10 +202,10 @@ public class Events implements Listener {
             TextComponent prefixMsg = (TextComponent) TextComponent.fromLegacy(parse(getPrefix(), event.getPlayer()));
             TextComponent disableUpdate = (TextComponent) TextComponent.fromLegacy(parse(getMessage("disable-update-notification"), event.getPlayer()));
             disableUpdate.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: false")));
-            disableUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + pluginBountyCommands.get(0) + " update-notification false"));
+            disableUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification false"));
             TextComponent skipUpdate = (TextComponent) TextComponent.fromLegacy(parse(getMessage("skip-update"), event.getPlayer()));
             skipUpdate.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: " + getLatestVersion())));
-            skipUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + pluginBountyCommands.get(0) + " update-notification " + getLatestVersion()));
+            skipUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification " + getLatestVersion()));
             BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg, skipUpdate};
             event.getPlayer().spigot().sendMessage(baseComponents);
             baseComponents = new BaseComponent[]{prefixMsg, disableUpdate};
@@ -217,10 +214,10 @@ public class Events implements Listener {
 
 
         // check if they had a bounty refunded
-        if (playerData.getRefundAmount() > 0 && NumberFormatting.manualEconomy != NumberFormatting.ManualEconomy.PARTIAL) {
+        if (playerData.getRefundAmount() > 0 && NumberFormatting.getManualEconomy() != NumberFormatting.ManualEconomy.PARTIAL) {
             NumberFormatting.doAddCommands(event.getPlayer(), playerData.getRefundAmount());
         }
-        if (!playerData.getRefundItems().isEmpty() && NumberFormatting.manualEconomy == NumberFormatting.ManualEconomy.AUTOMATIC) {
+        if (!playerData.getRefundItems().isEmpty() && NumberFormatting.getManualEconomy() == NumberFormatting.ManualEconomy.AUTOMATIC) {
             NumberFormatting.givePlayer(event.getPlayer(), playerData.getRefundItems(), false);
         }
         playerData.clearRefund();
@@ -237,21 +234,21 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (claimOrder != ClaimOrder.BEFORE || !(event.getEntity() instanceof Player player) || !(event.getDamager() instanceof Player) || NotBounties.isPaused())
+        if (ConfigOptions.getClaimOrder() != ConfigOptions.ClaimOrder.BEFORE || !(event.getEntity() instanceof Player player) || !(event.getDamager() instanceof Player) || NotBounties.isPaused())
             return;
         if (event.getDamage() >= player.getHealth() && player.getInventory().getItemInMainHand().getType() != Material.TOTEM_OF_UNDYING && player.getInventory().getItemInOffHand().getType() != Material.TOTEM_OF_UNDYING) {
-            claimBounty(player, (Player) event.getDamager(), Arrays.asList(player.getInventory().getContents()), true);
+            claimBounty(player, (Player) event.getDamager(), Arrays.asList(player.getInventory().getContents()), true, ConfigOptions.getMoney().getDeathTax());
         }
     }
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
-        if (claimOrder != ClaimOrder.AFTER || NotBounties.isPaused())
+        if (ConfigOptions.getClaimOrder() != ConfigOptions.ClaimOrder.AFTER || NotBounties.isPaused())
             return;
         Player player = event.getPlayer();
         Player killer = player.getKiller();
         if (killer != null)
-            claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true);
+            claimBounty(player, killer, Arrays.asList(player.getInventory().getContents()), true, ConfigOptions.getMoney().getDeathTax());
 
     }
 
@@ -275,7 +272,7 @@ public class Events implements Listener {
             message = message.substring(message.indexOf(":") + 1);
         }
 
-        for (String command : getBlockedBountyCommands()) {
+        for (String command : ConfigOptions.getAutoBounties().getBlockedBountyCommands()) {
             if (message.startsWith(command)) {
                 event.setCancelled(true);
                 event.getPlayer().sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("blocked-bounty-command"), event.getPlayer()));

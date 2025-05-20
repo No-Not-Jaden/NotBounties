@@ -1,12 +1,13 @@
 package me.jadenp.notbounties.ui.gui.display_items;
 
 import me.jadenp.notbounties.Leaderboard;
+import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.ui.HeadFetcher;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import me.jadenp.notbounties.utils.external_api.LocalTime;
+import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -47,10 +48,10 @@ public class PlayerItem implements DisplayItem, AmountItem{
     @Override
     public String parseText(String text, Player player) {
         if (text.contains("{tax}") || text.contains("{amount_tax}")) {
-            double tax = amount * ConfigOptions.bountyTax + DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList().size() * ConfigOptions.bountyWhitelistCost;
+            double tax = amount * ConfigOptions.getMoney().getBountyTax() + DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList().size() * Whitelist.getCost();
             double total = amount + tax;
-            text = text.replace("{tax}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(tax) + NumberFormatting.currencySuffix)
-                    .replace("{amount_tax}", NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(total) + NumberFormatting.currencySuffix);
+            text = text.replace("{tax}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(tax) + NumberFormatting.getCurrencySuffix())
+                    .replace("{amount_tax}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(total) + NumberFormatting.getCurrencySuffix());
         }
         if (!displayType.isMoney()) {
             text = text.replace("{amount}", NumberFormatting.formatNumber(amount));

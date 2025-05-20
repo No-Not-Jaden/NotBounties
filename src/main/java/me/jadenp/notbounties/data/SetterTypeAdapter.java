@@ -60,28 +60,22 @@ public class SetterTypeAdapter extends TypeAdapter<Setter> {
         reader.beginObject();
         while (reader.hasNext()) {
             String name = reader.nextName();
-            if (name.equals("name")) {
-                playerName = reader.nextString();
-            } else if (name.equals("uuid")) {
-                uuid = UUID.fromString(reader.nextString());
-            } else if (name.equals("amount")) {
-                amount = reader.nextDouble();
-            } else if (name.equals("items")) {
-                if (reader.peek() == JsonToken.NULL) {
-                    reader.nextNull();
-                } else {
-                    itemStacks.addAll(List.of(SerializeInventory.itemStackArrayFromBase64(reader.nextString())));
+            switch (name) {
+                case "name" -> playerName = reader.nextString();
+                case "uuid" -> uuid = UUID.fromString(reader.nextString());
+                case "amount" -> amount = reader.nextDouble();
+                case "items" -> {
+                    if (reader.peek() == JsonToken.NULL) {
+                        reader.nextNull();
+                    } else {
+                        itemStacks.addAll(List.of(SerializeInventory.itemStackArrayFromBase64(reader.nextString())));
+                    }
                 }
-            } else if (name.equals("time")) {
-                time = reader.nextLong();
-            } else if (name.equals("playtime")) {
-                playtime = reader.nextLong();
-            } else if (name.equals("notified")) {
-                notified = reader.nextBoolean();
-            } else if (name.equals("display")) {
-                display = reader.nextDouble();
-            } else if (name.equals("whitelist")) {
-                whitelist = new WhitelistTypeAdapter().read(reader);
+                case "time" -> time = reader.nextLong();
+                case "playtime" -> playtime = reader.nextLong();
+                case "notified" -> notified = reader.nextBoolean();
+                case "display" -> display = reader.nextDouble();
+                case "whitelist" -> whitelist = new WhitelistTypeAdapter().read(reader);
             }
         }
         reader.endObject();

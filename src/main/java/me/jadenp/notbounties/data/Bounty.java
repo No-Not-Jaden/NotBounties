@@ -6,9 +6,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.*;
-import me.jadenp.notbounties.utils.configuration.BountyExpire;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.features.BountyExpire;
+import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -49,7 +49,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
         this.uuid = receiver.getUniqueId();
         name = LoggedPlayers.getPlayerName(receiver.getUniqueId());
         // add to the total bounty
-        setters.add(new Setter(ConfigOptions.consoleName, DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
+        setters.add(new Setter(ConfigOptions.getAutoBounties().getConsoleBountyName(), DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
         this.serverID = serverID;
     }
 
@@ -130,7 +130,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
     // console set bounty
     public void addBounty(double amount, List<ItemStack> items, Whitelist whitelist){
         // add a new setter
-        setters.add(new Setter(ConfigOptions.consoleName, DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
+        setters.add(new Setter(ConfigOptions.getAutoBounties().getConsoleBountyName(), DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), Bukkit.getPlayer(uuid) != null, whitelist, BountyExpire.getTimePlayed(uuid)));
     }
 
 
@@ -249,13 +249,13 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
     }
 
     public List<UUID> getAllWhitelists() {
-        if (ConfigOptions.variableWhitelist) {
+        if (Whitelist.isVariableWhitelist()) {
             return setters.stream().map(setter -> DataManager.getPlayerData(setter.getUuid()).getWhitelist()).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).toList();
         }
         return setters.stream().map(Setter::getWhitelist).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).toList();
     }
     public List<UUID> getAllBlacklists() {
-        if (ConfigOptions.variableWhitelist) {
+        if (Whitelist.isVariableWhitelist()) {
             return setters.stream().map(setter -> DataManager.getPlayerData(setter.getUuid()).getWhitelist()).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).toList();
         }
         return setters.stream().map(Setter::getWhitelist).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).toList();

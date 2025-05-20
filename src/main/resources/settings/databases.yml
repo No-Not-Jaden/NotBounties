@@ -1,0 +1,41 @@
+# databases.yml
+# Optional database connections for storing bounties and player stats.
+# You can add as many as you want.
+
+# you can change 'example-sql' to a different name if it helps you keep track of it
+example-sql:
+  # the type of database: SQL, REDIS, or PROXY
+  type: SQL
+  # all the regular database options
+  host: localhost
+  port: 3306
+  database: db # SQL specific: name of the database
+  user: username
+  password: pass
+  ssl: false
+  # how long between database refreshes in seconds
+  refresh-interval: 300
+  # higher priority means that this database will be used more
+  priority: 1
+# the redis config is very similar to SQL
+example-redis:
+  type: REDIS
+  host: localhost
+  port: 3306
+  user: username
+  password: pass
+  ssl: false
+  database-number: -1 # Redis specific: database number, -1 disables it
+  # how long between database refreshes in seconds
+  refresh-interval: 300
+  # higher priority means that this database will be used more
+  priority: 2
+example-proxy:
+  type: PROXY
+  # Whether proxy messaging is enabled.
+  enabled: false
+  # Whether bounties and player stats will be synchronized with other servers connected to the proxy.
+  database-sync: true
+  # Whether skins can be obtained from the proxy. This is mainly used for SkinsRestorer
+  skins: true
+  priority: 3

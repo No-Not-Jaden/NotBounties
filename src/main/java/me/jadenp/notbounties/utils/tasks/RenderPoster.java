@@ -2,7 +2,7 @@ package me.jadenp.notbounties.utils.tasks;
 
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
-import me.jadenp.notbounties.ui.map.Renderer;
+import me.jadenp.notbounties.features.settings.display.map.Renderer;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 

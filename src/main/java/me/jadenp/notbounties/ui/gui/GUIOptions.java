@@ -1,14 +1,15 @@
 package me.jadenp.notbounties.ui.gui;
 
 import me.jadenp.notbounties.Leaderboard;
+import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.ui.HeadFetcher;
 import me.jadenp.notbounties.ui.QueuedHead;
 import me.jadenp.notbounties.ui.gui.display_items.DisplayItem;
 import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.challenges.ChallengeManager;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.features.challenges.ChallengeManager;
+import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -18,8 +19,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
+import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public class GUIOptions {
     private final List<Integer> playerSlots; // this size of this is how many player slots per page
@@ -81,16 +81,15 @@ public class GUIOptions {
                     slots = getRange(settings.getString("layout." + key + ".slot"));
                 }
 
-                //Bukkit.getLogger().info(item);
-                if (ConfigOptions.customItems.containsKey(item)) {
-                    CustomItem customItem = ConfigOptions.customItems.get(item);
+                if (GUI.getCustomItems().containsKey(item)) {
+                    CustomItem customItem = GUI.getCustomItems().get(item);
                     for (int i : slots) {
                         if (i >= customItems.length) {
                             Bukkit.getLogger().warning("[NotBounties] Error loading custom item in GUI: " + type);
                             Bukkit.getLogger().warning("Slot " + i + " is bigger than the inventory size! (max=" + (size-1) + ")");
                             continue;
                         }
-                        //Bukkit.getLogger().info(i + "");
+
                         if (customItems[i] != null) {
                             if (getPageType(customItem.getCommands()) > 0) {
                                 pageReplacements.put(i, customItems[i]);
@@ -100,7 +99,7 @@ public class GUIOptions {
                     }
                 } else {
                     // unknown item
-                    Bukkit.getLogger().warning("Unknown item \"" + item + "\" in gui: " + settings.getName());
+                    Bukkit.getLogger().warning(() -> "Unknown item \"" + item + "\" in gui: " + settings.getName());
                 }
 
             }
@@ -118,11 +117,9 @@ public class GUIOptions {
 
     public CustomItem getCustomItem(int slot, long page, int entryAmount) {
         // Check if slot is in bounds (-999 is a click outside the GUI)
-        if (slot >= customItems.length || slot < 0)
+        if (slot >= customItems.length || slot < 0 || customItems[slot] == null)
             return null;
         CustomItem item = customItems[slot];
-        if (item == null)
-            return null;
         if (!type.equals("select-price")) {
             // next
             if (getPageType(item.getCommands()) == 1 && page * playerSlots.size() >= entryAmount) {
@@ -165,15 +162,15 @@ public class GUIOptions {
             }
 
         } else if (type.equals("select-price") || type.equals("confirm-bounty")) {
-            double tax = page * ConfigOptions.bountyTax + DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList().size() * ConfigOptions.bountyWhitelistCost;
+            double tax = page * ConfigOptions.getMoney().getBountyTax() + DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList().size() * Whitelist.getCost();
             double total = page + tax;
             replacements = new String[]{"",
-                    currencyPrefix + NumberFormatting.formatNumber(page) + currencySuffix, // amount
-                    currencyPrefix + NumberFormatting.formatNumber(tax) + currencySuffix, // tax
-                    currencyPrefix + NumberFormatting.formatNumber(total) + currencySuffix // amount_tax
+                    NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(page) + NumberFormatting.getCurrencySuffix(), // amount
+                    NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(tax) + NumberFormatting.getCurrencySuffix(), // tax
+                    NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(total) + NumberFormatting.getCurrencySuffix() // amount_tax
             };
         } else if (type.equals("confirm") && data[0] instanceof Number number) {
-            String amount = currencyPrefix + NumberFormatting.formatNumber(number.doubleValue()) + currencySuffix;
+            String amount = NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(number.doubleValue()) + NumberFormatting.getCurrencySuffix();
             replacements = new String[]{"",
                     amount, // amount
                     amount, // tax
@@ -275,7 +272,6 @@ public class GUIOptions {
             int[] result = new int[Math.abs(bound1 - bound2) + 1];
 
             for (int i = Math.min(bound1, bound2); i < Math.max(bound1, bound2) + 1; i++) {
-                //Bukkit.getLogger().info(i + "");
                 result[i - Math.min(bound1, bound2)] = i;
             }
             return result;

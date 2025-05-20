@@ -1,9 +1,7 @@
 package me.jadenp.notbounties.utils;
 
-import org.bukkit.Bukkit;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**

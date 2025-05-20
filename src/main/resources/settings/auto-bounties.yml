@@ -1,0 +1,110 @@
+# auto-bounties.yml
+# Set bounties from the server, or run server commands when a bounty has been set/claimed.
+
+# The name of bounties set by console.
+console-bounty-name: Sheriff
+# number of days until auto bounties expire
+# overrides the bounty-expire value in config.yml unless expire-time is set to -1
+# -2 will disable no matter the value of bounty-expire
+expire-time: -1
+# players with immunity will be able to have bounties set on them by auto bounties
+# this does not override the permission specific immunities like notbounties.immunity.murder
+override-immunity: true
+
+# add a bounty if a player kills another player
+# Immune permission: notbounties.immunity.murder
+murder-bounty:
+  # how many seconds before you can kill the same person and increase your bounty
+  player-cooldown: 360
+  # how much the bounty increases per player kill. Consider raising minimum-broadcast if you change this if you don't want a message in chat
+  # set to 0 to disable
+  bounty-increase: 0
+  # whether the bounty-increase represents the percent of the current bounty added, or a flat number.
+  # if the multiplicative is set to true, and the current bounty is 0, the bounty will be set to the min-bounty.
+  multiplicative: false
+  # you will be excluded from the bounty increase if you are claiming another bounty
+  exclude-claiming: true
+  # commands to be run when a bounty is added for murder
+  commands: []
+
+# set a random bounty every once in a while
+# Immune permission: notbounties.immunity.random
+random-bounties:
+  # include offline players in the random bounties
+  offline-set: false
+  # minimum seconds between next random bounty - 0 to disable
+  min-time: 0 # 86400 seconds in a day
+  # maximum seconds between next random bounty
+  max-time: 0
+  # minimum bounty price
+  min-price: 10
+  # maximum bounty price
+  max-price: 100
+
+# add bounties after a set amount of time
+# Immune permission: notbounties.immunity.timed
+timed-bounties:
+  # the time in seconds before the next bounty is set - 0 to disable
+  time: 0
+  # how much the bounty will increase
+  bounty-increase: 10
+  # bounty amount that the player needs for timed-bounties to stop setting bounties - 0 to disable
+  max-bounty: 0
+  # reset the timer when the player dies
+  reset-on-death: true
+  # time will be tracked when the player is offline, and bounties will be set while they are offline
+  offline-tracking: false
+
+# claiming another bounty will increase your own by a percentage
+# items will not be trickled
+trickle-bounties:
+  # the ratio of the bounty that is physically rewarded to the person who claimed the bounty (they get the currency)
+  # 1 = all, 0.5 = half, 0 = none
+  given-reward: 1
+  # the ratio of the bounty that is transferred to the person who claimed the bounty
+  bounty-transfer: 0
+  # whether the player claiming the bounty will need a bounty on themselves for a trickle bounty to activate
+  require-bounty: true
+  # the percent of the player's bounty that is lost when a player has a natural death (not from another player)
+  # 0 = 0%  0.25 = 25%  1 = 100%
+  natural-death-bounty-loss: 0
+
+# give players with big bounties perks
+big-bounties:
+  # how big their bounty must be for the effects to take place
+  # set -1 to disable
+  # bounty must be greater than the threshold (exclusive)
+  bounty-threshold: 25000
+  # When to use the threshold to trigger
+  # ONCE - Trigger the commands once after the bounty has reached the threshold
+  # AMOUNT - Trigger the commands if the set amount is greater than the threshold
+  # SET - Trigger the commands every time a bounty is set on a player with the total bounty above the threshold
+  trigger: ONCE
+  # whether a soul fire flame will be above the player's head
+  particle: true
+  # commands to be executed when the player reaches a bounty over the threshold
+  # same format as bounty-claim-commands without a killer
+  commands:
+    - 'minecraft:effect give {player} minecraft:glowing 10 0'
+
+# commands to be executed when a bounty is claimed
+# see https://github.com/No-Not-Jaden/NotBounties/wiki/Action-Commands for a description of the special actions you can use here
+bounty-claim-commands: []
+# commands to be executed when a bounty is set
+bounty-set-commands: []
+# blocks commands if they start with the following text
+blocked-bounty-commands:
+  - 'teamPlugin leave'
+  - 'teamPlugin join'
+
+# prompt feature for action commands
+prompts:
+  # how many attempts the player gets before the prompt is canceled
+  attempts: 5
+  # typing these words in chat will exit the prompt
+  cancel-words:
+    - 'cancel'
+    - 'exit'
+  # the time the player has to type in an answer to the prompt before it times out
+  # in seconds
+  time-limit: 30

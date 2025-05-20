@@ -1,0 +1,109 @@
+# integrations.yml
+# Control integrations with other plugins. "/bounty debug" will highlight hooked plugins in green.
+# You can toggle the vault hook in money.yml.
+
+# Use NotBounties' methods to get skins
+override-skinsrestorer: false
+
+# allow players on the same team claim each-other's bounties
+teams:
+  # claim if on the same scoreboard team
+  # some plugins use scoreboard teams, so disabling this may break claiming bounties
+  scoreboard-claim: true
+  # players with the same placeholder result will not be able to claim each other's bounties (Must have PlaceholderAPI installed)
+  # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
+  # you can also use a list if you want multiple placeholders to be compared
+  placeholder: ''
+  # Team bounties - WIP feature
+  bounties:
+    # whether team bounties are enabled
+    enabled: false
+    # how the bounty gets split
+    # ANY - any kill of a person on the team returns you a fraction of the bounty
+    # INDIVIDUAL - the bounty will be split across everyone on the team when the bounty is set
+    split-mode: ANY
+    # minimum bounty to set a team bounty
+    min-bounty: 100
+  # <===> BetterTeams <===>
+  better-teams:
+    # claim if on the same BetterTeams team
+    team: false
+    # claim if allied with each other's BetterTeams team
+    ally: false
+  # <===> TownyAdvanced <===>
+  towny-advanced:
+    # claim if in the same nation
+    nation: false
+    # claim if in the same town
+    town: false
+    # claim if nations are allied
+    ally: false
+  # <===> KingdomsX <===>
+  kingdoms-x:
+    # claim if in the same nation
+    nation: false
+    # claim if nations are allied
+    nation-ally: false
+    # claim if in the same kingdom
+    kingdom: false
+    # claim if kingdoms are allied
+    kingdom-ally: false
+  # <===> Lands <===>
+  # The claim_bounty flag can be used
+  lands:
+    # claim if in the same nation
+    nation: false
+    # claim if nations are allied
+    nation-ally: false
+    # claim if they are trusted in each other's lands
+    land: false
+    # claim if lands are allied
+    land-ally: false
+  # <===> Factions <===>
+  factions:
+    # claim if in the same faction
+    faction: false
+    # claim if allied
+    ally: false
+  # <===> SuperiorSkyblock2 <===>
+  superior-skyblock-2:
+    # claim if part of the same island
+    island-member: false
+  # <===> SimpleClans<===>
+  simple-clans:
+    # claim if in the same clan
+    clan: false
+    # claim if allied
+    ally: false
+
+# Config to use with the MMOLib plugin
+MMOLib:
+  # whether this feature is enabled
+  enabled: false
+  # A stat modifier, 'attack-modifier' can be named whatever you want
+  attack-modifier:
+    # The bounty value where this modifier takes place
+    # '0-100' will apply this modifier when the player has a bounty in the range 0 (inclusive) to 100 (exclusive)
+    # '100' will apply this modifier when the player has a bounty greater than or equal to 100
+    bounty: '0-100'
+    # the stat to change
+    stat: ATTACK_DAMAGE
+    # the value to change
+    value: 10
+    # whether the value will multiply onto the base value or add to it
+    multiplicative: false
+  health-modifier:
+    bounty: '100'
+    stat: MAX_HEALTH
+    value: 10
+    multiplicative: true
+
+# Integration for the Duels plugin
+Duels:
+  enabled: true
+  # whether bounties can be claimed in a duel
+  claim-bounties: true
+  # whether the reward should be delayed until after the killer has been teleported out of the duel
+  delay-reward: true
+  # whether murder bounties will be applied when winning a duel
+  murder-bounty: false

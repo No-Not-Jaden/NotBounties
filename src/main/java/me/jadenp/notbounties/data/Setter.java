@@ -5,8 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -80,7 +79,7 @@ public class Setter implements Comparable<Setter>, Inconsistent {
     }
 
     public boolean canClaim(UUID claimerUuid) {
-        if (!ConfigOptions.bountyWhitelistEnabled || getWhitelist().getList().isEmpty())
+        if (!Whitelist.isEnableBlacklist() || getWhitelist().getList().isEmpty())
             return true;
         Whitelist variableWhitelist = DataManager.getPlayerData(uuid).getWhitelist();
         return variableWhitelist.isBlacklist() != variableWhitelist.getList().contains(claimerUuid);
@@ -91,7 +90,7 @@ public class Setter implements Comparable<Setter>, Inconsistent {
     }
 
     public Whitelist getWhitelist() {
-        if (ConfigOptions.variableWhitelist) {
+        if (Whitelist.isVariableWhitelist()) {
             return DataManager.getPlayerData(uuid).getWhitelist();
         }
         return whitelist;

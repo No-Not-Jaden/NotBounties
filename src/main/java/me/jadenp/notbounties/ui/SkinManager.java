@@ -8,8 +8,7 @@ import com.google.gson.JsonSyntaxException;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.jadenp.notbounties.utils.external_api.SkinsRestorerClass;
+import me.jadenp.notbounties.features.ConfigOptions;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -152,13 +151,13 @@ public class SkinManager {
     private static void requestLater(UUID uuid) {
         if (queuedRequests.isEmpty() && !rateLimit.isEmpty()) {
             queuedRequests.add(uuid);
-            long nextRequestTime = 70000 - (System.currentTimeMillis() - rateLimit.get(0)); // 10 seconds after the first item in the rate limit expires.
-            NotBounties.getServerImplementation().async().runNow(() -> {
+            long nextRequestTime = (70000 - (System.currentTimeMillis() - rateLimit.get(0))) / 50; // 10 seconds after the first item in the rate limit expires. (expires after 60 seconds)
+            NotBounties.getServerImplementation().async().runDelayed(() -> {
                 List<UUID> requests = new ArrayList<>(queuedRequests);
                 queuedRequests.clear();
                 for (UUID currentUUID : requests)
                     isSkinLoaded(currentUUID);
-            });
+            }, nextRequestTime);
         } else {
             queuedRequests.add(uuid);
         }
@@ -166,7 +165,6 @@ public class SkinManager {
 
     public static void incrementMojangRate() {
         NotBounties.getServerImplementation().global().run(() -> rateLimit.add(System.currentTimeMillis()));
-
     }
 
     public static void failRequest(UUID uuid) {
@@ -175,14 +173,14 @@ public class SkinManager {
     }
 
     public static boolean isMissingSkin(PlayerSkin playerSkin) {
-        return Objects.equals(playerSkin.getId(), missingSkin.getId()) && playerSkin.getUrl() == missingSkin.getUrl();
+        return Objects.equals(playerSkin.id(), missingSkin.id()) && playerSkin.url() == missingSkin.url();
     }
 
     public static BufferedImage getPlayerFace(UUID uuid) {
         if (!isSkinLoaded(uuid))
             return null;
         try {
-            URL textureUrl = getSkin(uuid).getUrl();
+            URL textureUrl = getSkin(uuid).url();
 
             BufferedImage skin = ImageIO.read(textureUrl);
             BufferedImage head = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
@@ -307,7 +305,7 @@ class SkinResponseHandler {
             case USERNAME -> {
                 return saveNamedSkin(httpClient, uuid);
             }
-            case SKINSRESTORER -> new SkinsRestorerClass().saveSkin(uuid);
+            case SKINSRESTORER -> ConfigOptions.getIntegrations().getSkinsRestorerClass().saveSkin(uuid);
         }
         return null;
     }
@@ -319,7 +317,7 @@ class SkinResponseHandler {
     protected static void webRequestSkin(UUID uuid, boolean firstAttempt){
         if (client == null)
             createClient();
-        if (ConfigOptions.skinsRestorerEnabled && firstAttempt) {
+        if (ConfigOptions.getIntegrations().isSkinsRestorerEnabled() && firstAttempt) {
             requestQueue.add(new SkinRequestType(uuid, SkinType.SKINSRESTORER));
         } else if (NotBounties.isBedrockPlayer(uuid)) {
             requestQueue.add(new SkinRequestType(uuid, SkinType.BEDROCK));

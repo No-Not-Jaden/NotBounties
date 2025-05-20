@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>dev_1.22.0.7</version>
+    <version>dev_1.22.0.19</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -272,7 +272,7 @@
         <dependency>
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
-            <version>6.5.3.RELEASE</version>
+            <version>6.6.0.RELEASE</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

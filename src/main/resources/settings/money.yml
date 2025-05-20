@@ -1,0 +1,105 @@
+# money.yml
+# Currency settings
+
+# minimum amount of currency a bounty can be
+minimum-bounty: 1
+# maximum amount of currency a bounty can be - set to -1 to disable
+maximum-bounty: -1
+# minimum amount of currency that will broadcast bounties
+minimum-broadcast: 50
+# percent extra they have to pay to set a bounty - uses a DECIMAL
+# ex: bounty-tax = 0.25, a bounty set for 100 would cost 125 to be placed
+# use this if players are setting too many bounties
+bounty-tax: 0.0
+# same as bounty-tax, except the player who dies has to pay this
+# ex: death-tax = 0.1, a bounty set for 100 would cost the player 10 when they die
+# players cannot go into debt
+death-tax: 0.0
+
+currency:
+  # Use the specified currency below over Vault if Vault is enabled
+  override-vault: false
+  # accepts a material or a placeholder
+  # if the currency is a material, the plugin will automatically take away the necessary amounts
+  object: 'DIAMOND'
+  # before the currency in all occurrences in language.yml
+  prefix: '&f'
+  suffix: '&b◆'
+  # only needed if you are using a placeholder, but will be called either way.
+  # {player} & {amount} or use a placeholder
+  remove-commands: [] # ['eco take {player} {amount}']
+  add-commands: [] # ['eco give {player} {amount}']
+  # if you are using multiple currencies
+  # descending - currency will be given in descending order of weights
+  # first - only the first currency in the object list will be given
+  # ratio - a ratio of the currencies with their weights will be given
+  # bimodal - add the first currency, remove the second
+  add-single-currency: descending
+  # this option will change how involved NotBounties will be with currency transactions
+  # AUTOMATIC - NotBounties will do all the currency transactions
+  # PARTIAL - NotBounties will only do the currency transactions for auto-bounties
+  # MANUAL - NotBounties will not do any currency transactions, but will run the remove and add commands
+  # I suggest pairing this up with the redeem-reward-later option for a voucher of proof
+  manual-economy: AUTOMATIC
+  # these options control setting bounties with any item as currency - ex: placing an enchanted sword as a bounty
+  bounty-items:
+    # the status of this feature
+    # ALLOW - items and the currency object can be used to set bounties
+    # DENY - only the currency object can be used to set bounties
+    # EXCLUSIVE - only items can be set as bounties and the currency object is only used for other features like immunity or auto bounties
+    mode: DENY
+    # The bounty-item-select GUI will be opened by default instead of the price-select if this is true
+    default-gui: false
+    # item values are used for tax and other features that use the total bounty
+    # AUTO - Looks for a compatible plugin to get item values from, otherwise uses the item-values.yml file
+    # FILE - Uses item values in the item-values.yml file
+    # ESSENTIALS - Uses item values from essentials' worth
+    # DISABLE - Items don't have monetary value
+    # you may want to override immunity if you disable this
+    item-values: AUTO
+    # Players can set item bounties on people with immunity
+    # The value of the items may not be mapped to a currency value which doesn't work well if you want to add high valued items like Netherite to the bounty
+    override-immunity: false
+    # When the player buys their own bounty, they will get any items set on them
+    # If this is false, the items will be sent back to the setter
+    buy-items: true
+    # Items from the player's inventory are tab completed when setting a bounty
+    # This could cause some lag
+    tab-complete: true
+
+# formatting of large numbers
+number-formatting:
+  # Same as EssentialsX config
+  # For 1.234,50 use de-DE
+  # For 1,234.50 use en-US
+  # For 1'234,50 use fr-ch
+  format-locale: en-US
+  # pattern for currency to be displayed - symbols are only placeholders, if you want to change the symbols, change format-locale
+  pattern: '#,###.##'
+  use-divisions: true
+  # makes the number smaller and adds a suffix ex: 1000 = 1K | 1234 = 1.23K | 5467900 = 5.47M
+  divisions:
+    # the division and suffix
+    1000: K
+    1000000: M
+    1000000000: B
+    1000000000000: T
+
+
+redeem-reward-later:
+  # The delay in seconds before the reward is given and bounty claim commands are executed
+  reward-delay: 0
+  # this will give players a piece of paper after claiming a bounty that can be right-clicked to redeem the reward
+  vouchers: false
+  # this will give a voucher for every different person who set a bounty
+  voucher-per-setter: false
+  # additional line or lines at the end of bounty-voucher-lore in language.yml
+  # leave blank for no line addition
+  # if you decide to not use this and are using voucher-per-setter, you can get the specific setter amount in bounty-voucher-name and bounty-voucher-lore with {amount} in the language.yml file
+  setter-lore-addition: '&8{player} set a bounty of {amount}'
+
+# players can buy their own bounties for an increased amount
+buy-own-bounties:
+  enabled: true
+  # bounty set for $100 would have to be bought for $125
+  cost-multiply: 1.25

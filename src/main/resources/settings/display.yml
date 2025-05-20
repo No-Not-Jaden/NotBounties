@@ -1,0 +1,136 @@
+# display.yml
+# Display bounties more on your server.
+
+# wanted posters of bounty
+bounty-posters:
+  # enable bounty posters
+  enabled: true
+  # players can give themselves bounty posters of any bounty, otherwise, only admins can give posters
+  give-own: false
+  # players can craft a poster with an empty map and a player head
+  craft-poster: true
+  # players can wash posters by throwing them in a filled cauldron to get a regular map back
+  wash-poster: true
+  # display bounty reward on the poster
+  # note: changing this will change the position of the names and can cause text to overlap
+  #       if you want to change this, I suggest setting clean-posters to true
+  display-reward: true
+  # reward text below name if display-reward is enabled
+  # placeholders can be used here
+  reward-text: 'REWARD: {reward}'
+  # lock the bounty map - this will improve performance, but the maps will not update after they are created
+  # if you turn this on, I advise disabling display-reward to avoid confusing your players
+  lock-maps: false
+  # true adds the currency prefix and suffix to the reward text
+  # Some special characters like ◆ do not work on the poster
+  currency-wrap: false
+  # The line right below the player head
+  # placeholders can be used in here, but will only get updated every server restart if save-templates is false
+  # Long text here may make the names illegible
+  name-line: '{name}'
+  # how many milliseconds between map updates
+  update-interval: 2000
+  # always update the map even if the bounty hasn't changed
+  always-update: false
+  # save created maps to be used later - player heads will not change unless the player changes their name
+  save-templates: true
+  # delete all the saved poster templates in the NotBounties/posters folder
+  # set this to true if you change anything about what is displayed on the poster besides reward-text and currency-wrap
+  # this will be set to false again automatically after a clean has been done
+  clean-posters: false
+
+# auto-updating bounty poster board
+bounty-board:
+  # What the leaderboard is sorted by
+  # 0 oldest bounties
+  # 1 newest bounties
+  # 2 top bounties
+  # 3 lowest bounties
+  type: 2
+  # how many seconds between the board updates - minimum of 2 seconds (this can be server intensive)
+  update-interval: 5
+  # amount of bounty boards to update at a time - 0 to disable
+  staggered-update: 3
+  # glow item frame
+  glow: true
+  # invisible item frame
+  invisible: true
+  # name of the map, {player} and {amount} can be used - will be updated when the map does
+  item-name: '&6&lWANTED: &f{player}'
+  # when the name will be updated
+  # 0 = when the bounty rank changes
+  # 1 = when the bounty reward changes
+  # 2 = every update - I DO NOT recommend this unless in some rare conditions
+  update-name: 0
+
+# special compass allows you to track people with bounties
+bounty-tracker:
+  # whether the compasses will actually track a player
+  # does not stop admins from getting new compasses, and they will still be removed
+  enabled: true
+  # the minimum bounty required to obtain a tracker
+  minimum-bounty: 10
+  # allow players with the notbounties.tracker permission to give themselves a tracker with the command
+  give-own: false
+  # allow players with the notbounties.tracker permission to use the tracker command to change an empty tracker
+  write-empty-trackers: true
+  # allow all players to clean a tracker by throwing it in a filled cauldron (resets to empty tracker)
+  wash-trackers: true
+  # allow players with the notbounties.tracker permission to craft an empty tracker
+  craft-tracker: true
+  # clicking on a bounty poster with the tracker will change the tracked player
+  poster-tracking: true
+  # instead of removing trackers, the compasses will turn into empty trackers
+  reset-removed-trackers: true
+  # When to remove the compass after the bounty has been claimed
+  # the higher the number, the more performance heavy it will be on your server
+  # 0 - don't ever remove it
+  # 1 - remove it if they try to hold it
+  # 2 - check inventories every 5 minutes
+  # 3 - check inventory every time player opens a container
+  remove: 2
+  # how many blocks away until it the player starts glowing
+  # 0 to disable, -1 to set glowing from any distance
+  glow: 10
+  # how many blocks away until the tracked player gets a message about being tracked
+  # 0 to disable, -1 to send a message from any distance
+  alert: 500
+  # information to show when a player is holding a tracker
+  # with everything enabled it would look something like:
+  # Not_Jaden - 25m - 13x 63y 20z - world
+  action-bar:
+    enabled: true
+    # always show when holding - false only shows when they right-click
+    show-always: true
+    # show the name of the player who you are tracking
+    player-name: true
+    # show the distance in meters away from your target
+    distance: true
+    # show x y z of your target
+    position: false
+    # show the world of your target
+    world: false
+
+# add a tag above a player's head if they have a bounty
+wanted-tag:
+  enabled: true
+  # how high above the player's eyes the tag is (in blocks)
+  offset: 0.4
+  # text above the player
+  text: '&f{level}&6&lWANTED&f: {amount}'
+  # minimum bounty to display tag
+  min-bounty: 100
+  # hide the tag when sneaking
+  hide-when-sneaking: true
+  # hide the tag when moving
+  hide-when-moving: false
+  # milliseconds between updating the text of the tag
+  text-update-interval: 2000
+  # milliseconds between updating the visibility of the tag
+  visibility-update-interval: 150
+  # text for certain levels of bounty
+  level:
+    # minimum bounty amount: text
+    1000: '&f☠ '
+    2500: '&c☠☠ '
+    5000: '&4☠☠☠ '

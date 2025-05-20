@@ -1,0 +1,40 @@
+# immunity.yml
+# Prevent bounties from being set on you.
+
+# players can buy immunity from having bounties set on them as opposed to having immunity from the permission node notbounties.immune
+# Immunity types:
+# DISABLE
+# PERMANENT
+# SCALING
+# TIME
+type: SCALING
+
+# Allow the notbounties.immune and other immunity permissions to give a player immunity.
+# Note: Anyone with the * permission will also have this. Fix: https://github.com/No-Not-Jaden/NotBounties/wiki/FAQ#how-do-i-make-operatorsadmins-not-immune-to-bounties
+permission-immunity: false
+
+# this immunity type will never run out
+permanent-immunity:
+  cost: 128
+
+# this immunity type will be stronger the more money you spend - only if permanent immunity is disabled
+# if you buy immunity for 2500, then it protects you from bounties set for 2500, 2499, 1500, etc. (with ratio set to 1)
+# bounties can be set on you for 2501 and higher
+scaling-immunity:
+  # money spent -> bounty protection
+  # ex: if ratio is 0.5, buying immunity for 1000 will protect you from bounties 500 or less
+  ratio: 1.0
+
+# this immunity type will only last for a period of time
+time-immunity:
+  # how many seconds 1 currency will add to your immunity
+  # ex: spending $15 with seconds: 3600 will give you 54000 seconds of immunity, or 15 hours
+  seconds: 3600
+  # time will count down while players are offline
+  offline-tracking: true
+
+# in SECONDS how long before a player can set a bounty on a player that was just killed with a bounty
+grace-period: 10
+
+# in MINUTES how much playtime a player must have before a bounty can be set on them
+new-player-immunity: 0 # 300 = 5 hr, 720 = 12 hr

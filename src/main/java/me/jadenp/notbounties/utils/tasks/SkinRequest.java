@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.utils.tasks;
 
-import me.jadenp.notbounties.databases.proxy.ProxyMessaging;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 
 import java.util.UUID;
 
@@ -8,7 +8,7 @@ public class SkinRequest extends CancelableTask {
 
 
     private int index = 0;
-    private UUID[] skinsToSend;
+    private final UUID[] skinsToSend;
 
     public SkinRequest(UUID[] skinsToSend) {
         super();

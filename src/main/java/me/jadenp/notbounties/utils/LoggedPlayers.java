@@ -1,7 +1,8 @@
 package me.jadenp.notbounties.utils;
 
 import me.jadenp.notbounties.data.PlayerData;
-import me.jadenp.notbounties.databases.proxy.ProxyMessaging;
+import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -10,8 +11,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.consoleName;
 
 public class LoggedPlayers {
 
@@ -132,7 +131,7 @@ public class LoggedPlayers {
 
     public static @NotNull String getPlayerName(UUID uuid) {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
-            return consoleName;
+            return ConfigOptions.getAutoBounties().getConsoleBountyName();
         PlayerData playerData = DataManager.getPlayerData(uuid);
         if (playerData.getPlayerName() != null)
             return playerData.getPlayerName();

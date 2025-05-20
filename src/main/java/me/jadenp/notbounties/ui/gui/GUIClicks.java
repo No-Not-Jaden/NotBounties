@@ -2,11 +2,12 @@ package me.jadenp.notbounties.ui.gui;
 
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.ui.BountyTracker;
+import me.jadenp.notbounties.features.settings.display.BountyTracker;
+import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
@@ -18,8 +19,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
+
+import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public class GUIClicks {
     enum ClickAction {
@@ -67,7 +68,7 @@ public class GUIClicks {
             getListMessage("edit-bounty-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if (buyBack && !admin && usingActions(ClickAction.REMOVE, false, false)) // only add buy back if there isn't an admin remove action
             getListMessage("buy-back-lore").stream().map(bbLore -> parse(bbLore, buyBackPrice, player)).forEach(lore::add);
-        if (ConfigOptions.giveOwnMap && usingActions(ClickAction.POSTER, buyBack, admin))
+        if (BountyMap.isGiveOwn() && usingActions(ClickAction.POSTER, buyBack, admin))
             getListMessage("give-poster-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if ((BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || admin) && player.hasPermission("notbounties.tracker")) && usingActions(ClickAction.TRACKER, buyBack, admin))
             getListMessage("give-tracker-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
@@ -149,7 +150,7 @@ public class GUIClicks {
 
                     BaseComponent prefix = TextComponent.fromLegacy(LanguageOptions.parse(LanguageOptions.getPrefix(), player));
                     message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(messageText)));
-                    message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + pluginBountyCommands.get(0) + " edit " + bounty.getName() + " "));
+                    message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " edit " + bounty.getName() + " "));
                     prefix.addExtra(message);
                     player.spigot().sendMessage(prefix);
                 }
@@ -157,26 +158,26 @@ public class GUIClicks {
             case REMOVE -> {
                 if (player.hasPermission(NotBounties.getAdminPermission())) {
                     GUI.openGUI(player, "confirm", 1, bounty.getUUID(), 0);
-                } else if (player.getUniqueId().equals(bounty.getUUID()) && buyBack) {
+                } else if (player.getUniqueId().equals(bounty.getUUID()) && ConfigOptions.getMoney().isBuyOwn()) {
                     // buy back
                     double balance = NumberFormatting.getBalance(player);
-                    if (balance >= (int) (bounty.getTotalDisplayBounty() * buyBackInterest)) {
-                        GUI.openGUI(player, "confirm", 1, bounty.getUUID(), (buyBackInterest * bounty.getTotalDisplayBounty()));
+                    if (balance >= (int) (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply())) {
+                        GUI.openGUI(player, "confirm", 1, bounty.getUUID(), (ConfigOptions.getMoney().getBuyOwnCostMultiply() * bounty.getTotalDisplayBounty()));
                     } else {
-                        player.sendMessage(parse(getPrefix() + getMessage("broke"), (bounty.getTotalDisplayBounty() * buyBackInterest), player));
+                        player.sendMessage(parse(getPrefix() + getMessage("broke"), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()), player));
                     }
                 }
             }
             case POSTER -> {
-                if (giveOwnMap) {
+                if (BountyMap.isGiveOwn()) {
                     player.getOpenInventory().close();
-                    Bukkit.getServer().dispatchCommand(player, pluginBountyCommands.get(0) + " poster " + LoggedPlayers.getPlayerName(bounty.getUUID()));
+                    Bukkit.getServer().dispatchCommand(player, ConfigOptions.getPluginBountyCommands().get(0) + " poster " + LoggedPlayers.getPlayerName(bounty.getUUID()));
                 }
             }
             case TRACKER -> {
                 if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || player.hasPermission(NotBounties.getAdminPermission())) && player.hasPermission("notbounties.tracker")) {
                     player.getOpenInventory().close();
-                    Bukkit.getServer().dispatchCommand(player, pluginBountyCommands.get(0) + " tracker " + LoggedPlayers.getPlayerName(bounty.getUUID()));
+                    Bukkit.getServer().dispatchCommand(player, ConfigOptions.getPluginBountyCommands().get(0) + " tracker " + LoggedPlayers.getPlayerName(bounty.getUUID()));
                 }
             }
             case VIEW -> GUI.openGUI(player, "view-bounty", 1, bounty.getUUID());

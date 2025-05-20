@@ -24,7 +24,7 @@ public class SerializeInventory {
      *
      * @param playerInventory to turn into an array of strings.
      * @return string with serialized Inventory
-     * @throws IllegalStateException
+     * @throws IllegalStateException Cannot convert the inventory to base64.
      */
     public static String playerInventoryToBase64(PlayerInventory playerInventory) throws IllegalStateException {
         // This contains contents, armor and offhand (contents are indexes 0 - 35, armor 36 - 39, offhand - 40)
@@ -37,7 +37,7 @@ public class SerializeInventory {
      *
      * @param items to turn into a Base64 String.
      * @return Base64 string of the items.
-     * @throws IllegalStateException
+     * @throws IllegalStateException Cannot convert the array to base64.
      */
     public static String itemStackArrayToBase64(ItemStack[] items) throws IllegalStateException {
         try {

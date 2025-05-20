@@ -2,30 +2,31 @@ package me.jadenp.notbounties;
 
 import com.cjcrafter.foliascheduler.FoliaCompatibility;
 import com.cjcrafter.foliascheduler.ServerImplementation;
-import com.google.common.io.Files;
 import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.data.*;
-import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
-import me.jadenp.notbounties.ui.BountyTracker;
+import me.jadenp.notbounties.features.settings.auto_bounties.*;
+import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.features.settings.display.BountyTracker;
+import me.jadenp.notbounties.features.settings.display.WantedTags;
+import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
+import me.jadenp.notbounties.features.settings.integrations.BountyClaimRequirements;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
-import me.jadenp.notbounties.ui.map.BountyBoard;
-import me.jadenp.notbounties.ui.map.BountyBoardTypeAdapter;
-import me.jadenp.notbounties.ui.map.BountyMap;
+import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
+import me.jadenp.notbounties.features.settings.display.map.BountyBoardTypeAdapter;
+import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.utils.*;
-import me.jadenp.notbounties.utils.challenges.ChallengeListener;
-import me.jadenp.notbounties.utils.challenges.ChallengeManager;
-import me.jadenp.notbounties.utils.configuration.*;
-import me.jadenp.notbounties.utils.configuration.auto_bounties.MurderBounties;
-import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
-import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
-import me.jadenp.notbounties.utils.configuration.webhook.WebhookOptions;
-import me.jadenp.notbounties.utils.external_api.*;
-import me.jadenp.notbounties.utils.external_api.bedrock.FloodGateClass;
-import me.jadenp.notbounties.utils.external_api.bedrock.GeyserMCClass;
-import me.jadenp.notbounties.utils.external_api.worldguard.WorldGuardClass;
+import me.jadenp.notbounties.features.challenges.ChallengeListener;
+import me.jadenp.notbounties.features.challenges.ChallengeManager;
+import me.jadenp.notbounties.features.*;
+import me.jadenp.notbounties.features.webhook.WebhookOptions;
+import me.jadenp.notbounties.features.settings.integrations.external_api.*;
+import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock.FloodGateClass;
+import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock.GeyserMCClass;
+import me.jadenp.notbounties.features.settings.integrations.external_api.worldguard.WorldGuardClass;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -40,24 +41,21 @@ import java.awt.Color;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.configuration.NumberFormatting.vaultEnabled;
+
+import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 /**
- * Folia
+ * Folia -
  * Team bounties
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
  * allow other image sizes for bounty poster & center them
  * Redo vouchers with persistent data, give items, & reward delay
+ * <p></p>
+
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -95,8 +93,7 @@ public final class NotBounties extends JavaPlugin {
     public void onLoad() {
         setInstance(this);
         // register api flags
-        ConfigOptions.setWorldGuardEnabled(getServer().getPluginManager().getPlugin("WorldGuard") != null);
-        if (ConfigOptions.isWorldGuardEnabled()) {
+        if (getServer().getPluginManager().getPlugin("WorldGuard") != null) {
             WorldGuardClass.registerFlags();
         }
         if (getServer().getPluginManager().getPlugin("Lands") != null)
@@ -157,19 +154,14 @@ public final class NotBounties extends JavaPlugin {
             Arrays.stream(e.getStackTrace()).forEach(stack -> Bukkit.getLogger().severe("       at " + stack.toString()));
         }
 
-        if (sendBStats) {
+        if (ConfigOptions.isSendBStats()) {
             int pluginId = 20776;
             Metrics metrics = new Metrics(this, pluginId);
-            metrics.addCustomChart(new Metrics.SingleLineChart("active_bounties", new Callable<Integer>() {
-                @Override
-                public Integer call() throws Exception {
-                    return BountyManager.getAllBounties(-1).size();
-                }
-            }));
+            metrics.addCustomChart(new Metrics.SingleLineChart("active_bounties", () -> BountyManager.getAllBounties(-1).size()));
         }
 
         // clean out posters that aren't supposed to be there
-        if (!saveTemplates) {
+        if (!BountyMap.isSaveTemplates()) {
             BountyMap.cleanPosters();
         }
 
@@ -186,7 +178,7 @@ public final class NotBounties extends JavaPlugin {
             Events.login(player);
         }
 
-        if (ConfigOptions.isWorldGuardEnabled())
+        if (ConfigOptions.getIntegrations().isWorldGuardEnabled())
             WorldGuardClass.registerHandlers();
 
         // update checker
@@ -230,7 +222,7 @@ public final class NotBounties extends JavaPlugin {
         }
 
         // check permission immunity every 5 mins
-        getServerImplementation().global().runAtFixedRate(Immunity::checkOnlinePermissionImmunity, 3611, 3600);
+        getServerImplementation().global().runAtFixedRate(ImmunityManager::checkOnlinePermissionImmunity, 3611, 3600);
 
         // make bounty tracker work & big bounty particle & time immunity
         getServerImplementation().global().runAtFixedRate(() -> {
@@ -242,7 +234,7 @@ public final class NotBounties extends JavaPlugin {
             // big bounty particle
             BigBounty.displayParticle();
 
-            Immunity.update();
+            ImmunityManager.update();
             RandomBounties.update();
             TimedBounties.update();
 
@@ -265,7 +257,7 @@ public final class NotBounties extends JavaPlugin {
                 Bukkit.getLogger().severe("[NotBounties] Error autosaving saving data!");
                 Bukkit.getLogger().severe(e.toString());
             }
-        }, autoSaveInterval * 60 * 20L + 69, autoSaveInterval * 60 * 20L);
+        }, ConfigOptions.getAutoSaveInterval() * 60 * 20L + 69, ConfigOptions.getAutoSaveInterval() * 60 * 20L);
 
 
         // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration
@@ -279,7 +271,7 @@ public final class NotBounties extends JavaPlugin {
             int playersPerRun = 1;
             @Override
             public void run() {
-                if (!removeBannedPlayers || paused)
+                if (!ConfigOptions.isRemoveBannedPlayers() || paused)
                     return;
                 if (bountyListCopy.isEmpty()) {
                     bountyListCopy = BountyManager.getAllBounties(-1);
@@ -291,7 +283,7 @@ public final class NotBounties extends JavaPlugin {
                     Bounty bounty = bountyListCopy.get(i);
                     OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
                     getServerImplementation().async().runNow(() -> {
-                        if (player.isBanned() || (liteBansEnabled && !(new LiteBansClass().isPlayerNotBanned(bounty.getUUID())))) {
+                        if (player.isBanned() || (ConfigOptions.getIntegrations().isLiteBansEnabled() && !(new LiteBansClass().isPlayerNotBanned(bounty.getUUID())))) {
                             BountyManager.removeBounty(bounty.getUUID());
                         }
                     });
@@ -349,6 +341,7 @@ public final class NotBounties extends JavaPlugin {
 
 
     private void save() throws IOException {
+        NotBounties.debugMessage("Saving...", false);
         File dataDirectory = new File(this.getDataFolder() + File.separator + "data");
         if (dataDirectory.mkdir())
             NotBounties.debugMessage("Created new data directory", false);
@@ -464,9 +457,7 @@ public final class NotBounties extends JavaPlugin {
             writer.endObject();
         }
 
-        saveBackup(bountiesFile);
-        saveBackup(statsFile);
-        saveBackup(playerDataFile);
+        BackupManager.saveBackups(dataDirectory, new File(this.getDataFolder() + File.separator + "backups"));
     }
 
     private static void readVersion() {
@@ -487,96 +478,7 @@ public final class NotBounties extends JavaPlugin {
         }
     }
 
-    private void saveBackup(File file) throws IOException {
-        if (!bountyBackups) {
-            return;
-        }
-        Date date = new Date();
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yy-MM-dd");
-        File backupDirectory = new File(this.getDataFolder() + File.separator + "backups");
-        File todayDirectory = new File(backupDirectory + File.separator + simpleDateFormat.format(date));
-        File today = new File(todayDirectory + File.separator + file.getName());
-        if (backupDirectory.mkdir()) {
-            Bukkit.getLogger().info("[NotBounties] Created backup directory.");
-        }
 
-        if (todayDirectory.mkdir()) {
-            // delete old backups
-            deleteOldBackups(backupDirectory, simpleDateFormat);
-        }
-        // try to create a daily backup
-        if (today.createNewFile()) {
-            Files.copy(file, today);
-        }
-
-    }
-
-    private void deleteOldBackups(File backupDirectory, SimpleDateFormat simpleDateFormat) {
-        File[] files = backupDirectory.listFiles();
-        if (files == null)
-            return;
-
-        Map<File, Long> fileDates = getFileDates(files, simpleDateFormat);
-        Map<File, Long> sortedMap =
-                fileDates.entrySet().stream()
-                        .sorted(Map.Entry.comparingByValue())
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                                (e1, e2) -> e1, LinkedHashMap::new));
-        // find out which files need to be deleted
-        final long maxWeeklyBackup = 1000L * 60 * 60 * 24 * 7 * 3;
-        final long maxDailyBackup = 1000L * 60 * 60 * 24 * 7;
-        int weeklyBackups = 0;
-        long lastWeeklyBackup = 0;
-        List<File> pendingDeletion = new ArrayList<>();
-        for (Map.Entry<File, Long> entry : sortedMap.entrySet()) {
-            long timeSinceCreation = System.currentTimeMillis() - entry.getValue();
-            if (timeSinceCreation > maxWeeklyBackup) {
-                // too long ago to be useful
-                pendingDeletion.add(entry.getKey());
-                continue;
-            }
-            if (timeSinceCreation > maxDailyBackup) {
-                // been over 7 days since this backup was created
-                if (weeklyBackups < 3 || timeSinceCreation - lastWeeklyBackup >= maxDailyBackup - (1000L * 60 * 60 * 24)) { // 6 days
-                    // only keep 3 weekly backups
-                    weeklyBackups++;
-                    lastWeeklyBackup = timeSinceCreation;
-                } else {
-                    // delete
-                    pendingDeletion.add(entry.getKey());
-                }
-            }
-        }
-        deleteDirectories(pendingDeletion);
-    }
-
-    private void deleteDirectories(List<File> pendingDeletion) {
-        for (File directory : pendingDeletion) {
-            try {
-                for (File file : Objects.requireNonNull(directory.listFiles())) {
-                    java.nio.file.Files.delete(file.toPath());
-                }
-                java.nio.file.Files.delete(directory.toPath());
-            } catch (IOException e) {
-                Bukkit.getLogger().warning("[NotBounties] Could not delete old backups.");
-                Bukkit.getLogger().warning(e.toString());
-            }
-        }
-    }
-
-    private Map<File, Long> getFileDates(File[] files, SimpleDateFormat simpleDateFormat) {
-        Map<File, Long> fileDates = new HashMap<>();
-        for (File value : files) {
-            try {
-                if (value.isDirectory())
-                    fileDates.put(value, simpleDateFormat.parse(value.getName()).getTime());
-            } catch (ParseException ignored) {
-                // file not in correct format
-            }
-        }
-
-        return fileDates;
-    }
 
     public void loadConfig() throws IOException {
         // close gui
@@ -595,7 +497,7 @@ public final class NotBounties extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        if (ConfigOptions.isMmoLibEnabled())
+        if (ConfigOptions.getIntegrations().isMmoLibEnabled())
             MMOLibClass.removeAllModifiers();
         SkinManager.shutdown();
         DataManager.shutdown();
@@ -643,31 +545,31 @@ public final class NotBounties extends JavaPlugin {
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties
                 + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + BountyTracker.getTrackedBounties().size()
                 + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + BountyBoard.getBountyBoards().size());
-        String vault = vaultEnabled ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
-        String papi = papiEnabled ? ChatColor.GREEN + "PlaceholderAPI" : ChatColor.RED + "PlaceholderAPI";
-        String hdb = HDBEnabled ? ChatColor.GREEN + "HeadDataBase" : ChatColor.RED + "HeadDataBase";
-        String liteBans = liteBansEnabled ? ChatColor.GREEN + "LiteBans" : ChatColor.RED + "LiteBans";
-        String skinsRestorer = skinsRestorerEnabled
+        String vault = NumberFormatting.isVaultEnabled() ? ChatColor.GREEN + "Vault" : ChatColor.RED + "Vault";
+        String papi = ConfigOptions.getIntegrations().isPapiEnabled() ? ChatColor.GREEN + "PlaceholderAPI" : ChatColor.RED + "PlaceholderAPI";
+        String hdb = ConfigOptions.getIntegrations().isHDBEnabled() ? ChatColor.GREEN + "HeadDataBase" : ChatColor.RED + "HeadDataBase";
+        String liteBans = ConfigOptions.getIntegrations().isLiteBansEnabled() ? ChatColor.GREEN + "LiteBans" : ChatColor.RED + "LiteBans";
+        String skinsRestorer = ConfigOptions.getIntegrations().isSkinsRestorerEnabled()
                 ? ChatColor.GREEN + "SkinsRestorer" : ChatColor.RED + "SkinsRestorer";
         String betterTeams = BountyClaimRequirements.isBetterTeamsEnabled()
                 ? ChatColor.GREEN + "BetterTeams" : ChatColor.RED + "BetterTeams";
         String townyAdvanced = BountyClaimRequirements.isTownyAdvancedEnabled()
                 ? ChatColor.GREEN + "TownyAdvanced" : ChatColor.RED + "TownyAdvanced";
-        String floodgate = floodgateEnabled ? ChatColor.GREEN + "Floodgate" : ChatColor.RED + "Floodgate";
-        String geyser = geyserEnabled ? ChatColor.GREEN + "GeyserMC" : ChatColor.RED + "GeyserMC";
+        String floodgate = ConfigOptions.getIntegrations().isFloodgateEnabled() ? ChatColor.GREEN + "Floodgate" : ChatColor.RED + "Floodgate";
+        String geyser = ConfigOptions.getIntegrations().isGeyserEnabled() ? ChatColor.GREEN + "GeyserMC" : ChatColor.RED + "GeyserMC";
         String kingdoms = BountyClaimRequirements.isKingdomsXEnabled()
                 ? ChatColor.GREEN + "Kingdoms" : ChatColor.RED + "Kingdoms";
         String lands = BountyClaimRequirements.isLandsEnabled() ? ChatColor.GREEN + "Lands" : ChatColor.RED + "Lands";
-        String worldGuard = ConfigOptions.isWorldGuardEnabled()
+        String worldGuard = ConfigOptions.getIntegrations().isWorldGuardEnabled()
                 ? ChatColor.GREEN + "WorldGuard" : ChatColor.RED + "WorldGuard";
         String superiorSkyblock2 = BountyClaimRequirements.isSuperiorSkyblockEnabled()
                 ? ChatColor.GREEN + "SuperiorSkyblock2" : ChatColor.RED + "SuperiorSkyblock2";
-        String mMOLib = ConfigOptions.isMmoLibEnabled() ? ChatColor.GREEN + "MMOLib" : ChatColor.RED + "MMOLib";
+        String mMOLib = ConfigOptions.getIntegrations().isMmoLibEnabled() ? ChatColor.GREEN + "MMOLib" : ChatColor.RED + "MMOLib";
         String simpleClans = BountyClaimRequirements.isSimpleClansEnabled()
                 ? ChatColor.GREEN + "SimpleClans" : ChatColor.RED + "SimpleClans";
         String factions = BountyClaimRequirements.isFactionsEnabled()
                 ? ChatColor.GREEN + "Factions" : ChatColor.RED + "Factions";
-        String duels = ConfigOptions.isDuelsEnabled() ? ChatColor.GREEN + "Duels" : ChatColor.RED + "Duels";
+        String duels = ConfigOptions.getIntegrations().isDuelsEnabled() ? ChatColor.GREEN + "Duels" : ChatColor.RED + "Duels";
         sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "["
                 + vault + ChatColor.GRAY + "|"
                 + papi + ChatColor.GRAY + "|"
@@ -772,10 +674,10 @@ public final class NotBounties extends JavaPlugin {
 
     public static boolean isBedrockPlayer(UUID uuid) {
         if (Bukkit.getPlayer(uuid) != null) {
-            if (ConfigOptions.floodgateEnabled) {
+            if (ConfigOptions.getIntegrations().isFloodgateEnabled()) {
                 FloodGateClass floodGateClass = new FloodGateClass();
                 return floodGateClass.isBedrockPlayer(uuid);
-            } else if (ConfigOptions.geyserEnabled) {
+            } else if (ConfigOptions.getIntegrations().isGeyserEnabled()) {
                 GeyserMCClass geyserMCClass = new GeyserMCClass();
                 return geyserMCClass.isBedrockPlayer(uuid);
             }
@@ -786,12 +688,12 @@ public final class NotBounties extends JavaPlugin {
 
     public static String getXuid(UUID uuid) {
         if (Bukkit.getPlayer(uuid) != null) {
-            if (ConfigOptions.floodgateEnabled) {
+            if (ConfigOptions.getIntegrations().isFloodgateEnabled()) {
                 FloodGateClass floodGateClass = new FloodGateClass();
                 if (floodGateClass.isBedrockPlayer(uuid)) {
                     return floodGateClass.getXuid(uuid);
                 }
-            } else if (ConfigOptions.geyserEnabled) {
+            } else if (ConfigOptions.getIntegrations().isGeyserEnabled()) {
                 GeyserMCClass geyserMCClass = new GeyserMCClass();
                 if (geyserMCClass.isBedrockPlayer(uuid)) {
                     return geyserMCClass.getXuid(uuid);

@@ -48,7 +48,7 @@ public class HeadLoader extends CancelableTask{
                 } else {
                     if (SkinManager.isSkinLoaded(queuedHead.uuid())) {
                         PlayerSkin playerSkin = SkinManager.getSkin(queuedHead.uuid());
-                        ItemStack head = copyItemText(queuedHead.itemStack(), Head.createPlayerSkull(queuedHead.uuid(), playerSkin.getUrl()));
+                        ItemStack head = copyItemText(queuedHead.itemStack(), Head.createPlayerSkull(queuedHead.uuid(), playerSkin.url()));
                         fetchedHeads[i] = head;
                         if (!SkinManager.isMissingSkin(playerSkin)) {
                             // do not update head if the skin is missing.

@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.utils.tasks;
 
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;

@@ -1,13 +1,15 @@
 package me.jadenp.notbounties.utils;
 
-import me.jadenp.notbounties.ui.BountyTracker;
-import me.jadenp.notbounties.utils.configuration.Immunity;
+import me.jadenp.notbounties.data.Whitelist;
+import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.display.BountyTracker;
+import me.jadenp.notbounties.features.settings.display.map.BountyMap;
+import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -19,8 +21,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.IntPredicate;
 
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
+
+import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 
 public class Tutorial {
@@ -59,7 +61,7 @@ public class Tutorial {
     }
 
     /**
-     * Returns the first page that the players have access to starting with the inputed page.
+     * Returns the first page that the players have access to starting with the inputted page.
      * @param page Page to start at.
      * @return The first valid page.
      */
@@ -90,17 +92,17 @@ public class Tutorial {
 
     static {
         // page, condition in which the page should be skipped
-        PAGE_VALIDATORS.put(4, page -> !bountyWhitelistEnabled);
-        PAGE_VALIDATORS.put(5, page -> !bountyWhitelistEnabled || !variableWhitelist);
-        PAGE_VALIDATORS.put(6, page -> !bountyWhitelistEnabled || variableWhitelist);
-        PAGE_VALIDATORS.put(8, page -> !buyBack);
-        PAGE_VALIDATORS.put(9, page -> Immunity.getImmunityType() == Immunity.ImmunityType.DISABLE);
-        PAGE_VALIDATORS.put(10, page -> Immunity.getImmunityType() != Immunity.ImmunityType.PERMANENT);
-        PAGE_VALIDATORS.put(11, page -> Immunity.getImmunityType() != Immunity.ImmunityType.SCALING);
-        PAGE_VALIDATORS.put(12, page -> Immunity.getImmunityType() != Immunity.ImmunityType.TIME);
-        PAGE_VALIDATORS.put(13, page -> Immunity.getImmunityType() == Immunity.ImmunityType.DISABLE);
+        PAGE_VALIDATORS.put(4, page -> !Whitelist.isEnabled());
+        PAGE_VALIDATORS.put(5, page -> !Whitelist.isEnabled() || !Whitelist.isVariableWhitelist());
+        PAGE_VALIDATORS.put(6, page -> !Whitelist.isEnabled() || Whitelist.isVariableWhitelist());
+        PAGE_VALIDATORS.put(8, page -> !ConfigOptions.getMoney().isBuyOwn());
+        PAGE_VALIDATORS.put(9, page -> ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.DISABLE);
+        PAGE_VALIDATORS.put(10, page -> ImmunityManager.getImmunityType() != ImmunityManager.ImmunityType.PERMANENT);
+        PAGE_VALIDATORS.put(11, page -> ImmunityManager.getImmunityType() != ImmunityManager.ImmunityType.SCALING);
+        PAGE_VALIDATORS.put(12, page -> ImmunityManager.getImmunityType() != ImmunityManager.ImmunityType.TIME);
+        PAGE_VALIDATORS.put(13, page -> ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.DISABLE);
         PAGE_VALIDATORS.put(14, page -> !BountyTracker.isEnabled());
-        PAGE_VALIDATORS.put(15, page -> !craftPoster);
+        PAGE_VALIDATORS.put(15, page -> !BountyMap.isCraftPoster());
     }
 
     private static boolean isInvalidPage(int page) {
@@ -202,8 +204,8 @@ public class Tutorial {
         next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(nextPageHover, null))));
         int nextPage = getNextValidPage(page + 1, 1);
         int lastPage = getNextValidPage(page - 1, -1);
-        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + lastPage));
-        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + pluginBountyCommands.get(0) + " tutorial " + nextPage));
+        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " tutorial " + lastPage));
+        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " tutorial " + nextPage));
         BaseComponent[] baseComponents = new BaseComponent[]{extraSpace, back, middle, next};
         if (lastPage == 0)
             baseComponents[1] = space;

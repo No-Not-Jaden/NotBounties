@@ -1,11 +1,12 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -16,8 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.hiddenNames;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
+import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public enum Leaderboard {
     //(all/kills/claimed/deaths/set/immunity)
@@ -75,7 +75,7 @@ public enum Leaderboard {
 
     public String getFormattedStat(UUID uuid){
         if (money) {
-            return NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(getStat(uuid)) + NumberFormatting.currencySuffix;
+            return NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(getStat(uuid)) + NumberFormatting.getCurrencySuffix();
         }
         return NumberFormatting.formatNumber(getStat(uuid));
     }
@@ -114,7 +114,7 @@ public enum Leaderboard {
             LinkedHashMap<UUID, Double> map = sortByValue(getStatMap());
             for (Map.Entry<UUID, Double> entry : map.entrySet()){
                 String name = LoggedPlayers.getPlayerName(entry.getKey());
-                if (hiddenNames.contains(name))
+                if (ConfigOptions.getHiddenNames().contains(name))
                     continue;
                 if (amount <= 0.01)
                     return top;
@@ -141,7 +141,7 @@ public enum Leaderboard {
             LinkedHashMap<UUID, Double> map = sortByValue(getStatMap());
             for (Map.Entry<UUID, Double> entry : map.entrySet()){
                 String name = LoggedPlayers.getPlayerName(entry.getKey());
-                if (hiddenNames.contains(name))
+                if (ConfigOptions.getHiddenNames().contains(name))
                     continue;
                 if (entry.getKey().equals(uuid))
                     return rank;
@@ -223,7 +223,7 @@ public enum Leaderboard {
         text = text.replace("{rank}", rank + "");
         text = text.replace("{player}", playerName);
         if (useCurrency)
-            text = text.replace("{amount}", (NumberFormatting.currencyPrefix + NumberFormatting.formatNumber(amount) + NumberFormatting.currencySuffix));
+            text = text.replace("{amount}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(amount) + NumberFormatting.getCurrencySuffix()));
         else
             text = text.replace("{amount}", (NumberFormatting.formatNumber(amount)));
 
@@ -245,7 +245,7 @@ public enum Leaderboard {
         LinkedHashMap<UUID, String> formattedList = new LinkedHashMap<>();
         for (Map.Entry<UUID, Double> entry : top.entrySet()){
             if (this.isMoney()) {
-                formattedList.put(entry.getKey(), NumberFormatting.currencyPrefix + NumberFormatting.getValue(entry.getValue()) + NumberFormatting.currencySuffix);
+                formattedList.put(entry.getKey(), NumberFormatting.getCurrencyPrefix() + NumberFormatting.getValue(entry.getValue()) + NumberFormatting.getCurrencySuffix());
             } else {
                 formattedList.put(entry.getKey(), NumberFormatting.getValue(entry.getValue()));
             }

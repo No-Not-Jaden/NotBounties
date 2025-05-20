@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class ItemValue {
     // custom model data, value
-    private Map<Integer, Double> customModelDataValues = new HashMap<>();
+    private final Map<Integer, Double> customModelDataValues = new HashMap<>();
 
     /**
      * Add a new custom model data with a value. Use -1 for no custom model data

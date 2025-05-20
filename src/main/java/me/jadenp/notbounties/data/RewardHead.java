@@ -4,10 +4,11 @@ import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 
@@ -17,6 +18,29 @@ import java.util.UUID;
 
 
 public record RewardHead(UUID uuid, UUID killer, double amount) {
+
+    private static boolean rewardSetters;
+    private static boolean rewardKiller;
+    private static boolean rewardAnyKill;
+
+    public static void loadConfiguration(ConfigurationSection config) {
+        rewardSetters = config.getBoolean("setters");
+        rewardKiller = config.getBoolean("claimed");
+        rewardAnyKill = config.getBoolean("any-kill");
+    }
+
+    public static boolean isRewardAnyKill() {
+        return rewardAnyKill;
+    }
+
+    public static boolean isRewardKiller() {
+        return rewardKiller;
+    }
+
+    public static boolean isRewardSetters() {
+        return rewardSetters;
+    }
+
     public RewardHead {
         SkinManager.isSkinLoaded(uuid);
     }
@@ -24,7 +48,7 @@ public record RewardHead(UUID uuid, UUID killer, double amount) {
     public ItemStack getItem() {
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         String killerName = LoggedPlayers.getPlayerName(killer);
-        ItemStack skull = Head.createPlayerSkull(uuid, SkinManager.getSkin(uuid).getUrl());
+        ItemStack skull = Head.createPlayerSkull(uuid, SkinManager.getSkin(uuid).url());
         SkullMeta skullMeta = (SkullMeta) skull.getItemMeta();
         assert skullMeta != null;
         skullMeta.setDisplayName(LanguageOptions.parse(LanguageOptions.getMessage("reward-head-name").replace("{killer}", killerName), amount, player));
@@ -40,7 +64,7 @@ public record RewardHead(UUID uuid, UUID killer, double amount) {
         try {
             if (!input.contains(",")) {
                 UUID uuid = UUID.fromString(input);
-                return new RewardHead( uuid, DataManager.GLOBAL_SERVER_ID, 0);
+                return new RewardHead(uuid, DataManager.GLOBAL_SERVER_ID, 0);
             } else {
                 UUID uuid = UUID.fromString(input.substring(0, input.indexOf(",")));
                 input = input.substring(input.indexOf(',') + 1);
@@ -60,5 +84,14 @@ public record RewardHead(UUID uuid, UUID killer, double amount) {
         }
         return null;
     }
+
+    @Override
+    public String toString() {
+        return "RewardHead[" +
+                "uuid=" + uuid + ", " +
+                "killer=" + killer + ", " +
+                "amount=" + amount + ']';
+    }
+
 
 }

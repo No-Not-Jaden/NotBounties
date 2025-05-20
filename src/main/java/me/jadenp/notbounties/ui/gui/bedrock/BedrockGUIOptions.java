@@ -2,17 +2,18 @@ package me.jadenp.notbounties.ui.gui.bedrock;
 
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIClicks;
 import me.jadenp.notbounties.ui.gui.display_items.*;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.challenges.ChallengeManager;
-import me.jadenp.notbounties.utils.configuration.ActionCommands;
-import me.jadenp.notbounties.utils.configuration.LanguageOptions;
-import me.jadenp.notbounties.utils.configuration.NumberFormatting;
-import me.jadenp.notbounties.utils.external_api.bedrock.FloodGateClass;
-import me.jadenp.notbounties.utils.external_api.bedrock.GeyserMCClass;
+import me.jadenp.notbounties.features.challenges.ChallengeManager;
+import me.jadenp.notbounties.features.ActionCommands;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock.FloodGateClass;
+import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock.GeyserMCClass;
 import me.jadenp.notbounties.utils.tasks.OpenBedrockGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -32,9 +33,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ui.gui.GUIOptions.getPageType;
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
+
+import static me.jadenp.notbounties.features.LanguageOptions.*;
+import static me.jadenp.notbounties.features.settings.money.NumberFormatting.*;
 
 public class BedrockGUIOptions {
     private final String type;
@@ -160,7 +161,7 @@ public class BedrockGUIOptions {
                 String imageTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
 
                 if (SkinManager.isSkinLoaded(playerItem.getUuid()))
-                    imageTextureID = SkinManager.getSkin(playerItem.getUuid()).getId();
+                    imageTextureID = SkinManager.getSkin(playerItem.getUuid()).id();
                 // perspective head url
                 String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png";
                 // add button to the component
@@ -219,9 +220,9 @@ public class BedrockGUIOptions {
 
     public void sendForm(Player player, FormBuilder<?, ?, ?> formBuilder) {
         if (player.isOnline()) {
-            if (floodgateEnabled) {
+            if (ConfigOptions.getIntegrations().isFloodgateEnabled()) {
                 new FloodGateClass().sendForm(player.getUniqueId(), formBuilder);
-            } else if (geyserEnabled) {
+            } else if (ConfigOptions.getIntegrations().isGeyserEnabled()) {
                 new GeyserMCClass().sendForm(player.getUniqueId(), formBuilder);
             }
         }
@@ -236,7 +237,7 @@ public class BedrockGUIOptions {
     }
 
     private List<String> parseCompletionCommands(String value, double quantity, List<String> inputs) {
-        List<String> commands = formCompletionCommands.stream().map(command -> command.replace("{value}", (value)).replace("{quantity}", (getValue(quantity)))).collect(Collectors.toList());
+        List<String> commands = formCompletionCommands.stream().map(command -> command.replace("{value}", (value)).replace("{quantity}", (getValue(quantity)))).toList();
         List<String> parsedCommands = new ArrayList<>();
         for (String command : commands) {
             while (command.contains("{value") && command.substring(command.indexOf("{value")).contains("}")) {

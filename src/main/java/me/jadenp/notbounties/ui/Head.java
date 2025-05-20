@@ -1,7 +1,8 @@
 package me.jadenp.notbounties.ui;
 
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.utils.external_api.HeadDataBaseClass;
+import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.integrations.external_api.HeadDataBaseClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -13,8 +14,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Base64;
 import java.util.UUID;
-
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.HDBEnabled;
 
 public class Head {
 
@@ -33,7 +32,7 @@ public class Head {
             } else {
                 return Bukkit.getUnsafe().modifyItemStack(item, "{display:{Name:\"{\\\"text\\\":\\\"Head\\\"}\"},SkullOwner:{Id:[" + "I;1201296705,1414024019,-1385893868,1321399054" + "],Properties:{textures:[{Value:\"" + data + "\"}]}}}");
             }
-        } else if (HDBEnabled){
+        } else if (ConfigOptions.getIntegrations().isHDBEnabled()){
             return (new HeadDataBaseClass().getHead(data));
         } else {
             Bukkit.getLogger().warning("[NotBounties] Could not create custom head. Use Base64 or install HeadDataBase.");

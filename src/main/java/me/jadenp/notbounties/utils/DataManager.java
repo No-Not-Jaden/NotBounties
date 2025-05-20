@@ -6,26 +6,26 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.data.*;
-import me.jadenp.notbounties.databases.AsyncDatabaseWrapper;
-import me.jadenp.notbounties.databases.LocalData;
-import me.jadenp.notbounties.databases.NotBountiesDatabase;
-import me.jadenp.notbounties.databases.TempDatabase;
-import me.jadenp.notbounties.databases.proxy.ProxyDatabase;
-import me.jadenp.notbounties.databases.redis.RedisConnection;
-import me.jadenp.notbounties.databases.sql.MySQL;
-import me.jadenp.notbounties.ui.BountyTracker;
-import me.jadenp.notbounties.ui.map.BountyBoard;
-import me.jadenp.notbounties.ui.map.BountyBoardTypeAdapter;
-import me.jadenp.notbounties.utils.challenges.ChallengeManager;
-import me.jadenp.notbounties.utils.configuration.BigBounty;
-import me.jadenp.notbounties.utils.configuration.ConfigOptions;
-import me.jadenp.notbounties.utils.configuration.Immunity;
+import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.features.settings.databases.LocalData;
+import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
+import me.jadenp.notbounties.features.settings.databases.TempDatabase;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxyDatabase;
+import me.jadenp.notbounties.features.settings.databases.redis.RedisConnection;
+import me.jadenp.notbounties.features.settings.databases.sql.MySQL;
+import me.jadenp.notbounties.features.settings.display.BountyTracker;
+import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
+import me.jadenp.notbounties.features.settings.display.map.BountyBoardTypeAdapter;
+import me.jadenp.notbounties.features.challenges.ChallengeManager;
+import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
+import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.data.RewardHead;
-import me.jadenp.notbounties.utils.configuration.WantedTags;
-import me.jadenp.notbounties.utils.configuration.auto_bounties.RandomBounties;
-import me.jadenp.notbounties.utils.configuration.auto_bounties.TimedBounties;
-import me.jadenp.notbounties.utils.external_api.LocalTime;
-import me.jadenp.notbounties.utils.external_api.MMOLibClass;
+import me.jadenp.notbounties.features.settings.display.WantedTags;
+import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
+import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
+import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
+import me.jadenp.notbounties.features.settings.integrations.external_api.MMOLibClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -45,8 +45,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
+
+import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public class DataManager {
 
@@ -69,7 +69,7 @@ public class DataManager {
         readStats(plugin);
         // load player data for immunity
         // currently this is just for time immunity
-        Immunity.loadPlayerData();
+        ImmunityManager.loadPlayerData();
 
     }
 
@@ -472,7 +472,7 @@ public class DataManager {
                         stats.put(uuid, new PlayerStat(stat[0].longValue(), stat[1].longValue(), stat[2].longValue(), stat[3], stat[4], stat[5], databaseServerID));
                         if (configuration.isSet("data." + uuid + ".next-bounty"))
                             timedBounties.put(uuid, configuration.getLong("data." + uuid + ".next-bounty"));
-                        if (variableWhitelist && configuration.isSet("data." + uuid + ".whitelist"))
+                        if (Whitelist.isVariableWhitelist() && configuration.isSet("data." + uuid + ".whitelist"))
                             try {
                                 getPlayerData(uuid).setWhitelist(new Whitelist(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).collect(Collectors.toList()), configuration.getBoolean("data." + uuid + ".blacklist")));
                             } catch (IllegalArgumentException e) {
@@ -489,7 +489,7 @@ public class DataManager {
                             }
                         if (configuration.isSet("data." + uuid + ".time-zone"))
                             LocalTime.addTimeZone(uuid, configuration.getString("data." + uuid + ".time-zone"));
-                        if (bountyCooldown > 0 && configuration.isSet("data." + uuid + ".last-set"))
+                        if (ConfigOptions.getBountyCooldown() > 0 && configuration.isSet("data." + uuid + ".last-set"))
                             playerData.setBountyCooldown(configuration.getLong("data." + uuid + ".last-set"));
                     }
                 if (!timedBounties.isEmpty())
@@ -823,7 +823,7 @@ public class DataManager {
                         if (setter.getDisplayAmount() + change < 0 && setter.getItems().isEmpty()) {
                             setterListIterator.remove();
                             change += setter.getDisplayAmount();
-                            lastSetter = new Setter(setter.getName(), setterUUID, 0, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), 0);;
+                            lastSetter = new Setter(setter.getName(), setterUUID, 0, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), 0);
                         } else if (setter.getAmount() > 0) {
                             // update amount (minimum 0)
                             double newAmount = Math.min(0, setter.getAmount() + change);
@@ -908,6 +908,7 @@ public class DataManager {
     /**
      * A utility to modify both parameters to remove any setters that are similar.
      * For any setter with the same uuid and whitelist, amounts will be canceled out, and similar items will be removed.
+     * The order of the parameters doesn't matter.
      */
    public static void removeSimilarSetters(List<Setter> masterSetterList, List<Setter> setterList) {
         // iterate through setters
@@ -982,53 +983,63 @@ public class DataManager {
     }
 
     /**
-     * Removes setters from all databases.
+     * Removes setters from all databases if the bounty contains them.
      * @param bounty Bounty that contains the setters.
      * @param setters Setters to be removed.
      */
     public static void removeSetters(@NotNull Bounty bounty, List<Setter> setters) {
         if (setters.isEmpty())
             return;
+        // create copies of objects so the originals aren't modified
         Bounty bountyCopy = new Bounty(bounty);
-        List<Setter> settersCopy = new ArrayList<>(bounty.getSetters());
-        DataManager.removeSimilarSetters(bountyCopy.getSetters(), setters);
+        List<Setter> originalSetters = new ArrayList<>(bounty.getSetters());
+        List<Setter> settersToRemove = new ArrayList<>(setters);
+        // remove similar setters in the lists
+        // any setters that weren't on the bounty are left in the settersToRemove list
+        DataManager.removeSimilarSetters(bountyCopy.getSetters(), settersToRemove);
+        // modify features that depend on a bounty change (this should probably be extracted to a method)
         if (bountyCopy.getTotalBounty() < BigBounty.getThreshold())
             BigBounty.removeParticle(bounty.getUUID());
         if (bountyCopy.getTotalDisplayBounty() < WantedTags.getMinWanted()) {
             // remove bounty tag
-            WantedTags.removeWantedTag(bounty.getUUID());
+            NotBounties.getServerImplementation().global().run(() -> WantedTags.removeWantedTag(bounty.getUUID()));
             NotBounties.debugMessage("Removed wanted tag.", false);
         }
-        if (ConfigOptions.isMmoLibEnabled()) {
+        if (ConfigOptions.getIntegrations().isMmoLibEnabled()) {
             Player player = Bukkit.getPlayer(bountyCopy.getUUID());
             if (player != null) {
                 MMOLibClass.removeStats(player);
                 MMOLibClass.addStats(player, bountyCopy.getTotalDisplayBounty());
             }
         }
+        // update the bounty in the databases
         if (bountyCopy.getSetters().isEmpty()) {
+            // no more setters left in the bounty - delete from databases
             deleteBounty(bounty.getUUID());
             BountyTracker.stopTracking(bounty.getUUID());
             for (Player p : Bukkit.getOnlinePlayers()) {
                 BountyTracker.removeTracker(p);
             }
         } else {
-            // check if the setter amounts were modified.
+            // there are setters remaining
+            // check if the setter amounts were modified in the removeSimilarSetters method
             boolean allMatch = true;
             for (Setter setter : bountyCopy.getSetters()) {
-                if (!settersCopy.contains(setter)) {
+                if (!originalSetters.contains(setter)) {
                     allMatch = false;
                     break;
                 }
             }
             if (allMatch) {
+                // the individual amounts were not modified, so these setters can just be removed from the databases
                 Bounty removedBounty = new Bounty(bounty.getUUID(), setters, bounty.getName(), bounty.getServerID());
                 // setters that remain were unmodified.
                 for (AsyncDatabaseWrapper database : databases)
                     database.removeBounty(removedBounty);
                 localData.removeBounty(removedBounty);
             } else {
-                // setters that remain were modified
+                // Setters that remain had their amounts modified from their original values.
+                // The bounty has to be replaced with the new setter amounts.
                 for (AsyncDatabaseWrapper database : databases)
                     database.replaceBounty(bounty.getUUID(), bountyCopy);
                 localData.replaceBounty(bounty.getUUID(), bountyCopy);
@@ -1077,7 +1088,7 @@ public class DataManager {
      * - The server first starts. This is probably not the only server connected to the database.
      * - Lost connection to the database. Perm data would be saved, Temp data maybe not.
      * - The server restarted with an active temp database. Perm database will fall into the category above.
-     * @param database
+     * @param database Database that connected.
      */
     public static void databaseConnect(NotBountiesDatabase database) {
         // hasConnectedBefore will be false if this is the first time connecting

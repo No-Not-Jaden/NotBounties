@@ -4,6 +4,8 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUIOptions;
 import me.jadenp.notbounties.ui.gui.display_items.*;
@@ -11,10 +13,8 @@ import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.data.Whitelist;
-import me.jadenp.notbounties.utils.challenges.ChallengeManager;
-import me.jadenp.notbounties.utils.configuration.*;
-import me.jadenp.notbounties.utils.external_api.bedrock.FloodGateClass;
-import me.jadenp.notbounties.utils.external_api.bedrock.GeyserMCClass;
+import me.jadenp.notbounties.features.challenges.ChallengeManager;
+import me.jadenp.notbounties.features.*;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -22,6 +22,7 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -33,12 +34,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
-import static me.jadenp.notbounties.NotBounties.*;
-import static me.jadenp.notbounties.utils.configuration.ConfigOptions.*;
-import static me.jadenp.notbounties.utils.configuration.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.configuration.NumberFormatting.*;
+import static me.jadenp.notbounties.features.ConfigOptions.saveConfigurationSection;
 
 public class GUI implements Listener {
 
@@ -47,9 +47,125 @@ public class GUI implements Listener {
     private static final Map<String, GUIOptions> customGuis = new HashMap<>();
     private static final String[] allowedPausedGUIs = new String[]{"bounty-gui", "leaderboard", "view-bounty", "selection-gui"};
     private static final String GENERAL_CURRENCY_ITEM_NAME = "general-currency-item";
+    private static final Map<String, CustomItem> customItems = new HashMap<>();
+
+    public static void loadConfiguration(YamlConfiguration guiConfig) throws IOException {
+        NotBounties bounties = NotBounties.getInstance();
+        boolean guiChanges = false;
+
+        customItems.clear();
+
+
+        if (!guiConfig.isSet("set-whitelist")) {
+            guiConfig.set("set-whitelist.sort-type", 3);
+            guiConfig.set("set-whitelist.size", 54);
+            guiConfig.set("set-whitelist.gui-name", "&d&lSelect &7&lWhitelisted &9&lPlayers");
+            guiConfig.set("set-whitelist.add-page", false);
+            guiConfig.set("set-whitelist.remove-page-items", true);
+            guiConfig.set("set-whitelist.player-slots", Collections.singletonList("0-44"));
+            guiConfig.set("set-whitelist.head-name", "&e&l{player}");
+            guiConfig.set("set-whitelist.head-lore", Arrays.asList("", "&6Immunity: {amount}", "&7Click to toggle whitelist", ""));
+            guiConfig.set("set-whitelist.layout.1.item", "fill");
+            guiConfig.set("set-whitelist.layout.1.slot", "45-53");
+            guiConfig.set("set-whitelist.layout.2.item", "return");
+            guiConfig.set("set-whitelist.layout.2.slot", "49");
+            guiConfig.set("set-whitelist.layout.3.item", "next");
+            guiConfig.set("set-whitelist.layout.3.slot", "53");
+            guiConfig.set("set-whitelist.layout.4.item", "back");
+            guiConfig.set("set-whitelist.layout.4.slot", "45");
+            guiConfig.set("set-whitelist.layout.5.item", "add-offline-whitelist");
+            guiConfig.set("set-whitelist.layout.5.slot", "51");
+            guiConfig.set("set-whitelist.layout.6.item", "reset-whitelist");
+            guiConfig.set("set-whitelist.layout.6.slot", "47");
+            guiConfig.set("custom-items.add-offline-whitelist.material", "LEVER");
+            guiConfig.set("custom-items.add-offline-whitelist.amount", 1);
+            guiConfig.set("custom-items.add-offline-whitelist.name", "&7See all players");
+            guiConfig.set("custom-items.add-offline-whitelist.commands", Collections.singletonList("[gui] set-whitelist 1 offline"));
+            guiConfig.set("custom-items.reset-whitelist.material", "MILK_BUCKET");
+            guiConfig.set("custom-items.reset-whitelist.amount", 1);
+            guiConfig.set("custom-items.reset-whitelist.name", "&fReset whitelist");
+            guiConfig.set("custom-items.reset-whitelist.commands", Arrays.asList("[p] bounty whitelist reset", "[gui] set-whitelist 1"));
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("confirm-bounty.layout")) {
+            guiConfig.set("confirm-bounty.sort-type", 1);
+            guiConfig.set("confirm-bounty.size", 54);
+            guiConfig.set("confirm-bounty.gui-name", "&6&lBounty Cost: &2{amount_tax}");
+            guiConfig.set("confirm-bounty.add-page", false);
+            guiConfig.set("confirm-bounty.remove-page-items", true);
+            guiConfig.set("confirm-bounty.player-slots", Collections.singletonList("13"));
+            guiConfig.set("confirm-bounty.head-name", "&e&lSet bounty of {amount}");
+            guiConfig.set("confirm-bounty.head-lore", Arrays.asList("", "&7{player}", ""));
+            guiConfig.set("confirm-bounty.layout.1.item", "fill");
+            guiConfig.set("confirm-bounty.layout.1.slot", "0-53");
+            guiConfig.set("confirm-bounty.layout.2.item", "return-select-price");
+            guiConfig.set("confirm-bounty.layout.2.slot", "49");
+            guiConfig.set("confirm-bounty.layout.3.item", "false");
+            guiConfig.set("confirm-bounty.layout.3.slot", "19-21");
+            guiConfig.set("confirm-bounty.layout.4.item", "false");
+            guiConfig.set("confirm-bounty.layout.4.slot", "37-39");
+            guiConfig.set("confirm-bounty.layout.5.item", "false");
+            guiConfig.set("confirm-bounty.layout.5.slot", "28-30");
+            guiConfig.set("confirm-bounty.layout.6.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.6.slot", "23-25");
+            guiConfig.set("confirm-bounty.layout.7.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.7.slot", "32-34");
+            guiConfig.set("confirm-bounty.layout.8.item", "yes-bounty");
+            guiConfig.set("confirm-bounty.layout.8.slot", "41-43");
+            guiConfig.set("custom-items.yes-bounty.material", "LIME_STAINED_GLASS_PANE");
+            guiConfig.set("custom-items.yes-bounty.amount", 1);
+            guiConfig.set("custom-items.yes-bounty.name", "&a&lYes");
+            guiConfig.set("custom-items.yes-bounty.commands", Arrays.asList("[p] notbounties {slot13} {page} --confirm", "[close]"));
+            guiConfig.set("custom-items.return-set-bounty.material", "WHITE_BED");
+            guiConfig.set("custom-items.return-set-bounty.amount", 1);
+            guiConfig.set("custom-items.return-set-bounty.name", "&6&lReturn");
+            guiConfig.set("custom-items.return-set-bounty.lore", Collections.singletonList("&7Return to player selection"));
+            guiConfig.set("custom-items.return-set-bounty.commands", Collections.singletonList("[gui] set-bounty 1"));
+            guiConfig.set("custom-items.return-select-price.material", "WHITE_BED");
+            guiConfig.set("custom-items.return-select-price.amount", 1);
+            guiConfig.set("custom-items.return-select-price.name", "&6&lReturn");
+            guiConfig.set("custom-items.return-select-price.lore", Collections.singletonList("&7Return to price selection"));
+            guiConfig.set("custom-items.return-select-price.commands", Collections.singletonList("[gui] select-price {page}"));
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("bounty-item-select")) {
+            saveConfigurationSection("gui.yml", guiConfig, "bounty-item-select");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.yes-bounty-item");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.cancel");
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("challenges")) {
+            saveConfigurationSection("gui.yml", guiConfig, "challenges");
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("view-bounty")) {
+            saveConfigurationSection("gui.yml", guiConfig, "view-bounty");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.general-currency-item");
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("confirm-remove-immunity")) {
+            saveConfigurationSection("gui.yml", guiConfig, "confirm-remove-immunity");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.remove-immunity");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.yes-remove-immunity");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.no-setting");
+            guiChanges = true;
+        }
+        File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
+        if (guiChanges) {
+            guiConfig.save(guiFile);
+        }
+        for (String key : Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items")).getKeys(false)) {
+            CustomItem customItem = new CustomItem(Objects.requireNonNull(guiConfig.getConfigurationSection("custom-items." + key)));
+            customItems.put(key, customItem);
+        }
+    }
 
     public static CustomItem getGeneralCurrencyItem() {
         return customItems.computeIfAbsent(GENERAL_CURRENCY_ITEM_NAME, k -> new CustomItem(Material.SUNFLOWER, 1, -1, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>(), null));
+    }
+
+    public static Map<String, CustomItem> getCustomItems() {
+        return customItems;
     }
 
     public static void addGUI(GUIOptions gui, String name) {
@@ -80,24 +196,24 @@ public class GUI implements Listener {
             page = 1;
 
         boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
-        Set<UUID> onlinePlayers = getNetworkPlayers().keySet();
+        Set<UUID> onlinePlayers = NotBounties.getNetworkPlayers().keySet();
         switch (name) {
             case "bounty-gui":
                 List<Bounty> sortedList = BountyManager.getAllBounties(gui.getSortType());
                 for (int i = 0; i < sortedList.size(); i++) {
                     Bounty bounty = sortedList.get(i);
-                    double bountyAmount = showWhitelistedBounties || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
+                    double bountyAmount = Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
                     if (bountyAmount > 0) {
-                        List<String> additionalLore = GUIClicks.getClickLore(player, buyBack && bounty.getUUID().equals(player.getUniqueId()), (bounty.getTotalDisplayBounty() * buyBackInterest));
-                        if (bounty.getAllWhitelists().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
-                            additionalLore.addAll(getListMessage("whitelist-notify"));
-                        } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
-                            additionalLore.addAll(getListMessage("whitelist-notify"));
-                        } else if (showWhitelistedBounties || player.hasPermission(NotBounties.getAdminPermission())) {
+                        List<String> additionalLore = GUIClicks.getClickLore(player, ConfigOptions.getMoney().isBuyOwn() && bounty.getUUID().equals(player.getUniqueId()), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()));
+                        if (bounty.getAllWhitelists().contains(player.getUniqueId()) && Whitelist.isEnableBlacklist()) {
+                            additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
+                        } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId()) && Whitelist.isEnabled()) {
+                            additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
+                        } else if (Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission())) {
                             // not whitelisted
                             for (Setter setter : bounty.getSetters()) {
                                 if (!setter.canClaim(player)) {
-                                    additionalLore.addAll(getListMessage("not-whitelisted"));
+                                    additionalLore.addAll(LanguageOptions.getListMessage("not-whitelisted"));
                                     break;
                                 }
                             }
@@ -109,7 +225,7 @@ public class GUI implements Listener {
                         }
 
                     }
-                    if (reducePageCalculations && displayItems.size() > gui.getPlayerSlots().size() * page)
+                    if (ConfigOptions.isReducePageCalculations() && displayItems.size() > gui.getPlayerSlots().size() * page)
                         break;
                 }
                 break;
@@ -118,7 +234,7 @@ public class GUI implements Listener {
                     Bounty viewedBounty = BountyManager.getBounty(uuid);
                     if (viewedBounty != null) {
                         List<Setter> setters = new ArrayList<>(viewedBounty.getSetters());
-                        List<String> additionalLore = player.hasPermission(NotBounties.getAdminPermission()) ? new ArrayList<>(getListMessage("admin-edit-lore")) : new ArrayList<>();
+                        List<String> additionalLore = player.hasPermission(NotBounties.getAdminPermission()) ? new ArrayList<>(LanguageOptions.getListMessage("admin-edit-lore")) : new ArrayList<>();
                         setters.sort(Comparator.comparing(Setter::getUuid)); // same setters will be next to each other
                         List<ItemStack> concurrentItems = new ArrayList<>();
                         double concurrentAmount = 0;
@@ -128,18 +244,18 @@ public class GUI implements Listener {
                         for (int i = 0; i < setters.size(); i++) {
                             List<String> whitelistLore = new ArrayList<>();
                             Setter currentSetter = setters.get(i);
-                            if (!currentSetter.canClaim(player) && !showWhitelistedBounties)
+                            if (!currentSetter.canClaim(player) && !Whitelist.isShowWhitelistedBounties())
                                 continue;
 
-                            if (!currentSetter.getWhitelist().isBlacklist() && !currentSetter.getWhitelist().getList().isEmpty() && currentSetter.getWhitelist().getList().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
-                                whitelistLore.addAll(getListMessage("whitelist-notify"));
-                            } else if (currentSetter.getWhitelist().isBlacklist() && !currentSetter.getWhitelist().getList().isEmpty() && !currentSetter.getWhitelist().getList().contains(player.getUniqueId()) && bountyWhitelistEnabled) {
-                                whitelistLore.addAll(getListMessage("whitelist-notify"));
-                            } else if (showWhitelistedBounties || player.hasPermission(NotBounties.getAdminPermission())) {
+                            if (!currentSetter.getWhitelist().isBlacklist() && !currentSetter.getWhitelist().getList().isEmpty() && currentSetter.getWhitelist().getList().contains(player.getUniqueId()) && Whitelist.isEnabled()) {
+                                whitelistLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
+                            } else if (currentSetter.getWhitelist().isBlacklist() && !currentSetter.getWhitelist().getList().isEmpty() && !currentSetter.getWhitelist().getList().contains(player.getUniqueId()) && Whitelist.isEnabled()) {
+                                whitelistLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
+                            } else if (Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission())) {
                                 // not whitelisted
                                 for (Setter setter : viewedBounty.getSetters()) {
                                     if (!setter.canClaim(player)) {
-                                        whitelistLore.addAll(getListMessage("not-whitelisted"));
+                                        whitelistLore.addAll(LanguageOptions.getListMessage("not-whitelisted"));
                                         break;
                                     }
                                 }
@@ -158,17 +274,17 @@ public class GUI implements Listener {
                                 if (concurrentAmount != 0) {
                                     // add currency
 
-                                    if (currency.size() == 1 && !NumberFormatting.shouldUseDecimals()) {
+                                    if (NumberFormatting.getCurrency().size() == 1 && !NumberFormatting.shouldUseDecimals()) {
                                         // change material and amount (possible multiple items) to represent a physical item
                                         ItemStack item = getGeneralCurrencyItem().getFormattedItem(player, null);
                                         try {
-                                            Material material = Material.valueOf(currency.get(0).toUpperCase());
+                                            Material material = Material.valueOf(NumberFormatting.getCurrency().get(0).toUpperCase());
                                             item.setType(material);
                                         } catch (IllegalArgumentException ignored) {
                                             // currency is not a placeholder and isn't a currency
                                         }
                                         // split items into groups of max stack size
-                                        float valuePerItem = currencyValues.get(currency.get(0));
+                                        float valuePerItem = NumberFormatting.getCurrencyValues().get(NumberFormatting.getCurrency().get(0));
                                         int stacks = (int) (concurrentAmount / valuePerItem / item.getMaxStackSize());
                                         int remainder = (int) (concurrentAmount / valuePerItem % item.getMaxStackSize());
 
@@ -178,7 +294,7 @@ public class GUI implements Listener {
                                             parsedItem.setAmount(parsedItem.getMaxStackSize());
                                             ItemMeta meta = parsedItem.getItemMeta();
                                             if (meta != null) {
-                                                meta.setDisplayName(meta.getDisplayName().replace("{amount}", currencyPrefix + NumberFormatting.formatNumber(valuePerItem * item.getMaxStackSize()) + currencySuffix));
+                                                meta.setDisplayName(meta.getDisplayName().replace("{amount}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(valuePerItem * item.getMaxStackSize()) + NumberFormatting.getCurrencySuffix()));
                                                 if (meta.hasLore() && meta.getLore() != null) {
                                                     List<String> lore = meta.getLore();
                                                     meta.setLore(lore.stream().map(string -> LanguageOptions.parse(string, valuePerItem * item.getMaxStackSize(), player)).toList());
@@ -194,7 +310,7 @@ public class GUI implements Listener {
                                             parsedItem.setAmount(remainder);
                                             ItemMeta meta = parsedItem.getItemMeta();
                                             if (meta != null) {
-                                                meta.setDisplayName(meta.getDisplayName().replace("{amount}", currencyPrefix + NumberFormatting.formatNumber(valuePerItem * remainder) + currencySuffix));
+                                                meta.setDisplayName(meta.getDisplayName().replace("{amount}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(valuePerItem * remainder) + NumberFormatting.getCurrencySuffix()));
                                                 if (meta.hasLore() && meta.getLore() != null) {
                                                     List<String> lore = meta.getLore();
                                                     meta.setLore(lore.stream().map(string -> LanguageOptions.parse(string, valuePerItem * remainder, player)).toList());
@@ -241,14 +357,14 @@ public class GUI implements Listener {
                     }
                     if (online) {
                         for (UUID uuid : onlinePlayers) {
-                            if (reducePageCalculations && displayItems.size() > gui.getPlayerSlots().size() * page)
+                            if (ConfigOptions.isReducePageCalculations() && displayItems.size() > gui.getPlayerSlots().size() * page)
                                 break;
                             if (!addedPlayers.contains(uuid) && !cantSeePlayer(player, onlinePlayers, uuid)) {
-                                Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(uuid, 69);
-                                if (immunityType == Immunity.ImmunityType.PERMANENT
-                                        || immunityType == Immunity.ImmunityType.GRACE_PERIOD
-                                        || immunityType == Immunity.ImmunityType.TIME
-                                        || immunityType == Immunity.ImmunityType.NEW_PLAYER) {
+                                ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(uuid, 69);
+                                if (immunityType == ImmunityManager.ImmunityType.PERMANENT
+                                        || immunityType == ImmunityManager.ImmunityType.GRACE_PERIOD
+                                        || immunityType == ImmunityManager.ImmunityType.TIME
+                                        || immunityType == ImmunityManager.ImmunityType.NEW_PLAYER) {
                                     // skip if they would be immune to this bounty regardless of the bounty amount
                                     NotBounties.debugMessage(uuid + " has immunity.", false);
                                     continue;
@@ -259,15 +375,15 @@ public class GUI implements Listener {
                         }
                     } else {
                         for (Map.Entry<UUID, String> entry : LoggedPlayers.getLoggedPlayers().entrySet()) {
-                            if (reducePageCalculations && displayItems.size() > gui.getPlayerSlots().size() * page)
+                            if (ConfigOptions.isReducePageCalculations() && displayItems.size() > gui.getPlayerSlots().size() * page)
                                 break;
                             if (!addedPlayers.contains(entry.getKey())) {
 
-                                Immunity.ImmunityType immunityType = Immunity.getAppliedImmunity(entry.getKey(), 69);
-                                if (immunityType == Immunity.ImmunityType.PERMANENT
-                                        || immunityType == Immunity.ImmunityType.GRACE_PERIOD
-                                        || immunityType == Immunity.ImmunityType.TIME
-                                        || immunityType == Immunity.ImmunityType.NEW_PLAYER) {
+                                ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(entry.getKey(), 69);
+                                if (immunityType == ImmunityManager.ImmunityType.PERMANENT
+                                        || immunityType == ImmunityManager.ImmunityType.GRACE_PERIOD
+                                        || immunityType == ImmunityManager.ImmunityType.TIME
+                                        || immunityType == ImmunityManager.ImmunityType.NEW_PLAYER) {
                                     // skip if they are immune
                                     continue;
                                 }
@@ -281,7 +397,7 @@ public class GUI implements Listener {
                 List<UUID> playersAdded = new ArrayList<>();
                 Whitelist whitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist();
                 for (UUID uuid : whitelist.getList()) {
-                    List<String> additionalLore = whitelist.isBlacklist() ? getListMessage("blacklist-lore") : getListMessage("whitelist-lore");
+                    List<String> additionalLore = whitelist.isBlacklist() ? LanguageOptions.getListMessage("blacklist-lore") : LanguageOptions.getListMessage("whitelist-lore");
                     displayItems.add(new WhitelistedPlayerItem(uuid, Leaderboard.IMMUNITY.getStat(uuid), Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), additionalLore, "&a"));
                     playersAdded.add(uuid);
                 }
@@ -296,7 +412,7 @@ public class GUI implements Listener {
                     }
                 }
                 for (Map.Entry<UUID, String> entry : LoggedPlayers.getLoggedPlayers().entrySet()) {
-                    if (reducePageCalculations && playersAdded.size() > gui.getPlayerSlots().size() * page)
+                    if (ConfigOptions.isReducePageCalculations() && playersAdded.size() > gui.getPlayerSlots().size() * page)
                         break;
                     if (!playersAdded.contains(entry.getKey())) {
                         if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
@@ -353,7 +469,7 @@ public class GUI implements Listener {
     private static boolean cantSeePlayer(Player guiViewer, Set<UUID> onlinePlayers, UUID playerUUID) {
         if (!onlinePlayers.contains(playerUUID))
             return true;
-        if (NotBounties.getServerVersion() >= 17 && seePlayerList) {
+        if (NotBounties.getServerVersion() >= 17 && ConfigOptions.isSeePlayerList()) {
             Player player = Bukkit.getPlayer(playerUUID);
             if (player == null)
                 return true;
@@ -373,7 +489,7 @@ public class GUI implements Listener {
             }
             if (!allowed) {
                 if (player.hasPermission(NotBounties.getAdminPermission()))
-                    player.sendMessage(parse(getPrefix() + getMessage("paused"), player));
+                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("paused"), player));
                 return;
             }
         }
@@ -385,7 +501,7 @@ public class GUI implements Listener {
         NotBounties.getServerImplementation().async().runNow(() -> {
             List<DisplayItem> displayItems = getGUIValues(player, name, finalPage, data);
 
-            if ((floodgateEnabled || geyserEnabled) && NotBounties.isBedrockPlayer(player.getUniqueId()) && BedrockGUI.isEnabled() && BedrockGUI.isGUIEnabled(name)) {
+            if ((ConfigOptions.getIntegrations().isFloodgateEnabled() || ConfigOptions.getIntegrations().isGeyserEnabled()) && NotBounties.isBedrockPlayer(player.getUniqueId()) && BedrockGUI.isEnabled() && BedrockGUI.isGUIEnabled(name)) {
                 // open bedrock gui
                 BedrockGUI.openGUI(player, name, finalPage, displayItems, data);
             } else {
@@ -434,10 +550,10 @@ public class GUI implements Listener {
             double amount = 0;
             Bounty bounty = BountyManager.getBounty(uuid);
             if (bounty != null) {
-                amount = showWhitelistedBounties ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(viewer);
+                amount = Whitelist.isShowWhitelistedBounties() ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(viewer);
             }
             String playerName = LoggedPlayers.getPlayerName(uuid);
-            title = title.replace("{player}", playerName).replace("{amount}", currencyPrefix + NumberFormatting.formatNumber(amount) + currencySuffix);
+            title = title.replace("{player}", playerName).replace("{amount}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(amount) + NumberFormatting.getCurrencySuffix());
         } else {
             for (DisplayItem displayItem : displayItems) {
                 if (displayItem instanceof PlayerItem playerItem) {
@@ -456,7 +572,7 @@ public class GUI implements Listener {
             if (numBounties % playerSlots != 0) {
                 maxPage++;
             }
-        } else if (reducePageCalculations) {
+        } else if (ConfigOptions.isReducePageCalculations()) {
             int totalPlayers = LoggedPlayers.getLoggedPlayers().size();
             int playerSlots = Math.max(numPlayerSlots, 1);
             maxPage = (int) ((double) totalPlayers / playerSlots);
@@ -475,7 +591,7 @@ public class GUI implements Listener {
                 .replace("{page_max}", (maxPage + ""));
         if (addPage)
             title = title + " " + page;
-        return parse(title, viewer);
+        return LanguageOptions.parse(title, viewer);
     }
 
 
@@ -619,25 +735,25 @@ public class GUI implements Listener {
                                 TextComponent message = (TextComponent) TextComponent.fromLegacy(messageText);
                                 TextComponent prefix = (TextComponent) TextComponent.fromLegacy(LanguageOptions.parse(LanguageOptions.getPrefix(), (OfflinePlayer) event.getWhoClicked()));
                                 message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(messageText)));
-                                message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + pluginBountyCommands.get(0) + " edit " + viewedBounty.getName() + " from " + playerName + " "));
+                                message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " edit " + viewedBounty.getName() + " from " + playerName + " "));
                                 prefix.addExtra(message);
                                 event.getWhoClicked().spigot().sendMessage(prefix);
                             } else if (event.isLeftClick()) {
                                 event.getView().close();
-                                Bukkit.dispatchCommand(event.getWhoClicked(), pluginBountyCommands.get(0) + " remove " + viewedBounty.getName() + " from " + playerName);
+                                Bukkit.dispatchCommand(event.getWhoClicked(), ConfigOptions.getPluginBountyCommands().get(0) + " remove " + viewedBounty.getName() + " from " + playerName);
                             }
                         } else {
                             // no longer has a bounty
                             openGUI((Player) event.getWhoClicked(), "bounty-gui", 1);
-                            event.getWhoClicked().sendMessage(LanguageOptions.parse(getPrefix() + getMessage("no-bounty"), Bukkit.getOfflinePlayer(uuid)));
+                            event.getWhoClicked().sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("no-bounty"), Bukkit.getOfflinePlayer(uuid)));
                         }
                     }
                     break;
                 case "set-bounty":
-                    if (NumberFormatting.bountyItemsDefaultGUI) {
+                    if (NumberFormatting.isBountyItemsDefaultGUI()) {
                         openGUI((Player) event.getWhoClicked(), "bounty-item-select", 1, playerUUID);
                     } else {
-                        openGUI((Player) event.getWhoClicked(), "select-price", ConfigOptions.minBounty, playerUUID.toString());
+                        openGUI((Player) event.getWhoClicked(), "select-price", (long) ConfigOptions.getMoney().getMinBounty(), playerUUID.toString());
                     }
                     break;
                 case "set-whitelist":
@@ -646,19 +762,19 @@ public class GUI implements Listener {
                         if (whitelist.size() < 10)
                             whitelist.add(playerUUID);
                         else
-                            event.getWhoClicked().sendMessage(parse(getPrefix() + getMessage("whitelist-max"), (Player) event.getWhoClicked()));
+                            event.getWhoClicked().sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("whitelist-max"), (Player) event.getWhoClicked()));
                     }
                     openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, info.data());
                     break;
                 case "select-price":
-                    Bukkit.dispatchCommand(event.getWhoClicked(),   pluginBountyCommands.get(0) + " " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
-                    if (!confirmation)
+                    Bukkit.dispatchCommand(event.getWhoClicked(),   ConfigOptions.getPluginBountyCommands().get(0) + " " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
+                    if (!ConfigOptions.isBountyConfirmation())
                         event.getView().close();
                     break;
                 case "bounty-item-select":
                     if (!gui.getPlayerSlots().isEmpty() && event.getRawSlot() ==  gui.getPlayerSlots().get(0)) {
                         // set bounty
-                        ActionCommands.executeCommands((Player) event.getWhoClicked(),  new ArrayList<>(Collections.singletonList("[p] " + pluginBountyCommands.get(0) + " {data} --confirm")));
+                        ActionCommands.executeCommands((Player) event.getWhoClicked(),  new ArrayList<>(Collections.singletonList("[p] " + ConfigOptions.getPluginBountyCommands().get(0) + " {data} --confirm")));
                     }
                     break;
                 default:

@@ -7,7 +7,6 @@ import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.utils.SerializeInventory;
 import org.bukkit.inventory.ItemStack;
 
-import javax.json.Json;
 import java.io.IOException;
 import java.util.*;
 

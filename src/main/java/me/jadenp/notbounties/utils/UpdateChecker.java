@@ -27,7 +27,7 @@ public class UpdateChecker {
                     consumer.accept(scanner.next());
                 }
             } catch (IOException | URISyntaxException exception) {
-                plugin.getLogger().info("[NotBounties] Unable to check for updates: " + exception);
+                plugin.getLogger().info("Unable to check for updates: " + exception);
             }
         });
     }
