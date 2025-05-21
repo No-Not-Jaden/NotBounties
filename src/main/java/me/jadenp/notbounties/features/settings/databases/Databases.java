@@ -9,7 +9,7 @@ import java.util.Objects;
 public class Databases extends ResourceConfiguration {
     @Override
     protected void loadConfiguration(YamlConfiguration config) {
-        DataManager.loadDatabaseConfig(Objects.requireNonNull(config));
+        DataManager.loadDatabaseConfig(Objects.requireNonNull(config), plugin);
     }
 
     @Override

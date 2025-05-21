@@ -290,7 +290,7 @@ class SkinResponseHandler {
                 NotBounties.debugMessage(e.toString(), true);
             }
             setLastRequest();
-        }, 0, 3);
+        }, 1, 3);
     }
 
     private static @Nullable PlayerSkin requestPlayerSkin(SkinRequestType skinRequestType, CloseableHttpClient httpClient) throws IOException {

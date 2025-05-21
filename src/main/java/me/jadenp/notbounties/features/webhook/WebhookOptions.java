@@ -92,7 +92,7 @@ public class WebhookOptions implements Listener {
     private void buildWebhook(Webhook webhook, UUID receiver, UUID player, double amount, double total){
         if (webhook.isEnabled()) {
             WebhookBuilder webhookBuilder = new WebhookBuilder(webhook, this, receiver, player, amount, total);
-            webhookBuilder.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(webhookBuilder, 0, 4));
+            webhookBuilder.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(webhookBuilder, 1, 4));
         }
 
     }

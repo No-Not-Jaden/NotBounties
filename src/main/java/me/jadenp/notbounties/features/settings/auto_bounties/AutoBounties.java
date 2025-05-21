@@ -23,7 +23,7 @@ public class AutoBounties extends ResourceConfiguration {
         TrickleBounties.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("trickle-bounties")));
         Prompt.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("prompts")));
         BigBounty.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("big-bounties")));
-        ActionCommands.loadConfiguration(config.getStringList("bounty-claim-commands"), config.getStringList("big-bounties.commands"), config.getStringList("bounty-set-commands"));
+        ActionCommands.loadConfiguration(plugin, config.getStringList("bounty-claim-commands"), config.getStringList("big-bounties.commands"), config.getStringList("bounty-set-commands"));
 
         consoleBountyName = config.getString("console-bounty-name");
         expireTime = config.getDouble("expire-time");

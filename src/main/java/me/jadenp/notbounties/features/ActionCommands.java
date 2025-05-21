@@ -23,6 +23,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -36,8 +37,12 @@ public class ActionCommands {
     private static List<String> bountyClaimCommands;
     private static List<String> bigBountyCommands;
     private static List<String> bountySetCommands;
+    private static Plugin plugin;
 
-    public static void loadConfiguration(List<String> bountyClaimCommands, List<String> bigBountyCommands, List<String> bountySetCommands) {
+    private ActionCommands(){}
+
+    public static void loadConfiguration(Plugin plugin, List<String> bountyClaimCommands, List<String> bigBountyCommands, List<String> bountySetCommands) {
+        ActionCommands.plugin = plugin;
         ActionCommands.bountyClaimCommands = bountyClaimCommands;
         ActionCommands.bigBountyCommands = bigBountyCommands;
         ActionCommands.bountySetCommands = bountySetCommands;
@@ -178,10 +183,10 @@ public class ActionCommands {
                                         replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
                                    }
                                } else {
-                                   Bukkit.getLogger().warning("Invalid player for slot " + slot);
+                                   plugin.getLogger().warning("Invalid player for slot " + slot);
                                }
                             } else {
-                                Bukkit.getLogger().warning("Invalid player for slot " + slot);
+                                plugin.getLogger().warning("Invalid player for slot " + slot);
                             }
 
                         }
@@ -193,7 +198,7 @@ public class ActionCommands {
                     }
                 }
             } catch (NumberFormatException e) {
-                Bukkit.getLogger().warning("Error getting slot in command: \n" + command);
+                plugin.getLogger().warning("Error getting slot in command: \n" + command);
             }
             command = command.substring(0, command.indexOf("{slot")) + replacement + command.substring(command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length() + 1);
         }
@@ -208,7 +213,7 @@ public class ActionCommands {
                     replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
                 }
             } catch (NumberFormatException e) {
-                Bukkit.getLogger().warning("Error getting player in command: \n" + command);
+                plugin.getLogger().warning("Error getting player in command: \n" + command);
             }
             command = command.replace(("{player" + slotString + "}"), (replacement));
         }
@@ -285,8 +290,8 @@ public class ActionCommands {
             }
 
             if (loops == 0) {
-                Bukkit.getLogger().warning("[NotBounties] Could not complete bounty claim command! A conditional is not formatted correctly!");
-                Bukkit.getLogger().warning("here -> " + command);
+                plugin.getLogger().warning("Could not complete bounty claim command! A conditional is not formatted correctly!");
+                plugin.getLogger().warning("here -> " + command);
                 canceled = true;
             }
             loops--;
@@ -340,7 +345,7 @@ public class ActionCommands {
                         volume = NumberFormatting.tryParse(command);
                     }
                 } catch (NumberFormatException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Unknown number for [sound_player] command in bounty-claim-commands : " + command);
+                    plugin.getLogger().warning("Unknown number for [sound_player] command in bounty-claim-commands : " + command);
                     return;
                 }
             } else {
@@ -350,7 +355,7 @@ public class ActionCommands {
             try {
                 realSound = Sound.valueOf(sound.toUpperCase());
             } catch (IllegalArgumentException e) {
-                Bukkit.getLogger().warning("[NotBounties] Unknown sound for [sound_player] command in bounty-claim-commands : " + sound);
+                plugin.getLogger().warning("Unknown sound for [sound_player] command in bounty-claim-commands : " + sound);
                 return;
             }
             player.playSound(player.getEyeLocation(), realSound, (float) volume, (float) pitch);
@@ -371,7 +376,7 @@ public class ActionCommands {
                         volume = NumberFormatting.tryParse(command);
                     }
                 } catch (NumberFormatException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Unknown number for [sound_killer] command in bounty-claim-commands : " + command);
+                    plugin.getLogger().warning("Unknown number for [sound_killer] command in bounty-claim-commands : " + command);
                     return;
                 }
             } else {
@@ -381,7 +386,7 @@ public class ActionCommands {
             try {
                 realSound = Sound.valueOf(sound.toUpperCase());
             } catch (IllegalArgumentException e) {
-                Bukkit.getLogger().warning("[NotBounties] Unknown sound for [sound_killer] command in bounty-claim-commands : " + sound);
+                plugin.getLogger().warning("Unknown sound for [sound_killer] command in bounty-claim-commands : " + sound);
                 return;
             }
             killer.playSound(killer.getEyeLocation(), realSound, (float) volume, (float) pitch);
@@ -402,7 +407,7 @@ public class ActionCommands {
                         volume = NumberFormatting.tryParse(command);
                     }
                 } catch (NumberFormatException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Unknown number for [sound] command in bounty-claim-commands : " + command);
+                    plugin.getLogger().warning("Unknown number for [sound] command in bounty-claim-commands : " + command);
                     return;
                 }
             } else {
@@ -412,7 +417,7 @@ public class ActionCommands {
             try {
                 realSound = Sound.valueOf(sound.toUpperCase());
             } catch (IllegalArgumentException e) {
-                Bukkit.getLogger().warning("[NotBounties] Unknown sound for [sound] command in bounty-claim-commands : " + sound);
+                plugin.getLogger().warning("Unknown sound for [sound] command in bounty-claim-commands : " + sound);
                 return;
             }
             killer.getWorld().playSound(killer.getLocation(), realSound, (float) volume, (float) pitch);
@@ -507,7 +512,7 @@ public class ActionCommands {
                 GUIOptions gui = GUI.getGUI("bounty-item-select");
                 if (gui == null) {
                     // gui not set up
-                    Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not set up.");
+                    plugin.getLogger().warning("bounty-item-select GUI not set up.");
                     return;
                 }
 
@@ -562,7 +567,7 @@ public class ActionCommands {
                     GUIOptions gui = GUI.getGUI("bounty-item-select");
                     if (gui == null) {
                         // gui not set up
-                        Bukkit.getLogger().warning("[NotBounties] bounty-item-select GUI not set up.");
+                        plugin.getLogger().warning("bounty-item-select GUI not set up.");
                         return;
                     }
                     // get current inventory items from gui info
@@ -623,14 +628,14 @@ public class ActionCommands {
                         customModelData = (int) tryParse(placeholder.substring(placeholder.indexOf("<") + 1, placeholder.indexOf(">")));
                         placeholder = placeholder.substring(0, placeholder.indexOf("<"));
                     } catch (NumberFormatException e) {
-                        Bukkit.getLogger().warning("[NotRanks] Could not get custom model data from " + placeholder);
-                        Bukkit.getLogger().warning(e.toString());
+                        plugin.getLogger().warning("Could not get custom model data from " + placeholder);
+                        plugin.getLogger().warning(e.toString());
                     }
                 // check if it is a material
                 if (player.isOnline() && player.getPlayer() != null) {
                     Material m = Material.getMaterial(placeholder);
                     if (m != null && (parsedValue instanceof Integer || parsedValue instanceof Double)) {
-                            int reqValue = parsedValue instanceof Double ? ((Double) parsedValue).intValue() : (int) parsedValue;
+                            int reqValue = parsedValue instanceof Double d ? d.intValue() : (int) parsedValue;
                             int playerValue = checkAmount(player.getPlayer(), m, customModelData);
                             return compareObjects(reqValue, playerValue, operator);
                         }
@@ -638,7 +643,7 @@ public class ActionCommands {
                 }
             }
         } catch (IndexOutOfBoundsException e) {
-            Bukkit.getLogger().warning("Could not check requirement: " + requirement + "\nIs it formatted properly?");
+            plugin.getLogger().warning("Could not check requirement: " + requirement + "\nIs it formatted properly?");
         }
         return false;
     }

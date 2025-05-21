@@ -658,7 +658,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     try {
                         NotBounties.getInstance().loadConfig();
                     } catch (IOException e) {
-                        Bukkit.getLogger().warning(e.toString());
+                        sender.sendMessage(ChatColor.RED + e.toString());
                     }
                     reopenBountiesGUI();
                     if (!silent)
@@ -692,7 +692,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     return true;
                                 }
                             } else {
-                                Bukkit.getLogger().info("You don't have immunity!");
+                                sender.sendMessage("You don't have immunity!");
                                 return false;
                             }
                         } else {

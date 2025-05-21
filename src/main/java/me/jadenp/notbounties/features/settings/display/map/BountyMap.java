@@ -28,6 +28,7 @@ import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.map.MapView;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -37,8 +38,10 @@ import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.*;
+import java.util.logging.Level;
 
 import static me.jadenp.notbounties.utils.BountyManager.getBounty;
 import static me.jadenp.notbounties.utils.BountyManager.hasBounty;
@@ -48,9 +51,8 @@ public class BountyMap implements Listener {
     private static BufferedImage bountyPoster;
     private static BufferedImage deadBounty;
     private static Font playerFont = null;
-    public static File posterDirectory;
+    private static File posterDirectory;
     private static final Map<UUID, MapView> mapViews = new HashMap<>();
-    private static File mapData;
 
     private static boolean enabled;
     private static boolean giveOwn;
@@ -64,32 +66,32 @@ public class BountyMap implements Listener {
     private static int updateInterval;
     private static boolean alwaysUpdate;
     private static boolean saveTemplates;
-    private static boolean cleanPosters;
+    private static Plugin plugin;
 
 
-    public static void initialize(){
+    public static void initialize(Plugin plugin){
+        BountyMap.plugin = plugin;
         posterDirectory = new File(NotBounties.getInstance().getDataFolder() + File.separator + "posters");
         //noinspection ResultOfMethodCallIgnored
         posterDirectory.mkdir();
-        if (!new File(posterDirectory + File.separator + "bounty poster.png").exists())
+        File bountyPosterFile = new File(posterDirectory + File.separator + "bounty poster.png");
+        if (!bountyPosterFile.exists())
             NotBounties.getInstance().saveResource("posters/bounty poster.png", false);
         if (!new File(posterDirectory + File.separator + "poster template.png").exists())
             NotBounties.getInstance().saveResource("posters/poster template.png", false);
-        if (!new File(posterDirectory + File.separator + "dead bounty.png").exists())
+        File deadBountyFile = new File(posterDirectory + File.separator + "dead bounty.png");
+        if (!deadBountyFile.exists())
             NotBounties.getInstance().saveResource("posters/dead bounty.png", false);
         if (!new File(posterDirectory + File.separator + "READ_ME.txt").exists())
             NotBounties.getInstance().saveResource("posters/READ_ME.txt", false);
-        mapData = new File(posterDirectory + File.separator + "mapdata.yml");
-        if (!mapData.exists())
-            NotBounties.getInstance().saveResource("posters/mapdata.yml", false);
 
         try {
-            BufferedImage poster = ImageIO.read(new File(posterDirectory + File.separator + "bounty poster.png"));
+            BufferedImage poster = ImageIO.read(bountyPosterFile);
             if (poster.getWidth() > 128 || poster.getHeight() > 128) {
                 poster = downscale(poster, 128, 128);
             }
             bountyPoster = poster;
-            BufferedImage dead = ImageIO.read(new File(posterDirectory + File.separator + "dead bounty.png"));
+            BufferedImage dead = ImageIO.read(deadBountyFile);
             if (dead.getWidth() > 128 || dead.getHeight() > 128) {
                 dead = downscale(dead, 128, 128);
             }
@@ -113,6 +115,14 @@ public class BountyMap implements Listener {
         alwaysUpdate = config.getBoolean("always-update");
         craftPoster = config.getBoolean("craft-poster");
         washPoster = config.getBoolean("wash-poster");
+
+        // clean out posters that aren't supposed to be there
+        if (config.getBoolean("clean-posters")) {
+            config.set("clean-posters", false);
+            BountyMap.cleanPosters();
+        } else if (!saveTemplates) {
+            BountyMap.cleanPosters();
+        }
     }
 
     public static BufferedImage getBountyPoster() {
@@ -154,19 +164,24 @@ public class BountyMap implements Listener {
         return scaled;
     }
 
-    private static final List<String> posterFiles = Arrays.asList("bounty poster.png", "dead bounty.png", "mapdata.yml", "poster template.png", "READ_ME.txt", "playerfont.ttf", "Name Line.json", "Reward Line.json");
+    private static final List<String> posterFiles = Arrays.asList("bounty poster.png", "dead bounty.png", "poster template.png", "READ_ME.txt", "playerfont.ttf", "Name Line.json", "Reward Line.json");
     public static void cleanPosters() {
         int deletedFiles = 0;
         File[] files = posterDirectory.listFiles();
         if (files == null)
             return;
         for (File file : files) {
-            if (!posterFiles.contains(file.getName()))
-                if (file.delete())
+            if (!posterFiles.contains(file.getName())) {
+                try {
+                    Files.delete(file.toPath());
                     deletedFiles++;
+                } catch (IOException e) {
+                    plugin.getLogger().warning("Could not delete poster file: " + file);
+                }
+            }
         }
         if (deletedFiles > 0)
-            Bukkit.getLogger().info("[NotBounties] Cleaned out " + deletedFiles + " poster templates.");
+            plugin.getLogger().log(Level.INFO, "Cleaned out {0} poster templates.", deletedFiles);
     }
 
     // method to initialize maps for 1.20.5 & update challenge for holding your own map
@@ -459,10 +474,6 @@ public class BountyMap implements Listener {
         return saveTemplates;
     }
 
-    public static boolean isCleanPosters() {
-        return cleanPosters;
-    }
-
     public static boolean isEnabled() {
         return enabled;
     }
@@ -475,10 +486,6 @@ public class BountyMap implements Listener {
         return craftPoster;
     }
 
-    public static boolean isWashPoster() {
-        return washPoster;
-    }
-
     public static boolean isDisplayReward() {
         return displayReward;
     }
@@ -487,10 +494,7 @@ public class BountyMap implements Listener {
         return rewardText;
     }
 
-    public static boolean isLockMaps() {
-        return lockMaps;
+    public static File getPosterDirectory() {
+        return posterDirectory;
     }
-
-
-
 }

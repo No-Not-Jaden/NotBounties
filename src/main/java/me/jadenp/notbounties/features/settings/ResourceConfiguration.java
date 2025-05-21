@@ -12,7 +12,7 @@ import java.util.Objects;
 public abstract class ResourceConfiguration {
 
     private File file;
-    private Plugin plugin;
+    protected Plugin plugin;
 
     /**
      * Load the configuration of the file.

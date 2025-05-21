@@ -72,149 +72,150 @@ public class ConfigOptions {
     private static int maxTabCompletePlayers;
     private static int autoSaveInterval;
     private static boolean sameIPClaim;
+    private static Plugin plugin;
 
-    public static void reloadOptions() throws IOException {
+    public static void reloadOptions(Plugin plugin) throws IOException {
+        ConfigOptions.plugin = plugin;
         BountyMap.loadFont();
-        NotBounties bounties = NotBounties.getInstance();
 
-        bounties.reloadConfig();
+        plugin.reloadConfig();
 
         // create configuration sections for each external team plugin
-        if (bounties.getConfig().isBoolean("teams.bt-claim")) {
-            bounties.getConfig().set("teams.better-teams.team", bounties.getConfig().getBoolean("teams.bt-claim"));
-            bounties.getConfig().set("teams.better-teams.ally", bounties.getConfig().getBoolean("teams.bt-allies"));
-            bounties.getConfig().set("teams.towny-advanced.nation", bounties.getConfig().getBoolean("teams.towny-nation"));
-            bounties.getConfig().set("teams.towny-advanced.town", bounties.getConfig().getBoolean("teams.towny-town"));
-            bounties.getConfig().set("teams.towny-advanced.ally", bounties.getConfig().getBoolean("teams.towny-allies"));
-            bounties.getConfig().set("teams.bt-claim", null);
-            bounties.getConfig().set("teams.bt-allies", null);
-            bounties.getConfig().set("teams.towny-nation", null);
-            bounties.getConfig().set("teams.towny-town", null);
-            bounties.getConfig().set("teams.towny-allies", null);
+        if (plugin.getConfig().isBoolean("teams.bt-claim")) {
+            plugin.getConfig().set("teams.better-teams.team", plugin.getConfig().getBoolean("teams.bt-claim"));
+            plugin.getConfig().set("teams.better-teams.ally", plugin.getConfig().getBoolean("teams.bt-allies"));
+            plugin.getConfig().set("teams.towny-advanced.nation", plugin.getConfig().getBoolean("teams.towny-nation"));
+            plugin.getConfig().set("teams.towny-advanced.town", plugin.getConfig().getBoolean("teams.towny-town"));
+            plugin.getConfig().set("teams.towny-advanced.ally", plugin.getConfig().getBoolean("teams.towny-allies"));
+            plugin.getConfig().set("teams.bt-claim", null);
+            plugin.getConfig().set("teams.bt-allies", null);
+            plugin.getConfig().set("teams.towny-nation", null);
+            plugin.getConfig().set("teams.towny-town", null);
+            plugin.getConfig().set("teams.towny-allies", null);
         }
 
         // move saber-factions to just factions
-        if (bounties.getConfig().isSet("teams.saber-factions.faction")) {
-            bounties.getConfig().set("teams.factions.faction", bounties.getConfig().getBoolean("teams.saber-factions.faction"));
-            bounties.getConfig().set("teams.factions.ally", bounties.getConfig().getBoolean("teams.saber-factions.ally"));
-            bounties.getConfig().set("teams.saber-factions.faction", null);
-            bounties.getConfig().set("teams.saber-factions.ally", null);
+        if (plugin.getConfig().isSet("teams.saber-factions.faction")) {
+            plugin.getConfig().set("teams.factions.faction", plugin.getConfig().getBoolean("teams.saber-factions.faction"));
+            plugin.getConfig().set("teams.factions.ally", plugin.getConfig().getBoolean("teams.saber-factions.ally"));
+            plugin.getConfig().set("teams.saber-factions.faction", null);
+            plugin.getConfig().set("teams.saber-factions.ally", null);
         }
 
         // convert use-item-values to item-vales
-        if (bounties.getConfig().isBoolean("currency.bounty-items.use-item-values")) {
-            if (bounties.getConfig().getBoolean("currency.bounty-items.use-item-values")) {
-                bounties.getConfig().set("currency.bounty-items.item-values", "FILE");
+        if (plugin.getConfig().isBoolean("currency.bounty-items.use-item-values")) {
+            if (plugin.getConfig().getBoolean("currency.bounty-items.use-item-values")) {
+                plugin.getConfig().set("currency.bounty-items.item-values", "FILE");
             } else {
-                bounties.getConfig().set("currency.bounty-items.item-values", "DISABLE");
+                plugin.getConfig().set("currency.bounty-items.item-values", "DISABLE");
             }
-            bounties.getConfig().set("currency.bounty-items.use-item-values", null);
+            plugin.getConfig().set("currency.bounty-items.use-item-values", null);
         }
 
         // convert database to databases
-        if (bounties.getConfig().isSet("database")) {
-            bounties.getConfig().set("databases.example-sql.type", "SQL");
-            bounties.getConfig().set("databases.example-sql.host", bounties.getConfig().getString("database.host"));
-            bounties.getConfig().set("databases.example-sql.port", bounties.getConfig().getInt("database.port"));
-            bounties.getConfig().set("databases.example-sql.database", bounties.getConfig().getString("database.database"));
-            bounties.getConfig().set("databases.example-sql.user", bounties.getConfig().getString("database.user"));
-            bounties.getConfig().set("databases.example-sql.password", bounties.getConfig().getString("database.password"));
-            bounties.getConfig().set("databases.example-sql.ssl", bounties.getConfig().getBoolean("database.use-ssl"));
-            bounties.getConfig().set("databases.example-sql.refresh-interval", 300);
-            bounties.getConfig().set("databases.example-sql.priority", 1);
-            bounties.getConfig().set("database", null);
+        if (plugin.getConfig().isSet("database")) {
+            plugin.getConfig().set("databases.example-sql.type", "SQL");
+            plugin.getConfig().set("databases.example-sql.host", plugin.getConfig().getString("database.host"));
+            plugin.getConfig().set("databases.example-sql.port", plugin.getConfig().getInt("database.port"));
+            plugin.getConfig().set("databases.example-sql.database", plugin.getConfig().getString("database.database"));
+            plugin.getConfig().set("databases.example-sql.user", plugin.getConfig().getString("database.user"));
+            plugin.getConfig().set("databases.example-sql.password", plugin.getConfig().getString("database.password"));
+            plugin.getConfig().set("databases.example-sql.ssl", plugin.getConfig().getBoolean("database.use-ssl"));
+            plugin.getConfig().set("databases.example-sql.refresh-interval", 300);
+            plugin.getConfig().set("databases.example-sql.priority", 1);
+            plugin.getConfig().set("database", null);
         }
 
         // add extra options to the proxy database
-        if (bounties.getConfig().isSet("databases.example-proxy.type") && !bounties.getConfig().isSet("databases.example-proxy.skins")) {
-            bounties.getConfig().set("databases.example-proxy.skins", true);
-            bounties.getConfig().set("databases.example-proxy.database-sync", true);
+        if (plugin.getConfig().isSet("databases.example-proxy.type") && !plugin.getConfig().isSet("databases.example-proxy.skins")) {
+            plugin.getConfig().set("databases.example-proxy.skins", true);
+            plugin.getConfig().set("databases.example-proxy.database-sync", true);
         }
 
         // set permission immunity to true if updating
-        if (!bounties.getConfig().isSet("immunity.permission-immunity")) {
-            bounties.getConfig().set("immunity.permission-immunity", true);
+        if (!plugin.getConfig().isSet("immunity.permission-immunity")) {
+            plugin.getConfig().set("immunity.permission-immunity", true);
         }
 
         boolean saveChanges = true;
-        if (bounties.getConfig().getKeys(true).size() <= 2) {
+        if (plugin.getConfig().getKeys(true).size() <= 2) {
             saveChanges = false;
-            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the config.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+            plugin.getLogger().severe("Loaded an empty configuration for the config.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
         } else {
-            migrate120Config(bounties);
+            migrate120Config();
         }
 
 
 
         // fill in any default options that aren't present
         if (NotBounties.getInstance().getResource("config.yml") != null) {
-            bounties.getConfig().setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("config.yml")))));
-            for (String key : Objects.requireNonNull(bounties.getConfig().getDefaults()).getKeys(true)) {
+            plugin.getConfig().setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("config.yml")))));
+            for (String key : Objects.requireNonNull(plugin.getConfig().getDefaults()).getKeys(true)) {
                 if (Arrays.stream(modifiableSections).anyMatch(key::startsWith))
                     continue;
-                if (!bounties.getConfig().isSet(key))
-                    bounties.getConfig().set(key, bounties.getConfig().getDefaults().get(key));
+                if (!plugin.getConfig().isSet(key))
+                    plugin.getConfig().set(key, plugin.getConfig().getDefaults().get(key));
             }
         }
 
 
-        PVPRestrictions.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("pvp-restrictions")));
-        BountyExpire.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-expire")));
-        GUIClicks.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-gui-clicks")));
-        Whitelist.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("bounty-whitelist")));
-        RewardHead.loadConfiguration(Objects.requireNonNull(bounties.getConfig().getConfigurationSection("reward-heads")));
+        PVPRestrictions.loadConfiguration(Objects.requireNonNull(plugin.getConfig().getConfigurationSection("pvp-restrictions")));
+        BountyExpire.loadConfiguration(Objects.requireNonNull(plugin.getConfig().getConfigurationSection("bounty-expire")));
+        GUIClicks.loadConfiguration(Objects.requireNonNull(plugin.getConfig().getConfigurationSection("bounty-gui-clicks")));
+        Whitelist.loadConfiguration(Objects.requireNonNull(plugin.getConfig().getConfigurationSection("bounty-whitelist")));
+        RewardHead.loadConfiguration(Objects.requireNonNull(plugin.getConfig().getConfigurationSection("reward-heads")));
 
-        money.loadFile(bounties);
-        immunity.loadFile(bounties);
-        integrations.loadFile(bounties);
-        autoBounties.loadFile(bounties);
-        databases.loadFile(bounties);
+        money.loadFile(plugin);
+        immunity.loadFile(plugin);
+        integrations.loadFile(plugin);
+        autoBounties.loadFile(plugin);
+        databases.loadFile(plugin);
 
         if (!firstStart) {
             ImmunityManager.loadPlayerData();
         }
 
-        hiddenNames = bounties.getConfig().getStringList("hide-stats");
-        updateNotification = bounties.getConfig().getString("update-notification");
-        npcClaim = bounties.getConfig().getBoolean("npc-claim");
-        worldFilter = bounties.getConfig().getBoolean("world-filter.whitelist");
-        worldFilterNames = bounties.getConfig().getStringList("world-filter.worlds");
-        maxSetters = bounties.getConfig().getInt("max-setters");
-        bountyConfirmation = bounties.getConfig().getBoolean("confirmation");
-        removeBannedPlayers = bounties.getConfig().getBoolean("remove-banned-players");
+        hiddenNames = plugin.getConfig().getStringList("hide-stats");
+        updateNotification = plugin.getConfig().getString("update-notification");
+        npcClaim = plugin.getConfig().getBoolean("npc-claim");
+        worldFilter = plugin.getConfig().getBoolean("world-filter.whitelist");
+        worldFilterNames = plugin.getConfig().getStringList("world-filter.worlds");
+        maxSetters = plugin.getConfig().getInt("max-setters");
+        bountyConfirmation = plugin.getConfig().getBoolean("confirmation");
+        removeBannedPlayers = plugin.getConfig().getBoolean("remove-banned-players");
         try {
-            claimOrder = ClaimOrder.valueOf(Objects.requireNonNull(bounties.getConfig().getString("claim-order")).toUpperCase());
+            claimOrder = ClaimOrder.valueOf(Objects.requireNonNull(plugin.getConfig().getString("claim-order")).toUpperCase());
         } catch (IllegalArgumentException e) {
             claimOrder = ClaimOrder.REGULAR;
-            Bukkit.getLogger().warning("[NotBounties] claim-order is not set to a proper value!");
+            plugin.getLogger().warning("claim-order is not set to a proper value!");
         }
-        sendBStats = bounties.getConfig().getBoolean("send-bstats");
-        autoTimezone = bounties.getConfig().getBoolean("auto-timezone");
-        reducePageCalculations = bounties.getConfig().getBoolean("reduce-page-calculations");
-        seePlayerList = bounties.getConfig().getBoolean("see-player-list");
-        stealBounties = bounties.getConfig().getBoolean("steal-bounties");
-        pluginBountyCommands = bounties.getConfig().getStringList("plugin-bounty-commands");
+        sendBStats = plugin.getConfig().getBoolean("send-bstats");
+        autoTimezone = plugin.getConfig().getBoolean("auto-timezone");
+        reducePageCalculations = plugin.getConfig().getBoolean("reduce-page-calculations");
+        seePlayerList = plugin.getConfig().getBoolean("see-player-list");
+        stealBounties = plugin.getConfig().getBoolean("steal-bounties");
+        pluginBountyCommands = plugin.getConfig().getStringList("plugin-bounty-commands");
         if (pluginBountyCommands.isEmpty())
             pluginBountyCommands.add("notbounties");
         if (firstStart)
             registerAliases(pluginBountyCommands);
-        bountyBackups = bounties.getConfig().getBoolean("bounty-backups");
-        bountyCooldown = bounties.getConfig().getLong("bounty-cooldown");
-        maxTabCompletePlayers = bounties.getConfig().getInt("max-tab-complete-players");
-        autoSaveInterval = bounties.getConfig().getInt("auto-save-interval");
-        offlineSet = bounties.getConfig().getBoolean("offline-set");
-        sameIPClaim = bounties.getConfig().getBoolean("same-ip-claim");
-        selfSetting = bounties.getConfig().getBoolean("self-setting");
+        bountyBackups = plugin.getConfig().getBoolean("bounty-backups");
+        bountyCooldown = plugin.getConfig().getLong("bounty-cooldown");
+        maxTabCompletePlayers = plugin.getConfig().getInt("max-tab-complete-players");
+        autoSaveInterval = plugin.getConfig().getInt("auto-save-interval");
+        offlineSet = plugin.getConfig().getBoolean("offline-set");
+        sameIPClaim = plugin.getConfig().getBoolean("same-ip-claim");
+        selfSetting = plugin.getConfig().getBoolean("self-setting");
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.getLocale());
 
-        File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
+        File guiFile = new File(plugin.getDataFolder() + File.separator + "gui.yml");
         if (!guiFile.exists()) {
-            bounties.saveResource("gui.yml", false);
+            plugin.saveResource("gui.yml", false);
         }
         YamlConfiguration guiConfig = YamlConfiguration.loadConfiguration(guiFile);
         if (guiConfig.getKeys(true).size() <= 2) {
-            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the gui.yml file. Fix the YAML formatting errors, or the GUI may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+            plugin.getLogger().severe("Loaded an empty configuration for the gui.yml file. Fix the YAML formatting errors, or the GUI may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
             if (NotBounties.getInstance().getResource("gui.yml") != null) {
                 guiConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource("gui.yml"))));
                 GUI.loadConfiguration(guiConfig);
@@ -230,12 +231,12 @@ public class ConfigOptions {
             try {
                 GUI.addGUI(new GUIOptions(Objects.requireNonNull(guiConfig.getConfigurationSection(key))), key);
             } catch (IllegalArgumentException e) {
-                Bukkit.getLogger().warning("Unknown GUI in gui.yml: \"" + key + "\"");
+                plugin.getLogger().warning("Unknown GUI in gui.yml: \"" + key + "\"");
             }
         }
 
         if (saveChanges)
-            bounties.saveConfig();
+            plugin.saveConfig();
         LanguageOptions.reloadOptions();
         WebhookOptions.reloadOptions();
         SkinManager.refreshSkinRequests();
@@ -243,7 +244,7 @@ public class ConfigOptions {
         if (integrations.isFloodgateEnabled() || integrations.isGeyserEnabled())
             BedrockGUI.reloadOptions();
 
-        display.loadFile(bounties); // bounty tracker needs to be loaded later
+        display.loadFile(plugin); // bounty tracker needs to be loaded later
         firstStart = false;
     }
 
@@ -252,7 +253,7 @@ public class ConfigOptions {
         aliases.removeIf(s -> s.equalsIgnoreCase("notbounties")); // this is already the command name
         PluginCommand command = NotBounties.getInstance().getCommand("notbounties");
         if (command == null) {
-            Bukkit.getLogger().warning("[NotBounties] Error finding bounty command to register aliases.");
+            plugin.getLogger().warning("Error finding bounty command to register aliases.");
             return;
         }
         try {
@@ -265,8 +266,8 @@ public class ConfigOptions {
                 commandMap.register(alias, "notbounties", command);
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            Bukkit.getLogger().warning("[NotBounties] Error adding command aliases");
-            Bukkit.getLogger().warning(e.toString());
+            plugin.getLogger().warning("Error adding command aliases");
+            plugin.getLogger().warning(e.toString());
         }
     }
 
@@ -336,11 +337,10 @@ public class ConfigOptions {
     /**
      * Migrate a configuration section from the config.yml file to a new resource file.
      *
-     * @param plugin Plugin containing the config files.
      * @param resourcePath Path to the resource from the plugin's data folder.
      * @param pathMap Map of previous paths in the config file to new paths in the resource file.
      */
-    private static void migrateConfigResource(Plugin plugin, String resourcePath, Map<String, String> pathMap) {
+    private static void migrateConfigResource(String resourcePath, Map<String, String> pathMap) {
         // generate the new resource file if it doesn't exist
         File resourceFile = new File(plugin.getDataFolder() + File.separator + resourcePath);
         if (!resourceFile.exists()) {
@@ -369,7 +369,7 @@ public class ConfigOptions {
         }
     }
 
-    private static void migrate120Config(Plugin plugin) {
+    private static void migrate120Config() {
         File settingsFolder = new File(plugin.getDataFolder() + File.separator + "settings");
         if (settingsFolder.mkdir())
             plugin.getLogger().info("Created settings folder.");
@@ -383,29 +383,29 @@ public class ConfigOptions {
         pathMap.put("bounty-set-commands", "bounty-set-commands");
         pathMap.put("blocked-bounty-commands", "blocked-bounty-commands");
         pathMap.put("prompts", "prompts");
-        migrateConfigResource(plugin, "settings/auto-bounties.yml", pathMap);
+        migrateConfigResource("settings/auto-bounties.yml", pathMap);
 
         pathMap.clear();
         pathMap.put("databases", "");
-        migrateConfigResource(plugin, "settings/databases.yml", pathMap);
+        migrateConfigResource("settings/databases.yml", pathMap);
 
         pathMap.clear();
         pathMap.put("bounty-posters", "bounty-posters");
         pathMap.put("bounty-board", "bounty-board");
         pathMap.put("bounty-tracker", "bounty-tracker");
         pathMap.put("wanted-tag", "wanted-tag");
-        migrateConfigResource(plugin, "settings/display.yml", pathMap);
+        migrateConfigResource("settings/display.yml", pathMap);
 
         pathMap.clear();
         pathMap.put("immunity", "");
-        migrateConfigResource(plugin, "settings/immunity.yml", pathMap);
+        migrateConfigResource("settings/immunity.yml", pathMap);
 
         pathMap.clear();
         pathMap.put("override-skinsrestorer", "override-skinsrestorer");
         pathMap.put("teams", "teams");
         pathMap.put("MMOLib", "MMOLib");
         pathMap.put("Duels", "Duels");
-        migrateConfigResource(plugin, "settings/integrations.yml", pathMap);
+        migrateConfigResource("settings/integrations.yml", pathMap);
 
         pathMap.clear();
         pathMap.put("minimum-bounty", "minimum-bounty");
@@ -420,7 +420,7 @@ public class ConfigOptions {
         pathMap.put("redeem-reward-later.setter-lore-addition", "redeem-reward-later.setter-lore-addition");
         pathMap.put("reward-delay", "redeem-reward-later.reward-delay");
         pathMap.put("buy-own-bounties", "buy-own-bounties");
-        migrateConfigResource(plugin, "settings/money.yml", pathMap);
+        migrateConfigResource("settings/money.yml", pathMap);
     }
 
     public static String getUpdateNotification() {
@@ -431,7 +431,7 @@ public class ConfigOptions {
         ConfigOptions.updateNotification = updateNotification;
         NotBounties.getInstance().reloadConfig();
         if (NotBounties.getInstance().getConfig().getKeys(true).size() <= 2) {
-            Bukkit.getLogger().severe("[NotBounties] Loaded an empty configuration for the config.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+            plugin.getLogger().severe("Loaded an empty configuration for the config.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
             return;
         }
         NotBounties.getInstance().getConfig().set("update-notification", updateNotification);

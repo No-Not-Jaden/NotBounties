@@ -29,6 +29,29 @@ import java.util.Map;
 import java.util.UUID;
 
 public class Renderer extends MapRenderer {
+
+    protected static final Map<Character, Color> colorTranslations = new HashMap<>();
+
+    static {
+        colorTranslations.put('0', Color.BLACK);
+        colorTranslations.put('1', new Color(0,0,170));
+        colorTranslations.put('2', new Color(0,170,0));
+        colorTranslations.put('3', new Color(0,170,170));
+        colorTranslations.put('4', new Color(170,0,0));
+        colorTranslations.put('5', new Color(170,0,170));
+        colorTranslations.put('6', new Color(255,170,0));
+        colorTranslations.put('7', new Color(170,170,170));
+        colorTranslations.put('8', new Color(85,85,85));
+        colorTranslations.put('9', new Color(85,85,255));
+        colorTranslations.put('a', new Color(85,255,85));
+        colorTranslations.put('b', new Color(85,255,255));
+        colorTranslations.put('c', new Color(255,85,85));
+        colorTranslations.put('d', new Color(255,85,255));
+        colorTranslations.put('e', new Color(255,255,85));
+        colorTranslations.put('f', Color.WHITE);
+        colorTranslations.put('r', Color.BLACK);
+    }
+
     private BufferedImage image = null;
     private final BufferedImage reward = new BufferedImage(128, 14, BufferedImage.TYPE_INT_ARGB);
     private static final float MAX_FONT_SIZE = 20f;
@@ -47,7 +70,7 @@ public class Renderer extends MapRenderer {
         } else {
             name = LoggedPlayers.getPlayerName(uuid);
         }
-        File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
+        File imageFile = new File(BountyMap.getPosterDirectory() + File.separator + name.toLowerCase() + ".png");
         if (BountyMap.isSaveTemplates() && imageFile.exists()) {
             try {
                 image = ImageIO.read(imageFile);
@@ -57,7 +80,7 @@ public class Renderer extends MapRenderer {
             return;
         }
         RenderPoster renderPoster = new RenderPoster(name, this);
-        renderPoster.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(renderPoster, 0, 40));
+        renderPoster.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(renderPoster, 1, 40));
 
     }
 
@@ -95,7 +118,7 @@ public class Renderer extends MapRenderer {
 
         graphics.dispose();
 
-        File imageFile = new File(BountyMap.posterDirectory + File.separator + name.toLowerCase() + ".png");
+        File imageFile = new File(BountyMap.getPosterDirectory() + File.separator + name.toLowerCase() + ".png");
 
         if (BountyMap.isSaveTemplates() && save) {
             try {
@@ -209,53 +232,35 @@ public class Renderer extends MapRenderer {
         }
         return metrics.stringWidth(ChatColor.stripColor(text));
     }
-    public static final Map<Character, Color> colorTranslations = new HashMap<>();
-    static {
-        colorTranslations.put('0', Color.BLACK);
-        colorTranslations.put('1', new Color(0,0,170));
-        colorTranslations.put('2', new Color(0,170,0));
-        colorTranslations.put('3', new Color(0,170,170));
-        colorTranslations.put('4', new Color(170,0,0));
-        colorTranslations.put('5', new Color(170,0,170));
-        colorTranslations.put('6', new Color(255,170,0));
-        colorTranslations.put('7', new Color(170,170,170));
-        colorTranslations.put('8', new Color(85,85,85));
-        colorTranslations.put('9', new Color(85,85,255));
-        colorTranslations.put('a', new Color(85,255,85));
-        colorTranslations.put('b', new Color(85,255,255));
-        colorTranslations.put('c', new Color(255,85,85));
-        colorTranslations.put('d', new Color(255,85,255));
-        colorTranslations.put('e', new Color(255,255,85));
-        colorTranslations.put('f', Color.WHITE);
-        colorTranslations.put('r', Color.BLACK);
-    }
+
     public static void drawColors(String text, Graphics2D graphics, int x, int y) {
         Color currentColor = Color.BLACK;
-        String currentText = "";
+        StringBuilder currentText = new StringBuilder();
         FontMetrics metrics = graphics.getFontMetrics();
-        //Bukkit.getLogger().info("text: " + text);
-        for (int i = 0; i < text.length(); i++) {
+        int i = 0;
+        while (i < text.length()) {
             char c = text.charAt(i);
-            //Bukkit.getLogger().info("Char: " + c);
             if (c == ChatColor.COLOR_CHAR) {
                 char code = text.charAt(i+1);
-                if (!colorTranslations.containsKey(code))
+                if (!colorTranslations.containsKey(code)) {
+                    i++;
                     continue;
+                }
                 if (!currentText.isEmpty()) {
                     graphics.setColor(currentColor);
-                    graphics.drawString(currentText, x, y);
-                    x+= metrics.stringWidth(currentText);
-                    //Bukkit.getLogger().info(currentText);
+                    graphics.drawString(currentText.toString(), x, y);
+                    x+= metrics.stringWidth(currentText.toString());
                 }
                 currentColor = colorTranslations.get(code);
                 i++;
-                currentText = "";
+                currentText.delete(0, currentText.length());
             } else {
-                currentText = currentText + c;
+                currentText.append(c);
             }
+            i++;
         }
         graphics.setColor(currentColor);
-        graphics.drawString(currentText, x, y);
+        graphics.drawString(currentText.toString(), x, y);
     }
 
     public OfflinePlayer getPlayer() {

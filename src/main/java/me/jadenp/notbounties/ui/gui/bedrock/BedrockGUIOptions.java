@@ -214,7 +214,7 @@ public class BedrockGUIOptions {
         }
         player.getOpenInventory().close();
         OpenBedrockGUI openBedrockGUI = new OpenBedrockGUI(player, page, this, displayItems, title, data);
-        openBedrockGUI.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(openBedrockGUI, 0, 4));
+        openBedrockGUI.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(openBedrockGUI, 1, 4));
 
     }
 

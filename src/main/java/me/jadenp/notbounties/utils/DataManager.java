@@ -60,20 +60,21 @@ public class DataManager {
     public static final UUID GLOBAL_SERVER_ID = new UUID(0,0);
 
     private static final Map<UUID, PlayerData> playerDataMap = Collections.synchronizedMap(new HashMap<>());
+    private static Plugin plugin;
 
-    public static void loadData(Plugin plugin) throws IOException {
+    public static void loadData() throws IOException {
         localData = new LocalData();
         loadOldData();
-        readPlayerData(plugin);
-        readBounties(plugin);
-        readStats(plugin);
+        readPlayerData();
+        readBounties();
+        readStats();
         // load player data for immunity
         // currently this is just for time immunity
         ImmunityManager.loadPlayerData();
 
     }
 
-    private static void readStats(Plugin plugin) throws IOException {
+    private static void readStats() throws IOException {
         File statsFile = new File(plugin.getDataFolder() + File.separator + "data" + File.separator + "player_stats.json");
         if (!statsFile.exists())
             return;
@@ -102,7 +103,7 @@ public class DataManager {
         }
     }
 
-    private static void readBounties(Plugin plugin) throws IOException {
+    private static void readBounties() throws IOException {
         File bountiesFile = new File(plugin.getDataFolder() + File.separator + "data" + File.separator + "bounties.json");
         if (!bountiesFile.exists())
             return;
@@ -120,7 +121,7 @@ public class DataManager {
         }
     }
 
-    private static void readPlayerData(Plugin plugin) throws IOException {
+    private static void readPlayerData() throws IOException {
         ChallengeManager.setNextChallengeChange(1); // prepare new challenges if the last challenge change wasn't read
         File playerDataFile = new File(plugin.getDataFolder() + File.separator + "data" + File.separator + "player_data.json");
         if (!playerDataFile.exists())
@@ -156,14 +157,7 @@ public class DataManager {
                     case "nextChallengeChange" -> ChallengeManager.setNextChallengeChange(reader.nextLong());
                     case "serverID" -> databaseServerID = UUID.fromString(reader.nextString());
                     case "paused" -> NotBounties.setPaused(reader.nextBoolean());
-                    case "wantedTagLocations" -> {
-                        List<Location> locations = getWantedTagLocations(reader);
-                        if (!locations.isEmpty()) {
-                            NotBounties.getServerImplementation().global().runDelayed(task -> {
-                                RemovePersistentEntitiesEvent.cleanChunks(locations);
-                            }, 100);
-                        }
-                    }
+                    case "wantedTagLocations" -> readWantedTagLocations(reader);
                     default -> {
                         // unexpected name
                     }
@@ -174,6 +168,15 @@ public class DataManager {
 
         // tell LoggedPlayers that it can read all the player names and store them in an easy to read hashmap
         LoggedPlayers.loadPlayerData();
+    }
+
+    private static void readWantedTagLocations(JsonReader reader) throws IOException {
+        List<Location> locations = getWantedTagLocations(reader);
+        if (!locations.isEmpty()) {
+            NotBounties.getServerImplementation().global().runDelayed(task -> {
+                RemovePersistentEntitiesEvent.cleanChunks(locations);
+            }, 100);
+        }
     }
 
     private static List<Location> getWantedTagLocations(JsonReader reader) throws IOException {
@@ -196,7 +199,7 @@ public class DataManager {
             if (bountyBoard != null)
                 bountyBoards.add(bountyBoard);
             else
-                Bukkit.getLogger().info("[NotBounties] Could not load a saved bounty board. (Location does not exist)");
+                plugin.getLogger().info("Could not load a saved bounty board. (Location does not exist)");
         }
         reader.endArray();
 
@@ -319,7 +322,13 @@ public class DataManager {
 
     }
 
-    public static void loadDatabaseConfig(ConfigurationSection configuration) {
+    /**
+     * Load the database configuration.
+     * @param configuration Configuration section holding the database configs.
+     * @param plugin Plugin that is loading the configuration.
+     */
+    public static void loadDatabaseConfig(ConfigurationSection configuration, Plugin plugin) {
+        DataManager.plugin = plugin;
         for (String databaseName : configuration.getKeys(false)) {
             boolean newDatabase = true;
             for (NotBountiesDatabase database : databases) {
@@ -330,24 +339,10 @@ public class DataManager {
                 }
             }
             if (newDatabase) {
-                String type = configuration.isSet(databaseName + ".type") ? configuration.getString(databaseName + ".type") : "You need to set your database type for: " + databaseName;
-                assert type != null; // isSet() assures that type != null
-                NotBountiesDatabase database;
                 try {
-                    switch (type.toUpperCase()) {
-                        case "SQL" -> database = new MySQL(NotBounties.getInstance(), databaseName);
-                        case "REDIS" -> database = new RedisConnection(NotBounties.getInstance(), databaseName);
-                        case "PROXY" -> database = new ProxyDatabase(NotBounties.getInstance(), databaseName);
-                        default -> {
-                            Bukkit.getLogger().warning(() -> "[NotBounties] Unknown database type for " + databaseName + ": " + type);
-                            continue;
-                        }
-                    }
-                    databases.add(new AsyncDatabaseWrapper(database));
-                } catch (NoClassDefFoundError e) {
-                    // Couldn't load a dependency.
-                    // This will be thrown if unable to use Spigot's library loader
-                    NotBounties.debugMessage("One or more dependencies could not be downloaded to use the database: " + databaseName + " (" + type + ")", true);
+                    loadNewDatabaseConfig(configuration, databaseName);
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning(e.toString());
                 }
             }
         }
@@ -356,8 +351,38 @@ public class DataManager {
     }
 
     /**
-     * Loads bounties from the bounties.yml file.
+     * Load a new database config into the system.
+     * @param configuration Database configuration. The name of the database should be at the top of this
+     *                      configuration section.
+     * @param databaseName Name of the database.
+     * @throws IllegalArgumentException If the database type specified is not defined.
      */
+    private static void loadNewDatabaseConfig(ConfigurationSection configuration, String databaseName) throws IllegalArgumentException {
+        String type = configuration.isSet(databaseName + ".type") ? configuration.getString(databaseName + ".type") : "You need to set your database type for: " + databaseName;
+        assert type != null; // isSet() assures that type != null
+        NotBountiesDatabase database;
+        try {
+            switch (type.toUpperCase()) {
+                case "SQL" -> database = new MySQL(NotBounties.getInstance(), databaseName);
+                case "REDIS" -> database = new RedisConnection(NotBounties.getInstance(), databaseName);
+                case "PROXY" -> database = new ProxyDatabase(NotBounties.getInstance(), databaseName);
+                default -> {
+                    throw new IllegalArgumentException("Unknown database type for " + databaseName + ": " + type);
+                }
+            }
+            databases.add(new AsyncDatabaseWrapper(database));
+        } catch (NoClassDefFoundError e) {
+            // Couldn't load a dependency.
+            // This will be thrown if unable to use Spigot's library loader
+            NotBounties.debugMessage("One or more dependencies could not be downloaded to use the database: " + databaseName + " (" + type + ")", true);
+        }
+    }
+
+    /**
+     * Loads bounties from the bounties.yml file.
+     * To be removed 1/8/2026
+     */
+    @Deprecated(since = "1.22.0", forRemoval = true)
     private static void loadOldData() {
         File bounties = new File(NotBounties.getInstance().getDataFolder() + File.separator + "bounties.yml");
         if (!bounties.exists())
@@ -476,7 +501,7 @@ public class DataManager {
                             try {
                                 getPlayerData(uuid).setWhitelist(new Whitelist(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).collect(Collectors.toList()), configuration.getBoolean("data." + uuid + ".blacklist")));
                             } catch (IllegalArgumentException e) {
-                                Bukkit.getLogger().warning("Failed to get whitelisted uuids from: " + uuid + "\nThis list will be overwritten in 5 minutes");
+                                plugin.getLogger().warning("Failed to get whitelisted uuids from: " + uuid + "\nThis list will be overwritten in 5 minutes");
                             }
                         if (configuration.isSet("data." + uuid + ".refund"))
                             playerData.addRefund(configuration.getDouble("data." + uuid + ".refund"));
@@ -484,8 +509,8 @@ public class DataManager {
                             try {
                                 playerData.addRefund(Arrays.asList(SerializeInventory.itemStackArrayFromBase64(configuration.getString("data." + uuid + ".refund-items"))));
                             } catch (IOException e) {
-                                Bukkit.getLogger().warning("[NotBounties] Unable to load item refund for player using this encoded data: " + configuration.getString("data." + uuid + ".refund-items"));
-                                Bukkit.getLogger().warning(e.toString());
+                                plugin.getLogger().warning("Unable to load item refund for player using this encoded data: " + configuration.getString("data." + uuid + ".refund-items"));
+                                plugin.getLogger().warning(e.toString());
                             }
                         if (configuration.isSet("data." + uuid + ".time-zone"))
                             LocalTime.addTimeZone(uuid, configuration.getString("data." + uuid + ".time-zone"));
@@ -506,7 +531,7 @@ public class DataManager {
                         }
                         DataManager.getPlayerData(UUID.fromString(Objects.requireNonNull(configuration.getString("head-rewards." + i + ".setter")))).addRewardHeads(rewardHeads);
                     } catch (IllegalArgumentException | NullPointerException e) {
-                        Bukkit.getLogger().warning("Invalid UUID for head reward #" + i);
+                        plugin.getLogger().warning("Invalid UUID for head reward #" + i);
                     }
                     i++;
                 }
@@ -517,7 +542,7 @@ public class DataManager {
                         UUID uuid = UUID.fromString(Objects.requireNonNull(configuration.getString("tracked-bounties." + i + ".uuid")));
                         trackedBounties.put(configuration.getInt("tracked-bounties." + i + ".number"), uuid);
                     } catch (IllegalArgumentException e) {
-                        Bukkit.getLogger().warning("[NotBounties] Could not convert tracked string to uuid: " + configuration.getString("tracked-bounties." + i + ".uuid"));
+                        plugin.getLogger().warning("Could not convert tracked string to uuid: " + configuration.getString("tracked-bounties." + i + ".uuid"));
                     }
                     i++;
                 }
@@ -569,8 +594,8 @@ public class DataManager {
                 java.nio.file.Files.delete(bounties.toPath());
 
         } catch (IOException e) {
-            Bukkit.getLogger().severe("[NotBounties] Error loading saved data!");
-            Bukkit.getLogger().severe(e.toString());
+            plugin.getLogger().severe("Error loading saved data!");
+            plugin.getLogger().severe(e.toString());
         }
         localData.addBounty(bountyList);
         localData.addStats(stats);
@@ -591,7 +616,7 @@ public class DataManager {
         if (newData && isPermDatabaseConnected())
             return GLOBAL_SERVER_ID;
         if (databaseServerID == null) {
-            Bukkit.getLogger().info("[NotBounties] Generating new database ID.");
+            plugin.getLogger().info("Generating new database ID.");
             databaseServerID = UUID.randomUUID();
         }
         return databaseServerID;
@@ -1100,7 +1125,7 @@ public class DataManager {
                 databaseBounties = database.getAllBounties(2);
                 databaseStats = database.getAllStats();
             } catch (IOException e) {
-                Bukkit.getLogger().warning("[NotBounties] Incomplete connection to " + database.getName());
+                plugin.getLogger().warning("Incomplete connection to " + database.getName());
                 return;
             }
 
@@ -1119,7 +1144,7 @@ public class DataManager {
         }
         if (databaseWrapper == null) {
             // unknown database
-            Bukkit.getLogger().warning("[NotBounties] Unknown database \"" + database.getName() + "\" tried to connect!");
+            plugin.getLogger().warning("Unknown database \"" + database.getName() + "\" tried to connect!");
             return;
         }
 
