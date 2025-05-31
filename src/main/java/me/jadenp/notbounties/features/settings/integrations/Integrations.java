@@ -40,7 +40,7 @@ public class Integrations extends ResourceConfiguration {
         duelsEnabled = Bukkit.getPluginManager().isPluginEnabled("Duels");
         if (duelsEnabled) {
             DuelsClass.readConfig();
-            duelsClass.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("duels")));
+            duelsClass.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("Duels")));
         }
 
         skinsRestorerEnabled = Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer");
