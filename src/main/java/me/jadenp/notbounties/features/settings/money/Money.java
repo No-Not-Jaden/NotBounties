@@ -19,9 +19,9 @@ public class Money extends ResourceConfiguration {
         NumberFormatting.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("currency")), config.getConfigurationSection("number-formatting"));
         redeemRewardLater.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("redeem-reward-later")));
 
-        minBounty = config.getDouble("min-bounty");
-        maxBounty = config.getDouble("max-bounty");
-        minBroadcast = config.getDouble("max-broadcast");
+        minBounty = config.getDouble("minimum-bounty");
+        maxBounty = config.getDouble("maximum-bounty");
+        minBroadcast = config.getDouble("minimum-broadcast");
         bountyTax = config.getDouble("bounty-tax");
         deathTax = config.getDouble("death-tax");
         buyOwn = config.getBoolean("buy-own-bounties.enabled");

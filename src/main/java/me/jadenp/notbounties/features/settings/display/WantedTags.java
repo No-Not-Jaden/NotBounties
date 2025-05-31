@@ -1,8 +1,13 @@
 package me.jadenp.notbounties.features.settings.display;
 
+import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.display.packets.FakeArmorStand;
+import me.jadenp.notbounties.features.settings.display.packets.PacketEventsClass;
+import me.jadenp.notbounties.features.settings.integrations.Integrations;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.utils.BountyManager;
 import org.bukkit.Bukkit;
@@ -64,6 +69,11 @@ public class WantedTags {
     private static boolean hideWantedWhenMoving;
 
     /**
+     * Whether you can see your own wanted tag above your head.
+     */
+    private static boolean showOwn;
+
+    /**
      * The current players with wanted tags.
      */
     private static final Map<UUID, WantedTags> activeTags = new HashMap<>();
@@ -95,6 +105,8 @@ public class WantedTags {
         wantedTextUpdateInterval = configuration.getLong("text-update-interval");
         wantedVisibilityUpdateInterval = configuration.getLong("visibility-update-interval");
         hideWantedWhenMoving = configuration.getBoolean("hide-when-moving");
+        showOwn = configuration.getBoolean("show-own");
+
         wantedLevels.clear();
         for (String key : Objects.requireNonNull(configuration.getConfigurationSection("level")).getKeys(false)) {
             try {
@@ -176,6 +188,13 @@ public class WantedTags {
         return minWanted;
     }
 
+    public static double getWantedOffset() {
+        return wantedOffset;
+    }
+
+    public static boolean isShowOwn() {
+        return showOwn;
+    }
 
     public static void removeWantedTag(UUID uuid) {
         if (!activeTags.containsKey(uuid))
@@ -208,12 +227,7 @@ public class WantedTags {
     /**
      * The wanted tag entity.
      */
-    private ArmorStand armorStand = null;
-    /**
-     * The last location of the wanted tag.
-     * This is for saving the last location of the tag on shutdown.
-     */
-    private Location lastLocation = null;
+    private final TagProvider tag;
     /**
      * The time in milliseconds when the text should update next.
      */
@@ -232,19 +246,27 @@ public class WantedTags {
      * This is used to check if the player is moving.
      */
     private Location lastPlayerLocation;
+    /**
+     * The text being displayed in the wanted tag.
+     */
     private String displayText;
     
     public WantedTags(Player player) {
         this.player = player;
         lastPlayerLocation = player.getLocation();
+        if (ConfigOptions.getIntegrations().isPacketEventsEnabled())
+            tag = new FakeArmorStand(player); // packed based tag
+        else
+            tag = new EntityTag(player); // entity based tag
         if (!BountyManager.hasBounty(player.getUniqueId()))
             return;
         spawnWantedTag();
     }
 
     private boolean hasMoved() {
-        boolean moved = player.getWorld().equals(lastPlayerLocation.getWorld()) && player.getLocation().distance(lastPlayerLocation) > 0.1;
-        lastPlayerLocation = player.getLocation();
+        boolean moved = !player.getWorld().equals(lastPlayerLocation.getWorld()) || player.getEyeLocation().distance(lastPlayerLocation) > 0.025;
+        if (moved)
+            lastPlayerLocation = player.getEyeLocation();
         return moved;
     }
 
@@ -261,31 +283,17 @@ public class WantedTags {
         if (nextTextUpdateTime < System.currentTimeMillis()) {
             // check if the name should be changed
             displayText = getWantedDisplayText(player);
-            if (!displayText.equalsIgnoreCase(armorStand.getCustomName())) {
-                armorStand.setCustomName(displayText);
+            if (!displayText.equalsIgnoreCase(tag.getText())) {
+                tag.setText(displayText);
             }
             nextTextUpdateTime = System.currentTimeMillis() + wantedTextUpdateInterval;
-        }
-        if (NotBounties.getServerVersion() >= 17 && player.canSee(armorStand))
-            player.hideEntity(NotBounties.getInstance(), armorStand);
-        // a fix for 1.16, the random is to help with performance
-        if (NotBounties.getServerVersion() <= 16 && Math.random() <= 0.5) {
-            armorStand.setVisible(true);
-            armorStand.setVisible(false);
-            armorStand.setMarker(false);
-            armorStand.setMarker(true);
-            armorStand.setCustomName("This is a bug!");
-            armorStand.setCustomName(displayText);
-            armorStand.setCustomNameVisible(false);
-            armorStand.setCustomNameVisible(true);
-            armorStand.setCollidable(true);
-            armorStand.setCollidable(false);
+            tag.updateVisibility();
         }
     }
 
     public void updateArmorStand(){
         if (!enabled || player == null || !player.isOnline()) {
-            removeStand();
+            tag.remove();
             return;
         }
 
@@ -293,71 +301,43 @@ public class WantedTags {
             nextVisibilityUpdateTime = System.currentTimeMillis() + wantedVisibilityUpdateInterval;
             // conditions if the tag should be removed/invisible
             if (shouldHide()) {
-                if (armorStand != null)
-                    removeStand();
+                if (tag.isValid())
+                    tag.remove();
                 return;
             }
-            if (armorStand == null) {
+            if (!tag.isValid()) {
                 spawnWantedTag();
             }
             updateText();
         }
 
 
-        if (armorStand != null) {
+        if (tag.isValid()) {
             // I think this just loads the chunk anyway and always is true (which probably is a good thing)
-            if (armorStand.getLocation().getChunk().isLoaded()) {
+            if (tag.getLocation().getChunk().isLoaded()) {
                 teleport();
             }
         }
     }
 
     private void teleport() {
-        armorStand.teleport(player.getEyeLocation().add(new Vector(0, wantedOffset, 0)));
+        // check if player moved or has velocity before teleporting
+        if (hasMoved() || player.getVelocity().length() > 0.1)
+            tag.teleport();
     }
 
     public void disable() {
         enabled = false;
-        removeStand();
-    }
-
-    private void removeStand(){
-        if (armorStand == null)
-            return;
-        lastLocation = armorStand.getLocation();
-        armorStand.setInvulnerable(false);
-        armorStand.setCollidable(true);
-        armorStand.setVisible(true);
-        armorStand.remove();
-        armorStand = null;
+        tag.remove();
     }
 
     private void spawnWantedTag() {
-        armorStand = (ArmorStand) player.getWorld().spawnEntity(player.getEyeLocation().add(0,wantedOffset,0), EntityType.ARMOR_STAND);
-        armorStand.setVisible(false);
-        armorStand.setMarker(true);
+        tag.spawn();
         displayText = getWantedDisplayText(player);
-        armorStand.setCustomName(displayText);
-        armorStand.setCustomNameVisible(true);
-        armorStand.setAI(false);
-        armorStand.setCollidable(false);
-        armorStand.setRemoveWhenFarAway(false);
-        armorStand.setInvulnerable(true);
-        armorStand.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
-        if (NotBounties.getServerVersion() >= 17)
-            player.hideEntity(NotBounties.getInstance(), armorStand);
-        if (lastLocation == null)
-            lastLocation = armorStand.getLocation();
+        tag.setText(displayText);
     }
 
     public Location getLastLocation() {
-        if (armorStand != null)
-            lastLocation = armorStand.getLocation();
-        return lastLocation;
+        return tag.getLocation();
     }
-
-
-
-
-
 }

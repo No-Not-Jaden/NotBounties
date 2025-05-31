@@ -13,7 +13,7 @@ import java.util.*;
 public class Prompt implements Listener {
     private static int attempts;
     private static List<String> cancelWords;
-    public static long timeLimit;
+    private static long timeLimit;
     private static final Map<UUID, CommandPrompt> commandPrompts = new HashMap<>();
     public static void loadConfiguration(ConfigurationSection configuration) {
         attempts = configuration.getInt("attempts");
@@ -68,5 +68,7 @@ public class Prompt implements Listener {
         }
     }
 
-
+    public static long getTimeLimit() {
+        return timeLimit;
+    }
 }

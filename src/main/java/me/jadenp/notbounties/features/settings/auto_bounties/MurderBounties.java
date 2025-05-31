@@ -84,12 +84,15 @@ public class MurderBounties {
                     playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L)
                     && (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01)) {
                 // increase
-                addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
-                killer.sendMessage(parse(getPrefix() + getMessage("murder"), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), player));
+                if (murderBountyIncrease > 0) {
+                    addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                    killer.sendMessage(parse(getPrefix() + getMessage("murder"), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), player));
+                }
+                if (!commands.isEmpty())
+                    ActionCommands.executeCommands(player, killer, commands);
                 Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
                 kills.put(player.getUniqueId(), System.currentTimeMillis());
                 playerKills.put(killer.getUniqueId(), kills);
-                ActionCommands.executeCommands(player, killer, commands);
             }
         }
 
@@ -107,7 +110,7 @@ public class MurderBounties {
     }
 
     public static boolean isEnabled() {
-        return murderBountyIncrease > 0;
+        return murderBountyIncrease > 0 || !commands.isEmpty();
     }
 
     private static boolean hasImmunity(OfflinePlayer player) {

@@ -31,6 +31,7 @@ public class SkinManager {
     private static final long CONCURRENT_REQUEST_INTERVAL = 10000;
     private static final String MISSING_SKIN_TEXTURE = "http://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57";
     private static final String MISSING_SKIN_ID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
+    private static BufferedImage MISSING_SKIN_FACE = null;
     private static final PlayerSkin missingSkin;
 
     static {
@@ -40,6 +41,7 @@ public class SkinManager {
             throw new RuntimeException(e);
         }
         savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin);
+        MISSING_SKIN_FACE = getPlayerFace(DataManager.GLOBAL_SERVER_ID);
     }
 
     private static final List<Long> rateLimit = new ArrayList<>(); // 200 requests / min
@@ -176,14 +178,21 @@ public class SkinManager {
         return Objects.equals(playerSkin.id(), missingSkin.id()) && playerSkin.url() == missingSkin.url();
     }
 
+    /**
+     * Get the saved player face for this player.
+     * @param uuid UUID of the player to get the face for.
+     * @return A 8x8 face for the player include their mask.
+     */
     public static BufferedImage getPlayerFace(UUID uuid) {
         if (!isSkinLoaded(uuid))
             return null;
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && MISSING_SKIN_FACE != null)
+            return MISSING_SKIN_FACE;
         try {
             URL textureUrl = getSkin(uuid).url();
 
             BufferedImage skin = ImageIO.read(textureUrl);
-            BufferedImage head = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+            BufferedImage head = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
             try {
                 // base head
                 copySquare(skin, head, 8, 8);
@@ -209,12 +218,7 @@ public class SkinManager {
                 int a = (color >> 24) & 0xFF;
                 if (a == 0)
                     continue;
-                for (int x2 = 0; x2 < 8; x2++) {
-                    for (int y2 = 0; y2 < 8; y2++) {
-                        to.setRGB(x1 * 8 + x2, y1 * 8 + y2, color);
-                    }
-                }
-
+                to.setRGB(x1, y1, color);
             }
         }
     }

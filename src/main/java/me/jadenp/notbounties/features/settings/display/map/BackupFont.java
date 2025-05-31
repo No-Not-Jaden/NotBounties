@@ -14,8 +14,8 @@ import java.util.Map;
 
 public class BackupFont {
     private final Map<Character, boolean[][]> characterMap;
-    private static final char unknownCharacter = '?';
-    private static final int letterSpacing = 1;
+    private static final char UNKNOWN_CHARACTER = '?';
+    private static final int LETTER_SPACING = 1;
     public BackupFont(File file) throws IOException {
         Type typeObject = new TypeToken<Map<Character, boolean[][]>>() {}.getType();
         Gson gson = new Gson();
@@ -32,9 +32,9 @@ public class BackupFont {
             if (characterMap.containsKey(c)) {
                 width+= characterMap.get(c).length;
             } else {
-                width+= characterMap.get(unknownCharacter).length;
+                width+= characterMap.get(UNKNOWN_CHARACTER).length;
             }
-            width+= letterSpacing;
+            width+= LETTER_SPACING;
         }
         return width;
     }
@@ -45,18 +45,20 @@ public class BackupFont {
 
     public void drawText(BufferedImage image, int x, int y, String text) {
         Color color = Color.BLACK;
-        for (int i = 0; i < text.length(); i++) {
+        int i = 0;
+        while (i < text.length()) {
             char c = text.charAt(i);
             if (c == ChatColor.COLOR_CHAR) {
                 char code = text.charAt(i + 1);
-                if (!Renderer.colorTranslations.containsKey(code))
-                    continue;
-                color = Renderer.colorTranslations.get(code);
+                if (BountyPosterProvider.colorTranslations.containsKey(code)) {
+                    color = BountyPosterProvider.colorTranslations.get(code);
+                }
                 i++;
-                continue;
+            } else {
+                displayLetter(image, x, y, c, color);
+                x += getWidth(c + "");
             }
-            displayLetter(image, x, y, c, color);
-            x+= getWidth(c + "");
+            i++;
         }
     }
 
@@ -65,9 +67,9 @@ public class BackupFont {
         if (characterMap.containsKey(letter))
             displayPattern = characterMap.get(letter);
         else if (letter == ' ')
-            displayPattern = new boolean[characterMap.get(unknownCharacter).length][getHeight()];
+            displayPattern = new boolean[characterMap.get(UNKNOWN_CHARACTER).length][getHeight()];
         else
-            displayPattern = characterMap.get(unknownCharacter);
+            displayPattern = characterMap.get(UNKNOWN_CHARACTER);
         for (int dx = 0; dx < displayPattern.length; dx++) {
             for (int dy = 0; dy < displayPattern[0].length; dy++) {
                 if (displayPattern[dx][dy])

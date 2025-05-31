@@ -9,6 +9,7 @@ import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.BountyClaimRequirements;
+import me.jadenp.notbounties.features.settings.integrations.Integrations;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
@@ -51,6 +52,12 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
  * Redo vouchers with persistent data, give items, & reward delay
+ *
+ * move bounty-cooldown to immunity
+ * Wanted tag as packet
+ * holographic posters
+ * poster regenerate command
+ * packetevents sometimes doesnt hook
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -87,12 +94,7 @@ public final class NotBounties extends JavaPlugin {
     @Override
     public void onLoad() {
         setInstance(this);
-        // register api flags
-        if (getServer().getPluginManager().getPlugin("WorldGuard") != null) {
-            WorldGuardClass.registerFlags();
-        }
-        if (getServer().getPluginManager().getPlugin("Lands") != null)
-            new LandsClass().registerClaimFlag();
+        Integrations.onLoad(this);
     }
 
 
@@ -126,9 +128,6 @@ public final class NotBounties extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(new Prompt(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new BountyTracker(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new ChallengeListener(), this);
-
-        this.saveDefaultConfig();
-
 
         BountyMap.initialize(this);
         setNamespacedKey(new NamespacedKey(this, "bounty-entity"));
@@ -236,7 +235,7 @@ public final class NotBounties extends JavaPlugin {
                     OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
                     getServerImplementation().async().runNow(() -> {
                         if (player.isBanned() || (ConfigOptions.getIntegrations().isLiteBansEnabled() && !(new LiteBansClass().isPlayerNotBanned(bounty.getUUID())))) {
-                            BountyManager.removeBounty(bounty.getUUID());
+                            getServerImplementation().global().run(() -> BountyManager.removeBounty(bounty.getUUID()));
                         }
                     });
                 }
@@ -292,32 +291,32 @@ public final class NotBounties extends JavaPlugin {
 
     private static void checkForUpdate(Plugin plugin) {
         // update checker
-        if (!ConfigOptions.getUpdateNotification().equalsIgnoreCase("false")) {
-            new UpdateChecker((JavaPlugin) plugin, 104484).getVersion(version -> {
-                latestVersion = version;
-                if (plugin.getDescription().getVersion().contains("dev"))
-                    return;
-                if (plugin.getDescription().getVersion().equals(version))
-                    return;
-                // split the numbers
-                String[] versionSplit = version.split("\\.");
-                String[] currentSplit = plugin.getDescription().getVersion().split("\\.");
-                // convert to integers
-                int[] versionNumbers = convertStringArrayToInt(versionSplit);
-                int[] currentNumbers = convertStringArrayToInt(currentSplit);
-                for (int i = 0; i < currentNumbers.length; i++) {
-                    if (currentNumbers[i] < versionNumbers[i]) {
-                        updateAvailable = true;
-                        break;
-                    }
-                }
-                if (!updateAvailable && currentNumbers.length < versionNumbers.length)
+        if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("false"))
+            return;
+        new UpdateChecker((JavaPlugin) plugin, 104484).getVersion(version -> {
+            latestVersion = version;
+            if (plugin.getDescription().getVersion().contains("dev")
+                    || plugin.getDescription().getVersion().equals(version))
+                return;
+            // split the numbers
+            String[] versionSplit = version.split("\\.");
+            String[] currentSplit = plugin.getDescription().getVersion().split("\\.");
+            // convert to integers
+            int[] versionNumbers = convertStringArrayToInt(versionSplit);
+            int[] currentNumbers = convertStringArrayToInt(currentSplit);
+            for (int i = 0; i < currentNumbers.length; i++) {
+                if (currentNumbers[i] < versionNumbers[i]) {
                     updateAvailable = true;
-                if (updateAvailable && !version.equals(ConfigOptions.getUpdateNotification())) {
-                    plugin.getLogger().info(ChatColor.stripColor(parse(getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", version), null)));
+                    break;
                 }
-            });
-        }
+            }
+            if (!updateAvailable && currentNumbers.length < versionNumbers.length)
+                updateAvailable = true;
+            if (updateAvailable && !version.equals(ConfigOptions.getUpdateNotification())) {
+                plugin.getLogger().info(ChatColor.stripColor(parse(getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", version), null)));
+            }
+        });
+
     }
 
     private static int @NotNull [] convertStringArrayToInt(String[] versionSplit) {
@@ -373,6 +372,7 @@ public final class NotBounties extends JavaPlugin {
             MMOLibClass.removeAllModifiers();
         SkinManager.shutdown();
         DataManager.shutdown();
+        BountyMap.shutdown();
         if (!started)
             // Plugin failed to start.
             // Returning, so save data isn't overwritten.
@@ -426,7 +426,7 @@ public final class NotBounties extends JavaPlugin {
         List<String> statuses = List.of(
                 status("Vault", NumberFormatting.isVaultEnabled()),
                 status("PlaceholderAPI", ConfigOptions.getIntegrations().isPapiEnabled()),
-                status("HeadDataBase", ConfigOptions.getIntegrations().isHDBEnabled()),
+                status("HeadDataBase", ConfigOptions.getIntegrations().isHeadDataBaseEnabled()),
                 status("LiteBans", ConfigOptions.getIntegrations().isLiteBansEnabled()),
                 status("SkinsRestorer", ConfigOptions.getIntegrations().isSkinsRestorerEnabled()),
                 status("BetterTeams", BountyClaimRequirements.isBetterTeamsEnabled()),
@@ -440,10 +440,11 @@ public final class NotBounties extends JavaPlugin {
                 status("MMOLib", ConfigOptions.getIntegrations().isMmoLibEnabled()),
                 status("SimpleClans", BountyClaimRequirements.isSimpleClansEnabled()),
                 status("Factions", BountyClaimRequirements.isFactionsEnabled()),
-                status("Duels", ConfigOptions.getIntegrations().isDuelsEnabled())
+                status("Duels", ConfigOptions.getIntegrations().isDuelsEnabled()),
+                status("PacketEvents", ConfigOptions.getIntegrations().isPacketEventsEnabled())
         );
         String joined = String.join(ChatColor.GRAY + "|", statuses);
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + joined + "]");
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + joined + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
 
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218))

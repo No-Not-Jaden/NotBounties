@@ -21,6 +21,7 @@ import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.databases.Databases;
 import me.jadenp.notbounties.features.webhook.WebhookOptions;
 import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -73,12 +74,18 @@ public class ConfigOptions {
     private static int autoSaveInterval;
     private static boolean sameIPClaim;
     private static Plugin plugin;
+    private static int defaultEntityTrackingRangePlayer;
 
     public static void reloadOptions(Plugin plugin) throws IOException {
         ConfigOptions.plugin = plugin;
+
+        defaultEntityTrackingRangePlayer = Bukkit.getServer().spigot().getConfig().getInt("world-settings.default.entity-tracking-range.players", 48);
+
+        plugin.saveDefaultConfig();
+        plugin.reloadConfig();
+
         BountyMap.loadFont();
 
-        plugin.reloadConfig();
 
         // create configuration sections for each external team plugin
         if (plugin.getConfig().isBoolean("teams.bt-claim")) {
@@ -398,6 +405,7 @@ public class ConfigOptions {
 
         pathMap.clear();
         pathMap.put("immunity", "");
+        pathMap.put("bounty-cooldown", "bounty-cooldown");
         migrateConfigResource("settings/immunity.yml", pathMap);
 
         pathMap.clear();
@@ -556,5 +564,9 @@ public class ConfigOptions {
 
     public static int getMaxSetters() {
         return maxSetters;
+    }
+
+    public static int getDefaultEntityTrackingRangePlayer() {
+        return defaultEntityTrackingRangePlayer;
     }
 }

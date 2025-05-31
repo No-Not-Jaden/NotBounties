@@ -34,6 +34,17 @@ bounty-posters:
   always-update: false
   # save created maps to be used later - player heads will not change unless the player changes their name
   save-templates: true
+  # mix available map colors for new colors on player faces
+  # this causes a pixelated effect when looking closely, but looks nicer from far away
+  # changing this section will require a restart of the server to apply
+  face-shading:
+    # how many shades of colors should be used - 0 for no shading
+    # If you want shading, I recommend just 1 blend.
+    blends: 0
+    # the maximum squared distance between shaded colors - 0 to shade all colors together (disabled)
+    # this can make the pixelated effect look less noticeable, but you lose out on some new colors.
+    # 3200 is my recommended starting distance
+    max-color-distance: 0
   # delete all the saved poster templates in the NotBounties/posters folder
   # set this to true if you change anything about what is displayed on the poster besides reward-text and currency-wrap
   # this will be set to false again automatically after a clean has been done
@@ -128,6 +139,9 @@ wanted-tag:
   text-update-interval: 2000
   # milliseconds between updating the visibility of the tag
   visibility-update-interval: 150
+  # whether you can see your own wanted tag above your head
+  # your own tag will look to lag behind you when you move
+  show-own: false
   # text for certain levels of bounty
   level:
     # minimum bounty amount: text

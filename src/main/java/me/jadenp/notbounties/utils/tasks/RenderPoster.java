@@ -1,17 +1,16 @@
 package me.jadenp.notbounties.utils.tasks;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.settings.display.map.BountyPosterProvider;
 import me.jadenp.notbounties.ui.SkinManager;
-import me.jadenp.notbounties.features.settings.display.map.Renderer;
-import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 
 public class RenderPoster extends CancelableTask{
 
     private final String name;
-    private final Renderer renderer;
+    private final BountyPosterProvider renderer;
 
-    public RenderPoster(String name, Renderer renderer) {
+    public RenderPoster(String name, BountyPosterProvider renderer) {
         super();
         this.name = name;
         this.renderer = renderer;
@@ -38,14 +37,16 @@ public class RenderPoster extends CancelableTask{
             // check if max requests hit
             if (maxRequests <= 0) {
                 this.cancel();
-                NotBounties.debugMessage("Timed out getting skin from \"" + name + "\" for a bounty poster. A question mark will be displayed instead.", true);
-                renderer.renderPoster(SkinManager.getPlayerFace(DataManager.GLOBAL_SERVER_ID), name, false);
+                NotBounties.debugMessage("Timed out waiting to generate a bounty poster for \"" + name + "\". Provider: " + renderer.getClass(), true);
+                renderer.generateBackground(name);
                 return;
             }
             maxRequests--;
-            if (!SkinManager.isSkinLoaded(renderer.getPlayer().getUniqueId()))
+            if (renderer.isMissingElements())
                 return;
-            renderer.renderPoster(SkinManager.getPlayerFace(renderer.getPlayer().getUniqueId()), name, true);
+            if (!renderer.isPlayerFacePresent())
+                renderer.setPlayerFace(SkinManager.getPlayerFace(renderer.getPlayer().getUniqueId()), name);
+            renderer.generateBackground(name);
             this.cancel();
         }
     }

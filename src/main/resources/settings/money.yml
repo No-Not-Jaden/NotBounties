@@ -6,7 +6,7 @@ minimum-bounty: 1
 # maximum amount of currency a bounty can be - set to -1 to disable
 maximum-bounty: -1
 # minimum amount of currency that will broadcast bounties
-minimum-broadcast: 50
+minimum-broadcast: 5
 # percent extra they have to pay to set a bounty - uses a DECIMAL
 # ex: bounty-tax = 0.25, a bounty set for 100 would cost 125 to be placed
 # use this if players are setting too many bounties

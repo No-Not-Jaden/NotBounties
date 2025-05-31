@@ -23,6 +23,7 @@ softdepend:
   - MythicLib
   - Duels
   - SimpleClans
+  - packetevents
 commands:
   notbounties:
     description: Use all of the bounty commands.
@@ -99,4 +100,4 @@ permissions:
     description: Immune to timed auto-bounties.
 libraries:
   - com.mysql:mysql-connector-j:9.2.0
-  - io.lettuce:lettuce-core:6.5.3.RELEASE
+  - io.lettuce:lettuce-core:6.6.0.RELEASE

@@ -53,8 +53,6 @@ max-tab-complete-players: 50
 auto-save-interval: 15
 # back up any locally stored data
 bounty-backups: true
-# How long a player has to wait before setting another bounty - measured in seconds
-bounty-cooldown: 2
 
 # The commands players can use to use bounties.
 # The first option is the one the plugin uses when forcing players to execute a command.

@@ -26,28 +26,28 @@ public class CommandPrompt {
     private ResponseType responseType = ResponseType.ANY;
 
     public CommandPrompt(Player player, String command, boolean playerPrompt) {
-        String prompt = "&eEnter anything in chat.";
+        String promptString = "&eEnter anything in chat."; // default prompt string
         if (command.contains("<") && command.substring(command.indexOf("<")).contains(">")) {
-            prompt = command.substring(command.indexOf("<") + 1, command.substring(0, command.indexOf("<")).length() + command.substring(command.indexOf("<")).indexOf(">"));
+            promptString = command.substring(command.indexOf("<") + 1, command.substring(0, command.indexOf("<")).length() + command.substring(command.indexOf("<")).indexOf(">"));
         }
 
-        if (command.contains(prompt))
-            command = command.replace(prompt, "~placeholder~");
+        if (command.contains(promptString))
+            command = command.replace(promptString, "~placeholder~");
 
-        if (prompt.startsWith("NUMBER~")) {
+        if (promptString.startsWith("NUMBER~")) {
             responseType = ResponseType.NUMBER;
-            prompt = prompt.substring(7);
-        } else if (prompt.startsWith("PLAYER~")) {
+            promptString = promptString.substring(7);
+        } else if (promptString.startsWith("PLAYER~")) {
             responseType = ResponseType.PLAYER;
-            prompt = prompt.substring(7);
+            promptString = promptString.substring(7);
         }
 
-        player.sendMessage(parse(prompt, player));
+        player.sendMessage(parse(promptString, player));
 
         this.command = command;
         this.playerPrompt = playerPrompt;
         this.player = player;
-        this.prompt = prompt;
+        this.prompt = promptString;
 
         refreshExpireTask();
     }
@@ -59,7 +59,7 @@ public class CommandPrompt {
             expired = true;
             if (!silentCancel && player.isOnline())
                     player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("prompt-expire"), player));
-        }, Prompt.timeLimit * 20L);
+        }, Prompt.getTimeLimit() * 20L);
 
     }
 
@@ -96,13 +96,13 @@ public class CommandPrompt {
 
     public void executeCommand(String message) {
         message = ChatColor.stripColor(message);
-        String command = this.command.replace("<~placeholder~>", message);
+        String commandString = this.command.replace("<~placeholder~>", message);
         String finalMessage = message;
         NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
             if (playerPrompt) {
-                Bukkit.dispatchCommand(player, command);
+                Bukkit.dispatchCommand(player, commandString);
             } else {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandString);
             }
         }, 1);
         NotBounties.getServerImplementation().entity(player).runDelayed(task -> {

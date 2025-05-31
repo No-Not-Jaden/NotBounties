@@ -9,6 +9,7 @@ import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
+import me.jadenp.notbounties.features.settings.display.map.HologramRenderer;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
@@ -1353,6 +1354,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 Bounty bounty = getBounty(playerUUID);
                 Player receiver;
                 if (args.length > 2) {
+                    if (args[2].equalsIgnoreCase("hologram") && parser != null) {
+                        BountyMap.registerHologram(new HologramRenderer(playerUUID, NotBounties.getInstance(), parser.getLocation(), parser.getEyeLocation().getDirection()));
+                        sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "EXPERIMENTAL: Spawned a bounty hologram", parser));
+                        return true;
+                    }
                     receiver = Bukkit.getPlayer(args[2]);
                     if (receiver == null) {
                         // can't find player

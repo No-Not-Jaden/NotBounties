@@ -45,7 +45,7 @@ public class SkinsRestorerClass {
                 // set first connect to false in 5 seconds (give the proxy time to respond)
                 NotBounties.getServerImplementation().global().runDelayed(() -> firstConnect = false, 5 * 20L);
             }
-            if (!firstConnect && lastHookError < System.currentTimeMillis()) {
+            if (!firstConnect && lastHookError < System.currentTimeMillis() && !(ProxyMessaging.hasConnectedBefore() && ProxyDatabase.areSkinRequestsEnabled())) {
                     Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
                     lastHookError = System.currentTimeMillis() + 60000 * 5;
                 }
@@ -85,6 +85,8 @@ public class SkinsRestorerClass {
                     if (!SkinManager.isSkinLoaded(entry.getKey())) {
                         NotBounties.debugMessage("Proxy skin request timed out for player: " + entry.getKey().toString(), true);
                         requestSkinManually(entry.getKey());
+                    } else {
+                        connected = true;
                     }
                     mapIterator.remove();
                 } else {
@@ -102,14 +104,14 @@ public class SkinsRestorerClass {
     }
 
     public void saveSkin(UUID uuid) {
-        if (!connected)
-            connect();
         if (ProxyMessaging.hasConnectedBefore() && ProxyDatabase.areSkinRequestsEnabled()) {
             ProxyMessaging.requestPlayerSkin(uuid);
             // timeout
             addDelayedSkinCheck(uuid);
             return;
         }
+        if (!connected)
+            connect();
         String name = LoggedPlayers.getPlayerName(uuid);
         if (!connected) {
             if (!firstConnect)

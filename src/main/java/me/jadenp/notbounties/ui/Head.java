@@ -32,7 +32,7 @@ public class Head {
             } else {
                 return Bukkit.getUnsafe().modifyItemStack(item, "{display:{Name:\"{\\\"text\\\":\\\"Head\\\"}\"},SkullOwner:{Id:[" + "I;1201296705,1414024019,-1385893868,1321399054" + "],Properties:{textures:[{Value:\"" + data + "\"}]}}}");
             }
-        } else if (ConfigOptions.getIntegrations().isHDBEnabled()){
+        } else if (ConfigOptions.getIntegrations().isHeadDataBaseEnabled()){
             return (new HeadDataBaseClass().getHead(data));
         } else {
             Bukkit.getLogger().warning("[NotBounties] Could not create custom head. Use Base64 or install HeadDataBase.");

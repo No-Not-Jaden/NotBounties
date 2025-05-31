@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.features.settings.display.map;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
@@ -34,8 +35,6 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,11 +47,15 @@ import static me.jadenp.notbounties.utils.BountyManager.hasBounty;
 
 public class BountyMap implements Listener {
 
+    private static Plugin plugin;
     private static BufferedImage bountyPoster;
     private static BufferedImage deadBounty;
     private static Font playerFont = null;
     private static File posterDirectory;
     private static final Map<UUID, MapView> mapViews = new HashMap<>();
+    private static MapColor mapColor = null;
+    private static final List<HologramRenderer> holograms = new ArrayList<>();
+    private static TaskImplementation<Void> hologramUpdateTask = null;
 
     private static boolean enabled;
     private static boolean giveOwn;
@@ -66,7 +69,6 @@ public class BountyMap implements Listener {
     private static int updateInterval;
     private static boolean alwaysUpdate;
     private static boolean saveTemplates;
-    private static Plugin plugin;
 
 
     public static void initialize(Plugin plugin){
@@ -116,6 +118,9 @@ public class BountyMap implements Listener {
         craftPoster = config.getBoolean("craft-poster");
         washPoster = config.getBoolean("wash-poster");
 
+        MapColor.setBlends(config.getInt("face-shading.blends"));
+        MapColor.setMaxColorDistance(config.getInt("face-shading.max-color-distance"));
+
         // clean out posters that aren't supposed to be there
         if (config.getBoolean("clean-posters")) {
             config.set("clean-posters", false);
@@ -123,6 +128,22 @@ public class BountyMap implements Listener {
         } else if (!saveTemplates) {
             BountyMap.cleanPosters();
         }
+
+        if (hologramUpdateTask != null)
+            hologramUpdateTask.cancel();
+        hologramUpdateTask = NotBounties.getServerImplementation().global().runAtFixedRate(() -> {
+            for (HologramRenderer renderer : holograms)
+                renderer.render();
+        }, updateInterval / 50 + 76L, updateInterval / 50 + 1L);
+
+        if (mapColor == null)
+            mapColor = new MapColor();
+    }
+
+    public static void shutdown() {
+        hologramUpdateTask.cancel();
+        for (HologramRenderer renderer : holograms)
+            renderer.remove();
     }
 
     public static BufferedImage getBountyPoster() {
@@ -216,7 +237,7 @@ public class BountyMap implements Listener {
                 if (mapView != null) {
                     mapView.setLocked(lockMaps);
                     mapView.getRenderers().forEach(mapView::removeRenderer);
-                    mapView.addRenderer(new Renderer(uuid));
+                    mapView.addRenderer(new Renderer(uuid, plugin));
                 } else {
                     mapView = getMapView(uuid);
                     mapMeta.setMapView(mapView);
@@ -444,16 +465,14 @@ public class BountyMap implements Listener {
         mapView.getRenderers().forEach(mapView::removeRenderer);
         mapView.setLocked(lockMaps);
         mapView.setTrackingPosition(false);
-        mapView.addRenderer(new Renderer(uuid));
+        mapView.addRenderer(new Renderer(uuid, plugin));
         return mapView;
     }
 
-    public static BufferedImage deepCopy(BufferedImage bi) {
-        ColorModel cm = bi.getColorModel();
-        boolean isAlphaPreMultiplied = cm.isAlphaPremultiplied();
-        WritableRaster raster = bi.copyData(null);
-        return new BufferedImage(cm, raster, isAlphaPreMultiplied, null);
+    public static void registerHologram(HologramRenderer renderer) {
+        holograms.add(renderer);
     }
+
     public static boolean isCurrencyWrap() {
         return currencyWrap;
     }
@@ -496,5 +515,13 @@ public class BountyMap implements Listener {
 
     public static File getPosterDirectory() {
         return posterDirectory;
+    }
+
+    public static MapColor getMapColor() {
+        return mapColor;
+    }
+
+    public static boolean isLockMaps() {
+        return lockMaps;
     }
 }

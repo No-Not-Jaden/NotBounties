@@ -1,11 +1,11 @@
 package me.jadenp.notbounties.features.settings.integrations;
 
 import me.jadenp.notbounties.features.settings.ResourceConfiguration;
-import me.jadenp.notbounties.features.settings.integrations.external_api.DuelsClass;
-import me.jadenp.notbounties.features.settings.integrations.external_api.MMOLibClass;
-import me.jadenp.notbounties.features.settings.integrations.external_api.SkinsRestorerClass;
+import me.jadenp.notbounties.features.settings.integrations.external_api.*;
+import me.jadenp.notbounties.features.settings.integrations.external_api.worldguard.WorldGuardClass;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
 
 import java.util.Objects;
 
@@ -19,8 +19,16 @@ public class Integrations extends ResourceConfiguration {
     private boolean geyserEnabled;
     private boolean skinsRestorerEnabled;
     private boolean floodgateEnabled;
-    private boolean HDBEnabled;
+    private boolean headDataBaseEnabled;
     private boolean worldGuardEnabled;
+    private boolean packetEventsEnabled;
+
+    public static void onLoad(Plugin plugin) {
+        // register api flags
+        if (plugin.getServer().getPluginManager().getPlugin("WorldGuard") != null) WorldGuardClass.registerFlags();
+        if (plugin.getServer().getPluginManager().getPlugin("Lands") != null) new LandsClass().registerClaimFlag();
+    }
+
     @Override
     protected void loadConfiguration(YamlConfiguration config) {
         BountyClaimRequirements.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("teams")));
@@ -50,8 +58,9 @@ public class Integrations extends ResourceConfiguration {
         liteBansEnabled = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
         floodgateEnabled = Bukkit.getPluginManager().isPluginEnabled("floodgate");
         geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
-        HDBEnabled = Bukkit.getPluginManager().isPluginEnabled("HeadDataBase");
+        headDataBaseEnabled = Bukkit.getPluginManager().isPluginEnabled("HeadDataBase");
         worldGuardEnabled = Bukkit.getPluginManager().isPluginEnabled("WorldGuard");
+        packetEventsEnabled = Bukkit.getPluginManager().isPluginEnabled("packetevents");
     }
 
     @Override
@@ -104,11 +113,15 @@ public class Integrations extends ResourceConfiguration {
         return skinsRestorerClass;
     }
 
-    public boolean isHDBEnabled() {
-        return HDBEnabled;
+    public boolean isHeadDataBaseEnabled() {
+        return headDataBaseEnabled;
     }
 
     public boolean isWorldGuardEnabled() {
         return worldGuardEnabled;
+    }
+
+    public boolean isPacketEventsEnabled() {
+        return packetEventsEnabled;
     }
 }
