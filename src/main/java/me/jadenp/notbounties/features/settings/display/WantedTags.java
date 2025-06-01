@@ -19,9 +19,11 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 import java.util.*;
+import java.util.logging.Level;
 
 import static me.jadenp.notbounties.NotBounties.isVanished;
 
@@ -88,7 +90,7 @@ public class WantedTags {
      * Load the Wanted Tags configuration.
      * @param configuration wanted-tags configuration section.
      */
-    public static void loadConfiguration(ConfigurationSection configuration) {
+    public static void loadConfiguration(ConfigurationSection configuration, Plugin plugin) {
         boolean newTagsEnabled = configuration.getBoolean("enabled");
         if (!tagsEnabled && newTagsEnabled) {
             // enabling tags
@@ -111,10 +113,14 @@ public class WantedTags {
         for (String key : Objects.requireNonNull(configuration.getConfigurationSection("level")).getKeys(false)) {
             try {
                 double amount = NumberFormatting.tryParse(key);
-                String text = configuration.getString("wanted-tag.level." + key);
-                wantedLevels.put(amount, text);
+                if (!configuration.isConfigurationSection("level." + key)) {
+                    String text = configuration.getString("level." + key);
+                    wantedLevels.put(amount, text);
+                } else {
+                    plugin.getLogger().log(Level.INFO, "Wanted tag level: \"{0}\" does not have the proper format!", key);
+                }
             } catch (NumberFormatException e) {
-                Bukkit.getLogger().info("[NotBounties] Wanted tag level: \"" + key + "\" is not a number!");
+                plugin.getLogger().log(Level.INFO, "Wanted tag level: \"{0}\" is not a number!", key);
             }
         }
         wantedLevels = sortByValue(wantedLevels);
@@ -169,7 +175,7 @@ public class WantedTags {
                 break;
             }
         }
-        return LanguageOptions.parse(wantedText.replace("{level}", (levelReplace)), bounty.getTotalDisplayBounty(), player);
+        return LanguageOptions.parse(wantedText.replace("{level}", levelReplace), bounty.getTotalDisplayBounty(), player);
     }
 
     /**

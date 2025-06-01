@@ -10,7 +10,7 @@ import java.util.Objects;
 public class Display extends ResourceConfiguration {
     @Override
     protected void loadConfiguration(YamlConfiguration config) {
-        WantedTags.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("wanted-tag")));
+        WantedTags.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("wanted-tag")), plugin);
         BountyMap.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("bounty-posters")));
         BountyBoard.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("bounty-board")));
         BountyTracker.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("bounty-tracker")));
