@@ -6,6 +6,10 @@ import java.util.*;
 
 public class PlayerData {
 
+    public enum BroadcastSettings {
+        EXTENDED, SHORT, DISABLE
+    }
+
     private String playerName = null;
     private boolean generalImmunity = false;
     private boolean murderImmunity = false;
@@ -14,7 +18,7 @@ public class PlayerData {
     private TimeZone timeZone = null;
     private double refundAmount = 0;
     private final List<ItemStack> refundItems = new LinkedList<>();
-    private boolean disableBroadcast = false;
+    private BroadcastSettings broadcastSettings = BroadcastSettings.EXTENDED;
     private final List<RewardHead> rewardHeads = new LinkedList<>();
     private long bountyCooldown = 0;
     private Whitelist whitelist = new Whitelist(new ArrayList<>(), false);
@@ -97,12 +101,12 @@ public class PlayerData {
         refundItems.clear();
     }
 
-    public void setDisableBroadcast(boolean disableBroadcast) {
-        this.disableBroadcast = disableBroadcast;
+    public void setBroadcastSettings(BroadcastSettings broadcastSettings) {
+        this.broadcastSettings = broadcastSettings;
     }
 
-    public boolean isDisableBroadcast() {
-        return disableBroadcast;
+    public BroadcastSettings getBroadcastSettings() {
+        return broadcastSettings;
     }
 
     public void addRewardHeads(List<RewardHead> rewardHeads) {

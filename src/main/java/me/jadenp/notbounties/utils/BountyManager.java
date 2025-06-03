@@ -16,6 +16,7 @@ import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.features.settings.auto_bounties.TrickleBounties;
+import me.jadenp.notbounties.utils.tasks.BroadcastTask;
 import me.jadenp.notbounties.utils.tasks.DelayedReward;
 import me.jadenp.notbounties.features.*;
 import me.jadenp.notbounties.features.settings.auto_bounties.MurderBounties;
@@ -38,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
+import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.*;
 
@@ -129,55 +131,15 @@ public class BountyManager {
             assert onlineReceiver != null;
             // check for big bounty
             BigBounty.setBounty(onlineReceiver, bounty, displayAmount);
-            // send messages
-            onlineReceiver.sendMessage(parse(getPrefix() + getMessage("bounty-receiver"), displayAmount, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(setter.getUniqueId())));
-
-            if (NotBounties.getServerVersion() <= 16) {
-                onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
-            } else {
-                onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
-            }
             // add wanted tag
             if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
                 WantedTags.addWantedTag(onlineReceiver);
             }
         }
-        // send messages
-        setter.sendMessage(parse(getPrefix() + getMessage("bounty-success"), displayAmount, bounty.getTotalDisplayBounty(), receiver));
 
-        if (NotBounties.getServerVersion() <= 16) {
-            setter.playSound(setter.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
-        } else {
-            setter.playSound(setter.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1, 1);
-        }
+        BroadcastTask broadcastTask = new BroadcastTask(setter, receiver, displayAmount, bounty.getTotalDisplayBounty(), whitelist);
+        broadcastTask.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(broadcastTask,1,4));
 
-        String message = parse(getPrefix() + getMessage("bounty-broadcast"), setter, displayAmount, bounty.getTotalDisplayBounty(), receiver);
-
-        Bukkit.getConsoleSender().sendMessage(message);
-        if (whitelist.getList().isEmpty()) {
-            if (displayAmount >= ConfigOptions.getMoney().getMinBroadcast())
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (!DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() && !player.getUniqueId().equals(receiver.getUniqueId()) && !player.getUniqueId().equals(setter.getUniqueId())) {
-                        player.sendMessage(message);
-                    }
-                }
-        } else {
-            if (whitelist.isBlacklist()) {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player.getUniqueId().equals(receiver.getUniqueId()) || player.getUniqueId().equals(setter.getUniqueId()) || whitelist.getList().contains(player.getUniqueId()))
-                        continue;
-                    getListMessage("whitelist-notify").stream().filter(str -> !str.isEmpty()).forEach(str -> player.sendMessage(parse(getPrefix() + str, player)));
-                }
-            } else {
-                for (UUID uuid : whitelist.getList()) {
-                    Player player = Bukkit.getPlayer(uuid);
-                    if (player == null || player.getUniqueId().equals(receiver.getUniqueId()) || player.getUniqueId().equals(setter.getUniqueId()))
-                        continue;
-                    player.sendMessage(message);
-                    getListMessage("whitelist-notify").stream().filter(str -> !str.isEmpty()).forEach(str -> player.sendMessage(parse(getPrefix() + str, player)));
-                }
-            }
-        }
         ActionCommands.executeBountySet(receiver.getUniqueId(), setter, bounty);
         if (ConfigOptions.getBountyCooldown() > 0)
             DataManager.getPlayerData(setter.getUniqueId()).setBountyCooldown(System.currentTimeMillis());
@@ -210,39 +172,14 @@ public class BountyManager {
             assert onlineReceiver != null;
             // check for big bounty
             BigBounty.setBounty(onlineReceiver, bounty, displayAmount);
-            // send messages
-            onlineReceiver.sendMessage(parse(getPrefix() + getMessage("bounty-receiver"), ConfigOptions.getAutoBounties().getConsoleBountyName(), displayAmount, bounty.getTotalDisplayBounty(), receiver));
-
-            if (NotBounties.getServerVersion() <= 16) {
-                onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1, 1);
-            } else {
-                onlineReceiver.playSound(onlineReceiver.getEyeLocation(), Sound.BLOCK_AMETHYST_BLOCK_FALL, 1, 1);
-            }
             // add wanted tag
             if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
                 WantedTags.addWantedTag(onlineReceiver);
             }
         }
-        // send messages
-        String message = parse(getPrefix() + getMessage("bounty-broadcast"), ConfigOptions.getAutoBounties().getConsoleBountyName(), displayAmount, bounty.getTotalDisplayBounty(), receiver);
-        Bukkit.getConsoleSender().sendMessage(message);
-        if (whitelist.getList().isEmpty()) {
-            if (displayAmount >= ConfigOptions.getMoney().getMinBroadcast())
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (!DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() && !player.getUniqueId().equals(receiver.getUniqueId())) {
-                        player.sendMessage(message);
-                    }
-                }
-        } else {
-            for (UUID uuid : whitelist.getList()) {
-                Player player = Bukkit.getPlayer(uuid);
-                if (player == null || player.getUniqueId().equals(receiver.getUniqueId()))
-                    continue;
-                player.sendMessage(message);
-                player.sendMessage(parse(getPrefix() + getMessage("whitelist-toggle"), player));
-            }
-        }
 
+        BroadcastTask broadcastTask = new BroadcastTask(null, receiver, displayAmount, bounty.getTotalDisplayBounty(), whitelist);
+        broadcastTask.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(broadcastTask,1,4));
     }
 
 
@@ -394,7 +331,7 @@ public class BountyManager {
                 Bukkit.getConsoleSender().sendMessage(message);
                 if (stolenBounty.getTotalDisplayBounty() >= ConfigOptions.getMoney().getMinBroadcast())
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() && !p.getUniqueId().equals(killer.getUniqueId())) {
+                        if (DataManager.getPlayerData(player.getUniqueId()).getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE && !p.getUniqueId().equals(killer.getUniqueId())) {
                             p.sendMessage(message);
                         }
                     }
@@ -440,7 +377,7 @@ public class BountyManager {
         String message = parse(getPrefix() + getMessage("claim-bounty-broadcast"), killer, bounty.getTotalDisplayBounty(killer), player);
         Bukkit.getConsoleSender().sendMessage(message);
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if ((!DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() && bounty.getTotalDisplayBounty(killer) >= ConfigOptions.getMoney().getMinBroadcast()) || p.getUniqueId().equals(player.getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(killer).getUniqueId())) {
+            if ((DataManager.getPlayerData(player.getUniqueId()).getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE && bounty.getTotalDisplayBounty(killer) >= ConfigOptions.getMoney().getMinBroadcast()) || p.getUniqueId().equals(player.getUniqueId()) || p.getUniqueId().equals(Objects.requireNonNull(killer).getUniqueId())) {
                 p.sendMessage(message);
             }
         }
@@ -662,6 +599,11 @@ public class BountyManager {
             List<ItemStack> rewardItems = getManualEconomy() == ManualEconomy.AUTOMATIC ? bounty.getTotalItemBounty(uuid) : Collections.emptyList();
             refundPlayer(uuid, rewardAmount, rewardItems);
         }
+    }
+
+
+    private static void broadcastBountySet(@Nullable Player setter, @NotNull OfflinePlayer receiver, double displayAmount, double totalBounty, Whitelist whitelist) {
+
     }
 
 

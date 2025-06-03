@@ -209,10 +209,12 @@ public class BedrockGUIOptions {
     }
 
     public void openInventory(Player player, long page, List<DisplayItem> displayItems, String title, Object[] data) {
-        if (!LanguageOptions.getMessage("bedrock-open-gui").isEmpty() && !GUI.playerInfo.containsKey(player.getUniqueId())) {
-            player.sendMessage(LanguageOptions.parse(getPrefix() + getMessage("bedrock-open-gui").replace("{page}", page + ""), player));
-        }
-        player.getOpenInventory().close();
+        NotBounties.getServerImplementation().global().run(() -> {
+            if (!LanguageOptions.getMessage("bedrock-open-gui").isEmpty() && !GUI.playerInfo.containsKey(player.getUniqueId())) {
+                player.sendMessage(LanguageOptions.parse(getPrefix() + getMessage("bedrock-open-gui").replace("{page}", page + ""), player));
+            }
+            player.getOpenInventory().close();
+        });
         OpenBedrockGUI openBedrockGUI = new OpenBedrockGUI(player, page, this, displayItems, title, data);
         openBedrockGUI.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(openBedrockGUI, 1, 4));
 

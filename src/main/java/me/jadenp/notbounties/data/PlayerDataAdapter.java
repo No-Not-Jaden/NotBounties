@@ -25,7 +25,7 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
         if (timeZone != null)
             jsonWriter.name("timeZone").value(timeZone.getID());
         writeRefund(jsonWriter, playerData.getRefundAmount(), playerData.getRefundItems());
-        jsonWriter.name("disableBroadcast").value(playerData.isDisableBroadcast());
+        jsonWriter.name("disableBroadcast").value(playerData.getBroadcastSettings().toString());
         writeRewardHeads(jsonWriter, playerData.getRewardHeads());
         jsonWriter.name("bountyCooldown").value(playerData.getBountyCooldown());
         jsonWriter.name("whitelist");
@@ -91,7 +91,7 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
                 case "timeZone" -> playerData.setTimeZone(TimeZone.getTimeZone(jsonReader.nextString()));
                 case "refundAmount" -> playerData.addRefund(jsonReader.nextDouble());
                 case "refundItems" -> playerData.addRefund(Arrays.asList(SerializeInventory.itemStackArrayFromBase64(jsonReader.nextString())));
-                case "disableBroadcast" -> playerData.setDisableBroadcast(jsonReader.nextBoolean());
+                case "disableBroadcast" -> readBroadcast(jsonReader, playerData);
                 case "rewardHeads" -> readRewardHeads(jsonReader, playerData);
                 case "bountyCooldown" -> playerData.setBountyCooldown(jsonReader.nextLong());
                 case "whitelist" -> playerData.setWhitelist(new WhitelistTypeAdapter().read(jsonReader));
@@ -103,6 +103,22 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
 
         jsonReader.endObject();
         return playerData;
+    }
+
+    private void readBroadcast(JsonReader jsonReader, PlayerData playerData) throws IOException {
+        PlayerData.BroadcastSettings broadcastSettings;
+        if (jsonReader.peek() == JsonToken.BOOLEAN) {
+            // old style
+            broadcastSettings = jsonReader.nextBoolean() ? PlayerData.BroadcastSettings.EXTENDED : PlayerData.BroadcastSettings.DISABLE;
+        } else {
+            try {
+                broadcastSettings = PlayerData.BroadcastSettings.valueOf(jsonReader.nextString());
+            } catch (IllegalArgumentException e) {
+                // unknown value
+                broadcastSettings = PlayerData.BroadcastSettings.EXTENDED;
+            }
+        }
+        playerData.setBroadcastSettings(broadcastSettings);
     }
 
     private void readRewardHeads(JsonReader jsonReader, PlayerData playerData) throws IOException {

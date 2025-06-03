@@ -415,7 +415,7 @@ public class LanguageOptions {
             str = str.replace("{mode}", mode);
             mode = whitelist.isBlacklist() ? "false" : "true";
             str = str.replace("{mode_raw}", mode);
-            String notification = playerData.isDisableBroadcast() ? "false" : "true";
+            String notification = playerData.getBroadcastSettings().toString();
             str = str.replace("{notification}", notification);
             str = str.replace("{immunity}", NumberFormatting.formatNumber(ImmunityManager.getImmunity(receiver.getUniqueId())));
             // {whitelist2} turns into the name of the second player in the receiver's whitelist
@@ -453,10 +453,12 @@ public class LanguageOptions {
                     str = str.replace(("{player" + slotString + "}"), (replacement));
                 }
             }
+            // papi parse
+            if (ConfigOptions.getIntegrations().isPapiEnabled()) {
+                str = new PlaceholderAPIClass().parse(receiver, str);
+            }
         }
-        if (ConfigOptions.getIntegrations().isPapiEnabled() && receiver != null) {
-            str = new PlaceholderAPIClass().parse(receiver, str);
-        }
+
         return color(str);
     }
 

@@ -3,6 +3,7 @@ package me.jadenp.notbounties.features;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.PlayerData;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
@@ -324,7 +325,7 @@ public class ActionCommands {
         } else if (command.startsWith("[broadcast] ")) {
             String message = command.substring(12);
             for (Player p : Bukkit.getOnlinePlayers()) {
-                if (!DataManager.getPlayerData(p.getUniqueId()).isDisableBroadcast()) {
+                if (DataManager.getPlayerData(p.getUniqueId()).getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE) {
                     p.sendMessage(LanguageOptions.parse(getPrefix() + message, killer));
                 }
             }

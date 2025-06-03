@@ -520,7 +520,7 @@ public class DataManager {
                 if (!timedBounties.isEmpty())
                     TimedBounties.setNextBounties(timedBounties);
                 if (configuration.isSet("disable-broadcast"))
-                    configuration.getStringList("disable-broadcast").forEach(s -> getPlayerData(UUID.fromString(s)).setDisableBroadcast(true));
+                    configuration.getStringList("disable-broadcast").forEach(s -> getPlayerData(UUID.fromString(s)).setBroadcastSettings(PlayerData.BroadcastSettings.DISABLE));
 
                 i = 0;
                 while (configuration.getString("head-rewards." + i + ".setter") != null) {

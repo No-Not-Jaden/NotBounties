@@ -146,7 +146,7 @@ public class BountyExpansion extends PlaceholderExpansion {
         }
 
         if (params.equalsIgnoreCase("notification")) {
-            return DataManager.getPlayerData(player.getUniqueId()).isDisableBroadcast() + "";
+            return DataManager.getPlayerData(player.getUniqueId()).getBroadcastSettings() + "";
         }
 
         if (params.equalsIgnoreCase("mode")) {
