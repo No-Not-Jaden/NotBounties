@@ -85,7 +85,7 @@ public class MurderBounties {
                     && (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01)) {
                 // increase
                 if (murderBountyIncrease > 0) {
-                    addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                    addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
                     killer.sendMessage(parse(getPrefix() + getMessage("murder"), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), player));
                 }
                 if (!commands.isEmpty())

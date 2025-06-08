@@ -6,9 +6,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class WhitelistTypeAdapter extends TypeAdapter<Whitelist> {
     @Override
@@ -36,7 +34,7 @@ public class WhitelistTypeAdapter extends TypeAdapter<Whitelist> {
         }
 
         boolean blacklist = false;
-        List<UUID> uuids = new ArrayList<>();
+        SortedSet<UUID> uuids = new TreeSet<>();
         jsonReader.beginObject();
         while (jsonReader.hasNext()) {
             String name = jsonReader.nextName();

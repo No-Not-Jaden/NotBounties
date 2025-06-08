@@ -178,10 +178,6 @@ public class ConfigOptions {
         autoBounties.loadFile(plugin);
         databases.loadFile(plugin);
 
-        if (!firstStart) {
-            ImmunityManager.loadPlayerData();
-        }
-
         hiddenNames = plugin.getConfig().getStringList("hide-stats");
         updateNotification = plugin.getConfig().getString("update-notification");
         npcClaim = plugin.getConfig().getBoolean("npc-claim");

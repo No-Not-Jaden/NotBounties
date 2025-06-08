@@ -433,7 +433,7 @@ public class LanguageOptions {
                 if (whitelist.getList().size() > num)
                     str = str.replace("{whitelist" + stringValue + "}", "");
                 else
-                    str = str.replace("{whitelist" + stringValue + "}", LoggedPlayers.getPlayerName(whitelist.getList().get(num-1)));
+                    str = str.replace("{whitelist" + stringValue + "}", LoggedPlayers.getPlayerName(whitelist.getList().getLast()));
             }
             // parsing for GUI
             if (receiver.isOnline() && GUI.playerInfo.containsKey(receiver.getUniqueId())) {

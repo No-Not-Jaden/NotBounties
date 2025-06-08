@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Bounty implements Comparable<Bounty>, Inconsistent{
     private final UUID uuid;
@@ -163,7 +164,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
                 return;
             }
         }
-        setters.add(new Setter(LoggedPlayers.getPlayerName(uuid), uuid, change, new ArrayList<>(), System.currentTimeMillis(), false, new Whitelist(new ArrayList<>(), false), BountyExpire.getTimePlayed(uuid)));
+        setters.add(new Setter(LoggedPlayers.getPlayerName(uuid), uuid, change, new ArrayList<>(), System.currentTimeMillis(), false, new Whitelist(new TreeSet<>(), false), BountyExpire.getTimePlayed(uuid)));
     }
 
     /**
@@ -248,17 +249,11 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
         return setters;
     }
 
-    public List<UUID> getAllWhitelists() {
-        if (Whitelist.isVariableWhitelist()) {
-            return setters.stream().map(setter -> DataManager.getPlayerData(setter.getUuid()).getWhitelist()).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).toList();
-        }
-        return setters.stream().map(Setter::getWhitelist).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).toList();
+    public Set<UUID> getAllWhitelists() {
+        return setters.stream().map(Setter::getWhitelist).filter(whitelist -> !whitelist.isBlacklist()).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toSet());
     }
-    public List<UUID> getAllBlacklists() {
-        if (Whitelist.isVariableWhitelist()) {
-            return setters.stream().map(setter -> DataManager.getPlayerData(setter.getUuid()).getWhitelist()).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).toList();
-        }
-        return setters.stream().map(Setter::getWhitelist).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).toList();
+    public Set<UUID> getAllBlacklists() {
+        return setters.stream().map(Setter::getWhitelist).filter(Whitelist::isBlacklist).flatMap(whitelist -> whitelist.getList().stream()).collect(Collectors.toSet());
     }
 
     /**

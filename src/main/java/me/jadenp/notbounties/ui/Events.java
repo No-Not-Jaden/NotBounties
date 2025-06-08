@@ -226,7 +226,7 @@ public class Events implements Listener {
         if (WantedTags.isEnabled() || !BountyBoard.getBountyBoards().isEmpty())
             RemovePersistentEntitiesEvent.cleanChunk(event.getPlayer().getLocation());
 
-
+        playerData.setLastSeen(System.currentTimeMillis());
     }
 
 

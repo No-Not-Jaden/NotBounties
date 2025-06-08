@@ -21,8 +21,9 @@ public class PlayerData {
     private BroadcastSettings broadcastSettings = BroadcastSettings.EXTENDED;
     private final List<RewardHead> rewardHeads = new LinkedList<>();
     private long bountyCooldown = 0;
-    private Whitelist whitelist = new Whitelist(new ArrayList<>(), false);
+    private Whitelist whitelist = new Whitelist(new TreeSet<>(), false);
     private boolean newPlayer = true;
+    private long lastSeen = 0;
 
     public void setNewPlayer(boolean newPlayer) {
         this.newPlayer = newPlayer;
@@ -131,5 +132,13 @@ public class PlayerData {
 
     public Whitelist getWhitelist() {
         return whitelist;
+    }
+
+    public long getLastSeen() {
+        return lastSeen;
+    }
+
+    public void setLastSeen(long lastSeen) {
+        this.lastSeen = lastSeen;
     }
 }

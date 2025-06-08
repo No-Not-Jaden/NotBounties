@@ -16,7 +16,7 @@ public class Money extends ResourceConfiguration {
     private double buyOwnCostMultiply;
     @Override
     protected void loadConfiguration(YamlConfiguration config) {
-        NumberFormatting.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("currency")), config.getConfigurationSection("number-formatting"));
+        NumberFormatting.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("currency")), config.getConfigurationSection("number-formatting"), plugin);
         redeemRewardLater.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("redeem-reward-later")));
 
         minBounty = config.getDouble("minimum-bounty");

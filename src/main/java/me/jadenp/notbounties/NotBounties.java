@@ -137,11 +137,13 @@ public final class NotBounties extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(new RemovePersistentEntitiesEvent(), this);
 
         try {
+            DataManager.loadData(this);
             loadConfig();
             if (ChallengeManager.isEnabled()) {
                 ChallengeManager.readChallengeData();
             }
-            DataManager.loadData();
+
+            ImmunityManager.loadPlayerData();
         } catch (IOException e) {
             getLogger().severe("[NotBounties] Failed to read player data!");
             getLogger().severe(e.toString());

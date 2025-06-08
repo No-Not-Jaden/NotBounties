@@ -4,8 +4,8 @@ import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.PlayerData;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.tasks.LoadPlaytimeTask;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -82,7 +82,7 @@ public class ImmunityManager {
     /**
      * The time in seconds that a new player must have in playtime before a bounty can be set on them.
      */
-    private static long newPlayerImmunity;
+    private static long newPlayerImmunity = -1;
     /**
      * Whether the notbounties.immune permission and other permission nodes gives players immunity
      */
@@ -115,8 +115,23 @@ public class ImmunityManager {
         permanentCost = configuration.getDouble("permanent-immunity.cost");
         scalingRatio = configuration.getDouble("scaling-immunity.ratio");
         gracePeriod = configuration.getLong("grace-period");
-        newPlayerImmunity = configuration.getLong("new-player-immunity");
         permissionImmunity = configuration.getBoolean("permission-immunity");
+
+        // When the server starts, SaveManager loads the old newPlayerImmunity value from last start before this is run.
+        long oldNewPlayerImmunity = newPlayerImmunity;
+        newPlayerImmunity = configuration.getLong("new-player-immunity");
+        if (oldNewPlayerImmunity != newPlayerImmunity) {
+            // immunity changed - recalculate new player immunity for players
+            if (newPlayerImmunity > 0) {
+                LoadPlaytimeTask loadPlaytimeTask = new LoadPlaytimeTask(newPlayerImmunity > oldNewPlayerImmunity);
+                loadPlaytimeTask.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(loadPlaytimeTask, 1, 1));
+            } else {
+                // disabled
+                for (UUID uuid : DataManager.getPlayerDataMap().keySet()) {
+                    DataManager.getPlayerData(uuid).setNewPlayer(false);
+                }
+            }
+        }
 
         if (immunityType == ImmunityType.TIME) {
             // convert saved times if necessary
@@ -160,11 +175,7 @@ public class ImmunityManager {
                 }
             }
         }
-        // check playtime
-        for (UUID uuid : DataManager.getPlayerDataMap().keySet()) {
-            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-            DataManager.getPlayerData(uuid).setNewPlayer(player.getStatistic(Statistic.PLAY_ONE_MINUTE) < newPlayerImmunity);
-        }
+
     }
 
     /**
@@ -294,8 +305,6 @@ public class ImmunityManager {
                 || (permissionImmunity && DataManager.getPlayerData(uuid).hasGeneralImmunity())) {
             return ImmunityType.PERMANENT;
         }
-        // check for new player immunity
-        if (DataManager.getPlayerData(uuid).isNewPlayer()) return ImmunityType.NEW_PLAYER;
         // check for bought immunity
         switch (immunityType) {
             case TIME:
@@ -313,6 +322,8 @@ public class ImmunityManager {
             default:
                 return ImmunityType.DISABLE;
         }
+        // check for new player immunity
+        if (DataManager.getPlayerData(uuid).isNewPlayer()) return ImmunityType.NEW_PLAYER;
         return ImmunityType.DISABLE;
     }
 
@@ -353,6 +364,10 @@ public class ImmunityManager {
         return newPlayerImmunity;
     }
 
+    public static void setNewPlayerImmunity(long newPlayerImmunity) {
+        ImmunityManager.newPlayerImmunity = newPlayerImmunity;
+    }
+
     /**
      * Check permission immunity for a player and store the results in their playerdata.
      * @param player Player to check the immunity for.
@@ -363,7 +378,9 @@ public class ImmunityManager {
         playerData.setTimedImmunity(player.hasPermission("notbounties.immunity.timed"));
         playerData.setRandomImmunity(player.hasPermission("notbounties.immunity.random"));
         playerData.setMurderImmunity(player.hasPermission("notbounties.immunity.murder"));
-        playerData.setNewPlayer(player.getStatistic(Statistic.PLAY_ONE_MINUTE) < newPlayerImmunity);
+        if (playerData.isNewPlayer())
+            NotBounties.getServerImplementation().global().run(() -> playerData.setNewPlayer(((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 1200) < newPlayerImmunity));
+
     }
 
     /**

@@ -111,7 +111,7 @@ public class TimedBounties {
                         if (!hasBounty(player.getUniqueId()) || !isMaxed(Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty())) {
                             // check immunity
                             if ((ConfigOptions.getAutoBounties().isOverrideImmunity() || ImmunityManager.getAppliedImmunity(player.getUniqueId(), bountyIncrease) == ImmunityManager.ImmunityType.DISABLE) && !hasImmunity(player))
-                                addBounty(player, bountyIncrease, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                                addBounty(player, bountyIncrease, new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
                         }
                     } else {
                         nextBounties.remove(entry.getKey());

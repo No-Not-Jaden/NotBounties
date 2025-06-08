@@ -757,7 +757,7 @@ public class GUI implements Listener {
                     }
                     break;
                 case "set-whitelist":
-                    List<UUID> whitelist = DataManager.getPlayerData(event.getWhoClicked().getUniqueId()).getWhitelist().getList();
+                    Set<UUID> whitelist = DataManager.getPlayerData(event.getWhoClicked().getUniqueId()).getWhitelist().getList();
                     if (!whitelist.remove(playerUUID)) {
                         if (whitelist.size() < 10)
                             whitelist.add(playerUUID);

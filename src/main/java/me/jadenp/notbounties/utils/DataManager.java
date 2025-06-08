@@ -19,7 +19,6 @@ import me.jadenp.notbounties.features.settings.display.map.BountyBoardTypeAdapte
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
 import me.jadenp.notbounties.features.ConfigOptions;
-import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.data.RewardHead;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
@@ -62,240 +61,24 @@ public class DataManager {
     private static final Map<UUID, PlayerData> playerDataMap = Collections.synchronizedMap(new HashMap<>());
     private static Plugin plugin;
 
-    public static void loadData() throws IOException {
+    public static void loadData(Plugin plugin) throws IOException {
+        DataManager.plugin = plugin;
         localData = new LocalData();
         loadOldData();
-        readPlayerData();
-        readBounties();
-        readStats();
-        // load player data for immunity
-        // currently this is just for time immunity
-        ImmunityManager.loadPlayerData();
+        // load modern data
+        SaveManager.read(plugin);
+
 
     }
 
-    private static void readStats() throws IOException {
-        File statsFile = new File(plugin.getDataFolder() + File.separator + "data" + File.separator + "player_stats.json");
-        if (!statsFile.exists())
-            return;
-        try (JsonReader reader = new JsonReader(new FileReader(statsFile))) {
-            if (reader.peek() == JsonToken.NULL) {
-                reader.nextNull();
-                return;
-            }
-            reader.beginArray();
-            PlayerStatAdapter adapter = new PlayerStatAdapter();
-            while (reader.hasNext()) {
-                reader.beginObject();
-                UUID uuid = null;
-                PlayerStat playerStat = null;
-                while (reader.hasNext()) {
-                    String name = reader.nextName();
-                    if (name.equals("uuid"))
-                        uuid = UUID.fromString(reader.nextString());
-                    else if (name.equals("stats"))
-                        playerStat = adapter.read(reader);
-                }
-                reader.endObject();
-                localData.addStats(uuid, playerStat);
-            }
-            reader.endArray();
+    protected static void addPlayerData(Map<UUID, PlayerData> playerDataMap) {
+        synchronized (DataManager.playerDataMap) {
+            DataManager.playerDataMap.putAll(playerDataMap);
         }
     }
 
-    private static void readBounties() throws IOException {
-        File bountiesFile = new File(plugin.getDataFolder() + File.separator + "data" + File.separator + "bounties.json");
-        if (!bountiesFile.exists())
-            return;
-        try (JsonReader reader = new JsonReader(new FileReader(bountiesFile))) {
-            if (reader.peek() == JsonToken.NULL) {
-                reader.nextNull();
-                return;
-            }
-            reader.beginArray();
-            BountyTypeAdapter adapter = new BountyTypeAdapter();
-            while (reader.hasNext()) {
-                localData.addBounty(adapter.read(reader));
-            }
-            reader.endArray();
-        }
-    }
-
-    private static void readPlayerData() throws IOException {
-        ChallengeManager.setNextChallengeChange(1); // prepare new challenges if the last challenge change wasn't read
-        File playerDataFile = new File(plugin.getDataFolder() + File.separator + "data" + File.separator + "player_data.json");
-        if (!playerDataFile.exists())
-            return;
-        try (JsonReader reader = new JsonReader(new FileReader(playerDataFile))) {
-            if (reader.peek() == JsonToken.NULL) {
-                reader.nextNull();
-                return;
-            }
-            reader.beginObject();
-            while (reader.hasNext()) {
-                String name = reader.nextName();
-                switch (name) {
-                    case "players" -> playerDataMap.putAll(readPlayers(reader));
-                    case "trackedBounties" -> BountyTracker.setTrackedBounties(readTrackedBounties(reader));
-                    case "databaseSyncTimes" -> {
-                        Map<String, Long> syncTimes = readDatabaseSyncTimes(reader);
-                        for (AsyncDatabaseWrapper databaseWrapper : databases) {
-                            if (syncTimes.containsKey(databaseWrapper.getName()))
-                                databaseWrapper.setLastSync(syncTimes.get(databaseWrapper.getName()));
-                        }
-                    }
-                    case "nextRandomBounty" -> {
-                        RandomBounties.setNextRandomBounty(reader.nextLong());
-                        if (!RandomBounties.isEnabled()) {
-                            RandomBounties.setNextRandomBounty(0);
-                        } else if (RandomBounties.getNextRandomBounty() == 0) {
-                            RandomBounties.setNextRandomBounty();
-                        }
-                    }
-                    case "nextTimedBounties" -> TimedBounties.setNextBounties(readTimedBounties(reader));
-                    case "bountyBoards" -> BountyBoard.addBountyBoards(readBountyBoards(reader));
-                    case "nextChallengeChange" -> ChallengeManager.setNextChallengeChange(reader.nextLong());
-                    case "serverID" -> databaseServerID = UUID.fromString(reader.nextString());
-                    case "paused" -> NotBounties.setPaused(reader.nextBoolean());
-                    case "wantedTagLocations" -> readWantedTagLocations(reader);
-                    default -> {
-                        // unexpected name
-                    }
-                }
-            }
-            reader.endObject();
-        }
-
-        // tell LoggedPlayers that it can read all the player names and store them in an easy to read hashmap
-        LoggedPlayers.loadPlayerData();
-    }
-
-    private static void readWantedTagLocations(JsonReader reader) throws IOException {
-        List<Location> locations = getWantedTagLocations(reader);
-        if (!locations.isEmpty()) {
-            NotBounties.getServerImplementation().global().runDelayed(task -> {
-                RemovePersistentEntitiesEvent.cleanChunks(locations);
-            }, 100);
-        }
-    }
-
-    private static List<Location> getWantedTagLocations(JsonReader reader) throws IOException {
-        List<String> stringList = new ArrayList<>();
-        reader.beginArray();
-        while (reader.hasNext()) {
-            stringList.add(reader.nextString());
-        }
-        reader.endArray();
-
-        return stringListToLocationList(stringList);
-    }
-
-    private static List<BountyBoard> readBountyBoards(JsonReader reader) throws IOException {
-        List<BountyBoard> bountyBoards = new LinkedList<>();
-        reader.beginArray();
-        BountyBoardTypeAdapter bountyBoardTypeAdapter = new BountyBoardTypeAdapter();
-        while (reader.hasNext()) {
-            BountyBoard bountyBoard = bountyBoardTypeAdapter.read(reader);
-            if (bountyBoard != null)
-                bountyBoards.add(bountyBoard);
-            else
-                plugin.getLogger().info("Could not load a saved bounty board. (Location does not exist)");
-        }
-        reader.endArray();
-
-        return bountyBoards;
-    }
-
-    private static Map<String, Long> readDatabaseSyncTimes(JsonReader reader) throws IOException {
-        Map<String, Long> syncMap = new HashMap<>();
-        reader.beginArray();
-        while (reader.hasNext()) {
-            reader.beginObject();
-            String dbName = null;
-            long time = 0;
-            while (reader.hasNext()) {
-                String name = reader.nextName();
-                switch (name) {
-                    case "name" -> dbName = reader.nextString();
-                    case "time" -> time = reader.nextLong();
-                    default -> {
-                        // unexpected name
-                    }
-                }
-            }
-            reader.endObject();
-            syncMap.put(dbName, time);
-        }
-        reader.endArray();
-
-        return syncMap;
-    }
-
-    private static BiMap<Integer, UUID> readTrackedBounties(JsonReader reader) throws IOException {
-        BiMap<Integer, UUID> map = HashBiMap.create();
-        reader.beginArray();
-        while (reader.hasNext()) {
-            reader.beginObject();
-            int num = -404;
-            UUID uuid = null;
-            while (reader.hasNext()) {
-                String name = reader.nextName();
-                if (name.equals("id"))
-                    num = reader.nextInt();
-                else if (name.equals("uuid"))
-                    uuid = UUID.fromString(reader.nextString());
-            }
-            reader.endObject();
-            map.put(num, uuid);
-        }
-        reader.endArray();
-
-        return map;
-    }
-
-    private static Map<UUID, Long> readTimedBounties(JsonReader reader) throws IOException {
-        Map<UUID, Long> timedBounties = new HashMap<>();
-        reader.beginArray();
-        while (reader.hasNext()) {
-            reader.beginObject();
-            UUID uuid = null;
-            long time = 0;
-            while (reader.hasNext()) {
-                String name = reader.nextName();
-                if (name.equals("time"))
-                    time = reader.nextLong();
-                else if (name.equals("uuid"))
-                    uuid = UUID.fromString(reader.nextString());
-            }
-            reader.endObject();
-            timedBounties.put(uuid, time);
-        }
-        reader.endArray();
-
-        return timedBounties;
-    }
-
-    private static Map<UUID, PlayerData> readPlayers(JsonReader reader) throws IOException {
-        Map<UUID, PlayerData> data = new HashMap<>();
-        reader.beginArray();
-        PlayerDataAdapter adapter = new PlayerDataAdapter();
-        while (reader.hasNext()) {
-            reader.beginObject();
-            UUID uuid = null;
-            PlayerData playerData = null;
-            while (reader.hasNext()) {
-                String name = reader.nextName();
-                if (name.equals("uuid"))
-                    uuid = UUID.fromString(reader.nextString());
-                else if (name.equals("data"))
-                    playerData = adapter.read(reader);
-            }
-            reader.endObject();
-            data.put(uuid, playerData);
-        }
-        reader.endArray();
-
-        return data;
+    protected static void setDatabaseServerID(UUID databaseServerID) {
+        DataManager.databaseServerID = databaseServerID;
     }
 
     public static Map<UUID, PlayerData> getPlayerDataMap() {
@@ -328,7 +111,6 @@ public class DataManager {
      * @param plugin Plugin that is loading the configuration.
      */
     public static void loadDatabaseConfig(ConfigurationSection configuration, Plugin plugin) {
-        DataManager.plugin = plugin;
         for (String databaseName : configuration.getKeys(false)) {
             boolean newDatabase = true;
             for (NotBountiesDatabase database : databases) {
@@ -455,7 +237,7 @@ public class DataManager {
                             whitelistUUIDs = configuration.getStringList("bounties." + i + "." + l + ".whitelist");
                         boolean blacklist = configuration.isSet("bounties." + i + "." + l + ".blacklist") && configuration.getBoolean("bounties." + i + "." + l + ".blacklist");
 
-                        List<UUID> convertedUUIDs = new ArrayList<>();
+                        SortedSet<UUID> convertedUUIDs = new TreeSet<>();
                         for (String uuid : whitelistUUIDs)
                             convertedUUIDs.add(UUID.fromString(uuid));
                         // check for old CONSOLE UUID
@@ -499,7 +281,7 @@ public class DataManager {
                             timedBounties.put(uuid, configuration.getLong("data." + uuid + ".next-bounty"));
                         if (Whitelist.isVariableWhitelist() && configuration.isSet("data." + uuid + ".whitelist"))
                             try {
-                                getPlayerData(uuid).setWhitelist(new Whitelist(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).collect(Collectors.toList()), configuration.getBoolean("data." + uuid + ".blacklist")));
+                                getPlayerData(uuid).setWhitelist(new Whitelist(new TreeSet<>(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).toList()), configuration.getBoolean("data." + uuid + ".blacklist")));
                             } catch (IllegalArgumentException e) {
                                 plugin.getLogger().warning("Failed to get whitelisted uuids from: " + uuid + "\nThis list will be overwritten in 5 minutes");
                             }
@@ -874,7 +656,7 @@ public class DataManager {
             if (lastSetter == null) {
                 // either no setter uuid was specified, or the specified uuid was not in the bounty
                 // add a new setter
-                bounty.addBounty(change, new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                bounty.addBounty(change, new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
             } else {
                 // edit last setter with the remaining change
                 // this may cause the amount to be negative
@@ -1151,19 +933,6 @@ public class DataManager {
         List<Bounty> localBounties = getAllBounties(2);
         Map<UUID, PlayerStat> localStats = getAllStats();
 
-        if (database instanceof TempDatabase tempDatabase && isPermDatabaseConnected()) {
-            tempDatabase.replaceWithDefaultServerID();
-        } else if (!(database instanceof TempDatabase)) {
-            // remove local server ID from local data
-            localData.syncPermData();
-            // remove server ID of connected temp databases
-            for (AsyncDatabaseWrapper otherDatabase : databases) {
-                if (otherDatabase.isConnected() && otherDatabase.getDatabase() instanceof TempDatabase tempDatabase) {
-                    tempDatabase.replaceWithDefaultServerID();
-                }
-            }
-        }
-
 
         long lastSyncTime = database.getLastSync();// get last sync time
         database.setLastSync(System.currentTimeMillis());
@@ -1220,6 +989,7 @@ public class DataManager {
                             localStats.put(entry.getKey(), entry.getValue());
                         }
                     }
+
                     // add changes to database
                     databaseWrapper.addStats(localStats);
                     // add changes to the local data
@@ -1233,6 +1003,20 @@ public class DataManager {
                 }
             }
         }
+        // sync server IDs
+        if (database instanceof TempDatabase tempDatabase && isPermDatabaseConnected()) {
+            tempDatabase.replaceWithDefaultServerID();
+        } else if (!(database instanceof TempDatabase)) {
+            // remove local server ID from local data
+            localData.syncPermData();
+            // remove server ID of connected temp databases
+            for (AsyncDatabaseWrapper otherDatabase : databases) {
+                if (otherDatabase.isConnected() && otherDatabase.getDatabase() instanceof TempDatabase tempDatabase) {
+                    tempDatabase.replaceWithDefaultServerID();
+                }
+            }
+        }
+
         // log any unknown names in the database bounties
         for (Bounty bounty : databaseAdded) {
             if (!LoggedPlayers.isLogged(bounty.getUUID()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)) {

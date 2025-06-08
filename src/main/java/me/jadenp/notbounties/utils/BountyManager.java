@@ -371,7 +371,7 @@ public class BountyManager {
         final Bounty claimedBounty = new Bounty(bounty, killer.getUniqueId()); // create a copy of the claimed part of the bounty (for reference later)
         // get a copy of all the setters that are to be claimed
         List<Setter> claimedBounties = new ArrayList<>(bounty.getSetters());
-        claimedBounties.removeIf(setter -> !setter.canClaim(killer));
+        //claimedBounties.removeIf(setter -> !setter.canClaim(killer)); // this shouldn't do anything
 
         // broadcast message
         String message = parse(getPrefix() + getMessage("claim-bounty-broadcast"), killer, bounty.getTotalDisplayBounty(killer), player);
@@ -381,7 +381,7 @@ public class BountyManager {
                 p.sendMessage(message);
             }
         }
-        NotBounties.debugMessage(" Claim messages sent to all players.", false);
+        NotBounties.debugMessage("Claim messages sent to all players.", false);
 
         // hand out reward heads
         RewardHead rewardHead = new RewardHead(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer));
@@ -464,8 +464,9 @@ public class BountyManager {
                 }
             }
         }
-        Bounty rewardedBounty = TrickleBounties.getRewardedBounty(bounty, killer);
+        Bounty rewardedBounty = TrickleBounties.getRewardedBounty(claimedBounty, killer);
         NotBounties.debugMessage("Redeeming Reward: of " + rewardedBounty.getTotalDisplayBounty(), false);
+        NotBounties.debugMessage(rewardedBounty.toString(), false);
         if (!ConfigOptions.getMoney().getRedeemRewardLater().isVouchers()) {
             // give currency
             // check if the player is in a duel or reward later is set in the config

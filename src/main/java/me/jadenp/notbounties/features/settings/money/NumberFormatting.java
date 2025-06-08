@@ -22,6 +22,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -30,6 +31,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.stream.IntStream;
 
 
@@ -77,8 +79,10 @@ public class NumberFormatting {
     private static ItemValueMode bountyItemsUseItemValues = ItemValueMode.AUTO;
     private static boolean essentialsEnabled;
     private static EssentialsXClass essentialsXClass;
+    private static Plugin plugin;
 
-    public static void loadConfiguration(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting) {
+    public static void loadConfiguration(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting, Plugin plugin) {
+        NumberFormatting.plugin = plugin;
         essentialsEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Essentials");
         if (essentialsEnabled)
             essentialsXClass = new EssentialsXClass();
@@ -88,7 +92,7 @@ public class NumberFormatting {
             manualEconomy = ManualEconomy.valueOf(Objects.requireNonNull(currencyOptions.getString("manual-economy")).toUpperCase());
         } catch (IllegalArgumentException e) {
             manualEconomy = ManualEconomy.AUTOMATIC;
-            Bukkit.getLogger().warning("[NotBounties] Invalid manual-economy type!");
+            plugin.getLogger().warning("Invalid manual-economy type!");
         }
 
         if (vaultEnabled && !overrideVault) {
@@ -122,7 +126,7 @@ public class NumberFormatting {
             try {
                 customModelDatas.add(Integer.parseInt(customModelData));
             } catch (NumberFormatException e) {
-                Bukkit.getLogger().warning("Could not get custom model data <" + customModelData + "> for currency: " + currencyName);
+                plugin.getLogger().warning("Could not get custom model data <" + customModelData + "> for currency: " + currencyName);
                 customModelDatas.add(-1);
             }
             // seperate weight and value attached if there is any
@@ -138,8 +142,8 @@ public class NumberFormatting {
             // placeholder or item
             if (currencyName.contains("%")){
                 if (!ConfigOptions.getIntegrations().isPapiEnabled() && !(vaultEnabled && !overrideVault)) {
-                    Bukkit.getLogger().warning("Detected a placeholder as currency, but PlaceholderAPI is not enabled!");
-                    Bukkit.getLogger().warning("Ignoring placeholder from currency.");
+                    plugin.getLogger().warning("Detected a placeholder as currency, but PlaceholderAPI is not enabled!");
+                    plugin.getLogger().warning("Ignoring placeholder from currency.");
                     currencyIterator.remove();
                     continue;
                 }
@@ -148,8 +152,8 @@ public class NumberFormatting {
                 try {
                     Material.valueOf(currencyName);
                 } catch (IllegalArgumentException e) {
-                    Bukkit.getLogger().warning("Could not get an item from: " + currencyName + "!");
-                    Bukkit.getLogger().warning("Ignoring item from currency.");
+                    plugin.getLogger().warning("Could not get an item from: " + currencyName + "!");
+                    plugin.getLogger().warning("Ignoring item from currency.");
                     currencyIterator.remove();
                     continue;
                 }
@@ -165,7 +169,7 @@ public class NumberFormatting {
                     else
                         currencyValues.put(currencyName, Float.parseFloat(value));
                 } catch (NumberFormatException e) {
-                    Bukkit.getLogger().warning("Could not get a number from value " + value + " after currency " + currencyName + "!");
+                    plugin.getLogger().warning("Could not get a number from value " + value + " after currency " + currencyName + "!");
                     currencyValues.put(currencyName, 1f);
                 }
                 if (weight.isEmpty())
@@ -174,15 +178,18 @@ public class NumberFormatting {
                     try {
                         currencyWeights.add(Float.parseFloat(weight));
                     } catch (NumberFormatException e) {
-                        Bukkit.getLogger().warning("Could not get a number from weight " + weight + " after currency " + currencyName + "!");
+                        plugin.getLogger().warning("Could not get a number from weight " + weight + " after currency " + currencyName + "!");
                         currencyWeights.add(0f);
                     }
             }
         }
         // in case all the currency is invalid
         if (currency.isEmpty() && currencyOptions.isSet("object")){
-            Bukkit.getLogger().info("No currency to use. Defaulting to DIAMOND as currency");
+            if (!vaultEnabled || overrideVault)
+                plugin.getLogger().info("No currency to use. Defaulting to DIAMOND as currency");
             currency.add("DIAMOND");
+            currencyValues.put("DIAMOND", 1f);
+            currencyWeights.add(0f);
         }
 
 
@@ -202,27 +209,27 @@ public class NumberFormatting {
             addSingleCurrency = CurrencyAddType.valueOf(Objects.requireNonNull(currencyOptions.getString("add-single-currency")).toUpperCase());
         } catch (IllegalArgumentException e) {
             addSingleCurrency = CurrencyAddType.DESCENDING;
-            Bukkit.getLogger().warning("[NotBounties] Invalid add-single-currency type!");
+            plugin.getLogger().warning("Invalid add-single-currency type!");
         }
 
         // warning for not enough remove/add commands
         if (!vaultEnabled || overrideVault) {
             if (addSingleCurrency == CurrencyAddType.BIMODAL) {
                 if (currency.size() < 2) {
-                    Bukkit.getLogger().warning("Using bimodal currency but there aren't 2 currencies to use!");
+                    plugin.getLogger().warning("Using bimodal currency but there aren't 2 currencies to use!");
                 } else {
                     if (currency.get(0).contains("%") && addCommands.isEmpty())
-                        Bukkit.getLogger().warning("Detected a placeholder for the first currency, but there are no add commands!");
+                        plugin.getLogger().warning("Detected a placeholder for the first currency, but there are no add commands!");
                     if (currency.get(1).contains("%") && removeCommands.isEmpty())
-                        Bukkit.getLogger().warning("Detected a placeholder for the second currency, but there are no remove commands!");
+                        plugin.getLogger().warning("Detected a placeholder for the second currency, but there are no remove commands!");
                 }
 
             } else {
                 int placeholderCurrencies = (int) currency.stream().filter(currencyName -> currencyName.contains("%")).count();
                 if (addCommands.size() < placeholderCurrencies)
-                    Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + addCommands.size() + " add commands!");
+                    plugin.getLogger().log(Level.WARNING, "Detected {0} placeholder(s) as currency, but there are only {1} add commands!", new Object[]{placeholderCurrencies, addCommands.size()});
                 if (removeCommands.size() < placeholderCurrencies)
-                    Bukkit.getLogger().warning("Detected " + placeholderCurrencies + " placeholder(s) as currency, but there are only " + removeCommands.size() + " remove commands!");
+                    plugin.getLogger().log(Level.WARNING, "Detected {0} placeholder(s) as currency, but there are only {1} remove commands!", new Object[]{placeholderCurrencies, removeCommands.size()});
             }
         }
 
@@ -233,17 +240,17 @@ public class NumberFormatting {
         String pattern = numberFormatting.getString("pattern");
         if (localeString == null) {
             // this shouldn't ever get used because of the auto-generation of missing options
-            Bukkit.getLogger().warning("[NotBounties] No number formatting locale set! Defaulting to en-US.");
+            plugin.getLogger().warning("No number formatting locale set! Defaulting to en-US.");
             localeString = "en-US";
         }
         if (pattern == null) {
             // this shouldn't get used either
-            Bukkit.getLogger().warning("[NotBounties] No number formatting pattern set! Defaulting to \"#,###.##\"");
+            plugin.getLogger().warning("No number formatting pattern set! Defaulting to \"#,###.##\"");
             pattern = "#,###.##";
         }
 
         String[] localeSplit = localeString.split("-");
-        locale = new Locale(localeSplit[0], localeSplit[1]);
+        locale = Locale.of(localeSplit[0], localeSplit[1]);
 
         decimalFormat = new DecimalFormat(pattern, new DecimalFormatSymbols(locale));
 
@@ -255,17 +262,17 @@ public class NumberFormatting {
             try {
                 preDivisions.put(Long.parseLong(s), numberFormatting.getString("divisions." + s));
             } catch (NumberFormatException e) {
-                Bukkit.getLogger().warning("Division is not a number: " + s);
+                plugin.getLogger().warning("Division is not a number: " + s);
             }
         }
-        NumberFormatting.nfDivisions = NumberFormatting.sortByValue(preDivisions);
+        NumberFormatting.nfDivisions = (LinkedHashMap<Long, String>) NumberFormatting.sortByValue(preDivisions);
 
         // bounty items
         try {
             bountyItemMode = BountyItemMode.valueOf(Objects.requireNonNull(currencyOptions.getString("bounty-items.mode")).toUpperCase());
         } catch (IllegalArgumentException e) {
             bountyItemMode = BountyItemMode.DENY;
-            Bukkit.getLogger().warning("[NotBounties] Invalid bounty items mode!");
+            plugin.getLogger().log(Level.WARNING, "Invalid bounty items mode: {0}", currencyOptions.getString("bounty-items.mode"));
         }
         if (currencyOptions.isSet("bounty-items.override-immunity"))
             bountyItemsOverrideImmunity = currencyOptions.getBoolean("bounty-items.override-immunity");
@@ -284,7 +291,7 @@ public class NumberFormatting {
             selectedMode = ItemValueMode.valueOf(currencyOptions.getString("bounty-items.item-values"));
         } catch (IllegalArgumentException e) {
             selectedMode = ItemValueMode.AUTO;
-            Bukkit.getLogger().warning("[NotBounties] Invalid item values mode!");
+            plugin.getLogger().log(Level.WARNING, "Invalid item values mode: {0}", currencyOptions.getString("bounty-items.item-values"));
         }
         if (selectedMode == ItemValueMode.AUTO) {
             if (essentialsEnabled)
@@ -298,7 +305,7 @@ public class NumberFormatting {
         File itemValuesFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "item-values.yml");
         if (!itemValuesFile.exists()) {
             NotBounties.getInstance().saveResource("item-values.yml", false);
-            Bukkit.getLogger().info("[NotBounties] Created new item-values.yml file.");
+            plugin.getLogger().info("Created new item-values.yml file.");
         }
         itemValues.clear();
         YamlConfiguration itemValuesConfig = YamlConfiguration.loadConfiguration(itemValuesFile);
@@ -307,7 +314,7 @@ public class NumberFormatting {
         if (itemValuesConfig.isSet("multiplier"))
             itemValueMultiplier = itemValuesConfig.getDouble("multiplier");
         if (itemValuesConfig.isConfigurationSection("item-values"))
-            for (String key : itemValuesConfig.getConfigurationSection("item-values").getKeys(false)) {
+            for (String key : Objects.requireNonNull(itemValuesConfig.getConfigurationSection("item-values")).getKeys(false)) {
                 String materialName = key;
                 int customModelData = -1;
                 // check if materialName has two arrows <>
@@ -317,7 +324,7 @@ public class NumberFormatting {
                         // parse custom model data for number between arrows
                         customModelData = Integer.parseInt(materialName.substring(materialName.indexOf("<") + 1, materialName.indexOf(">")));
                     } catch (NumberFormatException e) {
-                        Bukkit.getLogger().warning("[NotBounties] Couldn't get custom model data for item value: " + materialName);
+                        plugin.getLogger().warning("Couldn't get custom model data for item value: " + materialName);
                     }
                     materialName = materialName.substring(0, materialName.indexOf("<"));
                 }
@@ -325,7 +332,7 @@ public class NumberFormatting {
                 try {
                     material = Material.valueOf(materialName);
                 } catch (IllegalArgumentException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Invalid material in item-values.yml file: \"" + materialName + "\"");
+                    plugin.getLogger().warning("Invalid material in item-values.yml file: \"" + materialName + "\"");
                     continue;
                 }
                 double value = itemValuesConfig.getDouble("item-values." + key);
@@ -335,16 +342,16 @@ public class NumberFormatting {
                     itemValues.put(material, new ItemValue().addValue(customModelData, value));
             }
         if (itemValuesConfig.isConfigurationSection("enchantment-values"))
-            for (String key : itemValuesConfig.getConfigurationSection("enchantment-values").getKeys(false)) {
+            for (String key : Objects.requireNonNull(itemValuesConfig.getConfigurationSection("enchantment-values")).getKeys(false)) {
                 try {
                     Enchantment enchantment = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(key.toLowerCase()));
                     if (enchantment == null) {
-                        Bukkit.getLogger().warning("[NotBounties] Unknown enchantment for enchantment-values: " + key);
+                        plugin.getLogger().log(Level.WARNING, "Unknown enchantment for enchantment-values: {0}", key);
                         continue;
                     }
                     enchantmentValues.put(enchantment, itemValuesConfig.getDouble("enchantment-values." + key));
                 } catch (IllegalArgumentException e) {
-                    Bukkit.getLogger().warning("[NotBounties] Unknown enchantment for enchantment-values: " + key);
+                    plugin.getLogger().warning("Unknown enchantment for enchantment-values: " + key);
                     NotBounties.debugMessage(e.toString(), true);
                 }
             }
@@ -468,7 +475,6 @@ public class NumberFormatting {
      * @return String value of number
      */
     public static String getValue(double number) {
-        //return decimalFormat.format(number);
         return ruz(String.format("%f",number));
     }
 
@@ -511,11 +517,11 @@ public class NumberFormatting {
             if (vaultClass.withdraw(p, amount)) {
                 return new EnumMap<>(Material.class);
             } else {
-                Bukkit.getLogger().warning("Error withdrawing currency with vault!");
+                plugin.getLogger().warning("Error withdrawing currency with vault!");
             }
         }
         if (currency.isEmpty()){
-            Bukkit.getLogger().warning("Currency is not set up! Run /currency in-game to fix.");
+            plugin.getLogger().warning("Currency is not set up! Run /currency in-game to fix.");
             return new EnumMap<>(Material.class);
         }
         Map<Material, Long> removedItems = new EnumMap<>(Material.class);
@@ -545,7 +551,7 @@ public class NumberFormatting {
 
             double[] balancedRemove = balanceRemoveCurrency(amount, currencyWeightsCopy, getSortedBalance(p, additionalItems), currencyValuesCopy);
             if (modifiedRemoveCommands.size() < balancedRemove.length - 1) {
-                Bukkit.getLogger().warning("[NotBounties] There are not enough remove commands for your currency! Currency will not be removed properly!");
+                plugin.getLogger().warning("There are not enough remove commands for your currency! Currency will not be removed properly!");
             }
             for (int i = 0; i < Math.min(balancedRemove.length-1, modifiedRemoveCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
@@ -626,7 +632,7 @@ public class NumberFormatting {
                 Arrays.fill(currencyWeights, 1);
                 totalWeight = currencyWeights.length;
                 if (balancedAttempt) {
-                    Bukkit.getLogger().warning("[NotBounties] Trying to remove currency without checking balance! Amount exploited: " + amount);
+                    plugin.getLogger().log(Level.WARNING, "Trying to remove currency without checking balance! Amount exploited: {0}", amount);
                     break;
                 }
                 balancedAttempt =  true;
@@ -848,11 +854,11 @@ public class NumberFormatting {
                 NotBounties.debugMessage("Deposited money with vault!", false);
                 return;
             } else {
-                Bukkit.getLogger().warning("Error depositing currency with vault!");
+                plugin.getLogger().warning("Error depositing currency with vault!");
             }
         }
         if (currency.isEmpty()){
-            Bukkit.getLogger().warning("Currency is not set up! Run /currency in-game to fix.");
+            plugin.getLogger().warning("Currency is not set up! Run /currency in-game to fix.");
             return;
         }
         List<String> modifiedAddCommands = new ArrayList<>(addCommands);
@@ -871,7 +877,7 @@ public class NumberFormatting {
             float[] currencyValuesCopy = Floats.toArray(currencyValues.values());
             double[] balancedAdd = balanceAddCurrency(amount, currencyWeightsCopy, currencyValuesCopy);
             if (modifiedAddCommands.size() < balancedAdd.length) {
-                Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
+                plugin.getLogger().warning("There are not enough add commands for your currency! Currency will not be added properly!");
             }
             for (int i = 0; i < Math.min(balancedAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
@@ -947,7 +953,7 @@ public class NumberFormatting {
             NotBounties.debugMessage("Output: " + Arrays.toString(descendingAdd), false);
 
             if (modifiedAddCommands.size() < descendingAdd.length) {
-                Bukkit.getLogger().warning("[NotBounties] There are not enough add commands for your currency! Currency will not be added properly!");
+                plugin.getLogger().warning("There are not enough add commands for your currency! Currency will not be added properly!");
             }
             for (int i = 0; i < Math.min(descendingAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
@@ -1194,14 +1200,14 @@ public class NumberFormatting {
         if (vaultEnabled && !overrideVault)
             return vaultClass.getBalance(player);
         if (currency.isEmpty()){
-            Bukkit.getLogger().warning("[NotBounties] Cannot get balance of player because there is nothing setup for currency!");
+            plugin.getLogger().warning("Cannot get balance of player because there is nothing setup for currency!");
         }
         return IntStream.range(0, currency.size()).mapToDouble(i -> getBalance(player, currency.get(i), customModelDatas.get(i))).sum();
     }
 
     public static double[] getSortedBalance(Player player, List<ItemStack> additionalItems) {
         if (currency.isEmpty()){
-            Bukkit.getLogger().warning("[NotBounties] Cannot get balance of player because there is nothing setup for currency!");
+            plugin.getLogger().warning("Cannot get balance of player because there is nothing setup for currency!");
         }
         double[] sortedBalance = new double[currency.size()];
         for (int i = 0; i < currency.size(); i++){
@@ -1221,24 +1227,31 @@ public class NumberFormatting {
     }
 
     private static double getBalance(OfflinePlayer player, String currencyName, int customModelData){
+        float currencyValue;
+        if (currencyValues.containsKey(currencyName)) {
+            currencyValue = currencyValues.get(currencyName);
+        } else {
+            plugin.getLogger().log(Level.WARNING, "Currency value not set for {0}! This is a bug.", currencyName);
+            currencyValue = 1f;
+        }
         if (currencyName.contains("%")) {
             if (ConfigOptions.getIntegrations().isPapiEnabled()) {
                 // using placeholderAPI
                 String placeholder = new PlaceholderAPIClass().parse(player, currencyName);
                 try {
-                    return tryParse(placeholder) * currencyValues.get(currencyName);
+                    return tryParse(placeholder) * currencyValue;
                 } catch (NumberFormatException e) {
-                    Bukkit.getLogger().warning("Error getting a number from the currency placeholder " + currencyName + "!");
+                    plugin.getLogger().warning("Error getting a number from the currency placeholder " + currencyName + "!");
                     return 0;
                 }
             } else {
-                Bukkit.getLogger().warning("Currency " + currencyName + " for bounties is a placeholder but PlaceholderAPI is not enabled!");
+                plugin.getLogger().log(Level.WARNING, "Currency {0} for bounties is a placeholder but PlaceholderAPI is not enabled!", currencyName);
                 return 0;
             }
         } else {
             // item
             if (player.isOnline())
-                return checkAmount(Objects.requireNonNull(player.getPlayer()), Material.valueOf(currencyName), customModelData) * currencyValues.get(currencyName);
+                return checkAmount(Objects.requireNonNull(player.getPlayer()), Material.valueOf(currencyName), customModelData) * currencyValue;
             return 0;
         }
     }
@@ -1284,7 +1297,6 @@ public class NumberFormatting {
         double amount;
         try {
             amount = decimalFormat.parse(number).doubleValue();
-            //balance = Double.parseDouble(PlaceholderAPI.setPlaceholders(player, NumberFormatting.currency));
         } catch (ParseException e) {
             amount = Double.parseDouble(number);
         }
@@ -1316,7 +1328,7 @@ public class NumberFormatting {
                 (customModelData == -1 || (item.hasItemMeta() && Objects.requireNonNull(item.getItemMeta()).hasCustomModelData() && item.getItemMeta().getCustomModelData() == customModelData));
     }
 
-    public static LinkedHashMap<Long, String> sortByValue(Map<Long, String> hm) {
+    public static Map<Long, String> sortByValue(Map<Long, String> hm) {
         // Create a list from elements of HashMap
         List<Map.Entry<Long, String>> list =
                 new LinkedList<>(hm.entrySet());
@@ -1336,7 +1348,7 @@ public class NumberFormatting {
         return currency;
     }
 
-    public static LinkedHashMap<String, Float> getCurrencyValues() {
+    public static Map<String, Float> getCurrencyValues() {
         return currencyValues;
     }
 

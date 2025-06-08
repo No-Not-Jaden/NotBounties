@@ -96,7 +96,7 @@ public class RandomBounties {
                         double finalPrice = price[0];
 
                         NotBounties.getServerImplementation().global().run((Consumer<TaskImplementation<Void>>) task1 ->
-                                addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new ArrayList<>(), false)));
+                                addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new TreeSet<>(), false)));
 
                         setNextRandomBounty();
                     }

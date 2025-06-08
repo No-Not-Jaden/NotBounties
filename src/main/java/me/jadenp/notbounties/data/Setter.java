@@ -79,10 +79,10 @@ public class Setter implements Comparable<Setter>, Inconsistent {
     }
 
     public boolean canClaim(UUID claimerUuid) {
-        if (!Whitelist.isEnableBlacklist() || getWhitelist().getList().isEmpty())
+        Whitelist applicableWhitelist = getWhitelist();
+        if (applicableWhitelist.getList().isEmpty())
             return true;
-        Whitelist variableWhitelist = DataManager.getPlayerData(uuid).getWhitelist();
-        return variableWhitelist.isBlacklist() != variableWhitelist.getList().contains(claimerUuid);
+        return applicableWhitelist.isBlacklist() != applicableWhitelist.getList().contains(claimerUuid);
     }
 
     public boolean isNotified() {

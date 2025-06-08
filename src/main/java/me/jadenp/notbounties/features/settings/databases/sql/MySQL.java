@@ -250,10 +250,10 @@ public class MySQL extends NotBountiesDatabase {
      */
     public Whitelist decodeWhitelist(@Nullable String whitelist){
         if (whitelist == null || whitelist.isEmpty())
-            return new Whitelist(new ArrayList<>(), false);
+            return new Whitelist(new TreeSet<>(), false);
         boolean blacklist = whitelist.contains(".");
         String[] split = blacklist ? whitelist.split("\\.") : whitelist.split(",");
-        List<UUID> uuids = new ArrayList<>();
+        SortedSet<UUID> uuids = new TreeSet<>();
         for (String uuidString : split) {
             try {
                 uuids.add(UUID.fromString(uuidString));

@@ -349,13 +349,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("reset")) {
-                        DataManager.getPlayerData(player.getUniqueId()).getWhitelist().setList(new ArrayList<>());
+                        DataManager.getPlayerData(player.getUniqueId()).getWhitelist().setList(new TreeSet<>());
                         if (!silent)
                             sender.sendMessage(parse(getPrefix() + getMessage("whitelist-reset"), parser));
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("view")) {
-                        List<UUID> whitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList();
+                        Set<UUID> whitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList();
                         StringBuilder names = new StringBuilder(" ");
                         for (UUID uuid : whitelist) {
                             names.append(LoggedPlayers.getPlayerName(uuid)).append(", ");
@@ -424,8 +424,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                     if (args.length > 2) {
                         Whitelist playerWhitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist();
-                        List<UUID> whitelist = new ArrayList<>();
-                        List<UUID> previousWhitelist = playerWhitelist.getList();
+                        SortedSet<UUID> whitelist = new TreeSet<>();
+                        SortedSet<UUID> previousWhitelist = playerWhitelist.getList();
                         for (int i = 2; i < Math.min(args.length, 12); i++) {
                             UUID playerUUID = LoggedPlayers.getPlayer(args[i]);
                             if (playerUUID == null) {
@@ -434,14 +434,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[i], parser));
                                 return false;
                             }
-                            if (!whitelist.contains(playerUUID))
-                                whitelist.add(playerUUID);
+                            whitelist.add(playerUUID);
                         }
 
                         if (args[1].equalsIgnoreCase("add")) {
                             whitelist.stream().filter(uuid -> !previousWhitelist.contains(uuid)).forEach(previousWhitelist::add);
                             while (previousWhitelist.size() > 10)
-                                previousWhitelist.remove(10);
+                                previousWhitelist.removeLast();
                             // don't need to set the player's whitelist to previousWhitelist because it is already a reference to it
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
@@ -1248,7 +1247,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 }
                                 Bounty before = new Bounty(toEdit);
                                 Bounty after = new Bounty(toEdit);
-                                after.addBounty(amount - toEdit.getTotalDisplayBounty(), new ArrayList<>(), new Whitelist(new ArrayList<>(), false));
+                                after.addBounty(amount - toEdit.getTotalDisplayBounty(), new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
                                 BountyEditEvent event = new BountyEditEvent(sender, before, after);
                                 Bukkit.getPluginManager().callEvent(event);
                                 if (event.isCancelled())
@@ -1577,9 +1576,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
 
                     // get whitelisted people
-                    Whitelist whitelist = (sender instanceof Player player) && (adminPermission || sender.hasPermission("notbounties.whitelist")) && Whitelist.isEnabled() ? DataManager.getPlayerData(player.getUniqueId()).getWhitelist() : new Whitelist(new ArrayList<>(), false);
+                    Whitelist whitelist = (sender instanceof Player player) && (adminPermission || sender.hasPermission("notbounties.whitelist")) && Whitelist.isEnabled() ? DataManager.getPlayerData(player.getUniqueId()).getWhitelist() : new Whitelist(new TreeSet<>(), false);
                     if (args.length > 3 && (adminPermission || sender.hasPermission("notbounties.whitelist"))) {
-                        List<UUID> newWhitelist = new ArrayList<>();
+                        SortedSet<UUID> newWhitelist = new TreeSet<>();
                         for (int i = 3; i < Math.min(args.length, 13); i++) {
                             if (args[i].equalsIgnoreCase("--confirm"))
                                 continue;
@@ -1775,14 +1774,19 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                     , LocalTime.TimeFormat.RELATIVE))), player));
                                 break;
                             case NEW_PLAYER:
+                                long immunitySeconds = (long) ((ImmunityManager.getNewPlayerImmunity() - ((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 1200)) * 1000L);
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix()
                                             + LanguageOptions.getMessage("new-player-immunity")
                                             .replace("{time}", (LocalTime.formatTime(
-                                                    (ImmunityManager.getNewPlayerImmunity() - player.getStatistic(Statistic.PLAY_ONE_MINUTE)) * 1000L,
+                                                    immunitySeconds,
                                                     LocalTime.TimeFormat.RELATIVE))), player));
-                                if (player.isOnline())
-                                    ImmunityManager.checkPermissionImmunity(Objects.requireNonNull(player.getPlayer()));
+                                if (immunitySeconds < 0) {
+                                    // does not have new player immunity anymore
+                                    DataManager.getPlayerData(playerUUID).setNewPlayer(false);
+                                    Bukkit.getLogger().info("immunity changed");
+                                    usingImmunity = false;
+                                }
                                 break;
                             case PERMANENT:
                                 if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())

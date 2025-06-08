@@ -30,6 +30,8 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
         jsonWriter.name("bountyCooldown").value(playerData.getBountyCooldown());
         jsonWriter.name("whitelist");
         new WhitelistTypeAdapter().write(jsonWriter, playerData.getWhitelist());
+        jsonWriter.name("newPlayer").value(playerData.isNewPlayer());
+        jsonWriter.name("lastSeen").value(playerData.getLastSeen());
         jsonWriter.endObject();
     }
 
@@ -95,9 +97,10 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
                 case "rewardHeads" -> readRewardHeads(jsonReader, playerData);
                 case "bountyCooldown" -> playerData.setBountyCooldown(jsonReader.nextLong());
                 case "whitelist" -> playerData.setWhitelist(new WhitelistTypeAdapter().read(jsonReader));
-                default -> {
-                    // unexpected name
-                }
+                case "newPlayer" -> playerData.setNewPlayer(jsonReader.nextBoolean());
+                case "lastSeen" -> playerData.setLastSeen(jsonReader.nextLong());
+                default -> // unexpected name
+                        jsonReader.skipValue();
             }
         }
 

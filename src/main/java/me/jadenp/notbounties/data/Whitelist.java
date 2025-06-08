@@ -41,16 +41,16 @@ public class Whitelist {
         return variableWhitelist;
     }
 
-    private List<UUID> list;
+    private SortedSet<UUID> list;
     private boolean blacklist;
 
-    public Whitelist(List<UUID> list, boolean blacklist) {
+    public Whitelist(SortedSet<UUID> list, boolean blacklist) {
 
         this.list = list;
         this.blacklist = blacklist;
     }
 
-    public List<UUID> getList() {
+    public SortedSet<UUID> getList() {
         return list;
     }
 
@@ -58,7 +58,7 @@ public class Whitelist {
         return blacklist;
     }
 
-    public void setList(List<UUID> list) {
+    public void setList(SortedSet<UUID> list) {
         this.list = list;
     }
 
