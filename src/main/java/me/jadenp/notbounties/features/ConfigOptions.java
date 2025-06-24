@@ -2,11 +2,10 @@ package me.jadenp.notbounties.features;
 
 
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.data.RewardHead;
+import me.jadenp.notbounties.data.player_data.RewardHead;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.settings.display.Display;
 import me.jadenp.notbounties.features.settings.immunity.Immunity;
-import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.Integrations;
 import me.jadenp.notbounties.features.settings.money.Money;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -21,7 +20,6 @@ import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.databases.Databases;
 import me.jadenp.notbounties.features.webhook.WebhookOptions;
 import org.bukkit.Bukkit;
-import org.bukkit.Server;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -72,9 +70,10 @@ public class ConfigOptions {
     private static long bountyCooldown;
     private static int maxTabCompletePlayers;
     private static int autoSaveInterval;
-    private static boolean sameIPClaim;
     private static Plugin plugin;
     private static int defaultEntityTrackingRangePlayer;
+    private static boolean hideInvisiblePlayers;
+    private static boolean setterClaimOwn;
 
     public static void reloadOptions(Plugin plugin) throws IOException {
         ConfigOptions.plugin = plugin;
@@ -207,8 +206,9 @@ public class ConfigOptions {
         maxTabCompletePlayers = plugin.getConfig().getInt("max-tab-complete-players");
         autoSaveInterval = plugin.getConfig().getInt("auto-save-interval");
         offlineSet = plugin.getConfig().getBoolean("offline-set");
-        sameIPClaim = plugin.getConfig().getBoolean("same-ip-claim");
         selfSetting = plugin.getConfig().getBoolean("self-setting");
+        hideInvisiblePlayers = plugin.getConfig().getBoolean("hide-invisible-players");
+        setterClaimOwn = plugin.getConfig().getBoolean("setter-claim-own");
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.getLocale());
 
@@ -409,6 +409,7 @@ public class ConfigOptions {
         pathMap.put("teams", "teams");
         pathMap.put("MMOLib", "MMOLib");
         pathMap.put("Duels", "Duels");
+        pathMap.put("same-ip-claim", "teams.same-ip-claim");
         migrateConfigResource("settings/integrations.yml", pathMap);
 
         pathMap.clear();
@@ -446,14 +447,6 @@ public class ConfigOptions {
 
     public static boolean isOfflineSet() {
         return offlineSet;
-    }
-
-    /**
-     * Check if players with the same IP should be able to claim bounties on themselves.
-     * @return If players can claim each other's bounties with the same IP.
-     */
-    public static boolean isSameIPClaim() {
-        return sameIPClaim;
     }
 
 
@@ -564,5 +557,13 @@ public class ConfigOptions {
 
     public static int getDefaultEntityTrackingRangePlayer() {
         return defaultEntityTrackingRangePlayer;
+    }
+
+    public static boolean isHideInvisiblePlayers() {
+        return hideInvisiblePlayers;
+    }
+
+    public static boolean isSetterClaimOwn() {
+        return setterClaimOwn;
     }
 }

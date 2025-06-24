@@ -89,7 +89,7 @@ public class RandomBounties {
                 if (!ConfigOptions.getAutoBounties().isOverrideImmunity() && ImmunityManager.getAppliedImmunity(player.getUniqueId(), price[0]) != ImmunityManager.ImmunityType.DISABLE || hasImmunity(player))
                     return;
                 NotBounties.getServerImplementation().async().runNow(task -> {
-                    if (!player.isBanned() && (!ConfigOptions.getIntegrations().isLiteBansEnabled() || new LiteBansClass().isPlayerNotBanned(player.getUniqueId()))) {
+                    if (!NotBounties.isPlayerBanned(player)) {
                         if (!NumberFormatting.shouldUseDecimals()) {
                             price[0] = (long) price[0];
                         }

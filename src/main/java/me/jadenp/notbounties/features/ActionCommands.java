@@ -3,7 +3,7 @@ package me.jadenp.notbounties.features;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;

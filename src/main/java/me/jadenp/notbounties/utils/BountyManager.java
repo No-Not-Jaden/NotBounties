@@ -5,11 +5,16 @@ import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.bounty_events.BountyClaimEvent;
 import me.jadenp.notbounties.bounty_events.BountySetEvent;
+import me.jadenp.notbounties.data.player_data.AmountRefund;
+import me.jadenp.notbounties.data.player_data.ItemRefund;
+import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.data.player_data.RewardHead;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.BountyClaimRequirements;
+import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.SkinManager;
@@ -39,7 +44,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
-import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.*;
 
@@ -49,7 +53,7 @@ import static me.jadenp.notbounties.features.settings.money.NumberFormatting.*;
 
 public class BountyManager {
 
-    private static final int length = 10;
+    private static final int BOUNTY_LIST_LENGTH = 10;
 
     private BountyManager(){}
 
@@ -64,7 +68,7 @@ public class BountyManager {
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + title + " " + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "               ");
         int sortType = Objects.requireNonNull(GUI.getGUI("bounty-gui")).getSortType();
         List<Bounty> sortedList = getAllBounties(sortType);
-        for (int i = page * length; i < (page * length) + length; i++) {
+        for (int i = page * BOUNTY_LIST_LENGTH; i < (page * BOUNTY_LIST_LENGTH) + BOUNTY_LIST_LENGTH; i++) {
             if (sortedList.size() > i) {
                 sender.sendMessage(parse(getMessage("list-total"), sortedList.get(i).getTotalDisplayBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));
             } else {
@@ -90,7 +94,7 @@ public class BountyManager {
         }
         start.addExtra(space);
         start.addExtra(titleFill);
-        if (sortedList.size() > (page * length) + length) {
+        if (sortedList.size() > (page * BOUNTY_LIST_LENGTH) + BOUNTY_LIST_LENGTH) {
             start.addExtra(rightArrow);
         } else {
             start.addExtra(replacement);
@@ -108,7 +112,7 @@ public class BountyManager {
         BountySetEvent event = new BountySetEvent(new Bounty(setter, receiver, amount, items, whitelist));
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled()) {
-            refundBounty(new Bounty(setter, receiver, amount + amount * ConfigOptions.getMoney().getBountyTax() + Whitelist.getCost() * whitelist.getList().size(), items, whitelist));
+            refundBounty(new Bounty(setter, receiver, amount + amount * ConfigOptions.getMoney().getBountyTax() + Whitelist.getCost() * whitelist.getList().size(), items, whitelist), LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-bounty-cancel"), receiver));
             return;
         }
         // unlock recipes
@@ -121,6 +125,17 @@ public class BountyManager {
         DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount);
         Bounty bounty = DataManager.insertBounty(setter, receiver, amount, items, whitelist);
 
+        registerBounty(receiver, displayAmount, bounty);
+
+        BroadcastTask broadcastTask = new BroadcastTask(setter, receiver, displayAmount, bounty.getTotalDisplayBounty(), whitelist);
+        broadcastTask.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(broadcastTask,1,4));
+
+        ActionCommands.executeBountySet(receiver.getUniqueId(), setter, bounty);
+        if (ConfigOptions.getBountyCooldown() > 0)
+            DataManager.getPlayerData(setter.getUniqueId()).setBountyCooldown(System.currentTimeMillis());
+    }
+
+    private static void registerBounty(OfflinePlayer receiver, double displayAmount, Bounty bounty) {
         if (ConfigOptions.getIntegrations().isMmoLibEnabled() && receiver.isOnline()) {
             MMOLibClass.removeStats(receiver.getPlayer());
             MMOLibClass.addStats(receiver.getPlayer(), displayAmount);
@@ -136,13 +151,6 @@ public class BountyManager {
                 WantedTags.addWantedTag(onlineReceiver);
             }
         }
-
-        BroadcastTask broadcastTask = new BroadcastTask(setter, receiver, displayAmount, bounty.getTotalDisplayBounty(), whitelist);
-        broadcastTask.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(broadcastTask,1,4));
-
-        ActionCommands.executeBountySet(receiver.getUniqueId(), setter, bounty);
-        if (ConfigOptions.getBountyCooldown() > 0)
-            DataManager.getPlayerData(setter.getUniqueId()).setBountyCooldown(System.currentTimeMillis());
     }
 
     public static void addBounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
@@ -155,28 +163,14 @@ public class BountyManager {
         BountySetEvent event = new BountySetEvent(new Bounty(receiver, amount, items, whitelist));
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled()) {
-            refundBounty(new Bounty(receiver, amount + amount * ConfigOptions.getMoney().getBountyTax() + Whitelist.getCost() * whitelist.getList().size(), items, whitelist));
+            refundBounty(new Bounty(receiver, amount + amount * ConfigOptions.getMoney().getBountyTax() + Whitelist.getCost() * whitelist.getList().size(), items, whitelist), LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-bounty-cancel"), receiver));
             return;
         }
 
         DataManager.changeStat(receiver.getUniqueId(), Leaderboard.ALL, displayAmount);
         Bounty bounty = DataManager.insertBounty(null, receiver, amount, items, whitelist);
 
-        if (ConfigOptions.getIntegrations().isMmoLibEnabled() && receiver.isOnline()) {
-            MMOLibClass.removeStats(receiver.getPlayer());
-            MMOLibClass.addStats(receiver.getPlayer(), displayAmount);
-        }
-
-        if (receiver.isOnline()) {
-            Player onlineReceiver = receiver.getPlayer();
-            assert onlineReceiver != null;
-            // check for big bounty
-            BigBounty.setBounty(onlineReceiver, bounty, displayAmount);
-            // add wanted tag
-            if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
-                WantedTags.addWantedTag(onlineReceiver);
-            }
-        }
+        registerBounty(receiver, displayAmount, bounty);
 
         BroadcastTask broadcastTask = new BroadcastTask(null, receiver, displayAmount, bounty.getTotalDisplayBounty(), whitelist);
         broadcastTask.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(broadcastTask,1,4));
@@ -185,53 +179,62 @@ public class BountyManager {
 
 
 
-    public static void refundBounty(Bounty bounty) {
+    public static void refundBounty(Bounty bounty, String reason) {
         for (Setter setter : bounty.getSetters()) {
-            refundSetter(setter);
+            refundSetter(setter, reason);
         }
     }
 
-    public static void refundSetter(Setter setter) {
-        refundPlayer(setter.getUuid(), setter.getAmount(), setter.getItems());
+    public static void refundSetter(Setter setter, String reason) {
+        refundPlayer(setter.getUuid(), setter.getAmount(), setter.getItems(), reason);
     }
 
-    public static void refundPlayer(UUID uuid, double amount, List<ItemStack> items) {
+    public static void refundPlayer(UUID uuid, double amount, List<ItemStack> items, String reason) {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
             return;
         items = new ArrayList<>(items); // make the arraylist modifiable
-        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+        Player player = Bukkit.getPlayer(uuid);
+        boolean refund = false;
+        // refund amount
         if (amount > 0) {
             if (NumberFormatting.isVaultEnabled() && !NumberFormatting.isOverrideVault()) {
                 if (!NumberFormatting.getVaultClass().deposit(player, amount)) {
                     Bukkit.getLogger().warning("[NotBounties] Error depositing currency with vault!");
-                    addRefund(player.getUniqueId(), amount);
+                    addRefund(uuid, amount, reason);
+                    refund = true;
                 }
             } else {
-                if (player.isOnline() && NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL && NotBounties.getInstance().isEnabled()) {
-                    NumberFormatting.doAddCommands(player.getPlayer(), amount);
+                if (player != null && NotBounties.getInstance().isEnabled()) {
+                    if (NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL)
+                        NumberFormatting.doAddCommands(player, amount);
                 } else {
-                    addRefund(uuid, amount);
+                    addRefund(uuid, amount, reason);
+                    refund = true;
                 }
             }
         }
+        // refund items
         items.removeIf(Objects::isNull);
         if (!items.isEmpty() && NumberFormatting.getManualEconomy() == ManualEconomy.AUTOMATIC) {
-                if (player.isOnline() && NotBounties.getInstance().isEnabled()) {
-                    NumberFormatting.givePlayer(player.getPlayer(), items, false);
-                } else {
-                    addRefund(uuid, items);
-                }
+            if (player != null && NotBounties.getInstance().isEnabled()) {
+                NumberFormatting.givePlayer(player.getPlayer(), items, false);
+            } else {
+                addRefund(uuid, items, reason);
+                refund = true;
             }
+        }
 
-
+        if (refund)
+            // sync player data with the most up-to-date database
+            NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(uuid, null));
     }
 
-    private static void addRefund(UUID uuid, double amount) {
-            DataManager.getPlayerData(uuid).addRefund(amount);
+    private static void addRefund(UUID uuid, double amount, String reason) {
+            DataManager.getPlayerData(uuid).addRefund(new AmountRefund(amount, reason));
     }
 
-    private static void addRefund(UUID uuid, List<ItemStack> items) {
-            DataManager.getPlayerData(uuid).addRefund(items);
+    private static void addRefund(UUID uuid, List<ItemStack> items, String reason) {
+            DataManager.getPlayerData(uuid).addRefund(new ItemRefund(items, reason));
     }
 
     public static List<Bounty> getPublicBounties(int sortType) {
@@ -370,7 +373,7 @@ public class BountyManager {
         PVPRestrictions.onBountyClaim(player); // make combat safe if enabled
         final Bounty claimedBounty = new Bounty(bounty, killer.getUniqueId()); // create a copy of the claimed part of the bounty (for reference later)
         // get a copy of all the setters that are to be claimed
-        List<Setter> claimedBounties = new ArrayList<>(bounty.getSetters());
+        List<Setter> claimedBounties = new ArrayList<>(claimedBounty.getSetters());
         //claimedBounties.removeIf(setter -> !setter.canClaim(killer)); // this shouldn't do anything
 
         // broadcast message
@@ -384,7 +387,7 @@ public class BountyManager {
         NotBounties.debugMessage("Claim messages sent to all players.", false);
 
         // hand out reward heads
-        RewardHead rewardHead = new RewardHead(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer));
+        RewardHead rewardHead = new RewardHead(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer), LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-reward-head"), player));
         if (RewardHead.isRewardSetters()) {
             // reward head for setters
             Set<UUID> givenHead = new HashSet<>(); // record whose head has been given out
@@ -400,14 +403,15 @@ public class BountyManager {
                             droppedHead.remove();
                         // check to make sure the setter isn't the killer and won't get another head for claiming
                         if (!RewardHead.isRewardKiller() || !Objects.requireNonNull(killer).getUniqueId().equals(setter.getUuid())) {
-                            NumberFormatting.givePlayer(p, rewardHead.getItem(), 1); // give head ;)
-                            NotBounties.debugMessage("Gave " + p.getName() + " a player skull for the bounty.", false);
+                            rewardHead.giveRefund(p); // give head ;)
+                            NotBounties.debugMessage("Gave setter " + p.getName() + " a player skull for the bounty.", false);
                         }
                     } else {
                         // Setter is offline.
                         // Save reward head to player data.
                         PlayerData playerData = DataManager.getPlayerData(setter.getUuid());
-                        playerData.addRewardHeads(Collections.singletonList(rewardHead));
+                        playerData.addRefund(rewardHead);
+                        NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(playerData.getUuid(), null));
                         NotBounties.debugMessage("Will give " + playerData.getPlayerName() + " a player skull when they log on next for the bounty.", false);
                     }
                 }
@@ -418,8 +422,9 @@ public class BountyManager {
             if (droppedHead != null)
                 // if a head was dropped for killing a player, remove it to be replaced with a custom head
                 droppedHead.remove();
-            NumberFormatting.givePlayer(killer, rewardHead.getItem(), 1);
-            NotBounties.debugMessage("Gave " + killer.getName() + " a player skull for the bounty.", false);
+
+            rewardHead.giveRefund(killer);
+            NotBounties.debugMessage("Gave killer " + killer.getName() + " a player skull for the bounty.", false);
         }
 
         // death tax
@@ -427,7 +432,17 @@ public class BountyManager {
             NotBounties.debugMessage("Removing " + bounty.getTotalDisplayBounty(killer) * deathTax + " currency for death tax", false);
             // attempt to remove currency/items from the player's inventory
             // I think these are the items that should have been removed from the player, but might not have been since they died.
-            Map<Material, Long> removedItems = NumberFormatting.doRemoveCommands(player, bounty.getTotalDisplayBounty(killer) * deathTax, drops);
+            Map<Material, Long> removedItems = new HashMap<>();
+            try {
+                removedItems = NumberFormatting.doRemoveCommands(player, bounty.getTotalDisplayBounty(killer) * deathTax, drops);
+            } catch (NotEnoughCurrencyException e) {
+                NotBounties.debugMessage("Player does not have enough currency for the death tax", false);
+                try {
+                    removedItems = NumberFormatting.doRemoveCommands(player, Math.min(bounty.getTotalDisplayBounty(killer) * deathTax, getBalance(killer)), drops);
+                } catch (NotEnoughCurrencyException e1) {
+                    NotBounties.debugMessage("Could not remove player's balance.", false);
+                }
+            }
             if (!removedItems.isEmpty()) {
                 // send message
                 long totalLoss = 0;
@@ -589,25 +604,22 @@ public class BountyManager {
         task.setTaskImplementation(NotBounties.getServerImplementation().async().runDelayed(task, delayMS / 50));
     }
 
+    /**
+     * Reward a player with a claimed bounty
+     * @param uuid
+     * @param bounty
+     */
     public static void rewardBounty(UUID uuid, Bounty bounty) {
         if (NumberFormatting.getManualEconomy() == NumberFormatting.ManualEconomy.PARTIAL) {
             // partial economy means only auto bounties are given by the console
             NotBounties.debugMessage("(Partial Economy) Directly giving auto-bounty reward.", false);
-            refundPlayer(uuid, bounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(uuid), Collections.emptyList());
+            refundPlayer(uuid, bounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(uuid), Collections.emptyList(), null);
         } else {
             NotBounties.debugMessage("Directly giving total claimed bounty.", false);
             double rewardAmount = bounty.getTotalBounty(uuid);
             List<ItemStack> rewardItems = getManualEconomy() == ManualEconomy.AUTOMATIC ? bounty.getTotalItemBounty(uuid) : Collections.emptyList();
-            refundPlayer(uuid, rewardAmount, rewardItems);
+            refundPlayer(uuid, rewardAmount, rewardItems, null);
         }
     }
-
-
-    private static void broadcastBountySet(@Nullable Player setter, @NotNull OfflinePlayer receiver, double displayAmount, double totalBounty, Whitelist whitelist) {
-
-    }
-
-
-
 
 }

@@ -19,13 +19,14 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SkinsRestorerClass {
     private SkinsRestorer skinsRestorer;
     private long lastHookError = 0;
     private boolean firstConnect = true;
     private boolean connected;
-    private final Map<UUID, Long> delayedChecks = new LinkedHashMap<>();
+    private final Map<UUID, Long> delayedChecks = new ConcurrentHashMap<>();
     private TaskImplementation<Void> delayedCheckTask = null;
     private static final long MIN_DELAY = 4000L;
     private static final long MAX_DELAY = 6000L;

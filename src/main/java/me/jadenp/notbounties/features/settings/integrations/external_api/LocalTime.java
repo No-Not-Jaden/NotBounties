@@ -37,6 +37,7 @@ public class LocalTime {
     private static String license = null;
     private static long lastException = 0;
     private static final String SECRET_FILE = "secret.yml";
+    private static final long ERROR_TIMEOUT_MS = 18 * 60 * 60 * 1000L;
 
     public static void addTimeZone(UUID uuid, String timeZone) {
         savedTimeZones.put(uuid, TimeZone.getTimeZone(timeZone));
@@ -71,9 +72,7 @@ public class LocalTime {
     private static String formatTime(long time, Player player) {
         if (!ConfigOptions.isAutoTimezone())
             return formatTime(time, player.getLocale());
-        if (lastException + 10 * 60 * 1000 > System.currentTimeMillis())
-            return formatTime(time, player.getLocale());
-        if (ProxyMessaging.hasConnectedBefore())
+        if (lastException + ERROR_TIMEOUT_MS > System.currentTimeMillis() || ProxyMessaging.hasConnectedBefore())
             return formatTime(time, player.getLocale());
         if (license == null) {
             try {

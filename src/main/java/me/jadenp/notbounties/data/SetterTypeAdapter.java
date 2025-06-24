@@ -76,6 +76,7 @@ public class SetterTypeAdapter extends TypeAdapter<Setter> {
                 case "notified" -> notified = reader.nextBoolean();
                 case "display" -> display = reader.nextDouble();
                 case "whitelist" -> whitelist = new WhitelistTypeAdapter().read(reader);
+                default -> reader.skipValue();
             }
         }
         reader.endObject();

@@ -15,7 +15,7 @@ public class Databases extends ResourceConfiguration {
     @Override
     protected String[] getModifiableSections() {
         return new String[]{""};
-    }
+    } // means all sections
 
     @Override
     protected String getPath() {

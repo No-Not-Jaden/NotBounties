@@ -1,14 +1,13 @@
 package me.jadenp.notbounties.utils.tasks;
 
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -31,7 +30,7 @@ public class LoadPlaytimeTask extends CancelableTask{
 
     public LoadPlaytimeTask(boolean increase) {
         super();
-        allUsers = new ArrayList<>(DataManager.getPlayerDataMap().keySet());
+        allUsers = DataManager.getAllPlayerData().stream().map(PlayerData::getUuid).toList();
         index = 0;
         this.increase = increase;
         lastRun = System.currentTimeMillis();
@@ -57,7 +56,7 @@ public class LoadPlaytimeTask extends CancelableTask{
             if (increase || playerData.isNewPlayer()) {
                 playersChecked++;
                 OfflinePlayer p = Bukkit.getOfflinePlayer(uuid);
-                boolean isNew = ((double) p.getStatistic(Statistic.PLAY_ONE_MINUTE) / 1200) < ImmunityManager.getNewPlayerImmunity();
+                boolean isNew = ((double) p.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20) < ImmunityManager.getNewPlayerImmunity();
                 playerData.setNewPlayer(isNew);
             }
 

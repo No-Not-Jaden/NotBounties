@@ -31,7 +31,7 @@ public class BigBounty {
         try {
             trigger = Trigger.valueOf(Objects.requireNonNull(configuration.getString("trigger")).toUpperCase());
         } catch (IllegalFormatException e) {
-            Bukkit.getLogger().warning("[NotBounties] Invalid type for big bounty trigger. (ONCE, AMOUNT, SET)");
+            Bukkit.getLogger().warning("[NotBounties] Invalid type for big bounty trigger \"" + configuration.getString("trigger") + "\". (ONCE, AMOUNT, SET)");
             trigger = Trigger.ONCE;
         }
     }
@@ -69,13 +69,19 @@ public class BigBounty {
         if (BigBounty.getThreshold() == -1 || !BigBounty.isParticle())
             return;
 
-        for (UUID uuid : particlePlayers) {
-            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-            if (player.isOnline()) {
+        for (Iterator<UUID> iterator = particlePlayers.iterator(); iterator.hasNext(); ) {
+            UUID uuid = iterator.next();
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
                 for (Player viewer : Bukkit.getOnlinePlayers()) {
-                    if ((NotBounties.getServerVersion() >= 17 && viewer.canSee(Objects.requireNonNull(player.getPlayer()))) && viewer.getWorld().equals(player.getPlayer().getWorld()) && viewer.getLocation().distance(player.getPlayer().getLocation()) < 256 && !NotBounties.isVanished(player.getPlayer()))
+                    if ((NotBounties.getServerVersion() >= 17 && viewer.canSee(Objects.requireNonNull(player.getPlayer())))
+                            && viewer.getWorld().equals(player.getPlayer().getWorld())
+                            && viewer.getLocation().distance(player.getPlayer().getLocation()) < Bukkit.getViewDistance() * 16
+                            && !NotBounties.isVanished(player.getPlayer()))
                         viewer.spawnParticle(Particle.SOUL_FIRE_FLAME, player.getPlayer().getEyeLocation().add(0, 1, 0), 0, 0, 0, 0);
                 }
+            } else {
+                iterator.remove();
             }
         }
     }

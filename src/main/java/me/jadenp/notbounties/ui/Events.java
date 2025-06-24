@@ -3,8 +3,8 @@ package me.jadenp.notbounties.ui;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
-import me.jadenp.notbounties.data.PlayerData;
-import me.jadenp.notbounties.data.RewardHead;
+import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.data.player_data.RewardHead;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
@@ -63,6 +63,17 @@ public class Events implements Listener {
         ImmunityManager.logout(event.getPlayer());
         BountyExpire.logout(event.getPlayer());
         DataManager.logout(event.getPlayer());
+
+        PlayerData playerData = DataManager.getPlayerData(event.getPlayer().getUniqueId());
+        long lastSeen = playerData.getLastSeen();
+        playerData.setLastSeen(System.currentTimeMillis());
+
+        if (System.currentTimeMillis() - lastSeen > 1000 * 60) {
+            // update player data if they have been online for more than a minute
+            NotBounties.debugMessage("Updating player data for " + playerData.getPlayerName(), false);
+            DataManager.syncPlayerData(event.getPlayer().getUniqueId(), null);
+        }
+
 
     }
 
@@ -163,6 +174,18 @@ public class Events implements Listener {
 
             // get skin info
             SkinManager.isSkinLoaded(player.getUniqueId());
+
+            PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+            // set last seen
+            if (playerData.hasRefund() || System.currentTimeMillis() - playerData.getLastSeen() > 1000 * 60) {
+                // sync player data and set last seen
+                NotBounties.debugMessage("Syncing player data for " + playerData.getPlayerName(), false);
+                NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(playerData.getUuid(), DataManager::handleRefund));
+            } else {
+                // player logging in too fast
+                playerData.setLastSeen(System.currentTimeMillis());
+            }
+
         }, 40);
     }
 
@@ -176,8 +199,8 @@ public class Events implements Listener {
         Bounty bounty = getBounty(event.getPlayer().getUniqueId());
         if (bounty != null) {
             bounty.setDisplayName(event.getPlayer().getName());
-            DataManager.notifyBounty(event.getPlayer());
-            // check if player should be given a wanted tag
+            DataManager.notifyBounty(event.getPlayer(), bounty);
+            // check if the player should be given a wanted tag
             if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
                 WantedTags.addWantedTag(event.getPlayer());
             }
@@ -185,13 +208,6 @@ public class Events implements Listener {
             if (ConfigOptions.getIntegrations().isMmoLibEnabled())
                 MMOLibClass.addStats(event.getPlayer(), bounty.getTotalDisplayBounty());
         }
-
-        PlayerData playerData = DataManager.getPlayerData(event.getPlayer().getUniqueId());
-
-        for (RewardHead rewardHead : playerData.getRewardHeads()) {
-            NumberFormatting.givePlayer(event.getPlayer(), rewardHead.getItem(), 1);
-        }
-        playerData.getRewardHeads().clear();
 
         // check for updates
         if (NotBounties.isUpdateAvailable() && !ConfigOptions.getUpdateNotification().equals("false")
@@ -212,21 +228,10 @@ public class Events implements Listener {
             event.getPlayer().spigot().sendMessage(baseComponents);
         }
 
-
-        // check if they had a bounty refunded
-        if (playerData.getRefundAmount() > 0 && NumberFormatting.getManualEconomy() != NumberFormatting.ManualEconomy.PARTIAL) {
-            NumberFormatting.doAddCommands(event.getPlayer(), playerData.getRefundAmount());
-        }
-        if (!playerData.getRefundItems().isEmpty() && NumberFormatting.getManualEconomy() == NumberFormatting.ManualEconomy.AUTOMATIC) {
-            NumberFormatting.givePlayer(event.getPlayer(), playerData.getRefundItems(), false);
-        }
-        playerData.clearRefund();
-
         // remove persistent bounty entities in chunk
         if (WantedTags.isEnabled() || !BountyBoard.getBountyBoards().isEmpty())
             RemovePersistentEntitiesEvent.cleanChunk(event.getPlayer().getLocation());
 
-        playerData.setLastSeen(System.currentTimeMillis());
     }
 
 

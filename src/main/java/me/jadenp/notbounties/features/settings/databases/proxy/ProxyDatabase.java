@@ -2,6 +2,7 @@ package me.jadenp.notbounties.features.settings.databases.proxy;
 
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.BountyChange;
 import me.jadenp.notbounties.utils.DataManager;
@@ -19,9 +20,10 @@ import java.util.*;
  * - A player must be online to receive or send data
  * - When a player joins, the server will receive the database
  * - When data is updated on other servers, it will be immediately sent over to this server
- * Database synchronizations shouldn't need to occur apart from when a player joins.
- * Therefor, getting data here will only return the local data.
+ * Database synchronizations shouldn't need to occur apart from when a player joins an empty server.
+ * Therefore, getting data here will only return the local data.
  * Another way that this is different is that there can only be 1 proxy connected, so statics can be used.
+ * <TODO>Add support for multiple proxy databases (same proxy, different data set)</TODO>
  */
 public class ProxyDatabase extends NotBountiesDatabase {
 
@@ -128,9 +130,9 @@ public class ProxyDatabase extends NotBountiesDatabase {
     }
 
     @Override
-    public boolean connect() {
+    public boolean connect(boolean syncData) {
         // if this returns false, it will stop the update task
-        return ProxyMessaging.hasConnectedBefore();
+        return ProxyMessaging.hasConnectedBefore() && ProxyDatabase.isEnabled() && ProxyDatabase.isDatabaseSynchronization();
     }
 
     @Override
@@ -147,6 +149,26 @@ public class ProxyDatabase extends NotBountiesDatabase {
     public Map<UUID, String> getOnlinePlayers() throws IOException {
         requestPlayerList();
         return databaseOnlinePlayers;
+    }
+
+    @Override
+    public void updatePlayerData(PlayerData playerData) {
+        ProxyMessaging.sendPlayerDataUpdate(Collections.singletonList(playerData));
+    }
+
+    @Override
+    public PlayerData getPlayerData(UUID uuid) throws IOException {
+        return DataManager.getLocalData().getPlayerData(uuid);
+    }
+
+    @Override
+    public void addPlayerData(List<PlayerData> playerDataMap) {
+        ProxyMessaging.sendPlayerDataUpdate(playerDataMap);
+    }
+
+    @Override
+    public List<PlayerData> getPlayerData() throws IOException {
+        return DataManager.getLocalData().getPlayerData();
     }
 
     @Override
@@ -225,11 +247,6 @@ public class ProxyDatabase extends NotBountiesDatabase {
     }
 
     @Override
-    public int getRefreshInterval() {
-        return 1000000;
-    }
-
-    @Override
     public void login(UUID uuid, String playerName) {
         numOnlinePlayers++;
         databaseOnlinePlayers.put(uuid, playerName);
@@ -241,5 +258,10 @@ public class ProxyDatabase extends NotBountiesDatabase {
         databaseOnlinePlayers.remove(uuid);
         if (numOnlinePlayers == 0)
             hasConnected = false;
+    }
+
+    @Override
+    public boolean isPermDatabase() {
+        return true;
     }
 }

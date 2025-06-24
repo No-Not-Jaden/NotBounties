@@ -3,6 +3,7 @@ package me.jadenp.notbounties.features.settings.databases;
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.data.PlayerStat;
@@ -13,6 +14,13 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * This is a wrapper for a NotBounties database that makes adding data asynchronous.
+ * When a database is connected, new data is always added right away. Ex: When a bounty is set.
+ * Data in the database is always accurate while the database is connected, but losing connection for a while can cause
+ * concurrency issues, which is why DataManager has to sync them.
+ * <TODO>Move reconnect to here instead of NotBountiesDatabase and implementations</TODO>
+ */
 public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     private static final Map<String, ActiveAsyncTask> taskList = new HashMap<>();
@@ -62,6 +70,7 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     private static final long CONNECTION_TEST_INTERVAL = 500L; // the minimum amount of time between connection tests
     private long lastConnectionTest = 0;
     private boolean lastConnection = false;
+    private long lastConnectionAttempt = 0;
 
     public AsyncDatabaseWrapper(NotBountiesDatabase database) {
         this.database = database;
@@ -71,6 +80,9 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
         refreshInterval = database.getRefreshInterval();
         if (asyncUpdateTask != null)
             asyncUpdateTask.cancel();
+        if (refreshInterval <= 0)
+            // fast database - data should be read directly from the database when needed
+            return;
         long startTime = getSafeStartTime(database.getName(), refreshInterval * 1000L);
         asyncUpdateTask = NotBounties.getServerImplementation().async().runAtFixedRate(() -> readDatabaseData(true), (startTime - System.currentTimeMillis()) / 50L, refreshInterval * 20L);
     }
@@ -92,57 +104,16 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     public void readDatabaseData(boolean sync) {
         if (isConnected() && System.currentTimeMillis() - database.getLastSync() > Math.min(refreshInterval * 1000L, MIN_UPDATE_INTERVAL)) {
             if (sync) {
-                updateData();
+                DataManager.getAndSyncDatabase(database);
             } else {
-                NotBounties.getServerImplementation().async().runNow(this::updateData);
+                NotBounties.getServerImplementation().async().runNow(() -> DataManager.getAndSyncDatabase(database));
             }
         }
 
-    }
-
-    /**
-     * Update the data in this database with the specified values.
-     * @param databaseBounties Bounties in the database.
-     * @param databaseStats Stats in the database.
-     */
-    public void updateData(List<Bounty> databaseBounties, Map<UUID, PlayerStat> databaseStats) {
-        NotBounties.debugMessage("(Scheduled) Synchronizing database \"" + database.getName() + "\" with " + databaseBounties.size() + " bounties and "  + databaseStats.size() + " stat records.", false);
-        LocalData localData = DataManager.getLocalData();
-        localData.setStats(databaseStats);
-
-        List<Bounty>[] dataChanges = Inconsistent.getAsyncronousObjects(localData.getAllBounties(2), databaseBounties, database.getLastSync());
-        // these bounties should be added/removed to local data
-        List<Bounty> databaseAdded = dataChanges[0];
-        List<Bounty> databaseRemoved = dataChanges[1];
-        // these bounties should be added/removed to the database
-        List<Bounty> localAdded = dataChanges[2];
-        List<Bounty> localRemoved = dataChanges[3];
-        // apply consistency changes
-        localData.addBounty(databaseAdded);
-        localData.removeBounty(databaseRemoved);
-        // these should be empty because databases should be updated immediately on a change.
-        addBounty(localAdded);
-        removeBounty(localRemoved);
-
-        NotBounties.debugMessage("Since last sync: databaseAdded=" + databaseAdded.size() + " databaseRemoved=" + databaseRemoved.size() + " localAdded=" + localAdded.size() + " localRemoved=" + localRemoved.size(), false);
-
-        database.setLastSync(System.currentTimeMillis());
-
-    }
-
-    private void updateData() {
-        if (isConnected()) {
-            try {
-                List<Bounty> databaseBounties = database.getAllBounties(2);
-                Map<UUID, PlayerStat> databaseStats = database.getAllStats();
-                updateData(databaseBounties, databaseStats);
-            } catch (IOException e) {
-                disconnect();
-            }
-        }
     }
 
     public void disconnect() {
+        lastConnection = false;
         if (isConnected()) {
             database.disconnect();
             Bukkit.getLogger().warning(() -> "Disconnected from " + database.getName() + ".");
@@ -161,21 +132,28 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
      */
     @Override
     public void addStats(UUID uuid, PlayerStat stats) {
-        NotBounties.getServerImplementation().async().runNow(() -> {
-            if (!isConnected()) {
-                if (System.currentTimeMillis() - getLastSync() < DataManager.CONNECTION_REMEMBRANCE_MS) {
-                    if (statChanges.containsKey(uuid)) {
-                        statChanges.replace(uuid, statChanges.get(uuid).combineStats(stats));
-                    } else {
-                        statChanges.put(uuid, stats);
-                    }
+        if (!isConnected()) {
+            if (System.currentTimeMillis() - getLastSync() < DataManager.CONNECTION_REMEMBRANCE_MS) {
+                if (statChanges.containsKey(uuid)) {
+                    statChanges.replace(uuid, statChanges.get(uuid).combineStats(stats));
+                } else {
+                    statChanges.put(uuid, stats);
                 }
-                return;
             }
-            if (isPermDatabase())
+            return;
+        }
+        if (NotBounties.getInstance().isEnabled()) {
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                if (isPermDatabase() || DataManager.isPermDatabaseConnected())
+                    stats.setServerID(DataManager.GLOBAL_SERVER_ID);
+                database.addStats(uuid, stats);
+            });
+        } else {
+            if (isPermDatabase() || DataManager.isPermDatabaseConnected())
                 stats.setServerID(DataManager.GLOBAL_SERVER_ID);
             database.addStats(uuid, stats);
-        });
+        }
+
     }
 
     @Override
@@ -190,29 +168,50 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) {
-        if (!playerStats.isEmpty())
-            NotBounties.getServerImplementation().async().runNow(() -> {
-                if (isPermDatabase())
+        if (!playerStats.isEmpty()) {
+            if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+                NotBounties.getServerImplementation().async().runNow(() -> {
+                    if (isPermDatabase() || DataManager.isPermDatabaseConnected())
+                        playerStats.forEach((k, v) -> v.setServerID(DataManager.GLOBAL_SERVER_ID));
+                    database.addStats(playerStats);
+                    statChanges.clear();
+                });
+            } else {
+                if (isPermDatabase() || DataManager.isPermDatabaseConnected())
                     playerStats.forEach((k, v) -> v.setServerID(DataManager.GLOBAL_SERVER_ID));
                 database.addStats(playerStats);
                 statChanges.clear();
-            });
+            }
+
+        }
     }
 
     @Override
     public void addBounty(List<Bounty> bounties) {
-        if (!bounties.isEmpty())
-            NotBounties.getServerImplementation().async().runNow(() -> {
-                if (isPermDatabase())
+        if (!bounties.isEmpty()) {
+            if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+                NotBounties.getServerImplementation().async().runNow(() -> {
+                    if (isPermDatabase() || DataManager.isPermDatabaseConnected())
+                        bounties.forEach(bounty -> bounty.setServerID(DataManager.GLOBAL_SERVER_ID));
+                    database.addBounty(bounties);
+                });
+            } else {
+                if (isPermDatabase() || DataManager.isPermDatabaseConnected())
                     bounties.forEach(bounty -> bounty.setServerID(DataManager.GLOBAL_SERVER_ID));
                 database.addBounty(bounties);
-            });
+            }
+        }
     }
 
     @Override
     public void removeBounty(List<Bounty> bounties) {
-        if (!bounties.isEmpty())
-            NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(bounties));
+        if (!bounties.isEmpty()) {
+            if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+                NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(bounties));
+            } else {
+                database.removeBounty(bounties);
+            }
+        }
     }
 
     /**
@@ -223,26 +222,39 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     @Override
     public Bounty addBounty(@NotNull Bounty bounty) {
         if (isConnected()) {
-            NotBounties.getServerImplementation().async().runNow(() -> {
-                try {
-                    Bounty newbounty = database.addBounty(bounty);
-                    if (newbounty != null && !newbounty.equals(bounty)) {
-                        bounty.getSetters().clear();
-                        bounty.getSetters().addAll(newbounty.getSetters());
-                    }
-                    if (isPermDatabase())
-                        bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
-                } catch (IOException e) {
-                    disconnect();
-                }
-            });
+            if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+                NotBounties.getServerImplementation().async().runNow(() -> syncAddBounty(bounty));
+            } else {
+                syncAddBounty(bounty);
+            }
         }
+
         return bounty;
+    }
+
+    private void syncAddBounty(@NotNull Bounty bounty) {
+        try {
+            if (isPermDatabase() || DataManager.isPermDatabaseConnected())
+                bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
+            Bounty newbounty = database.addBounty(bounty);
+            if (newbounty != null && !newbounty.equals(bounty)) {
+                bounty.getSetters().clear();
+                bounty.getSetters().addAll(newbounty.getSetters());
+            }
+
+        } catch (IOException e) {
+            disconnect();
+        }
     }
 
     @Override
     public void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
-        NotBounties.getServerImplementation().async().runNow(() -> database.replaceBounty(uuid, bounty));
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> database.replaceBounty(uuid, bounty));
+        } else {
+            database.replaceBounty(uuid, bounty);
+        }
+
     }
 
     @Override
@@ -257,12 +269,22 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     @Override
     public void removeBounty(UUID uuid) {
-        NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(uuid));
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(uuid));
+        } else {
+            database.removeBounty(uuid);
+        }
+
     }
 
     @Override
     public void removeBounty(Bounty bounty) {
-        NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(bounty));
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> database.removeBounty(bounty));
+        } else {
+            database.removeBounty(bounty);
+        }
+
     }
 
     @Override
@@ -306,8 +328,12 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
      * @return True if the connection was successful
      */
     @Override
-    public boolean connect() {
-        boolean success = database.connect();
+    public boolean connect(boolean syncData) {
+        if (System.currentTimeMillis() - lastConnectionAttempt < CONNECTION_TEST_INTERVAL) {
+            return isConnected();
+        }
+        lastConnectionAttempt = System.currentTimeMillis();
+        boolean success = database.connect(syncData);
         if (!success) {
             // database is no longer connected
             // stop attempting to receive data
@@ -357,14 +383,70 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     }
 
     @Override
+    public void updatePlayerData(PlayerData playerData) {
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                if (isPermDatabase() || DataManager.isPermDatabaseConnected())
+                    playerData.setServerID(DataManager.GLOBAL_SERVER_ID);
+                database.updatePlayerData(playerData);
+            });
+        } else {
+            if (isPermDatabase() || DataManager.isPermDatabaseConnected())
+                playerData.setServerID(DataManager.GLOBAL_SERVER_ID);
+            database.updatePlayerData(playerData);
+        }
+    }
+
+    @Override
+    public PlayerData getPlayerData(UUID uuid) throws IOException {
+        return database.getPlayerData(uuid);
+    }
+
+    @Override
+    public void addPlayerData(List<PlayerData> playerDataMap) {
+
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                if (isPermDatabase() || DataManager.isPermDatabaseConnected()) {
+                    for (PlayerData playerData : playerDataMap) {
+                        playerData.setServerID(DataManager.GLOBAL_SERVER_ID);
+                    }
+                }
+                database.addPlayerData(playerDataMap);
+            });
+        } else {
+            if (isPermDatabase() || DataManager.isPermDatabaseConnected()) {
+                for (PlayerData playerData : playerDataMap) {
+                    playerData.setServerID(DataManager.GLOBAL_SERVER_ID);
+                }
+            }
+            database.addPlayerData(playerDataMap);
+        }
+    }
+
+    @Override
+    public List<PlayerData> getPlayerData() throws IOException {
+        return database.getPlayerData();
+    }
+
+    @Override
     public int getPriority() {
         return database.getPriority();
     }
 
     @Override
-    public void reloadConfig() {
-        NotBounties.getServerImplementation().async().runNow(database::reloadConfig);
-
+    public boolean reloadConfig() {
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                if (database.reloadConfig())
+                    connect(false);
+            });
+        } else {
+            if (database.reloadConfig()) {
+                return connect(false);
+            }
+        }
+        return false;
     }
 
     @Override
@@ -374,21 +456,44 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     @Override
     public void notifyBounty(UUID uuid) {
-        NotBounties.getServerImplementation().async().runNow(() -> database.notifyBounty(uuid));
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> database.notifyBounty(uuid));
+        } else {
+            database.notifyBounty(uuid);
+        }
+
     }
 
     @Override
     public void login(UUID uuid, String playerName) {
-        NotBounties.getServerImplementation().async().runNow(() -> database.login(uuid, playerName));
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> database.login(uuid, playerName));
+        } else {
+            database.login(uuid, playerName);
+        }
     }
 
     @Override
     public void logout(UUID uuid) {
-        NotBounties.getServerImplementation().async().runNow(() -> database.logout(uuid));
+        if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().async().runNow(() -> database.logout(uuid));
+        } else {
+            database.logout(uuid);
+        }
     }
 
     public boolean isPermDatabase() {
-        return !(database instanceof TempDatabase);
+        return database.isPermDatabase();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof AsyncDatabaseWrapper asyncDatabaseWrapper && asyncDatabaseWrapper.getDatabase().equals(database);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), database, asyncUpdateTask, refreshInterval, lastOnlinePlayerRequest, statChanges, onlinePlayers, lastConnectionTest, lastConnection);
     }
 }
 

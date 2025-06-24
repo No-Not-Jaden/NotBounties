@@ -1,13 +1,9 @@
 package me.jadenp.notbounties.features.settings.display;
 
-import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.data.Bounty;
-import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.display.packets.FakeArmorStand;
-import me.jadenp.notbounties.features.settings.display.packets.PacketEventsClass;
-import me.jadenp.notbounties.features.settings.integrations.Integrations;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.utils.BountyManager;
 import org.bukkit.Bukkit;
@@ -15,12 +11,8 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.Vector;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -81,8 +73,8 @@ public class WantedTags {
     private static final Map<UUID, WantedTags> activeTags = new HashMap<>();
 
     /**
-     * Level of the wanted value. The level depends on how expensive the bounty is. Configured levels have text
-     * attached to them to replace the {level} placeholder in the wanted tag.
+     * Level of the wanted value. The level depends on how expensive the bounty is. Configured levels have a String
+     * to replace the {level} placeholder in the wanted tag.
      */
     private static Map<Double, String> wantedLevels = new LinkedHashMap<>();
 
@@ -113,8 +105,8 @@ public class WantedTags {
         for (String key : Objects.requireNonNull(configuration.getConfigurationSection("level")).getKeys(false)) {
             try {
                 double amount = NumberFormatting.tryParse(key);
-                if (!configuration.isConfigurationSection("level." + key)) {
-                    String text = configuration.getString("level." + key);
+                String text = configuration.getString("level." + key);
+                if (text != null) {
                     wantedLevels.put(amount, text);
                 } else {
                     plugin.getLogger().log(Level.INFO, "Wanted tag level: \"{0}\" does not have the proper format!", key);
@@ -134,7 +126,7 @@ public class WantedTags {
         // Sort the list
         list.sort(Map.Entry.comparingByKey());
 
-        // put data from sorted list to hashmap
+        // put data from a sorted list to hashmap
         LinkedHashMap<Double, String> temp = new LinkedHashMap<>();
         for (Map.Entry<Double, String> aa : list) {
             temp.put(aa.getKey(), aa.getValue());
@@ -263,7 +255,7 @@ public class WantedTags {
         if (ConfigOptions.getIntegrations().isPacketEventsEnabled())
             tag = new FakeArmorStand(player); // packed based tag
         else
-            tag = new EntityTag(player); // entity based tag
+            tag = new EntityTag(player); // entity-based tag
         if (!BountyManager.hasBounty(player.getUniqueId()))
             return;
         spawnWantedTag();
@@ -318,16 +310,13 @@ public class WantedTags {
         }
 
 
-        if (tag.isValid()) {
-            // I think this just loads the chunk anyway and always is true (which probably is a good thing)
-            if (tag.getLocation().getChunk().isLoaded()) {
-                teleport();
-            }
+        if (tag.isValid() && tag.getLocation().getChunk().isLoaded()) {
+            teleport();
         }
     }
 
     private void teleport() {
-        // check if player moved or has velocity before teleporting
+        // check if the player moved or has velocity before teleporting
         if (hasMoved() || player.getVelocity().length() > 0.1)
             tag.teleport();
     }

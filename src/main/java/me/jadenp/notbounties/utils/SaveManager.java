@@ -8,6 +8,8 @@ import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
 import me.jadenp.notbounties.data.*;
+import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.data.player_data.PlayerDataAdapter;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
@@ -30,6 +32,14 @@ public class SaveManager {
 
     private static Plugin plugin;
 
+    private static Map<String, Long> databaseSyncTimes = new HashMap<>();
+
+    public static void loadSyncTime(AsyncDatabaseWrapper database) {
+        if (databaseSyncTimes.containsKey(database.getName())) {
+            database.setLastSync(databaseSyncTimes.remove(database.getName()));
+        }
+    }
+
     private SaveManager(){}
 
     public static void save(Plugin plugin) throws IOException {
@@ -38,6 +48,15 @@ public class SaveManager {
         File dataDirectory = new File(plugin.getDataFolder() + File.separator + "data");
         if (dataDirectory.mkdir())
             NotBounties.debugMessage("Created new data directory", false);
+
+        if (!NotBounties.getInstance().isEnabled()) {
+            // sync databases if the plugin is disabling
+            for (AsyncDatabaseWrapper database : DataManager.getDatabases()) {
+                if (database.isConnected()) {
+                    DataManager.getAndSyncDatabase(database.getDatabase());
+                }
+            }
+        }
 
         // the three amigos
         saveBounties(dataDirectory);
@@ -62,7 +81,9 @@ public class SaveManager {
         try (JsonWriter writer = new JsonWriter(new FileWriter(bountiesFile))) {
             writer.beginArray();
             BountyTypeAdapter adapter = new BountyTypeAdapter();
-            for (Bounty bounty : DataManager.getLocalBounties()) {
+            Set<Bounty> bounties = DataManager.getLocalBounties();
+            NotBounties.debugMessage("Saving " + bounties.size() + " bounties.", false);
+            for (Bounty bounty : bounties) {
                 adapter.write(writer, bounty);
             }
             writer.endArray();
@@ -84,7 +105,9 @@ public class SaveManager {
         try (JsonWriter writer = new JsonWriter(new FileWriter(statsFile))) {
             writer.beginArray();
             PlayerStatAdapter adapter = new PlayerStatAdapter();
-            for (Map.Entry<UUID, PlayerStat> entry : DataManager.getLocalStats()) {
+            Set<Map.Entry<UUID, PlayerStat>> playerStatMap = DataManager.getLocalStats();
+            NotBounties.debugMessage("Saving " + playerStatMap.size() + " stats.", false);
+            for (Map.Entry<UUID, PlayerStat> entry : playerStatMap) {
                 writer.beginObject();
                 writer.name("uuid").value(entry.getKey().toString());
                 writer.name("stats");
@@ -113,11 +136,12 @@ public class SaveManager {
             writer.name("players");
             writer.beginArray();
             PlayerDataAdapter adapter = new PlayerDataAdapter();
-            for (Map.Entry<UUID, PlayerData> entry : DataManager.getPlayerDataMap().entrySet()) {
+            Set<PlayerData> playerDataList = DataManager.getLocalPlayerData();
+            NotBounties.debugMessage("Saving " + playerDataList.size() + " player data.", false);
+            for (PlayerData playerData : playerDataList) {
                 writer.beginObject();
-                writer.name("uuid").value(entry.getKey().toString());
                 writer.name("data");
-                adapter.write(writer, entry.getValue());
+                adapter.write(writer, playerData);
                 writer.endObject();
             }
             writer.endArray();
@@ -250,18 +274,18 @@ public class SaveManager {
                 reader.nextNull();
                 return;
             }
+            List<PlayerData> playerDataList = null;
             reader.beginObject();
             while (reader.hasNext()) {
                 String name = reader.nextName();
                 switch (name) {
-                    case "players" -> DataManager.addPlayerData(readPlayers(reader));
+                    case "players" -> {
+                        playerDataList = readPlayers(reader);
+                        DataManager.getLocalData().addPlayerData(playerDataList);
+                    }
                     case "trackedBounties" -> BountyTracker.setTrackedBounties(readTrackedBounties(reader));
                     case "databaseSyncTimes" -> {
-                        Map<String, Long> syncTimes = readDatabaseSyncTimes(reader);
-                        for (AsyncDatabaseWrapper databaseWrapper : DataManager.getDatabases()) {
-                            if (syncTimes.containsKey(databaseWrapper.getName()))
-                                databaseWrapper.setLastSync(syncTimes.get(databaseWrapper.getName()));
-                        }
+                        databaseSyncTimes = readDatabaseSyncTimes(reader);
                     }
                     case "nextRandomBounty" -> {
                         RandomBounties.setNextRandomBounty(reader.nextLong());
@@ -283,9 +307,15 @@ public class SaveManager {
                 }
             }
             reader.endObject();
+            // set the server ID for these entries
+            // serverID is a new value, and old data may not have one set
+            if (playerDataList != null)
+                for (PlayerData playerData : playerDataList)
+                    if (playerData.getServerID().equals(DataManager.GLOBAL_SERVER_ID))
+                        playerData.setServerID(DataManager.getDatabaseServerID(true));
         }
 
-        // tell LoggedPlayers that it can read all the player names and store them in an easy to read hashmap
+        // tell LoggedPlayers that it can read all the player names and store them in an easy-to-read hashmap
         LoggedPlayers.loadPlayerData();
     }
 
@@ -393,8 +423,8 @@ public class SaveManager {
         return timedBounties;
     }
 
-    private static Map<UUID, PlayerData> readPlayers(JsonReader reader) throws IOException {
-        Map<UUID, PlayerData> data = new HashMap<>();
+    private static List<PlayerData> readPlayers(JsonReader reader) throws IOException {
+        List<PlayerData> data = new ArrayList<>();
         reader.beginArray();
         PlayerDataAdapter adapter = new PlayerDataAdapter();
         while (reader.hasNext()) {
@@ -409,7 +439,11 @@ public class SaveManager {
                     playerData = adapter.read(reader);
             }
             reader.endObject();
-            data.put(uuid, playerData);
+            if (playerData != null) {
+                if (uuid != null)
+                    playerData.setUuid(uuid);
+                data.add(playerData);
+            }
         }
         reader.endArray();
 

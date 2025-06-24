@@ -2,7 +2,7 @@ package me.jadenp.notbounties.features.settings.immunity;
 
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.tasks.LoadPlaytimeTask;
 import org.bukkit.Bukkit;
@@ -93,10 +93,6 @@ public class ImmunityManager {
      */
     private static Map<UUID, Long> immunityTimeTracker = new HashMap<>();
     private static final Set<UUID> onlinePlayers = new CopyOnWriteArraySet<>();
-    /**
-     * The time at which the grace period started for players.
-     */
-    private static final Map<UUID, Long> gracePeriodTracker = new HashMap<>();
 
     /**
      * Load the immunity configuration.
@@ -127,8 +123,8 @@ public class ImmunityManager {
                 loadPlaytimeTask.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(loadPlaytimeTask, 1, 1));
             } else {
                 // disabled
-                for (UUID uuid : DataManager.getPlayerDataMap().keySet()) {
-                    DataManager.getPlayerData(uuid).setNewPlayer(false);
+                for (PlayerData pd : DataManager.getAllPlayerData()) {
+                    DataManager.getPlayerData(pd.getUuid()).setNewPlayer(false);
                 }
             }
         }
@@ -205,7 +201,7 @@ public class ImmunityManager {
     }
 
     public static void startGracePeriod(Player player) {
-        gracePeriodTracker.put(player.getUniqueId(), System.currentTimeMillis());
+        DataManager.getPlayerData(player.getUniqueId()).setLastClaim(System.currentTimeMillis());
     }
 
     public static void update() {
@@ -266,15 +262,11 @@ public class ImmunityManager {
     }
 
     public static long getGracePeriod(UUID uuid) {
-        if (gracePeriodTracker.containsKey(uuid)) {
-            long timeSinceDeath = System.currentTimeMillis() - gracePeriodTracker.get(uuid);
+            long timeSinceDeath = System.currentTimeMillis() - DataManager.getPlayerData(uuid).getLastClaim();
             if (timeSinceDeath < gracePeriod * 1000L) {
                 // still in grace period
                 return (gracePeriod * 1000L) - timeSinceDeath;
-            } else {
-                gracePeriodTracker.remove(uuid);
             }
-        }
         return 0;
     }
 
@@ -396,5 +388,4 @@ public class ImmunityManager {
                     checkPermissionImmunity(player);
         });
     }
-
 }

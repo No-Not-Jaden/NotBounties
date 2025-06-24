@@ -1,8 +1,12 @@
 package me.jadenp.notbounties.features.settings.databases.sql;
 
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.data.player_data.OnlineRefund;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.data.PlayerStat;
@@ -15,17 +19,14 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.io.StreamCorruptedException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
 
 // remove bounty server id
 public class MySQL extends NotBountiesDatabase {
     private Connection connection;
-    private boolean hasConnected = false;
-    private long nextReconnectAttempt;
-    private int reconnectAttempts;
 
     private String host;
     private int port;
@@ -36,9 +37,6 @@ public class MySQL extends NotBountiesDatabase {
 
     public MySQL(Plugin plugin, String name){
         super(plugin, name);
-
-        nextReconnectAttempt = System.currentTimeMillis();
-        reconnectAttempts = 0;
     }
 
     @Override
@@ -62,22 +60,17 @@ public class MySQL extends NotBountiesDatabase {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         MySQL mySQL = (MySQL) o;
-        return hasConnected == mySQL.hasConnected && nextReconnectAttempt == mySQL.nextReconnectAttempt
-                && reconnectAttempts == mySQL.reconnectAttempts && port == mySQL.port && useSSL == mySQL.useSSL
-                && Objects.equals(connection, mySQL.connection) && Objects.equals(host, mySQL.host)
-                && Objects.equals(database, mySQL.database) && Objects.equals(username, mySQL.username)
-                && Objects.equals(password, mySQL.password);
+        return port == mySQL.port && useSSL == mySQL.useSSL && Objects.equals(connection, mySQL.connection) && Objects.equals(host, mySQL.host) && Objects.equals(database, mySQL.database) && Objects.equals(username, mySQL.username) && Objects.equals(password, mySQL.password);
     }
 
     public String getDatabase() {
         return database;
     }
 
-    public boolean connect() {
+    public boolean connect(boolean syncData) {
         if (isConnected())
             try {
                 connection.close();
@@ -86,26 +79,15 @@ public class MySQL extends NotBountiesDatabase {
                 return false;
             }
         connection = null;
-        readConfig();
-        return makeConnection();
+        //readConfig();
+        return makeConnection(syncData);
     }
 
     @Override
     public void addStats(UUID uuid, PlayerStat stats) {
         try (PreparedStatement ps = getConnection().prepareStatement("INSERT INTO bounty_data(uuid, claimed, sets, received, alltime, immunity, allclaimed) VALUES(?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE claimed = claimed + ?, sets = sets + ?, received = received + ?, alltime = alltime + ?, immunity = immunity + ?, allclaimed = allclaimed + ?;")){
             ps.setString(1, uuid.toString());
-            ps.setLong(2, stats.kills());
-            ps.setLong(3, stats.set());
-            ps.setLong(4, stats.deaths());
-            ps.setDouble(5, stats.all());
-            ps.setDouble(6, stats.immunity());
-            ps.setDouble(7, stats.claimed());
-            ps.setLong(8, stats.kills());
-            ps.setLong(9, stats.set());
-            ps.setLong(10, stats.deaths());
-            ps.setDouble(11, stats.all());
-            ps.setDouble(12, stats.immunity());
-            ps.setDouble(13, stats.claimed());
+            prepareStatInsert(ps, stats);
             ps.executeUpdate();
 
         } catch (SQLException e){
@@ -118,14 +100,15 @@ public class MySQL extends NotBountiesDatabase {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("SELECT claimed, sets, received, alltime, immunity, allclaimed FROM bounty_data WHERE uuid = ?;")) {
                 ps.setString(1, uuid.toString());
-                ResultSet rs = ps.executeQuery();
-                long kills = rs.getLong("claimed");
-                long set = rs.getLong("sets");
-                long deaths = rs.getLong("received");
-                double all = rs.getDouble("alltime");
-                double immunity = rs.getDouble("immunity");
-                double claimed = rs.getDouble("allclaimed");
-                return new PlayerStat(kills, set, deaths, all, immunity, claimed, DataManager.GLOBAL_SERVER_ID);
+                try (ResultSet rs = ps.executeQuery()) {
+                    long kills = rs.getLong("claimed");
+                    long set = rs.getLong("sets");
+                    long deaths = rs.getLong("received");
+                    double all = rs.getDouble("alltime");
+                    double immunity = rs.getDouble("immunity");
+                    double claimed = rs.getDouble("allclaimed");
+                    return new PlayerStat(kills, set, deaths, all, immunity, claimed, DataManager.GLOBAL_SERVER_ID);
+                }
             } catch (SQLException e) {
                 if (reconnect(e)) {
                     return getStats(uuid);
@@ -139,21 +122,22 @@ public class MySQL extends NotBountiesDatabase {
     public Map<UUID, PlayerStat> getAllStats() throws IOException{
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, claimed, sets, received, alltime, immunity, allclaimed FROM bounty_data;")) {
-                ResultSet rs = ps.executeQuery();
+                try (ResultSet rs = ps.executeQuery()) {
 
-                Map<UUID, PlayerStat> stats = new HashMap<>();
-                while (rs.next()) {
-                    rs.findColumn("uuid");
-                    UUID uuid = UUID.fromString(rs.getString(1));
-                    long kills = rs.getLong(2);
-                    long set = rs.getLong(3);
-                    long deaths = rs.getLong(4);
-                    double all = rs.getDouble(5);
-                    double immunity = rs.getDouble(6);
-                    double claimed = rs.getDouble(7);
-                    stats.put(uuid, new PlayerStat(kills, set, deaths, all, immunity, claimed, new UUID(0, 0)));
+                    Map<UUID, PlayerStat> stats = new HashMap<>();
+                    while (rs.next()) {
+                        rs.findColumn("uuid");
+                        UUID uuid = UUID.fromString(rs.getString(1));
+                        long kills = rs.getLong(2);
+                        long set = rs.getLong(3);
+                        long deaths = rs.getLong(4);
+                        double all = rs.getDouble(5);
+                        double immunity = rs.getDouble(6);
+                        double claimed = rs.getDouble(7);
+                        stats.put(uuid, new PlayerStat(kills, set, deaths, all, immunity, claimed, new UUID(0, 0)));
+                    }
+                    return stats;
                 }
-                return stats;
             } catch (SQLException e) {
                 if (reconnect(e)) {
                     return getAllStats();
@@ -170,18 +154,7 @@ public class MySQL extends NotBountiesDatabase {
                 for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
                     PlayerStat stats = entry.getValue();
                     ps.setString(1, entry.getKey().toString());
-                    ps.setLong(2, stats.kills());
-                    ps.setLong(3, stats.set());
-                    ps.setLong(4, stats.deaths());
-                    ps.setDouble(5, stats.all());
-                    ps.setDouble(6, stats.immunity());
-                    ps.setDouble(7, stats.claimed());
-                    ps.setLong(8, stats.kills());
-                    ps.setLong(9, stats.set());
-                    ps.setLong(10, stats.deaths());
-                    ps.setDouble(11, stats.all());
-                    ps.setDouble(12, stats.immunity());
-                    ps.setDouble(13, stats.claimed());
+                    prepareStatInsert(ps, stats);
                     ps.addBatch();
                 }
                 ps.executeBatch();
@@ -192,25 +165,27 @@ public class MySQL extends NotBountiesDatabase {
 
     }
 
+    private void prepareStatInsert(PreparedStatement ps, PlayerStat stats) throws SQLException {
+        ps.setLong(2, stats.kills());
+        ps.setLong(3, stats.set());
+        ps.setLong(4, stats.deaths());
+        ps.setDouble(5, stats.all());
+        ps.setDouble(6, stats.immunity());
+        ps.setDouble(7, stats.claimed());
+        ps.setLong(8, stats.kills());
+        ps.setLong(9, stats.set());
+        ps.setLong(10, stats.deaths());
+        ps.setDouble(11, stats.all());
+        ps.setDouble(12, stats.immunity());
+        ps.setDouble(13, stats.claimed());
+    }
+
     @Override
     public void addBounty(List<Bounty> bounties) {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, created, whitelist, playtime, items, display) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")) {
                 for (Bounty bounty : bounties) {
-                    for (Setter setter : bounty.getSetters()) {
-                        ps.setString(1, bounty.getUUID().toString());
-                        ps.setString(2, bounty.getName());
-                        ps.setString(3, setter.getName());
-                        ps.setString(4, setter.getUuid().toString());
-                        ps.setDouble(5, setter.getAmount());
-                        ps.setBoolean(6, setter.isNotified());
-                        ps.setLong(7, setter.getTimeCreated());
-                        ps.setString(8, encodeWhitelist(setter.getWhitelist()));
-                        ps.setLong(9, setter.getReceiverPlaytime());
-                        ps.setBlob(10, SerializeInventory.itemStackArrayToBinaryStream(setter.getItems().toArray(new ItemStack[0])));
-                        ps.setDouble(11, setter.getDisplayAmount());
-                        ps.addBatch();
-                    }
+                    prepareBountyInsert(bounty, ps);
                 }
                 ps.executeBatch();
 
@@ -287,20 +262,7 @@ public class MySQL extends NotBountiesDatabase {
     public Bounty addBounty(@NotNull Bounty bounty) throws IOException {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("INSERT INTO notbounties(uuid, name, setter, suuid, amount, notified, created, whitelist, playtime, items, display) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")) {
-                for (Setter setter : bounty.getSetters()) {
-                    ps.setString(1, bounty.getUUID().toString());
-                    ps.setString(2, bounty.getName());
-                    ps.setString(3, setter.getName());
-                    ps.setString(4, setter.getUuid().toString());
-                    ps.setDouble(5, setter.getAmount());
-                    ps.setBoolean(6, setter.isNotified());
-                    ps.setLong(7, setter.getTimeCreated());
-                    ps.setString(8, encodeWhitelist(setter.getWhitelist()));
-                    ps.setLong(9, setter.getReceiverPlaytime());
-                    ps.setBlob(10, SerializeInventory.itemStackArrayToBinaryStream(setter.getItems().toArray(new ItemStack[0])));
-                    ps.setDouble(11, setter.getDisplayAmount());
-                    ps.addBatch();
-                }
+                prepareBountyInsert(bounty, ps);
                 ps.executeBatch();
 
             } catch (SQLException e) {
@@ -315,6 +277,23 @@ public class MySQL extends NotBountiesDatabase {
             }
         }
         throw notConnectedException;
+    }
+
+    private void prepareBountyInsert(@NotNull Bounty bounty, PreparedStatement ps) throws SQLException {
+        for (Setter setter : bounty.getSetters()) {
+            ps.setString(1, bounty.getUUID().toString());
+            ps.setString(2, bounty.getName());
+            ps.setString(3, setter.getName());
+            ps.setString(4, setter.getUuid().toString());
+            ps.setDouble(5, setter.getAmount());
+            ps.setBoolean(6, setter.isNotified());
+            ps.setLong(7, setter.getTimeCreated());
+            ps.setString(8, encodeWhitelist(setter.getWhitelist()));
+            ps.setLong(9, setter.getReceiverPlaytime());
+            ps.setBlob(10, SerializeInventory.itemStackArrayToBinaryStream(setter.getItems().toArray(new ItemStack[0])));
+            ps.setDouble(11, setter.getDisplayAmount());
+            ps.addBatch();
+        }
     }
 
     /**
@@ -343,31 +322,32 @@ public class MySQL extends NotBountiesDatabase {
         if (isConnected()) {
             try (PreparedStatement ps = getConnection().prepareStatement("SELECT * FROM `notbounties` WHERE uuid = ?;")) {
                 ps.setString(1, uuid.toString());
-                ResultSet rs = ps.executeQuery();
+                try (ResultSet rs = ps.executeQuery()) {
 
-                List<Setter> setters = new ArrayList<>();
-                String bountyName = "";
-                while (rs.next()) {
-                    if (bountyName.isEmpty()) {
-                        bountyName = rs.getString("name");
+                    List<Setter> setters = new ArrayList<>();
+                    String bountyName = "";
+                    while (rs.next()) {
+                        if (bountyName.isEmpty()) {
+                            bountyName = rs.getString("name");
+                        }
+                        Blob encodedItems = rs.getBlob("items");
+                        List<ItemStack> items = convertEncodedItems(encodedItems);
+
+                        UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(rs.getString("suuid"));
+                        Setter setter = new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), items, rs.getLong("created"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist")), rs.getLong("playtime"), rs.getDouble("display"));
+                        setters.add(setter);
                     }
-                    Blob encodedItems = rs.getBlob("items");
-                    List<ItemStack> items = convertEncodedItems(encodedItems);
-
-                    UUID setterUUID = rs.getString("suuid").equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(rs.getString("suuid"));
-                    Setter setter = new Setter(rs.getString("setter"), setterUUID, rs.getDouble("amount"), items, rs.getLong("created"), rs.getBoolean("notified"), decodeWhitelist(rs.getString("whitelist")), rs.getLong("playtime"), rs.getDouble("display"));
-                    setters.add(setter);
+                    if (setters.isEmpty())
+                        return null;
+                    return new Bounty(uuid, setters, bountyName);
                 }
-                if (setters.isEmpty())
-                    return null;
-                return new Bounty(uuid, setters, bountyName);
             } catch (SQLException e) {
                 if (reconnect(e)) {
                     return getBounty(uuid);
                 }
             }
         }
-        throw new IOException("Database not connected!");
+        throw notConnectedException;
     }
 
     @Override
@@ -406,8 +386,9 @@ public class MySQL extends NotBountiesDatabase {
     @Override
     public List<Bounty> getAllBounties(int sortType) throws IOException {
         if (isConnected()) {
-            try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, name, setter, suuid, amount, notified, created, whitelist, playtime, items, display FROM notbounties;")) {
-                ResultSet resultSet = ps.executeQuery();
+            try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, name, setter, suuid, amount, notified, created, whitelist, playtime, items, display FROM notbounties;");
+                 ResultSet resultSet = ps.executeQuery()) {
+
                 Map<String, Bounty> bountyAmounts = new HashMap<>();
                 while (resultSet.next()) {
                     String uuid = resultSet.getString("uuid");
@@ -473,11 +454,7 @@ public class MySQL extends NotBountiesDatabase {
         return true;
     }
 
-    public boolean hasConnectedBefore() {
-        return hasConnected;
-    }
-
-    private boolean makeConnection(){
+    private boolean makeConnection(boolean syncData){
         try {
             connection = DriverManager.getConnection("jdbc:mysql://" +
                             host + ":" + port + "/" + database + "?useSSL=" + useSSL + "&allowMultiQueries=true",
@@ -486,8 +463,11 @@ public class MySQL extends NotBountiesDatabase {
                 createTable();
                 createDataTable();
                 createOnlinePlayerTable();
+                createPlayerDataTable();
             }
-            DataManager.databaseConnect(this);
+            if (syncData) {
+                DataManager.databaseConnect(this);
+            }
             hasConnected = true;
             return true;
         } catch (SQLException e) {
@@ -495,29 +475,15 @@ public class MySQL extends NotBountiesDatabase {
         }
     }
 
-    private boolean reconnect(SQLException e) {
+    @Override
+    protected boolean reconnect(Exception e) {
         if (e instanceof SQLSyntaxErrorException) {
             Bukkit.getLogger().warning("[NotBounties] SQL Syntax Error! Please report this to Not_Jaden.");
             Bukkit.getLogger().warning(e::toString);
+            Arrays.stream(e.getStackTrace()).forEach(stackTraceElement -> Bukkit.getLogger().warning(stackTraceElement::toString));
             return false;
         }
-        NotBounties.debugMessage(e.toString(), true);
-        if (System.currentTimeMillis() > nextReconnectAttempt) {
-            reconnectAttempts++;
-            disconnect();
-            if (reconnectAttempts >= 3) {
-                reconnectAttempts = 0;
-                nextReconnectAttempt = System.currentTimeMillis() + 5000L;
-            }
-
-            if (!connect()) {
-                if (reconnectAttempts < 2)
-                    Bukkit.getScheduler().runTaskLater(NotBounties.getInstance(), this::connect, 20L);
-                return false;
-            }
-            return true;
-        }
-        return false;
+        return super.reconnect(e);
     }
 
     public void createTable(){
@@ -626,8 +592,37 @@ public class MySQL extends NotBountiesDatabase {
                 Bukkit.getLogger().info("Updating data type for statistics");
                 ps2.executeUpdate();
             }
+            rs.close();
 
         } catch (SQLException e){
+            Bukkit.getLogger().warning(e.toString());
+        }
+    }
+
+    public void createPlayerDataTable() {
+        try(PreparedStatement ps = getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS bounty_player_data" +
+                "(" +
+                "    uuid CHAR(36) NOT NULL," +
+                "    name VARCHAR(16)," +
+                "    immunity TINYINT DEFAULT 0 NOT NULL," +
+                "    lastclaim BIGINT DEFAULT 0 NOT NULL," +
+                "    broadcastsetting TINYINT DEFAULT 0 NOT NULL," +
+                "    whitelist VARCHAR(369)," +
+                "    bountycooldown BIGINT DEFAULT 0 NOT NULL," +
+                "    newplayer BOOLEAN DEFAULT TRUE NOT NULL," +
+                "    lastseen BIGINT DEFAULT 0 NOT NULL," +
+                "    timezone VARCHAR(32)," +
+                "    PRIMARY KEY (uuid)" +
+                ");");
+            PreparedStatement ps1 = getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS bounty_refunds" +
+                "(" +
+                "    uuid CHAR(36) NOT NULL," +
+                "    refundtype VARCHAR(128) NOT NULL," +
+                "    refund BLOB NOT NULL" +
+                ");");) {
+            ps.executeUpdate();
+            ps1.executeUpdate();
+        } catch (SQLException e) {
             Bukkit.getLogger().warning(e.toString());
         }
     }
@@ -640,7 +635,7 @@ public class MySQL extends NotBountiesDatabase {
                 "    PRIMARY KEY (uuid)" +
                 ");");
             PreparedStatement checkServerID = getConnection().prepareStatement("select column_name,data_type from information_schema.columns where table_schema = ? and table_name = 'bounty_players' and column_name = 'id';");
-            PreparedStatement alterServerID = getConnection().prepareStatement("ALTER TABLE bounty_players MODIFY COLUMN id CHAR(36);")) {
+            PreparedStatement alterServerID = getConnection().prepareStatement("ALTER TABLE bounty_players MODIFY COLUMN id CHAR(36);");) {
 
             ps.executeUpdate();
 
@@ -650,6 +645,8 @@ public class MySQL extends NotBountiesDatabase {
                 Bukkit.getLogger().info("Updating data type for online players.");
                 alterServerID.executeUpdate();
             }
+
+            rs.close();
         } catch (SQLException e) {
             Bukkit.getLogger().warning(e.toString());
         }
@@ -673,8 +670,8 @@ public class MySQL extends NotBountiesDatabase {
     public Map<UUID, String> getOnlinePlayers() {
         Map<UUID, String> networkPlayers = new HashMap<>();
         if (isConnected()) {
-            try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, name FROM bounty_players;")) {
-                ResultSet rs = ps.executeQuery();
+            try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, name FROM bounty_players;");
+                 ResultSet rs = ps.executeQuery()) {
 
                 while (rs.next()) {
                     String uuid = rs.getString("uuid");
@@ -688,6 +685,291 @@ public class MySQL extends NotBountiesDatabase {
             }
         }
         return networkPlayers;
+    }
+
+    @Override
+    public void updatePlayerData(PlayerData playerData) {
+        if (!isConnected())
+            return;
+        try (PreparedStatement ps = getConnection().prepareStatement("INSERT INTO bounty_player_data(uuid, name, immunity, lastclaim, broadcastsetting, whitelist, bountycooldown, newplayer, lastseen, timezone) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, immunity = ?, lastclaim = ?, broadcastsetting = ?, whitelist = ?, bountycooldown = ?, newplayer = ?, lastseen = ?, timezone = ?;")) {
+            preparePlayerDataStatement(ps, playerData);
+
+            ps.executeUpdate();
+
+            setRefund(playerData.getUuid(), playerData.getRefund());
+        } catch (SQLException e) {
+            if (reconnect(e)) {
+                updatePlayerData(playerData);
+            }
+        }
+
+    }
+
+    private void setRefund(UUID uuid, List<OnlineRefund> refunds) {
+        if (!isConnected())
+            return;
+        try (PreparedStatement ps = getConnection().prepareStatement("DELETE FROM bounty_refunds WHERE uuid = ?;");
+            PreparedStatement addRefund = getConnection().prepareStatement("INSERT INTO bounty_refunds(uuid, refundtype, refund) VALUES(?, ?, ?);")) {
+            ps.setString(1, uuid.toString());
+            ps.executeUpdate();
+
+            addRefund.setString(1, uuid.toString());
+            addRefundBatch(refunds, addRefund);
+            addRefund.executeBatch();
+        } catch (SQLException e) {
+            if (reconnect(e)) {
+                setRefund(uuid, refunds);
+            }
+        }
+    }
+
+    private void addRefundBatch(List<OnlineRefund> refunds, PreparedStatement addRefund) throws SQLException {
+        for (OnlineRefund onlineRefund : refunds) {
+            try {
+                addRefund.setString(2, onlineRefund.getClass().getName());
+                addRefund.setBlob(3, refundToInputStream(onlineRefund));
+                addRefund.addBatch();
+            } catch (IOException e) {
+                Bukkit.getLogger().warning("[NotBounties] Error encoding refund to SQL");
+            }
+        }
+    }
+
+    public InputStream refundToInputStream(OnlineRefund onlineRefund) throws IOException {
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        try (OutputStreamWriter writer = new OutputStreamWriter(byteOut, StandardCharsets.UTF_8);
+             JsonWriter jsonWriter = new JsonWriter(writer)) {
+             PlayerData.writeRefund(jsonWriter, onlineRefund);
+        }
+        return new ByteArrayInputStream(byteOut.toByteArray());
+    }
+
+    public OnlineRefund refundFromInputStream(InputStream inputStream, Class<? extends OnlineRefund> clazz) throws IOException {
+        try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+             JsonReader jsonReader = new JsonReader(reader)) {
+             return PlayerData.readRefund(jsonReader, clazz);
+        }
+    }
+
+    private byte immunityToByte(PlayerData playerData) {
+        byte immunity = 0;
+        if (playerData.hasGeneralImmunity())
+            immunity |= 1;
+        if (playerData.hasMurderImmunity())
+            immunity |= 2;
+        if (playerData.hasRandomImmunity())
+            immunity |= 4;
+        if (playerData.hasTimedImmunity())
+            immunity |= 8;
+        return immunity;
+    }
+
+    private void immunityFromByte(PlayerData playerData, byte b) {
+        playerData.setGeneralImmunity((b & 1) == 1);
+        playerData.setMurderImmunity((b & 2) == 2);
+        playerData.setRandomImmunity((b & 4) == 4);
+        playerData.setTimedImmunity((b & 8) == 8);
+    }
+
+    @Override
+    public PlayerData getPlayerData(UUID uuid) throws IOException {
+        if (!isConnected())
+            throw notConnectedException;
+
+        try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, name, immunity, lastclaim, broadcastsetting, whitelist, bountycooldown, newplayer, lastseen, timezone FROM bounty_player_data WHERE uuid = ?;")) {
+            ps.setString(1, uuid.toString());
+            PlayerData playerData = new PlayerData();
+            playerData.setUuid(uuid);
+            playerData.setServerID(DataManager.GLOBAL_SERVER_ID);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    playerData.setUuid(UUID.fromString(rs.getString("uuid")));
+                    readPlayerDataResult(rs, playerData);
+                }
+            }
+            playerData.setRefund(getRefund(uuid));
+            return playerData;
+        } catch (SQLException e) {
+            if (reconnect(e)) {
+                return getPlayerData(uuid);
+            }
+        }
+        return null;
+    }
+
+    private Map<UUID, List<OnlineRefund>> getRefunds() throws IOException {
+        if (!isConnected())
+            throw notConnectedException;
+        Map<UUID, List<OnlineRefund>> refunds = new HashMap<>();
+        try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, refundtype, refund FROM bounty_refunds;");
+        ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                UUID uuid = UUID.fromString(rs.getString("uuid"));
+                OnlineRefund refund = getRefundFromResult(rs);
+                if (refund != null) {
+                    refunds.computeIfAbsent(uuid, k -> new ArrayList<>()).add(refund);
+                }
+            }
+        } catch (SQLException e) {
+            if (reconnect(e)) {
+                return getRefunds();
+            }
+        }
+        return refunds;
+    }
+
+    private List<OnlineRefund> getRefund(UUID uuid) throws IOException {
+        if (!isConnected())
+            throw notConnectedException;
+        List<OnlineRefund> refunds = new ArrayList<>();
+        try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, refundtype, refund FROM bounty_refunds WHERE uuid = ?;")) {
+            ps.setString(1, uuid.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    OnlineRefund refund = getRefundFromResult(rs);
+                    if (refund != null)
+                        refunds.add(refund);
+                }
+            }
+        } catch (SQLException e) {
+            if (reconnect(e)) {
+                return getRefund(uuid);
+            }
+        }
+        return refunds;
+    }
+
+    private OnlineRefund getRefundFromResult(ResultSet rs) throws SQLException {
+        String className = rs.getString("refundtype");
+        try (InputStream inputStream = rs.getBlob("refund").getBinaryStream()) {
+            // Use reflection to get the class object
+            Class<?> clazz = Class.forName(className);
+
+            // Check if it's a subclass of OnlineRefund
+            if (OnlineRefund.class.isAssignableFrom(clazz)) {
+                @SuppressWarnings("unchecked")
+                Class<? extends OnlineRefund> refundClass = (Class<? extends OnlineRefund>) clazz;
+
+                return refundFromInputStream(inputStream, refundClass);
+            } else {
+                Bukkit.getLogger().warning("[NotBounties] Invalid refund class: " + className);
+            }
+        } catch (IOException | ReflectiveOperationException e) {
+            Bukkit.getLogger().warning("[NotBounties] Error decoding refund: " + e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    public void addPlayerData(List<PlayerData> playerDataList) {
+        if (!isConnected() || playerDataList.isEmpty())
+            return;
+
+        try (PreparedStatement ps = getConnection().prepareStatement("INSERT INTO bounty_player_data(" +
+                "uuid, name, immunity, lastclaim, broadcastsetting, whitelist, bountycooldown, newplayer, lastseen, timezone" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE " +
+                "name = ?, immunity = ?, lastclaim = ?, broadcastsetting = ?, whitelist = ?, bountycooldown = ?, newplayer = ?, lastseen = ?, timezone = ?;")) {
+            for (PlayerData playerData : playerDataList) {
+                preparePlayerDataStatement(ps, playerData);
+                ps.addBatch();
+            }
+
+            ps.executeBatch();
+
+            // Set refunds separately
+            for (PlayerData playerData : playerDataList) {
+                setRefund(playerData.getUuid(), playerData.getRefund());
+            }
+
+        } catch (SQLException e) {
+            if (reconnect(e)) {
+                addPlayerData(playerDataList);
+            }
+        }
+    }
+
+    private void preparePlayerDataStatement(PreparedStatement ps, PlayerData pd) throws SQLException {
+        // insert
+        ps.setString(1, pd.getUuid().toString());
+        ps.setString(2, pd.getPlayerName());
+        ps.setByte(3, immunityToByte(pd));
+        ps.setLong(4, pd.getLastClaim());
+        ps.setByte(5, (byte) pd.getBroadcastSettings().ordinal());
+        ps.setString(6, encodeWhitelist(pd.getWhitelist()));
+        ps.setLong(7, pd.getBountyCooldown());
+        ps.setBoolean(8, pd.isNewPlayer());
+        ps.setLong(9, pd.getLastSeen());
+        if (pd.getTimeZone() != null) {
+            ps.setString(10, pd.getTimeZone().getID());
+        } else {
+            ps.setString(10, "");
+        }
+
+
+        // update
+        ps.setString(11, pd.getPlayerName());
+        ps.setByte(12, immunityToByte(pd));
+        ps.setLong(13, pd.getLastClaim());
+        ps.setByte(14, (byte) pd.getBroadcastSettings().ordinal());
+        ps.setString(15, encodeWhitelist(pd.getWhitelist()));
+        ps.setLong(16, pd.getBountyCooldown());
+        ps.setBoolean(17, pd.isNewPlayer());
+        ps.setLong(18, pd.getLastSeen());
+        if (pd.getTimeZone() != null) {
+            ps.setString(19, pd.getTimeZone().getID());
+        } else {
+            ps.setString(19, "");
+        }
+    }
+
+    @Override
+    public List<PlayerData> getPlayerData() throws IOException {
+        if (!isConnected())
+            throw notConnectedException;
+
+        Map<UUID, List<OnlineRefund>> refunds = getRefunds();
+        List<PlayerData> playerDataList = new ArrayList<>();
+        try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, name, immunity, lastclaim, broadcastsetting, whitelist, bountycooldown, newplayer, lastseen, timezone FROM bounty_player_data ORDER BY uuid ASC;");
+            ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                UUID uuid = UUID.fromString(rs.getString("uuid"));
+                PlayerData playerData = new PlayerData();
+                playerData.setServerID(DataManager.GLOBAL_SERVER_ID);
+                playerData.setUuid(uuid);
+                readPlayerDataResult(rs, playerData);
+
+                // Load refund data
+                if (refunds.containsKey(uuid)) {
+                    playerData.setRefund(refunds.get(uuid));
+                }
+
+                playerDataList.add(playerData);
+            }
+
+        } catch (SQLException e) {
+            if (reconnect(e)) {
+                return getPlayerData();
+            }
+        }
+
+        return playerDataList;
+    }
+
+    private void readPlayerDataResult(ResultSet rs, PlayerData playerData) throws SQLException {
+        playerData.setPlayerName(rs.getString("name"));
+        immunityFromByte(playerData, rs.getByte("immunity"));
+        playerData.setLastClaim(rs.getLong("lastclaim"));
+        playerData.setBroadcastSettings(PlayerData.BroadcastSettings.values()[rs.getByte("broadcastsetting")]);
+        playerData.setWhitelist(decodeWhitelist(rs.getString("whitelist")));
+        playerData.setBountyCooldown(rs.getLong("bountycooldown"));
+        playerData.setNewPlayer(rs.getBoolean("newplayer"));
+        playerData.setLastSeen(rs.getLong("lastseen"));
+        String timeZone = rs.getString("timezone");
+        if (timeZone != null && !timeZone.isEmpty()) {
+            playerData.setTimeZone(TimeZone.getTimeZone(timeZone));
+        }
+
     }
 
     @Override
@@ -744,5 +1026,10 @@ public class MySQL extends NotBountiesDatabase {
                 }
             }
         }
+    }
+
+    @Override
+    public boolean isPermDatabase() {
+        return true;
     }
 }

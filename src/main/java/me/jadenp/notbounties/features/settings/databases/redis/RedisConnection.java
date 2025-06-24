@@ -6,9 +6,12 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.StaticCredentialsProvider;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.resource.ClientResources;
+import io.lettuce.core.resource.DefaultClientResources;
 import me.jadenp.notbounties.data.Bounty;
-import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
+import me.jadenp.notbounties.features.settings.databases.TempDatabase;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.configuration.ConfigurationSection;
@@ -22,12 +25,11 @@ import java.util.*;
 /**
  * Data is stored in Redis which is basically a string hashmap
  */
-public class RedisConnection extends NotBountiesDatabase {
+public class RedisConnection extends NotBountiesDatabase implements TempDatabase {
     private RedisClient redis = null;
     private StatefulRedisConnection<String, String> connection = null;
     private RedisCommands<String, String> data = null;
-    private long failedConnectionTimeout = 0;
-    private boolean connectedBefore = false;
+    private static ClientResources sharedResources = null;
 
     private String username = "username";
     private String password = "pass";
@@ -39,11 +41,20 @@ public class RedisConnection extends NotBountiesDatabase {
     private static final String BOUNTIES_KEY = "bounties";
     private static final String STATS_KEY = "stats";
     private static final String ONLINE_PLAYERS_KEY = "players";
+    private static final String PLAYER_DATA_KEY = "playerData";
+    private static final String SERVER_ID_KEY = "serverIDs";
+
+    private static synchronized ClientResources getClientResources() {
+        if (sharedResources == null) {
+            sharedResources = DefaultClientResources.builder()
+                    .build();
+        }
+        return sharedResources;
+    }
 
     public RedisConnection(Plugin plugin, String name) {
         super(plugin, name);
 
-        redis = RedisClient.create(constructURI());
     }
 
     @Override
@@ -63,19 +74,26 @@ public class RedisConnection extends NotBountiesDatabase {
     @Override
     public Map<UUID, String> getOnlinePlayers() throws IOException {
         Map<UUID, String> players = new HashMap<>();
-        if (getData() != null) {
-            getData().hgetall(ONLINE_PLAYERS_KEY).forEach((key, value) -> players.put(UUID.fromString(key), value.substring(value.indexOf(":") + 1)));
+        if (isConnected()) {
+            try {
+                getData().hgetall(ONLINE_PLAYERS_KEY).forEach((key, value) -> players.put(UUID.fromString(key), value.substring(value.indexOf(":") + 1)));
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    return getOnlinePlayers();
+            }
             return players;
         }
         throw notConnectedException;
     }
 
-    private RedisCommands<String, String> getData() {
-        if (data == null && isConnected()) {
+    private RedisCommands<String, String> getData() throws RedisConnectionException {
+        if (!isConnected())
+            throw new RedisConnectionException("Redis connection is not open");
+        if (data == null) {
             data = connection.sync();
-            return data;
         }
         return data;
+
     }
 
     private RedisURI constructURI() {
@@ -104,8 +122,7 @@ public class RedisConnection extends NotBountiesDatabase {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         RedisConnection that = (RedisConnection) o;
-        return failedConnectionTimeout == that.failedConnectionTimeout && connectedBefore == that.connectedBefore
-                && port == that.port && databaseNumber == that.databaseNumber && ssl == that.ssl
+        return port == that.port && databaseNumber == that.databaseNumber && ssl == that.ssl
                 && Objects.equals(redis, that.redis) && Objects.equals(connection, that.connection)
                 && Objects.equals(data, that.data) && Objects.equals(username, that.username)
                 && Objects.equals(password, that.password) && Objects.equals(host, that.host);
@@ -114,31 +131,42 @@ public class RedisConnection extends NotBountiesDatabase {
     /**
      * Connects or reconnects to the database.
      */
-    public boolean connect() {
-        if (connection != null)
-            connection.closeAsync();
-        if (redis != null)
-            redis.shutdownAsync();
-        redis = RedisClient.create(constructURI());
-        return makeConnection();
+    public synchronized boolean connect(boolean syncData) {
+        if (isConnected())
+            disconnect();
+        redis = RedisClient.create(getClientResources(), constructURI());
+        return makeConnection(syncData);
     }
 
-    public void disconnect() {
-        if (getData() != null) {
-            connection.close();
-            data = null;
+    public synchronized void disconnect() {
+        if (connection != null) {
+            try {
+                connection.close();
+            } finally {
+                connection = null;
+            }
         }
+        if (redis != null) {
+            try {
+                redis.shutdown();
+            } finally {
+                redis = null;
+                data = null;
+            }
+        }
+
     }
 
-    private boolean makeConnection() {
+    private boolean makeConnection(boolean syncData) {
         if (redis == null)
             return false;
         try {
             connection = redis.connect();
-            if (data == null)
-                data = connection.sync();
-            DataManager.databaseConnect(this);
-            connectedBefore = true;
+            data = connection.sync();
+            if (syncData) {
+                DataManager.databaseConnect(this);
+            }
+            hasConnected = true;
             return true;
         } catch (RedisConnectionException e) {
             // can't connect
@@ -147,37 +175,95 @@ public class RedisConnection extends NotBountiesDatabase {
         }
     }
 
-    public boolean isConnected() {
-        if (System.currentTimeMillis() - failedConnectionTimeout < 5000L)
-            return false;
-        if (connection == null || !connection.isOpen()) {
-            failedConnectionTimeout = System.currentTimeMillis();
-            if (hasConnectedBefore() && NotBounties.getInstance().isEnabled())
-                connect();
-            return false;
+    @Override
+    public boolean hasServerData() {
+        if (isConnected()) {
+            try {
+                String ids = getData().get(SERVER_ID_KEY);
+                if (ids == null)
+                    return false;
+                return ids.contains(DataManager.getDatabaseServerID(false).toString());
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    return hasServerData();
+            }
         }
         return true;
     }
 
-    /**
-     * Check if the database has ever been connected with this plugin instance.
-     * The database doesn't need to be currently connected to return true.
-     * @return True if the redis database has been connected.
-     */
-    public boolean hasConnectedBefore() {
-        return connectedBefore;
+    @Override
+    public void addServerData() {
+        if (isConnected()) {
+            String ids = getServerIDs();
+            if (!ids.contains(DataManager.getDatabaseServerID(false).toString())) {
+                getData().set(SERVER_ID_KEY, ids + "," + DataManager.getDatabaseServerID(false).toString());
+            }
+        }
     }
 
+    private String getServerIDs() {
+        try {
+            String ids = getData().get(SERVER_ID_KEY);
+            if (ids == null)
+                ids = "";
+            return ids;
+        } catch (RedisConnectionException e) {
+            if (reconnect(e))
+                return getServerIDs();
+            return "";
+        }
+    }
+
+    @Override
+    public boolean isEmpty() {
+        if (isConnected()) {
+            return getServerIDs().isEmpty();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isGlobal() {
+        if (isConnected()) {
+            return getServerIDs().contains(DataManager.GLOBAL_SERVER_ID.toString());
+        }
+        return true;
+    }
+
+    @Override
+    public void setGlobal() {
+        if (isConnected()) {
+            String ids = getServerIDs();
+            if (!ids.contains(DataManager.GLOBAL_SERVER_ID.toString())) {
+                getData().set(SERVER_ID_KEY, ids + "," + DataManager.GLOBAL_SERVER_ID);
+            }
+        }
+    }
+
+    public boolean isConnected() {
+        return (connection != null && connection.isOpen());
+    }
+
+    @Override
     public void shutdown() {
-        if (connection != null)
-            connection.close();
-        if (redis != null)
-            redis.shutdown();
+        try {
+            disconnect();
+        } finally {
+            if (sharedResources != null) {
+                try {
+                    sharedResources.shutdown();
+                } finally {
+                    sharedResources = null;
+                }
+            }
+
+        }
+
     }
 
     @Override
     public void notifyBounty(UUID uuid) {
-        if (getData() != null) {
+        if (isConnected()) {
             try {
                 Bounty bounty = getBounty(uuid);
                 if (bounty != null) {
@@ -192,17 +278,27 @@ public class RedisConnection extends NotBountiesDatabase {
 
     @Override
     public void login(UUID uuid, String playerName) {
-        if (getData() != null) {
-            getData().hset(ONLINE_PLAYERS_KEY, uuid.toString(), DataManager.getDatabaseServerID(false).toString() + ":" + playerName);
+        if (isConnected()) {
+            try {
+                getData().hset(ONLINE_PLAYERS_KEY, uuid.toString(), DataManager.getDatabaseServerID(false).toString() + ":" + playerName);
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    login(uuid, playerName);
+            }
         }
     }
 
     @Override
     public void logout(UUID uuid) {
-        if (getData() != null) {
-            String currentServerID = getData().hget(ONLINE_PLAYERS_KEY, uuid.toString());
-            if (currentServerID != null && currentServerID.substring(0, currentServerID.indexOf(":")).equals(DataManager.getDatabaseServerID(false).toString())) {
-                getData().hdel(ONLINE_PLAYERS_KEY, uuid.toString());
+        if (isConnected()) {
+            try {
+                String currentServerID = getData().hget(ONLINE_PLAYERS_KEY, uuid.toString());
+                if (currentServerID != null && currentServerID.substring(0, currentServerID.indexOf(":")).equals(DataManager.getDatabaseServerID(false).toString())) {
+                    getData().hdel(ONLINE_PLAYERS_KEY, uuid.toString());
+                }
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    logout(uuid);
             }
         }
     }
@@ -219,6 +315,9 @@ public class RedisConnection extends NotBountiesDatabase {
             getData().hset(STATS_KEY, uuid.toString(), previousStats.combineStats(stats).toJson().toString());
         } catch (IOException e) {
             // database not connected
+        } catch (RedisConnectionException e) {
+            if (reconnect(e))
+                addStats(uuid, stats);
         }
     }
 
@@ -228,11 +327,16 @@ public class RedisConnection extends NotBountiesDatabase {
      * @return A 6 element array of the player's recorded stats
      */
     public @NotNull PlayerStat getStats(UUID uuid) throws IOException {
-        if (getData() != null) {
-            String jsonResult = getData().hget(STATS_KEY, uuid.toString());
-            if (jsonResult != null)
-                return new PlayerStat(jsonResult);
-            return new PlayerStat(0,0,0,0,0,0, DataManager.GLOBAL_SERVER_ID);
+        if (isConnected()) {
+            try {
+                String jsonResult = getData().hget(STATS_KEY, uuid.toString());
+                if (jsonResult != null)
+                    return new PlayerStat(jsonResult);
+                return new PlayerStat(0, 0, 0, 0, 0, 0, DataManager.GLOBAL_SERVER_ID);
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    return getStats(uuid);
+            }
         }
         throw notConnectedException;
     }
@@ -242,25 +346,25 @@ public class RedisConnection extends NotBountiesDatabase {
      * @return All recorded player stats
      */
     public Map<UUID, PlayerStat> getAllStats() throws IOException {
-        if (getData() == null)
+        if (!isConnected())
             throw notConnectedException;
         Map<UUID, PlayerStat> stats = new HashMap<>();
-        for (Map.Entry<String, String> entry : getData().hgetall(STATS_KEY).entrySet()) {
-            stats.put(UUID.fromString(entry.getKey()), new PlayerStat(entry.getValue()));
+        try {
+            for (Map.Entry<String, String> entry : getData().hgetall(STATS_KEY).entrySet()) {
+                stats.put(UUID.fromString(entry.getKey()), new PlayerStat(entry.getValue()));
+            }
+        } catch (RedisConnectionException e) {
+            if (reconnect(e))
+                return getAllStats();
         }
         return stats;
     }
 
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) {
-        if (getData() != null) {
-            try {
-                for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
-                    PlayerStat previousStats = getStats(entry.getKey());
-                    getData().hset(STATS_KEY, entry.getKey().toString(), previousStats.combineStats(entry.getValue()).toJson().toString());
-                }
-            } catch (IOException ignored) {
-                // database isn't connected
+        if (isConnected() && !playerStats.isEmpty()) {
+            for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
+                addStats(entry.getKey(), entry.getValue());
             }
         }
     }
@@ -288,7 +392,7 @@ public class RedisConnection extends NotBountiesDatabase {
      * @return The bounty after it was added to the existing bounty of the player.
      */
     public Bounty addBounty(@NotNull Bounty bounty) throws IOException {
-        if (getData() == null) {
+        if (!isConnected()) {
             throw notConnectedException;
         }
         Bounty prevBounty = getBounty(bounty.getUUID());
@@ -297,7 +401,12 @@ public class RedisConnection extends NotBountiesDatabase {
         } else {
             prevBounty = bounty;
         }
-        getData().hset(BOUNTIES_KEY, bounty.getUUID().toString(), prevBounty.toJson().toString());
+        try {
+            getData().hset(BOUNTIES_KEY, bounty.getUUID().toString(), prevBounty.toJson().toString());
+        } catch (RedisConnectionException e) {
+            if (reconnect(e))
+                getData().hset(BOUNTIES_KEY, bounty.getUUID().toString(), prevBounty.toJson().toString());
+        }
         return prevBounty;
     }
 
@@ -306,22 +415,33 @@ public class RedisConnection extends NotBountiesDatabase {
      * @param uuid   UUID of the bounty to be replaced
      * @param bounty Replacement bounty. A null value will remove the bounty.
      */
+    @Override
     public void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
-        if (getData() != null) {
-            if (bounty != null)
-                getData().hset(BOUNTIES_KEY, uuid.toString(), bounty.toJson().toString());
-            else
-                removeBounty(uuid);
+        if (isConnected()) {
+            try {
+                if (bounty != null)
+                    getData().hset(BOUNTIES_KEY, uuid.toString(), bounty.toJson().toString());
+                else
+                    removeBounty(uuid);
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    replaceBounty(uuid, bounty);
+            }
         }
     }
 
     public @Nullable Bounty getBounty(UUID uuid) throws IOException {
-        if (getData() != null) {
-            String jsonBounty = getData().hget(BOUNTIES_KEY, uuid.toString());
-            if (jsonBounty != null) {
-                return new Bounty(jsonBounty);
+        if (isConnected()) {
+            try {
+                String jsonBounty = getData().hget(BOUNTIES_KEY, uuid.toString());
+                if (jsonBounty != null) {
+                    return new Bounty(jsonBounty);
+                }
+                return null;
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    return getBounty(uuid);
             }
-            return null;
         }
         throw notConnectedException;
     }
@@ -331,7 +451,7 @@ public class RedisConnection extends NotBountiesDatabase {
      * @param bounty Bounty to be removed
      */
     public void removeBounty(Bounty bounty) {
-        if (getData() != null) {
+        if (isConnected()) {
             try {
                 Bounty currentBounty = getBounty(bounty.getUUID());
                 if (currentBounty == null)
@@ -348,6 +468,9 @@ public class RedisConnection extends NotBountiesDatabase {
                 }
             } catch (IOException e) {
                 // database not connected
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    removeBounty(bounty);
             }
         }
     }
@@ -357,9 +480,14 @@ public class RedisConnection extends NotBountiesDatabase {
      * @param uuid UUID of the player
      */
     public void removeBounty(UUID uuid) {
-        if (getData() == null)
+        if (!isConnected())
             return;
-        getData().hdel(BOUNTIES_KEY, uuid.toString());
+        try {
+            getData().hdel(BOUNTIES_KEY, uuid.toString());
+        } catch (RedisConnectionException e) {
+            if (reconnect(e))
+                removeBounty(uuid);
+        }
     }
 
     /**
@@ -368,38 +496,99 @@ public class RedisConnection extends NotBountiesDatabase {
      * @return A list of all the bounties in the redis database
      */
     public List<Bounty> getAllBounties(int sortType) throws IOException{
-        if (getData() == null)
+        if (!isConnected())
             throw notConnectedException;
         List<Bounty> bounties = new ArrayList<>();
-        for (Map.Entry<String, String> entry : getData().hgetall(BOUNTIES_KEY).entrySet()) {
-            bounties.add(new Bounty(entry.getValue()));
-        }
+        try {
+            for (Map.Entry<String, String> entry : getData().hgetall(BOUNTIES_KEY).entrySet()) {
+                bounties.add(new Bounty(entry.getValue()));
+            }
 
-        if (sortType == -1)
-            return bounties;
-        if (sortType == 2) {
-            bounties.sort(Comparator.reverseOrder());
-            return bounties;
-        }
-        if (sortType == 3) {
-            Collections.sort(bounties);
-            return bounties;
-        }
-        // sort in other ways
-        Bounty temp;
-        for (int i = 0; i < bounties.size(); i++) {
-            for (int j = i + 1; j < bounties.size(); j++) {
-                if (!bounties.get(i).getSetters().isEmpty()
-                        && ((bounties.get(i).getSetters().get(0).getTimeCreated() > bounties.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
-                        (bounties.get(i).getSetters().get(0).getTimeCreated() < bounties.get(j).getSetters().get(0).getTimeCreated() && sortType == 1))) { // newest bounties at top
-                    temp = bounties.get(i);
-                    bounties.set(i, bounties.get(j));
-                    bounties.set(j, temp);
+            if (sortType == -1)
+                return bounties;
+            if (sortType == 2) {
+                bounties.sort(Comparator.reverseOrder());
+                return bounties;
+            }
+            if (sortType == 3) {
+                Collections.sort(bounties);
+                return bounties;
+            }
+            // sort in other ways
+            Bounty temp;
+            for (int i = 0; i < bounties.size(); i++) {
+                for (int j = i + 1; j < bounties.size(); j++) {
+                    if (!bounties.get(i).getSetters().isEmpty()
+                            && ((bounties.get(i).getSetters().get(0).getTimeCreated() > bounties.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
+                            (bounties.get(i).getSetters().get(0).getTimeCreated() < bounties.get(j).getSetters().get(0).getTimeCreated() && sortType == 1))) { // newest bounties at top
+                        temp = bounties.get(i);
+                        bounties.set(i, bounties.get(j));
+                        bounties.set(j, temp);
+                    }
                 }
             }
+        } catch (RedisConnectionException e) {
+            if (reconnect(e))
+                return getAllBounties(sortType);
         }
 
         return bounties;
     }
 
+    @Override
+    public void updatePlayerData(PlayerData playerData) {
+        if (isConnected()) {
+            try {
+                getData().hset(PLAYER_DATA_KEY, playerData.getUuid().toString(), playerData.toJson().toString());
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    updatePlayerData(playerData);
+            }
+        }
+    }
+
+    @Override
+    public PlayerData getPlayerData(UUID uuid) throws IOException {
+        if (isConnected()) {
+            try {
+                String jsonResponse = getData().hget(PLAYER_DATA_KEY, uuid.toString());
+                if (jsonResponse != null) {
+                    return PlayerData.fromJson(jsonResponse);
+                } else {
+                    return null;
+                }
+            } catch (RedisConnectionException e) {
+                if (reconnect(e))
+                    return getPlayerData(uuid);
+            }
+        }
+        throw notConnectedException;
+    }
+
+    @Override
+    public void addPlayerData(List<PlayerData> playerDataMap) {
+        if (isConnected() && !playerDataMap.isEmpty()) {
+            for (PlayerData playerData : playerDataMap) {
+                updatePlayerData(playerData);
+            }
+        }
+    }
+
+    @Override
+    public List<PlayerData> getPlayerData() throws IOException {
+        if (!isConnected())
+            throw notConnectedException;
+        try {
+            return getData().hgetall(PLAYER_DATA_KEY).values().stream().map(PlayerData::fromJson).sorted().toList();
+        } catch (RedisConnectionException e) {
+            if (reconnect(e))
+                return getPlayerData();
+            throw notConnectedException;
+        }
+    }
+
+    @Override
+    public boolean isPermDatabase() {
+        return false;
+    }
 }

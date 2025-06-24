@@ -328,7 +328,7 @@ public class BountyTracker implements Listener {
         assert compassMeta != null;
         Location previousLocation = compassMeta.hasLodestone() ? compassMeta.getLodestone() : null;
         if (!player.hasPermission("notbounties.tracker") || !canTrack) {
-            // no permission or empty tracker - track other world for funky compass movements
+            // no permission or empty tracker - track another world for funky compass movements
             if (Bukkit.getWorlds().size() > 1) {
                 for (World world : Bukkit.getWorlds()) {
                     if (!world.equals(player.getWorld())) {

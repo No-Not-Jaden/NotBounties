@@ -72,6 +72,12 @@ public class BountyClaimRequirements {
     private static boolean simpleClansClan;
     private static boolean simpleClansAlly;
 
+    /**
+     * Minecraft
+     */
+    private static int minRespawnDistance;
+    private static boolean sameIPClaim;
+
     public static void loadConfiguration(ConfigurationSection configuration) {
         kingdomsXEnabled = Bukkit.getPluginManager().isPluginEnabled("Kingdoms");
         betterTeamsEnabled = Bukkit.getPluginManager().isPluginEnabled("BetterTeams");
@@ -104,7 +110,8 @@ public class BountyClaimRequirements {
         superiorSkyblockIslandMember = configuration.getBoolean("superior-skyblock-2.island-member");
         simpleClansClan = configuration.getBoolean("simple-clans.clan");
         simpleClansAlly = configuration.getBoolean("simple-clans.ally");
-
+        minRespawnDistance = configuration.getInt("min-respawn-distance");
+        sameIPClaim = configuration.getBoolean("same-ip-claim");
     }
     
     public static boolean canClaim(Player player, Player killer) {
@@ -192,19 +199,36 @@ public class BountyClaimRequirements {
             return false;
         }
         // check if the player is in a duel
-        if (ConfigOptions.getIntegrations().isDuelsEnabled() && ConfigOptions.getIntegrations().getDuels().isEnabled() && ConfigOptions.getIntegrations().getDuels().isClaimBounties() && ConfigOptions.getIntegrations().getDuels().isInDuel(killer)) {
+        if (ConfigOptions.getIntegrations().isDuelsEnabled()
+                && ConfigOptions.getIntegrations().getDuels().isEnabled()
+                && ConfigOptions.getIntegrations().getDuels().isClaimBounties()
+                && ConfigOptions.getIntegrations().getDuels().isInDuel(killer)) {
             NotBounties.debugMessage("Bounty claim canceled due to a Duels plugin duel.", false);
             return false;
         }
         // check if players are in the same clan or are allied
-        if (simpleClansEnabled && ((!simpleClansClan && SimpleClansClass.inSameClan(player, killer)) || (!simpleClansAlly && SimpleClansClass.inAlliedClan(player, killer)))) {
+        if (simpleClansEnabled
+                && ((!simpleClansClan && SimpleClansClass.inSameClan(player, killer))
+                    || (!simpleClansAlly && SimpleClansClass.inAlliedClan(player, killer)))) {
             NotBounties.debugMessage("Bounty claim canceled due to a SimpleClans clan.", false);
             return false;
         }
-        if (!ConfigOptions.isSameIPClaim() && player.getAddress() != null && killer.getAddress() != null && player.getAddress().getAddress().getHostAddress().equals(killer.getAddress().getAddress().getHostAddress())) {
+        // check IP
+        if (!sameIPClaim && player.getAddress() != null && killer.getAddress() != null && player.getAddress().getAddress().getHostAddress().equals(killer.getAddress().getAddress().getHostAddress())) {
             NotBounties.debugMessage("Bounty claim canceled due to a matching IP address.", false);
             return false;
         }
+        // check respawn distance
+        if (minRespawnDistance >= 0
+                && player.getRespawnLocation() != null
+                && player.getRespawnLocation().getWorld() != null
+                && killer.getRespawnLocation() != null
+                && player.getRespawnLocation().getWorld().equals(killer.getRespawnLocation().getWorld())
+                && player.getRespawnLocation().distance(killer.getRespawnLocation()) < minRespawnDistance) {
+            NotBounties.debugMessage("Bounty claim canceled due to a close respawn distance.", false);
+            return false;
+        }
+
         return true;
     }
 

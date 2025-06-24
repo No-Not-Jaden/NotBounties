@@ -3,6 +3,7 @@ package me.jadenp.notbounties.data;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public class Setter implements Comparable<Setter>, Inconsistent {
+public class Setter extends Inconsistent implements Comparable<Setter> {
     private final String name;
     private final UUID uuid;
     private final double amount;
@@ -78,7 +79,11 @@ public class Setter implements Comparable<Setter>, Inconsistent {
         return canClaim(player.getUniqueId());
     }
 
-    public boolean canClaim(UUID claimerUuid) {
+    public boolean canClaim(@NotNull UUID claimerUuid) {
+        // check if the claimer set this bounty
+        if (!ConfigOptions.isSetterClaimOwn() && claimerUuid.equals(uuid))
+            return false;
+        // check the whitelist
         Whitelist applicableWhitelist = getWhitelist();
         if (applicableWhitelist.getList().isEmpty())
             return true;

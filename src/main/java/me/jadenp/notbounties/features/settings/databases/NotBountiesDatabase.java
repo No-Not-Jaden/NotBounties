@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.features.settings.databases;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.PlayerStat;
 import me.jadenp.notbounties.features.ConfigOptions;
 import org.bukkit.configuration.ConfigurationSection;
@@ -10,10 +12,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Databases will be loaded first with the call of the constructor. Configuration should be loaded here
@@ -24,8 +24,11 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     private final String name;
     private final Plugin plugin;
     private int priority = 0;
-    private int refreshInterval = 300;
+    private int refreshInterval = 0;
     private long lastSync = 0;
+    protected boolean hasConnected = false;
+    private long nextReconnectAttempt;
+    private int reconnectAttempts;
 
     protected static final IOException notConnectedException = new IOException("Database is not connected!");
 
@@ -33,12 +36,18 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
         this.name = name;
         this.plugin = plugin;
 
+        nextReconnectAttempt = System.currentTimeMillis();
+        reconnectAttempts = 0;
+
         readConfig();
     }
 
     protected NotBountiesDatabase() {
         this.name = "Pseudo";
         this.plugin = null;
+
+        nextReconnectAttempt = System.currentTimeMillis();
+        reconnectAttempts = 0;
     }
 
     /**
@@ -159,7 +168,7 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * Attempts to reconnect to the database.
      * @return True if the connection was successful.
      */
-    public abstract boolean connect();
+    public abstract boolean connect(boolean syncData);
 
     /**
      * Disconnects the server from the database.
@@ -171,7 +180,9 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * The database doesn't need to be currently connected to return true.
      * @return True if the redis database has been connected before.
      */
-    public abstract boolean hasConnectedBefore();
+    public boolean hasConnectedBefore() {
+        return hasConnected;
+    }
 
     /**
      * Get the refresh interval of the database.
@@ -207,6 +218,33 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public abstract Map<UUID, String> getOnlinePlayers() throws IOException;
 
     /**
+     * Update the player data for a player in the database.
+     * @param playerData New player data information.
+     */
+    public abstract void updatePlayerData(PlayerData playerData);
+
+    /**
+     * Get the player data for a player.
+     * @param uuid UUID of the player.
+     * @return The player data of the player.
+     * @throws IOException When the database isn't connected.
+     */
+    public abstract PlayerData getPlayerData(UUID uuid) throws IOException;
+
+    /**
+     * Add player data to the database. Existing player data with the same UUID will be overwritten.
+     * @param playerDataMap Map of player data to add.
+     */
+    public abstract void addPlayerData(List<PlayerData> playerDataMap);
+
+    /**
+     * Get the player data in the database.
+     * @return The player data in the database, sorted by UUID in ascending order.
+     * @throws IOException When the database isn't connected.
+     */
+    public abstract List<PlayerData> getPlayerData() throws IOException;
+
+    /**
      * Get the priority of the database.
      * @return The priority of the database set in the config.
      */
@@ -216,19 +254,20 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
 
     /**
      * Reload the database config
+     * @return True if there was a change in the configuration.
      */
-    public void reloadConfig() {
+    public boolean reloadConfig() {
         long oldHash = hashCode();
         readConfig();
-        if (oldHash != hashCode())
-            connect();
+        return oldHash != hashCode();
+
     }
 
     /**
      * Read and load the configuration for this database.
      * @return The configuration section that the database read from.
      */
-    protected ConfigurationSection readConfig() {
+    protected synchronized ConfigurationSection readConfig() {
         YamlConfiguration config;
         try {
             config = ConfigOptions.getDatabases().getConfig();
@@ -239,8 +278,8 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
         ConfigurationSection configSection = config.getConfigurationSection(name);
         if (configSection == null)
             return null;
-        refreshInterval = configSection.isSet("refresh-interval") ? configSection.getInt("refresh-interval") : 300;
-        priority = configSection.isSet("priority") ? configSection.getInt("priority") : 0;
+        refreshInterval = configSection.getInt("refresh-interval", 0);
+        priority = configSection.getInt("priority", 0);
         return configSection;
     }
 
@@ -248,7 +287,7 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * Shut down the connection to the database.
      * Called when the plugin is disabled.
      */
-    public void shutdown() {
+    public synchronized void shutdown() {
         disconnect();
     }
 
@@ -271,11 +310,40 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      */
     public abstract void logout(UUID uuid);
 
+    /**
+     * Check if the connected database is reliable and the data will persist.
+     * @return True if the database is permanent.
+     */
+    public abstract boolean isPermDatabase();
+
+    protected synchronized boolean reconnect(Exception e) {
+        NotBounties.debugMessage(e.toString(), true);
+        Arrays.stream(e.getStackTrace()).forEach(stackTraceElement -> NotBounties.debugMessage(stackTraceElement.toString(), true));
+        if (System.currentTimeMillis() > nextReconnectAttempt) {
+            reconnectAttempts++;
+            disconnect();
+            if (reconnectAttempts >= 3) {
+                reconnectAttempts = 0;
+                nextReconnectAttempt = System.currentTimeMillis() + 5000L;
+            }
+            if (NotBounties.getInstance().isEnabled()) {
+                if (!connect(false)) {
+                    if (reconnectAttempts < 2)
+                        NotBounties.getServerImplementation().async().runDelayed(() -> connect(true), 20L);
+                    return false;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public int compareTo(@NotNull NotBountiesDatabase o) {
         return o.getPriority() - getPriority();
     }
 
+    // only hash config options
     @Override
     public int hashCode() {
         return Objects.hash(name, priority, refreshInterval);
@@ -283,9 +351,8 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         NotBountiesDatabase that = (NotBountiesDatabase) o;
-        return priority == that.priority && refreshInterval == that.refreshInterval && lastSync == that.lastSync && Objects.equals(name, that.name) && Objects.equals(plugin, that.plugin);
+        return priority == that.priority && refreshInterval == that.refreshInterval && lastSync == that.lastSync && hasConnected == that.hasConnected && nextReconnectAttempt == that.nextReconnectAttempt && reconnectAttempts == that.reconnectAttempts && Objects.equals(name, that.name) && Objects.equals(plugin, that.plugin);
     }
 }

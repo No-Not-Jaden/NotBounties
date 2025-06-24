@@ -27,7 +27,7 @@ public class SingleItemGive extends CancelableTask{
         if (toGive > 0) {
             // refund the rest of the items
             itemStack.setAmount((int) toGive);
-            BountyManager.refundPlayer(p.getUniqueId(), 0, new ArrayList<>(List.of(itemStack)));
+            BountyManager.refundPlayer(p.getUniqueId(), 0, new ArrayList<>(List.of(itemStack)), null);
         }
     }
 

@@ -4,13 +4,14 @@ import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.bounty_events.BountyEditEvent;
 import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
 import me.jadenp.notbounties.data.Bounty;
-import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.display.map.HologramRenderer;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
+import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -229,7 +230,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (!silent) {
                     if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("true")) {
                         sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now " + ChatColor.GREEN + "enabled" + ChatColor.YELLOW + ".", parser));
-                    } else if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("true")) {
+                    } else if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("false")) {
                         sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now " + ChatColor.RED + "disabled" + ChatColor.YELLOW + ".", parser));
                     } else {
                         sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now skipping the version " + ChatColor.GOLD + ConfigOptions.getUpdateNotification() + ChatColor.YELLOW + ".", parser));
@@ -440,7 +441,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (args[1].equalsIgnoreCase("add")) {
                             whitelist.stream().filter(uuid -> !previousWhitelist.contains(uuid)).forEach(previousWhitelist::add);
                             while (previousWhitelist.size() > 10)
-                                previousWhitelist.removeLast();
+                                previousWhitelist.remove(previousWhitelist.last());
                             // don't need to set the player's whitelist to previousWhitelist because it is already a reference to it
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("whitelist-change"), parser));
@@ -829,13 +830,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             // try to find bounty and buy it
                                             repeatBuyImmunityCommand.remove((parser).getUniqueId().toString());
                                             if (checkBalance(parser, ImmunityManager.getPermanentCost())) {
-                                                NumberFormatting.doRemoveCommands(parser, ImmunityManager.getPermanentCost(), new ArrayList<>());
-                                                // successfully bought perm immunity
-                                                ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.PURCHASE_IMMUNITY, ImmunityManager.getPermanentCost());
-                                                DataManager.changeStat((parser).getUniqueId(), Leaderboard.IMMUNITY, ImmunityManager.getPermanentCost());
-                                                if (!silent)
-                                                    sender.sendMessage(parse(getPrefix() + getMessage("buy-permanent-immunity"), Leaderboard.IMMUNITY.getStat((parser).getUniqueId()), parser));
-                                                return true;
+                                                try {
+                                                    NumberFormatting.doRemoveCommands(parser, ImmunityManager.getPermanentCost(), new ArrayList<>());
+                                                    // successfully bought perm immunity
+                                                    ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.PURCHASE_IMMUNITY, ImmunityManager.getPermanentCost());
+                                                    DataManager.changeStat((parser).getUniqueId(), Leaderboard.IMMUNITY, ImmunityManager.getPermanentCost());
+                                                    if (!silent)
+                                                        sender.sendMessage(parse(getPrefix() + getMessage("buy-permanent-immunity"), Leaderboard.IMMUNITY.getStat((parser).getUniqueId()), parser));
+                                                    return true;
+                                                } catch (NotEnoughCurrencyException e) {
+                                                    if (!silent)
+                                                        sender.sendMessage(parse(getPrefix() + getMessage("broke"), ImmunityManager.getPermanentCost(), parser));
+                                                }
                                             } else {
                                                 if (!silent)
                                                     sender.sendMessage(parse(getPrefix() + getMessage("broke"), ImmunityManager.getPermanentCost(), parser));
@@ -870,18 +876,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             // try to find bounty and buy it
                                             repeatBuyImmunityCommand.remove((parser).getUniqueId().toString());
                                             if (checkBalance(parser, amount)) {
-                                                NumberFormatting.doRemoveCommands(parser, amount, new ArrayList<>());
-                                                // successfully bought scaling immunity - amount x scalingRatio
-                                                ImmunityManager.addImmunity(parser.getUniqueId(), amount);
-                                                ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.PURCHASE_IMMUNITY, amount);
-                                                if (ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.SCALING) {
+                                                try {
+                                                    NumberFormatting.doRemoveCommands(parser, amount, new ArrayList<>());
+                                                    // successfully bought scaling immunity - amount x scalingRatio
+                                                    ImmunityManager.addImmunity(parser.getUniqueId(), amount);
+                                                    ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.PURCHASE_IMMUNITY, amount);
+                                                    if (ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.SCALING) {
+                                                        if (!silent)
+                                                            sender.sendMessage(parse(getPrefix() + getMessage("buy-scaling-immunity"), ImmunityManager.getImmunity(parser.getUniqueId()) * ImmunityManager.getScalingRatio(), parser));
+                                                    } else {
+                                                        if (!silent)
+                                                            sender.sendMessage(parse(getPrefix() + getMessage("buy-time-immunity").replace("{time}", (LocalTime.formatTime(ImmunityManager.getTimeImmunity(parser.getUniqueId()), LocalTime.TimeFormat.RELATIVE))), ImmunityManager.getImmunity(parser.getUniqueId()) * ImmunityManager.getTime(), parser));
+                                                    }
+                                                    return true;
+                                                } catch (NotEnoughCurrencyException e) {
+                                                    // broke
                                                     if (!silent)
-                                                        sender.sendMessage(parse(getPrefix() + getMessage("buy-scaling-immunity"), ImmunityManager.getImmunity(parser.getUniqueId()) * ImmunityManager.getScalingRatio(), parser));
-                                                } else {
-                                                    if (!silent)
-                                                        sender.sendMessage(parse(getPrefix() + getMessage("buy-time-immunity").replace("{time}", (LocalTime.formatTime(ImmunityManager.getTimeImmunity(parser.getUniqueId()), LocalTime.TimeFormat.RELATIVE))), ImmunityManager.getImmunity(parser.getUniqueId()) * ImmunityManager.getTime(), parser));
+                                                        sender.sendMessage(parse(getPrefix() + getMessage("broke"), amount, parser));
+                                                    return false;
                                                 }
-                                                return true;
                                             } else {
                                                 // broke
                                                 if (!silent)
@@ -935,21 +948,28 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         Bukkit.getPluginManager().callEvent(event);
                                         if (event.isCancelled())
                                             return true;
-                                        NumberFormatting.doRemoveCommands(parser, (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()), new ArrayList<>());
-                                        if (NumberFormatting.isBountyItemsBuyItem()) {
-                                            NumberFormatting.givePlayer(parser, bounty.getTotalItemBounty(), false);
-                                        } else {
-                                            for (Setter setter : bounty.getSetters()) {
-                                                if (!setter.getItems().isEmpty())
-                                                    BountyManager.refundPlayer(setter.getUuid(), 0, setter.getItems());
+                                        try {
+                                            NumberFormatting.doRemoveCommands(parser, (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()), new ArrayList<>());
+                                            if (NumberFormatting.isBountyItemsBuyItem()) {
+                                                NumberFormatting.givePlayer(parser, bounty.getTotalItemBounty(), false);
+                                            } else {
+                                                for (Setter setter : bounty.getSetters()) {
+                                                    if (!setter.getItems().isEmpty())
+                                                        BountyManager.refundPlayer(setter.getUuid(), 0, setter.getItems(), LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-remove"), parser));
+                                                }
                                             }
+                                            BountyManager.removeBounty(bounty.getUUID());
+                                            ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.BUY_OWN, 1);
+                                            reopenBountiesGUI();
+                                            if (!silent)
+                                                sender.sendMessage(parse(getPrefix() + getMessage("success-remove-bounty"), parser));
+                                            return true;
+                                        } catch (NotEnoughCurrencyException e) {
+                                            // broke
+                                            if (!silent)
+                                                sender.sendMessage(parse(getPrefix() + getMessage("broke"), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()), parser));
+                                            return false;
                                         }
-                                        BountyManager.removeBounty(bounty.getUUID());
-                                        ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.BUY_OWN, 1);
-                                        reopenBountiesGUI();
-                                        if (!silent)
-                                            sender.sendMessage(parse(getPrefix() + getMessage("success-remove-bounty"), parser));
-                                        return true;
                                     } else {
                                         // broke
                                         if (!silent)
@@ -1087,7 +1107,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (event.isCancelled())
                                     return true;
                                 BountyManager.removeBounty(toRemove.getUUID());
-                                refundBounty(toRemove);
+                                refundBounty(toRemove, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-remove"), Bukkit.getOfflinePlayer(bountyUUID)));
                                 // successfully removed
                                 if (parser != null && parser.getUniqueId().equals(toRemove.getUUID()))
                                     ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.BUY_OWN, 1);
@@ -1109,7 +1129,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             return true;
                                         DataManager.removeSetters(getBounty(toRemove.getUUID()), actualSetters);
 
-                                        refundBounty(bounty);
+                                        refundBounty(bounty, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-remove"), Bukkit.getOfflinePlayer(bountyUUID)));
                                         // reopen gui for everyone
                                         reopenBountiesGUI();
                                         // successfully removed
@@ -1205,7 +1225,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (toRemove.getSetters().isEmpty()) {
                         BountyManager.removeBounty(toRemove.getUUID());
                     }
-                    refundSetter(actualRemove);
+                    refundSetter(actualRemove, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-remove"), Bukkit.getOfflinePlayer(toRemove.getUUID())));
                     // reopen gui for everyone
                     reopenBountiesGUI();
                     // successfully removed
@@ -1774,14 +1794,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                     , LocalTime.TimeFormat.RELATIVE))), player));
                                 break;
                             case NEW_PLAYER:
-                                long immunitySeconds = (long) ((ImmunityManager.getNewPlayerImmunity() - ((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 1200)) * 1000L);
+                                long immunityMS = (long) ((ImmunityManager.getNewPlayerImmunity() - ((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20)) * 1000L);
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix()
                                             + LanguageOptions.getMessage("new-player-immunity")
                                             .replace("{time}", (LocalTime.formatTime(
-                                                    immunitySeconds,
+                                                    immunityMS,
                                                     LocalTime.TimeFormat.RELATIVE))), player));
-                                if (immunitySeconds < 0) {
+                                if (immunityMS <= 0) {
                                     // does not have new player immunity anymore
                                     DataManager.getPlayerData(playerUUID).setNewPlayer(false);
                                     Bukkit.getLogger().info("immunity changed");
@@ -1839,9 +1859,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                             double finalTotal = total;
                             boolean finalUsingGUI = usingGUI;
                             boolean finalSilent = silent;
+                            boolean finalSilent1 = silent;
                             NotBounties.getServerImplementation().async().runNow(() -> {
                                 // async ban check
-                                if (!player.isOnline() && ConfigOptions.isRemoveBannedPlayers() && (player.isBanned() || (ConfigOptions.getIntegrations().isLiteBansEnabled() && !(new LiteBansClass().isPlayerNotBanned(playerUUID))))) {
+                                if (!player.isOnline() && ConfigOptions.isRemoveBannedPlayers() && NotBounties.isPlayerBanned(player)) {
                                     NotBounties.getServerImplementation().global().run(() -> {
                                         // has permanent immunity
                                         if (!finalSilent)
@@ -1874,10 +1895,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 return;
                                             }
                                         }
-                                        if (NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL)
-                                            NumberFormatting.doRemoveCommands(parser, finalTotal, new ArrayList<>());
-                                        addBounty(parser, player, finalAmount, items, whitelist);
-                                        reopenBountiesGUI();
+                                        try {
+                                            if (NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL)
+                                                NumberFormatting.doRemoveCommands(parser, finalTotal, new ArrayList<>());
+                                            addBounty(parser, player, finalAmount, items, whitelist);
+                                            reopenBountiesGUI();
+                                        } catch (NotEnoughCurrencyException e) {
+                                            if (!finalSilent1)
+                                                sender.sendMessage(parse(getPrefix() + getMessage("broke"), finalTotal, parser));
+                                        }
                                     });
                                 }
                             });

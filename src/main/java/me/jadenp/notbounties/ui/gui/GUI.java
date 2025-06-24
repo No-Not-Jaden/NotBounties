@@ -666,13 +666,13 @@ public class GUI implements Listener {
                     for (ItemStack[] items : allItems) {
                         List<ItemStack> addedItems = Arrays.stream(items).filter(Objects::nonNull).toList();
                         if (!addedItems.isEmpty())
-                            BountyManager.refundPlayer(player.getUniqueId(), 0, addedItems);
+                            BountyManager.refundPlayer(player.getUniqueId(), 0, addedItems, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-gui-shutdown"), player));
                     }
 
                     // add current items (maybe empty)
                     List<ItemStack> addedItems = Arrays.stream(currentContents).filter(Objects::nonNull).toList();
                     if (!addedItems.isEmpty())
-                        BountyManager.refundPlayer(player.getUniqueId(), 0, addedItems);
+                        BountyManager.refundPlayer(player.getUniqueId(), 0, addedItems, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-gui-shutdown"), player));
                 } else {
                     // can give items
                     for (ItemStack[] items : allItems) {

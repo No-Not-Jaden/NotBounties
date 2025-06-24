@@ -22,16 +22,17 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SkinManager {
-    private static final Map<UUID, PlayerSkin> savedSkins = new HashMap<>();
-    private static final Map<UUID, Long> requestCooldown = new HashMap<>();
+    private static final Map<UUID, PlayerSkin> savedSkins = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> requestCooldown = new ConcurrentHashMap<>();
     private static final long REQUEST_FAIL_TIMEOUT = 60000 * 30L; // 30 min
     private static final long CONCURRENT_REQUEST_INTERVAL = 10000;
-    private static final String MISSING_SKIN_TEXTURE = "http://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57";
+    private static final String MISSING_SKIN_TEXTURE = "https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57";
     private static final String MISSING_SKIN_ID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
-    private static BufferedImage MISSING_SKIN_FACE = null;
+    private static final BufferedImage MISSING_SKIN_FACE;
     private static final PlayerSkin missingSkin;
 
     static {

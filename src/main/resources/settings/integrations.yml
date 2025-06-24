@@ -14,6 +14,11 @@ teams:
   # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
   # you can also use a list if you want multiple placeholders to be compared
   placeholder: ''
+  # The minimum distance between players' respawn points to claim a bounty
+  # Set to -1 to disable
+  min-respawn-distance: -1
+  # allow players with the same ip address to claim bounties on each other
+  same-ip-claim: true
   # Team bounties - WIP feature
   bounties:
     # whether team bounties are enabled

@@ -22,7 +22,7 @@ public class MultipleItemGive extends CancelableTask{
         super.cancel();
         if (index < itemStackList.size()) {
             // refund the rest of the items
-            BountyManager.refundPlayer(p.getUniqueId(), 0, itemStackList.subList(index, itemStackList.size()));
+            BountyManager.refundPlayer(p.getUniqueId(), 0, itemStackList.subList(index, itemStackList.size()), null);
         }
     }
 

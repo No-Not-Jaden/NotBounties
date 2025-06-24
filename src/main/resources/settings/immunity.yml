@@ -36,7 +36,7 @@ time-immunity:
 # in SECONDS how long before a player can set a bounty on a player that was just killed with a bounty
 grace-period: 10
 
-# in MINUTES how much playtime a player must have before a bounty can be set on them
+# in SECONDS how much playtime a player must have before a bounty can be set on them
 new-player-immunity: 0 # 300 = 5 hr, 720 = 12 hr
 
 # How long a player has to wait before setting another bounty - measured in seconds

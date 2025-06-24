@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.utils;
 
-import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import org.bukkit.Bukkit;
@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class LoggedPlayers {
 
@@ -21,6 +20,7 @@ public class LoggedPlayers {
      */
     private static final Map<String, UUID> playerIDs = new HashMap<>();
 
+    @Deprecated(since = "1.22.0")
     public static void readOldConfiguration(ConfigurationSection configuration) {
         // add all previously logged on players to a map
         if (configuration.isSet("0")) {
@@ -29,18 +29,16 @@ public class LoggedPlayers {
             while (configuration.getString(i + ".name") != null) {
                 String name = Objects.requireNonNull(configuration.getString( i + ".name"));
                 UUID uuid = UUID.fromString(Objects.requireNonNull(configuration.getString(i + ".uuid")));
-                playerIDs.put(name.toLowerCase(), uuid);
-                DataManager.getPlayerData(uuid).setPlayerName(name);
+                logPlayer(name, uuid);
                 i++;
             }
         } else {
-            // new version - key = uuid, value = name
+            // 2nd old configuration - key = uuid, value = name
             for (String key : configuration.getKeys(false)) {
                 String name = Objects.requireNonNull(configuration.getString(key));
                 try {
                     UUID uuid = UUID.fromString(key);
-                    playerIDs.put(name.toLowerCase(), uuid);
-                    DataManager.getPlayerData(uuid).setPlayerName(name);
+                    logPlayer(name, uuid);
                 } catch (IllegalArgumentException e) {
                     Bukkit.getLogger().warning("Key in logged-players is not a UUID: " + key);
                 }
@@ -52,15 +50,17 @@ public class LoggedPlayers {
      * Loads player data and saves their names to a map.
      */
     public static void loadPlayerData() {
-        DataManager.getPlayerDataMap().entrySet().stream()
-                .filter(entry -> entry.getValue().getPlayerName() != null)
-                .forEach(entry -> playerIDs.put(entry.getValue().getPlayerName().toLowerCase(), entry.getKey()));
+        DataManager.getAllPlayerData().stream()
+                .filter(entry -> entry.getPlayerName() != null)
+                .forEach(entry -> playerIDs.put(entry.getPlayerName().toLowerCase(), entry.getUuid()));
     }
 
     public static Map<UUID, String> getLoggedPlayers() {
-        return DataManager.getPlayerDataMap().entrySet().stream()
-                .filter(entry -> entry.getValue().getPlayerName() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getPlayerName(), (a, b) -> b));
+        Map<UUID, String> reversedPlayerIDs = new HashMap<>(playerIDs.size());
+        for (Map.Entry<String, UUID> entry : playerIDs.entrySet()) {
+            reversedPlayerIDs.put(entry.getValue(), entry.getKey());
+        }
+        return reversedPlayerIDs;
     }
 
     /**
@@ -99,13 +99,13 @@ public class LoggedPlayers {
         return playerIDs.containsKey(name.toLowerCase());
     }
 
-    public static boolean isLogged(UUID uuid) {
-        return DataManager.getPlayerData(uuid).getPlayerName() != null;
+    public static boolean isMissing(UUID uuid) {
+        return DataManager.getPlayerData(uuid).getPlayerName() == null;
     }
 
     public static void login(Player player) {
         // check if they are logged yet
-        if (!isLogged(player.getUniqueId())) {
+        if (isMissing(player.getUniqueId())) {
             // if not, add them
             logPlayer(player.getName(), player.getUniqueId());
             // send a proxy message to log

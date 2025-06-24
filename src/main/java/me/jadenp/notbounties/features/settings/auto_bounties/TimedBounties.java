@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 
+import static me.jadenp.notbounties.NotBounties.isPlayerBanned;
 import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.BountyManager.*;
 
@@ -102,7 +103,7 @@ public class TimedBounties {
                 if (player.isOnline() && isVanished(Objects.requireNonNull(player.getPlayer())))
                     continue;
                 // set bounty
-                TaskImplementation<Boolean> checkBounty = NotBounties.getServerImplementation().async().runNow(task -> player.isBanned() || (ConfigOptions.getIntegrations().isLiteBansEnabled() && !new LiteBansClass().isPlayerNotBanned(player.getUniqueId())));
+                TaskImplementation<Boolean> checkBounty = NotBounties.getServerImplementation().async().runNow(task -> { return isPlayerBanned(player); });
                 checkBounty.asFuture().thenRun(() -> NotBounties.getServerImplementation().global().run(nextTask -> {
                     if (Boolean.TRUE.equals(checkBounty.getCallback())) {
                         if (player.isOnline() || offlineTracking)

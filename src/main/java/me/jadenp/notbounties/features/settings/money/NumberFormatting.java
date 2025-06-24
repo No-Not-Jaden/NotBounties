@@ -249,8 +249,7 @@ public class NumberFormatting {
             pattern = "#,###.##";
         }
 
-        String[] localeSplit = localeString.split("-");
-        locale = Locale.of(localeSplit[0], localeSplit[1]);
+        locale = Locale.forLanguageTag(localeString);
 
         decimalFormat = new DecimalFormat(pattern, new DecimalFormatSymbols(locale));
 
@@ -502,7 +501,7 @@ public class NumberFormatting {
     }
 
 
-    public static Map<Material, Long> doRemoveCommands(Player p, double amount, List<ItemStack> additionalItems) {
+    public static Map<Material, Long> doRemoveCommands(Player p, double amount, List<ItemStack> additionalItems) throws NotEnoughCurrencyException {
         if (manualEconomy == ManualEconomy.MANUAL) {
             for (String removeCommand : removeCommands) {
                 if (removeCommand.isEmpty())
@@ -517,7 +516,8 @@ public class NumberFormatting {
             if (vaultClass.withdraw(p, amount)) {
                 return new EnumMap<>(Material.class);
             } else {
-                plugin.getLogger().warning("Error withdrawing currency with vault!");
+                plugin.getLogger().warning("Error withdrawing currency with vault! This could be from someone trying to dupe or lag on the server.");
+                throw new NotEnoughCurrencyException("Vault could not withdraw " + amount +  " from " + p.getName());
             }
         }
         if (currency.isEmpty()){

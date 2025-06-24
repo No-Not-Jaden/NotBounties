@@ -18,12 +18,12 @@ bounty-expire:
 # These player's bounty stats will be hidden from bounties top
 hide-stats:
   - Not_Jaden
+# Whether invisible players will be hidden from being shown online
+hide-invisible-players: true
 # get notified on NotBounties Updates
 update-notification: true
 # allow a npc to claim a bounty
 npc-claim: false
-# allow players with the same ip address to claim bounties on each other
-same-ip-claim: true
 # limit bounties to a max number of setters - other players can't set a bounty on a player if the maximum has been hit - (-1) to disable
 max-setters: -1
 # allow players to set bounties on people who are offline
@@ -34,6 +34,8 @@ confirmation: true
 remove-banned-players: true
 # allow players to set bounties on themselves
 self-setting: true
+# allow players who set a bounty to claim it themselves
+setter-claim-own: true
 # Allow players with bounties to get their own reward by killing the players who set a bounty on them
 steal-bounties: false
 # Change the order when the bounties are claimed event wise

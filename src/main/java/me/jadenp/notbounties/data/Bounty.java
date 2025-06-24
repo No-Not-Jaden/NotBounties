@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Bounty implements Comparable<Bounty>, Inconsistent{
+public class Bounty extends Inconsistent implements Comparable<Bounty> {
     private final UUID uuid;
     private String name;
     private List<Setter> setters = Collections.synchronizedList(new LinkedList<>());
@@ -64,7 +64,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
         for (Setter setter : bounty.getSetters()) {
             setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), new ArrayList<>(setter.getItems()), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount()));
         }
-        serverID = bounty.serverID;
+        serverID = bounty.getServerID();
     }
 
     public Bounty(Bounty bounty, UUID claimer) {
@@ -288,6 +288,7 @@ public class Bounty implements Comparable<Bounty>, Inconsistent{
                 "uuid=" + uuid +
                 ", name='" + name + '\'' +
                 ", setters=" + setters +
+                ", serverID=" + serverID +
                 '}';
     }
 

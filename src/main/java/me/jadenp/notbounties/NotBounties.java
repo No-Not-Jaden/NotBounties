@@ -5,6 +5,8 @@ import com.cjcrafter.foliascheduler.ServerImplementation;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.features.settings.auto_bounties.*;
 import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxyDatabase;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -47,17 +49,32 @@ import java.util.*;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 /**
- * Folia -
  * Team bounties
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
  * Redo vouchers with persistent data, give items, & reward delay
+ * Redis Pub Sub messages for player data storage. - proxy messaging too
+ * database message table
+ * fast database option to use directly instead of an update interval
+ * Multiple proxy databases
+ * 1.21.6 dialog
+ * 3 suggestions
  *
- * move bounty-cooldown to immunity
- * Wanted tag as packet
  * holographic posters
  * poster regenerate command
- * packetevents sometimes doesnt hook
+ * cannot remove bounty from specific setter - x
+ * use inconsistent to sync data & get a guaranteed player data before giving any refunds <--- use guarenteedPlayerData method in datamanager -
+ * sort player data by uuid, or do so when syncing databases -
+ * add server ID to player data -
+ * save player data if not in perm database -
+ * currency and other config options work? -
+ * check online players for refunds after sync -
+ * tutorial page line -
+ * bounty refunds changed -
+ * similar respawn points for ally bounty claim - x
+ * option to stop setter from claiming their own bounty - x
+ * is data stored locally with redis?
+ * check new player after running command - time might be off? message is seconds are actually minutes -
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -175,7 +192,16 @@ public final class NotBounties extends JavaPlugin {
         checkForUpdate(this);
 
         // check permission immunity every 5 mins
-        getServerImplementation().global().runAtFixedRate(ImmunityManager::checkOnlinePermissionImmunity, 3611, 3600);
+        // sync player data if there is only 1 person online (for proxy)
+        getServerImplementation().global().runAtFixedRate(() ->
+        {
+            ImmunityManager.checkOnlinePermissionImmunity();
+            Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+            if (players.size() == 1 && ProxyDatabase.isEnabled() && ProxyDatabase.isDatabaseSynchronization() && ProxyMessaging.hasConnectedBefore()) {
+                DataManager.syncPlayerData(players.iterator().next().getUniqueId(), null);
+            }
+
+        }, 3611, 3600);
 
         // make bounty tracker work & big bounty particle & time immunity
         getServerImplementation().global().runAtFixedRate(() -> {
@@ -236,7 +262,7 @@ public final class NotBounties extends JavaPlugin {
                     Bounty bounty = bountyListCopy.get(i);
                     OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
                     getServerImplementation().async().runNow(() -> {
-                        if (player.isBanned() || (ConfigOptions.getIntegrations().isLiteBansEnabled() && !(new LiteBansClass().isPlayerNotBanned(bounty.getUUID())))) {
+                        if (NotBounties.isPlayerBanned(player)) {
                             getServerImplementation().global().run(() -> BountyManager.removeBounty(bounty.getUUID()));
                         }
                     });
@@ -373,12 +399,18 @@ public final class NotBounties extends JavaPlugin {
         if (ConfigOptions.getIntegrations().isMmoLibEnabled())
             MMOLibClass.removeAllModifiers();
         SkinManager.shutdown();
-        DataManager.shutdown();
         BountyMap.shutdown();
-        if (!started)
+
+        // remove bounty entities
+        WantedTags.disableWantedTags();
+        BountyBoard.clearBoard();
+
+        if (!started) {
             // Plugin failed to start.
             // Returning, so save data isn't overwritten.
+            DataManager.shutdown();
             return;
+        }
 
         // close all GUIs
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -393,9 +425,9 @@ public final class NotBounties extends JavaPlugin {
             getLogger().severe(e.toString());
         }
 
-        // remove wanted tags
-        WantedTags.disableWantedTags();
-        BountyBoard.clearBoard();
+        DataManager.shutdown();
+
+
 
     }
 
@@ -471,7 +503,12 @@ public final class NotBounties extends JavaPlugin {
     }
 
     public static boolean isVanished(Player player) {
+        if (ConfigOptions.isHideInvisiblePlayers() && player.isInvisible())
+            return true;
         for (MetadataValue meta : player.getMetadata("vanished")) {
+            if (meta.asBoolean()) return true;
+        }
+        for (MetadataValue meta : player.getMetadata("vanish")) {
             if (meta.asBoolean()) return true;
         }
         return false;
@@ -481,7 +518,7 @@ public final class NotBounties extends JavaPlugin {
      * Returns if the server version is above the specified version
      *
      * @param majorVersion Major version of the server. In 1.20.4, the major version is 20
-     * @param subVersion   Sub version of the server. In 1.20.4, the sub version is 4
+     * @param subVersion   Subversion of the server. In 1.20.4, the subversion is 4
      * @return True if the current server version is higher than the specified one
      */
     public static boolean isAboveVersion(int majorVersion, int subVersion) {
@@ -595,5 +632,15 @@ public final class NotBounties extends JavaPlugin {
 
     private static void setServerImplementation(ServerImplementation serverImplementation) {
         NotBounties.serverImplementation = serverImplementation;
+    }
+
+    public static boolean isPlayerBanned(OfflinePlayer player) {
+        if (player.isBanned())
+            return true;
+        try {
+            return ConfigOptions.getIntegrations().isLiteBansEnabled() && !new LiteBansClass().isPlayerNotBanned(player.getUniqueId());
+        } catch (NoClassDefFoundError e) {
+            return false;
+        }
     }
 }

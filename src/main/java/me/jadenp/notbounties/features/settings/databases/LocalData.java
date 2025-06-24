@@ -2,6 +2,7 @@ package me.jadenp.notbounties.features.settings.databases;
 
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.data.PlayerStat;
@@ -12,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,17 +26,20 @@ public class LocalData extends NotBountiesDatabase {
      */
     private final Map<UUID, Bounty> onlineBounties = new HashMap<>();
     protected final Map<UUID, PlayerStat> playerStats;
+    private final Map<UUID, PlayerData> playerDataMap;
 
     public LocalData() {
         super(null, "LocalData");
         activeBounties = Collections.synchronizedList(new LinkedList<>());
         playerStats = Collections.synchronizedMap(new HashMap<>());
+        playerDataMap = Collections.synchronizedMap(new HashMap<>());
     }
 
-    protected LocalData(List<Bounty> activeBounties, Map<UUID, PlayerStat> playerStats) {
+    protected LocalData(List<Bounty> activeBounties, Map<UUID, PlayerStat> playerStats, Map<UUID, PlayerData> playerDataMap) {
         super(null, "LocalData");
         this.activeBounties = activeBounties;
         this.playerStats = playerStats;
+        this.playerDataMap = playerDataMap;
     }
 
     private void sortActiveBounties() {
@@ -47,7 +52,7 @@ public class LocalData extends NotBountiesDatabase {
             // player not in changes yet
             this.playerStats.put(uuid, stats);
         } else {
-            // add stats to the master values
+            // add stats to the primary values
             this.playerStats.replace(uuid, this.playerStats.get(uuid).combineStats(stats));
         }
     }
@@ -97,7 +102,7 @@ public class LocalData extends NotBountiesDatabase {
     public Bounty addBounty(@NotNull Bounty bounty) {
         Bounty prevBounty = getBounty(bounty.getUUID());
         if (prevBounty == null) {
-            // insert new bounty for this player
+            // insert a new bounty for this player
             int index = activeBounties.size();
             for (int i = 0; i < activeBounties.size(); i++) {
                 if (activeBounties.get(i).compareTo(bounty) < 0) {
@@ -120,14 +125,23 @@ public class LocalData extends NotBountiesDatabase {
         } else {
             // synchronous task to check if the player is online
             Bounty finalPrevBounty = prevBounty;
-            NotBounties.getServerImplementation().global().run(() -> {
+            if (Bukkit.isPrimaryThread()) {
                 if (Bukkit.getPlayer(finalPrevBounty.getUUID()) != null) {
                     // need to get an accurate bounty
                     Bounty newBounty = getBounty(finalPrevBounty.getUUID());
                     if (newBounty != null)
                         onlineBounties.put(finalPrevBounty.getUUID(), newBounty);
                 }
-            });
+            } else {
+                NotBounties.getServerImplementation().global().run(() -> {
+                    if (Bukkit.getPlayer(finalPrevBounty.getUUID()) != null) {
+                        // need to get an accurate bounty
+                        Bounty newBounty = getBounty(finalPrevBounty.getUUID());
+                        if (newBounty != null)
+                            onlineBounties.put(finalPrevBounty.getUUID(), newBounty);
+                    }
+                });
+            }
         }
         return prevBounty;
     }
@@ -170,7 +184,7 @@ public class LocalData extends NotBountiesDatabase {
         for (int i = 0; i < activeBounties.size(); i++) {
             if (activeBounties.get(i).getUUID().equals(bounty.getUUID())) {
                 Bounty bountyCopy = new Bounty(activeBounties.get(i));
-                removeSimilarSetters(bountyCopy.getSetters(), bounty.getSetters());
+                removeSimilarSetters(bountyCopy.getSetters(), new ArrayList<>(bounty.getSetters()));
                 // if no master setters are left over, remove bounty entirely from active bounties
                 if (bountyCopy.getSetters().isEmpty()) {
                     activeBounties.remove(i);
@@ -185,7 +199,7 @@ public class LocalData extends NotBountiesDatabase {
             }
         }
 
-        // bounty.getSetters() contains the leftover setters that couldn't be removed
+        // the array list passed from bounty.getSetters() contains the leftover setters that couldn't be removed
     }
 
     /**
@@ -265,7 +279,7 @@ public class LocalData extends NotBountiesDatabase {
     }
 
     @Override
-    public boolean connect() {
+    public boolean connect(boolean syncData) {
         return true;
     }
 
@@ -300,13 +314,50 @@ public class LocalData extends NotBountiesDatabase {
     }
 
     @Override
+    public void updatePlayerData(PlayerData playerData) {
+        playerDataMap.put(playerData.getUuid(), playerData);
+    }
+
+    public PlayerData getPlayerData(UUID uuid) {
+        PlayerData playerData;
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID)) {
+            playerData = new PlayerData();
+        } else {
+            playerData = playerDataMap.computeIfAbsent(uuid, k -> {
+                PlayerData pd = new PlayerData();
+                pd.setUuid(uuid);
+                pd.setServerID(DataManager.getDatabaseServerID(true));
+                return pd;
+            });
+        }
+        if (playerData.getUuid() == null) {
+            playerData.setUuid(uuid);
+        }
+        return playerData;
+    }
+
+    @Override
+    public void addPlayerData(List<PlayerData> playerDataMap) {
+        for (PlayerData playerData : playerDataMap) {
+            updatePlayerData(playerData);
+        }
+    }
+
+    @Override
+    public List<PlayerData> getPlayerData() throws IOException {
+        // An alternative to sorting each time is to use a TreeMap, but time complexity increases for other operations.
+        return playerDataMap.values().stream().sorted().toList();
+    }
+
+    @Override
     public int getPriority() {
         return 0;
     }
 
     @Override
-    public void reloadConfig() {
+    public boolean reloadConfig() {
         // no configuration for this database
+        return false;
     }
 
     @Override
@@ -348,9 +399,28 @@ public class LocalData extends NotBountiesDatabase {
      */
     public void syncPermData() {
         for (Bounty bounty : activeBounties)
-                bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
+            bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
         for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet())
-                entry.getValue().setServerID(DataManager.GLOBAL_SERVER_ID);
+            entry.getValue().setServerID(DataManager.GLOBAL_SERVER_ID);
+        for (Map.Entry<UUID, PlayerData> entry : playerDataMap.entrySet())
+            entry.getValue().setServerID(DataManager.GLOBAL_SERVER_ID);
     }
 
+    @Override
+    public boolean isPermDatabase() {
+        return true;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        LocalData localData = (LocalData) o;
+        return Objects.equals(activeBounties, localData.activeBounties) && Objects.equals(onlineBounties, localData.onlineBounties) && Objects.equals(playerStats, localData.playerStats) && Objects.equals(playerDataMap, localData.playerDataMap);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), activeBounties, onlineBounties, playerStats, playerDataMap);
+    }
 }

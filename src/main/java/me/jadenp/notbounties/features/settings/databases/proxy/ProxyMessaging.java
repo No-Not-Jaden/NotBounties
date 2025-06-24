@@ -5,6 +5,7 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.databases.LocalData;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.ui.SkinManager;
@@ -74,6 +75,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                 switch (subSubChannel) {
                     case "BountyUpdate" -> receiveBountyUpdate(msgIn);
                     case "StatUpdate" -> receiveStatUpdate(msgIn);
+                    case "PlayerDataUpdate" -> receivePlayerDataUpdate(msgIn);
                     case "LogPlayer" -> {
                         short numPlayers = msgIn.readShort();
                         for (short i = 0; i < numPlayers; i++) {
@@ -126,6 +128,9 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     }
 
     private void receiveConnection(DataInputStream msgIn) throws IOException {
+        if (!ProxyDatabase.isDatabaseSynchronization()) {
+            msgIn.readFully(new byte[msgIn.available()]);
+        }
         short savedBounties = msgIn.readShort();
         List<Bounty> bounties = new LinkedList<>();
         for (short i = 0; i < savedBounties; i++) {
@@ -133,7 +138,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         }
         short savedStats = msgIn.readShort();
         Map<UUID, PlayerStat> playerStatMap = new HashMap<>();
-        for (short i = 1; i < savedStats; i++) {
+        for (short i = 0; i < savedStats; i++) {
             UUID uuid = null;
             try {
                 uuid = UUID.fromString(msgIn.readUTF());
@@ -143,8 +148,19 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
             if (uuid != null)
                 playerStatMap.put(uuid, new PlayerStat(msgIn.readUTF()));
         }
-        if (ProxyDatabase.isDatabaseSynchronization())
-            DataManager.connectProxy(bounties, playerStatMap);
+        List<PlayerData> playerData = new LinkedList<>();
+        try {
+            short savedPlayerData = msgIn.readShort();
+            for (short i = 0; i < savedPlayerData; i++) {
+                playerData.add(PlayerData.fromJson(msgIn.readUTF()));
+            }
+        } catch (EOFException e) {
+            // proxy isn't updated
+            Bukkit.getLogger().severe("[NotBounties] Player data has not been transmitted from the proxy. Is the proxy NotBounties updated?");
+            playerData = DataManager.getLocalData().getPlayerData();
+        }
+
+        DataManager.connectProxy(bounties, playerStatMap, playerData);
     }
 
     private void receivePlayerSkin(DataInputStream msgIn) throws IOException, URISyntaxException {
@@ -213,6 +229,22 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     }
 
     /**
+     * Received an update from another server with player data to be changed.
+     * @param msgIn The received message.
+     * @throws IOException If there was an error reading the message.
+     */
+    private void receivePlayerDataUpdate(DataInputStream msgIn) throws IOException {
+        // Forward StatUpdate
+        short numData = msgIn.readShort();
+        LocalData localData = DataManager.getLocalData();
+        for (short i = 0; i < numData; i++) {
+            PlayerData playerData = PlayerData.fromJson(msgIn.readUTF());
+            if (ProxyDatabase.isDatabaseSynchronization())
+                localData.updatePlayerData(playerData);
+        }
+    }
+
+    /**
      * Sends a message to the backend server
      * @param identifier message identifier
      * @param data data to be sent
@@ -248,7 +280,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         // send proxy message
         NotBounties.debugMessage("Sending Bounty Update of " + bountyChanges.size() + " changes.", false);
         try {
-            byte[] message = wrapGlobalMessage(encodeMessage(bountyChanges));
+            byte[] message = wrapGlobalMessage(encodeBountyMessage(bountyChanges));
             sendMessage(CHANNEL, message);
         } catch (IOException e) {
             Bukkit.getLogger().warning("Could not send a data update.");
@@ -265,7 +297,18 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         // send proxy message
         NotBounties.debugMessage("Sending Stat Update of " + statChanges.size() + " changes.", false);
         try {
-            byte[] message = wrapGlobalMessage(encodeMessage(statChanges));
+            byte[] message = wrapGlobalMessage(encodeStatMessage(statChanges));
+            sendMessage(CHANNEL, message);
+        } catch (IOException e) {
+            Bukkit.getLogger().warning("Could not send a data update.");
+            Bukkit.getLogger().warning(e.toString());
+        }
+    }
+
+    public static void sendPlayerDataUpdate(List<PlayerData> playerDataList) {
+        NotBounties.debugMessage("Sending PlayerData Update of " + playerDataList.size() + " changes.", false);
+        try {
+            byte[] message = wrapGlobalMessage(encodePlayerDataMessage(playerDataList));
             sendMessage(CHANNEL, message);
         } catch (IOException e) {
             Bukkit.getLogger().warning("Could not send a data update.");
@@ -304,7 +347,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @return A ByteArrayOutputStream with the message ready to be wrapped
      * @throws IOException if an I/O error occurs
      */
-    private static ByteArrayOutputStream encodeMessage(List<BountyChange> bountyChanges) throws IOException {
+    private static ByteArrayOutputStream encodeBountyMessage(List<BountyChange> bountyChanges) throws IOException {
         ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
         DataOutputStream msgout = new DataOutputStream(msgBytes);
 
@@ -324,7 +367,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @return A ByteArrayOutputStream with the message ready to be wrapped
      * @throws IOException if an I/O error occurs
      */
-    private static ByteArrayOutputStream encodeMessage(Map<UUID, PlayerStat> statChanges) throws IOException {
+    private static ByteArrayOutputStream encodeStatMessage(Map<UUID, PlayerStat> statChanges) throws IOException {
         ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
         DataOutputStream msgout = new DataOutputStream(msgBytes);
 
@@ -336,6 +379,26 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         }
         return msgBytes;
     }
+    /**
+     * Encodes a message in a byte array to be sent to all the other servers on the network.
+     * This function will encode the bounties into a string array.
+     * @param playerDataList PlayerData to encode.
+     * @return A ByteArrayOutputStream with the message ready to be wrapped
+     * @throws IOException if an I/O error occurs
+     */
+    private static ByteArrayOutputStream encodePlayerDataMessage(List<PlayerData> playerDataList) throws IOException {
+        ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
+        DataOutputStream msgout = new DataOutputStream(msgBytes);
+
+        msgout.writeUTF("PlayerDataUpdate"); // write the channel
+        msgout.writeShort(playerDataList.size()); // write the number of stats
+
+        for (PlayerData playerData : playerDataList) {
+            msgout.writeUTF(playerData.toJson().toString());
+        }
+        return msgBytes;
+    }
+
 
     /**
      * Request the player list from the proxy.
@@ -355,7 +418,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         out.writeShort(msgBytes.toByteArray().length); // This is the length.
         out.write(msgBytes.toByteArray()); // This is the message.
         sendMessage(CHANNEL, out.toByteArray());
-        NotBounties.debugMessage("Sent player skin request.", false);
+        NotBounties.debugMessage("Sent player list request.", false);
     }
 
     /**

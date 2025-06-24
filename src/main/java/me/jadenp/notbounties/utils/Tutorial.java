@@ -2,6 +2,7 @@ package me.jadenp.notbounties.utils;
 
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -32,8 +33,6 @@ public class Tutorial {
     private static final List<List<String>> pages = new ArrayList<>(16);
     private static String runCommandHover;
     private static String suggestCommandHover;
-    private static String nextPageHover;
-    private static String previousPageHover;
 
     public static void loadConfiguration(ConfigurationSection configuration) {
         pages.clear();
@@ -56,8 +55,6 @@ public class Tutorial {
 
         runCommandHover = configuration.getString("run-command-hover");
         suggestCommandHover = configuration.getString("suggest-command-hover");
-        nextPageHover = configuration.getString("next-page-hover");
-        previousPageHover = configuration.getString("previous-page-hover");
     }
 
     /**
@@ -114,31 +111,14 @@ public class Tutorial {
         if (pages.size() < page)
             return;
         Player parser = sender instanceof Player player ? player : null;
-        List<TextComponent[]> text = new ArrayList<>();
-        int maxTextLength = 0;
-        int firstLineLength = 0;
         List<String> get = pages.get(page - 1);
-        for (int i = 0; i < get.size(); i++) {
-            String line = get.get(i);
+        sender.sendMessage(parse(getMessage("help.title"), parser));
+        for (String line : get) {
             TextComponent[] components = parseLine(line, parser);
-            int lineLength = Arrays.stream(components).mapToInt(component -> ChatColor.stripColor(component.getText()).length()).sum();
-            if (lineLength > maxTextLength)
-                maxTextLength = lineLength;
-            text.add(components);
-            if (i == 0)
-                firstLineLength = lineLength;
+            sender.spigot().sendMessage(components);
         }
-        String prefix = parse(getPrefix(), parser);
-        sender.sendMessage(prefix + ChatColor.GRAY + ChatColor.STRIKETHROUGH + " ".repeat(Math.max((int) (maxTextLength * 1.5), 15)));
-        int spacerLength = (maxTextLength - firstLineLength) / 2;
-        TextComponent[] textComponents = new TextComponent[text.get(0).length + 1];
-        System.arraycopy(text.get(0), 0, textComponents, 1, text.get(0).length);
-        textComponents[0] = new TextComponent(" ".repeat(spacerLength));
-        sender.spigot().sendMessage(textComponents);
-        for (int i = 1; i < text.size(); i++) {
-            sender.spigot().sendMessage(text.get(i));
-        }
-        sendPageMessage(sender, page, maxTextLength);
+
+        sendPageLine(sender, page);
 
     }
 
@@ -193,24 +173,51 @@ public class Tutorial {
 
     }
 
-    private static void sendPageMessage(CommandSender sender, int page, int maxLength) {
-        int maxPage = 16;
-        TextComponent space = new TextComponent("        ");
-        TextComponent extraSpace = new TextComponent(" ".repeat(Math.max(maxLength / 2 - 13, 3)));
-        TextComponent back = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋘⋘⋘");
-        TextComponent middle = new TextComponent("        " + ChatColor.GRAY + " [" + getViewerPage(page) + "]        ");
-        TextComponent next = new TextComponent(ChatColor.GREEN + "" + ChatColor.BOLD + "⋙⋙⋙");
-        back.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(previousPageHover, null))));
-        next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(nextPageHover, null))));
-        int nextPage = getNextValidPage(page + 1, 1);
-        int lastPage = getNextValidPage(page - 1, -1);
-        back.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " tutorial " + lastPage));
-        next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " tutorial " + nextPage));
-        BaseComponent[] baseComponents = new BaseComponent[]{extraSpace, back, middle, next};
-        if (lastPage == 0)
-            baseComponents[1] = space;
-        if (nextPage > maxPage)
-            baseComponents[3] = space;
+    public static void sendPageLine(CommandSender sender, int currentPage) {
+        Player parser = sender instanceof Player player ? player : null;
+        int previousPage = getNextValidPage(currentPage - 1, -1);
+        int nextPage = getNextValidPage(currentPage + 1, 1);
+
+
+        sendUnifiedPageLine(sender, getViewerPage(currentPage), parser, previousPage, nextPage, "tutorial", 17);
+    }
+
+    public static void sendUnifiedPageLine(CommandSender sender, int currentPage, Player parser, int previousPage, int nextPage, String changePageCommand, int maxPage) {
+        String footer = LanguageOptions.getMessage("help.footer");
+        String before = "";
+        String middle = "";
+        if (footer.contains("{prev}"))
+            before = footer.substring(0, footer.indexOf("{prev}"));
+        if (footer.contains("{next}"))
+            middle = footer.substring(before.length() + 6, footer.indexOf("{next}"));
+        String after = footer.substring(before.length() + middle.length() + 12).replace("{page}", currentPage + "").replace("{page}", currentPage + "");
+
+        TextComponent prevComponent;
+        if (previousPage <= 0) {
+            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-deny"), parser));
+        } else {
+            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-text"), parser));
+            prevComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
+            prevComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " " + changePageCommand + " " + previousPage));
+        }
+
+        TextComponent nextComponent;
+        if (nextPage >= maxPage || nextPage <= previousPage) {
+            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-deny"), parser));
+        } else {
+            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-text"), parser));
+            nextComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
+            nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " " + changePageCommand + " " + nextPage));
+        }
+
+
+        BaseComponent[] baseComponents = new BaseComponent[]{
+                new TextComponent(parse(before.replace("{page}", currentPage + ""), parser)),
+                prevComponent,
+                new TextComponent(parse(middle.replace("{page}", currentPage + ""), parser)),
+                nextComponent,
+                new TextComponent(parse(after, parser))
+        };
         sender.spigot().sendMessage(baseComponents);
     }
 }

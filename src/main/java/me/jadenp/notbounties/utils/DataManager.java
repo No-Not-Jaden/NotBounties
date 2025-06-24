@@ -1,11 +1,11 @@
 package me.jadenp.notbounties.utils;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.data.*;
+import me.jadenp.notbounties.data.player_data.*;
 import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
 import me.jadenp.notbounties.features.settings.databases.LocalData;
 import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
@@ -15,11 +15,9 @@ import me.jadenp.notbounties.features.settings.databases.redis.RedisConnection;
 import me.jadenp.notbounties.features.settings.databases.sql.MySQL;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
-import me.jadenp.notbounties.features.settings.display.map.BountyBoardTypeAdapter;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
 import me.jadenp.notbounties.features.ConfigOptions;
-import me.jadenp.notbounties.data.RewardHead;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
@@ -39,9 +37,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 
@@ -57,8 +55,10 @@ public class DataManager {
     private static UUID databaseServerID = null;
     public static final long CONNECTION_REMEMBRANCE_MS = (long) 2.592e+8; // how long before databases stop storing changes if no connection was made (3 days)
     public static final UUID GLOBAL_SERVER_ID = new UUID(0,0);
+    private static final long MIN_DATABASE_SYNC_INTERVAL_MS = 1000; // for reading the priority database for getting local data on save
+    private static long lastPriorityDatabaseSync = 0;
+    private static TaskImplementation<Void> autoReconnectTask = null;
 
-    private static final Map<UUID, PlayerData> playerDataMap = Collections.synchronizedMap(new HashMap<>());
     private static Plugin plugin;
 
     public static void loadData(Plugin plugin) throws IOException {
@@ -71,34 +71,24 @@ public class DataManager {
 
     }
 
-    protected static void addPlayerData(Map<UUID, PlayerData> playerDataMap) {
-        synchronized (DataManager.playerDataMap) {
-            DataManager.playerDataMap.putAll(playerDataMap);
-        }
-    }
+
 
     protected static void setDatabaseServerID(UUID databaseServerID) {
         DataManager.databaseServerID = databaseServerID;
     }
 
-    public static Map<UUID, PlayerData> getPlayerDataMap() {
-        Map<UUID, PlayerData> data;
-        synchronized (playerDataMap) {
-            data = new HashMap<>(playerDataMap);
-        }
-        return data;
-    }
+
 
     public static LocalData getLocalData() {
         return localData;
     }
 
-    public static void connectProxy(List<Bounty> bounties, Map<UUID, PlayerStat> playerStatMap) {
+    public static void connectProxy(List<Bounty> bounties, Map<UUID, PlayerStat> playerStatMap, List<PlayerData> playerDataMap) {
         // turn local data into proxy database
         NotBounties.getServerImplementation().async().runNow(task -> {
             for (AsyncDatabaseWrapper database : databases) {
                 if (database.getDatabase() instanceof ProxyDatabase) {
-                    syncDatabase(database.getDatabase(), bounties, playerStatMap);
+                    syncDatabase(database.getDatabase(), bounties, playerStatMap, playerDataMap);
                 }
             }
         });
@@ -111,9 +101,19 @@ public class DataManager {
      * @param plugin Plugin that is loading the configuration.
      */
     public static void loadDatabaseConfig(ConfigurationSection configuration, Plugin plugin) {
+        if (autoReconnectTask != null)
+            autoReconnectTask.cancel();
+        if (configuration.isSet("auto-connect-interval")) {
+            long autoConnectInterval = configuration.getLong("auto-connect-interval");
+            if (autoConnectInterval > 0) {
+                autoReconnectTask = NotBounties.getServerImplementation().async().runAtFixedRate(DataManager::tryDatabaseConnections, 120, autoConnectInterval * 20);
+            }
+        }
         for (String databaseName : configuration.getKeys(false)) {
+            if (databaseName.equals("auto-connect-interval"))
+                continue;
             boolean newDatabase = true;
-            for (NotBountiesDatabase database : databases) {
+            for (AsyncDatabaseWrapper database : databases) {
                 if (database.getName().equals(databaseName)) {
                     database.reloadConfig();
                     newDatabase = false;
@@ -130,6 +130,7 @@ public class DataManager {
         }
         Collections.sort(databases);
         tryDatabaseConnections();
+
     }
 
     /**
@@ -148,11 +149,13 @@ public class DataManager {
                 case "SQL" -> database = new MySQL(NotBounties.getInstance(), databaseName);
                 case "REDIS" -> database = new RedisConnection(NotBounties.getInstance(), databaseName);
                 case "PROXY" -> database = new ProxyDatabase(NotBounties.getInstance(), databaseName);
-                default -> {
-                    throw new IllegalArgumentException("Unknown database type for " + databaseName + ": " + type);
-                }
+                default -> throw new IllegalArgumentException("Unknown database type for " + databaseName + ": " + type);
+
             }
-            databases.add(new AsyncDatabaseWrapper(database));
+            AsyncDatabaseWrapper asyncDatabaseWrapper = new AsyncDatabaseWrapper(database);
+            SaveManager.loadSyncTime(asyncDatabaseWrapper);
+            asyncDatabaseWrapper.reloadConfig();
+            databases.add(asyncDatabaseWrapper);
         } catch (NoClassDefFoundError e) {
             // Couldn't load a dependency.
             // This will be thrown if unable to use Spigot's library loader
@@ -220,7 +223,7 @@ public class DataManager {
                 }
             }
             for (Map.Entry<UUID, Boolean[]> entry : immunityMap.entrySet()) {
-                PlayerData playerData = getPlayerData(entry.getKey());
+                PlayerData playerData = localData.getPlayerData(entry.getKey());
                 playerData.setGeneralImmunity(entry.getValue()[0]);
                 playerData.setMurderImmunity(entry.getValue()[1]);
                 playerData.setRandomImmunity(entry.getValue()[2]);
@@ -259,7 +262,7 @@ public class DataManager {
                 if (configuration.isConfigurationSection("data"))
                     for (String uuidString : Objects.requireNonNull(configuration.getConfigurationSection("data")).getKeys(false)) {
                         UUID uuid = UUID.fromString(uuidString);
-                        PlayerData playerData = DataManager.getPlayerData(uuid);
+                        PlayerData playerData = localData.getPlayerData(uuid);
                         // old data protection
                         if (uuidString.length() < 10 || uuid.equals(DataManager.GLOBAL_SERVER_ID))
                             continue;
@@ -281,15 +284,15 @@ public class DataManager {
                             timedBounties.put(uuid, configuration.getLong("data." + uuid + ".next-bounty"));
                         if (Whitelist.isVariableWhitelist() && configuration.isSet("data." + uuid + ".whitelist"))
                             try {
-                                getPlayerData(uuid).setWhitelist(new Whitelist(new TreeSet<>(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).toList()), configuration.getBoolean("data." + uuid + ".blacklist")));
+                                localData.getPlayerData(uuid).setWhitelist(new Whitelist(new TreeSet<>(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).toList()), configuration.getBoolean("data." + uuid + ".blacklist")));
                             } catch (IllegalArgumentException e) {
                                 plugin.getLogger().warning("Failed to get whitelisted uuids from: " + uuid + "\nThis list will be overwritten in 5 minutes");
                             }
                         if (configuration.isSet("data." + uuid + ".refund"))
-                            playerData.addRefund(configuration.getDouble("data." + uuid + ".refund"));
+                            playerData.addRefund(new AmountRefund(configuration.getDouble("data." + uuid + ".refund"), null));
                         if (configuration.isSet("data." + uuid + ".refund-items"))
                             try {
-                                playerData.addRefund(Arrays.asList(SerializeInventory.itemStackArrayFromBase64(configuration.getString("data." + uuid + ".refund-items"))));
+                                playerData.addRefund(new ItemRefund(Arrays.asList(SerializeInventory.itemStackArrayFromBase64(configuration.getString("data." + uuid + ".refund-items"))), null));
                             } catch (IOException e) {
                                 plugin.getLogger().warning("Unable to load item refund for player using this encoded data: " + configuration.getString("data." + uuid + ".refund-items"));
                                 plugin.getLogger().warning(e.toString());
@@ -302,16 +305,15 @@ public class DataManager {
                 if (!timedBounties.isEmpty())
                     TimedBounties.setNextBounties(timedBounties);
                 if (configuration.isSet("disable-broadcast"))
-                    configuration.getStringList("disable-broadcast").forEach(s -> getPlayerData(UUID.fromString(s)).setBroadcastSettings(PlayerData.BroadcastSettings.DISABLE));
+                    configuration.getStringList("disable-broadcast").forEach(s -> localData.getPlayerData(UUID.fromString(s)).setBroadcastSettings(PlayerData.BroadcastSettings.DISABLE));
 
                 i = 0;
                 while (configuration.getString("head-rewards." + i + ".setter") != null) {
                     try {
-                        List<RewardHead> rewardHeads = new ArrayList<>();
+                        PlayerData playerData = localData.getPlayerData(UUID.fromString(Objects.requireNonNull(configuration.getString("head-rewards." + i + ".setter"))));
                         for (String str : configuration.getStringList("head-rewards." + i + ".uuid")) {
-                            rewardHeads.add(RewardHead.decodeRewardHead(str));
+                            playerData.addRefund(RewardHead.decodeRewardHead(str));
                         }
-                        DataManager.getPlayerData(UUID.fromString(Objects.requireNonNull(configuration.getString("head-rewards." + i + ".setter")))).addRewardHeads(rewardHeads);
                     } catch (IllegalArgumentException | NullPointerException e) {
                         plugin.getLogger().warning("Invalid UUID for head reward #" + i);
                     }
@@ -381,12 +383,6 @@ public class DataManager {
         }
         localData.addBounty(bountyList);
         localData.addStats(stats);
-    }
-
-    public static PlayerData getPlayerData(UUID uuid) {
-        if (uuid.equals(GLOBAL_SERVER_ID))
-            return new PlayerData();
-        return playerDataMap.computeIfAbsent(uuid, k -> new PlayerData());
     }
 
     /**
@@ -474,10 +470,7 @@ public class DataManager {
      */
     public static void changeStat(UUID uuid, Leaderboard leaderboard, double change) {
         PlayerStat statChange = PlayerStat.fromLeaderboard(leaderboard, change);
-        localData.addStats(uuid, statChange);
-        for (AsyncDatabaseWrapper database : databases) {
-            database.addStats(uuid, statChange);
-        }
+        changeStats(uuid, statChange);
     }
 
     public static void changeStats(UUID uuid, PlayerStat changes) {
@@ -534,8 +527,12 @@ public class DataManager {
     }
 
     private static void readPriorityDatabase() {
+        if (System.currentTimeMillis() - lastPriorityDatabaseSync < MIN_DATABASE_SYNC_INTERVAL_MS)
+            // recently read the database
+            return;
+        lastPriorityDatabaseSync = System.currentTimeMillis();
         // load data from priority database
-        // store bounties & stats with a server id
+        // store bounties and stats with a server id
         for (AsyncDatabaseWrapper database : databases) {
             if (database.isConnected()) {
                 // highest priority database
@@ -549,8 +546,6 @@ public class DataManager {
      * @return Stats to be stored locally.
      */
     public static Set<Map.Entry<UUID, PlayerStat>> getLocalStats(){
-        readPriorityDatabase();
-
         return getAllStats().entrySet().stream().filter(entry -> entry.getValue().serverID().equals(databaseServerID)).collect(Collectors.toUnmodifiableSet());
     }
 
@@ -559,8 +554,11 @@ public class DataManager {
      * @return Bounties to be stored locally.
      */
     public static Set<Bounty> getLocalBounties() {
-        readPriorityDatabase();
         return getAllBounties(-1).stream().filter(bounty -> bounty.getServerID().equals(databaseServerID)).collect(Collectors.toUnmodifiableSet());
+    }
+
+    public static Set<PlayerData> getLocalPlayerData() {
+        return getAllPlayerData().stream().filter(playerData -> playerData.getServerID().equals(databaseServerID)).collect(Collectors.toUnmodifiableSet());
     }
 
     public static List<Bounty> sortBounties(int sortType) {
@@ -582,8 +580,9 @@ public class DataManager {
      * Shuts down database connections
      */
     public static void shutdown() {
-        for (AsyncDatabaseWrapper database : databases)
+        for (AsyncDatabaseWrapper database : databases) {
             database.shutdown();
+        }
     }
 
     /**
@@ -597,7 +596,17 @@ public class DataManager {
             if (database.isConnected()) {
                 try {
                     Bounty bounty = database.getBounty(uuid);
-                    localData.replaceBounty(uuid, bounty);
+                    // compare inconsistency and update both databases
+                    Bounty localBounty = localData.getBounty(uuid);
+                    // check if the bounties are different
+                    if ((bounty != null && !bounty.equals(localBounty)) || (localBounty != null && !localBounty.equals(bounty))) {
+                        // update data storage
+                        Bounty consistentBounty = bounty != null ? Inconsistent.compareInconsistentObjects(bounty, localBounty, database.getLastSync(), database.getName())
+                                : Inconsistent.compareInconsistentObjects(localBounty, bounty, database.getLastSync(), database.getName());
+                        localData.replaceBounty(uuid, consistentBounty);
+                        database.replaceBounty(uuid, consistentBounty);
+                        return consistentBounty;
+                    }
                     return bounty;
                 } catch (IOException e) {
                     // database not connected
@@ -675,15 +684,14 @@ public class DataManager {
      * Checks if the player has any new bounties to be notified of and sends the offlineBounty message and updates their big bounty status.
      * @param player Player to notify.
      */
-    public static void notifyBounty(Player player) {
-        Bounty bounty = getBounty(player.getUniqueId());
+    public static void notifyBounty(Player player,  Bounty bounty) {
         if (bounty != null) {
             double addedAmount = 0;
             for (Setter setter : bounty.getSetters()) {
                 if (!setter.isNotified()) {
                     player.sendMessage(parse(getPrefix() + getMessage("offline-bounty"), setter.getDisplayAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
                     setter.setNotified(true);
-                    addedAmount += setter.getAmount();
+                    addedAmount += setter.getDisplayAmount();
                 }
             }
             if (addedAmount > 0) {
@@ -710,6 +718,88 @@ public class DataManager {
         for (AsyncDatabaseWrapper database : databases)
             database.logout(player.getUniqueId());
         localData.logout(player.getUniqueId());
+    }
+
+    public static PlayerData getPlayerData(@NotNull UUID uuid) {
+        return localData.getPlayerData(uuid);
+    }
+
+    public static void handleRefund(PlayerData playerData) {
+        // this is probably being called in an async thread
+        NotBounties.getServerImplementation().global().run(() -> {
+            // check if a refund can be processed (player online and refunds present)
+            Player player = Bukkit.getPlayer(playerData.getUuid());
+            if (player != null && !playerData.getRefund().isEmpty()) {
+                NotBounties.debugMessage("Giving " + playerData.getPlayerName() + " a refund.", false);
+                // copy and clear the refund to avoid concurrent modification
+                List<OnlineRefund> refunds = new ArrayList<>(playerData.getRefund());
+                // update the reference to the local data
+                PlayerData localPlayerData = localData.getPlayerData(playerData.getUuid());
+                localPlayerData.clearRefund();
+                localPlayerData.setLastSeen(System.currentTimeMillis());
+                for (OnlineRefund refund : refunds)
+                    refund.giveRefund(player);
+                // re-sync player data with the most up-to-date database
+                NotBounties.getServerImplementation().async().runNow(() -> syncPlayerData(playerData.getUuid(), null));
+            }
+        });
+
+    }
+
+    /**
+     * Synchronizes the data of a player across all connected databases and the local data store.
+     * If discrepancies are found between the data, they will be resolved based on consistency checks.
+     * The resolved or retrieved player data can be passed to the provided consumer, if applicable.
+     *
+     * @apiNote This method accesses databases. Use in an asynchronous thread.
+     * @param uuid The unique identifier of the player whose data is being synchronized.
+     * @param consumer An optional callback to handle the resolved or retrieved {@code PlayerData}. Can be null.
+     */
+    public static synchronized void syncPlayerData(UUID uuid, @Nullable Consumer<PlayerData> consumer) {
+        // most up-to-date database
+        for (AsyncDatabaseWrapper database : databases) {
+            if (database.isConnected()) {
+                try {
+                    PlayerData playerData = database.getPlayerData(uuid);
+
+                    PlayerData localPlayerData = localData.getPlayerData(uuid);
+
+                    if ((playerData != null && !playerData.equals(localPlayerData)) || (localPlayerData != null && !localPlayerData.equals(playerData))) {
+                        // update data storage
+                        PlayerData consistentPlayerData = playerData != null ? Inconsistent.compareInconsistentObjects(playerData, localPlayerData, database.getLastSync(), database.getName())
+                                : Inconsistent.compareInconsistentObjects(localPlayerData, null, database.getLastSync(), database.getName());
+                        if (consistentPlayerData == null) {
+                            consistentPlayerData = localPlayerData;
+                        }
+                        long now = System.currentTimeMillis();
+                        consistentPlayerData.setLastSyncOverride(database.getName(), now);
+                        localData.updatePlayerData(consistentPlayerData);
+                        database.updatePlayerData(consistentPlayerData);
+                        if (consumer != null)
+                            consumer.accept(consistentPlayerData);
+                        return;
+                    }
+                    // both are the same object
+                    if (consumer != null)
+                        consumer.accept(localPlayerData);
+                    return;
+                } catch (IOException e) {
+                    // database not connected
+                }
+            }
+        }
+        if (consumer != null)
+            consumer.accept(localData.getPlayerData(uuid));
+    }
+
+    public static List<PlayerData> getAllPlayerData() {
+        try {
+            return localData.getPlayerData();
+        } catch (IOException e) {
+            // comes from the NotBountiesDatabase interface
+            // will not be thrown with LocalData implementation
+            return new ArrayList<>();
+        }
     }
 
     /**
@@ -881,12 +971,21 @@ public class DataManager {
         localData.addBounty(bounty);
     }
 
-    private static boolean isPermDatabaseConnected() {
+    public static boolean isPermDatabaseConnected() {
         for (AsyncDatabaseWrapper database : databases) {
-            if (database.isPermDatabase() && database.isConnected())
+            if (database.isPermDatabase() && database.isConnected()) {
                 return true;
+            }
         }
         return false;
+    }
+
+    private static @Nullable AsyncDatabaseWrapper getDatabase(@NotNull String name) {
+        for (AsyncDatabaseWrapper database : databases) {
+            if (database.getName().equals(name))
+                return database;
+        }
+        return null;
     }
 
     /**
@@ -899,23 +998,50 @@ public class DataManager {
      */
     public static void databaseConnect(NotBountiesDatabase database) {
         // hasConnectedBefore will be false if this is the first time connecting
-        NotBounties.getServerImplementation().async().runNow(task -> {
-            List<Bounty> databaseBounties;
-            Map<UUID, PlayerStat> databaseStats;
-
-            try {
-                databaseBounties = database.getAllBounties(2);
-                databaseStats = database.getAllStats();
-            } catch (IOException e) {
-                plugin.getLogger().warning("Incomplete connection to " + database.getName());
-                return;
+        if (NotBounties.getInstance().isEnabled()) {
+            if (Bukkit.isPrimaryThread()) {
+                NotBounties.getServerImplementation().async().runNow(task -> {
+                    getAndSyncDatabase(database);
+                });
+            } else {
+                getAndSyncDatabase(database);
             }
-
-            syncDatabase(database, databaseBounties, databaseStats);
-        });
+        }
     }
 
-    private static void syncDatabase(NotBountiesDatabase database, List<Bounty> databaseBounties, Map<UUID, PlayerStat> databaseStats) {
+    public static void getAndSyncDatabase(NotBountiesDatabase database) {
+        List<Bounty> databaseBounties;
+        Map<UUID, PlayerStat> databaseStats;
+        List<PlayerData> playerDataMap;
+
+        try {
+            databaseBounties = database.getAllBounties(2);
+            databaseStats = database.getAllStats();
+            playerDataMap = database.getPlayerData();
+        } catch (IOException e) {
+            plugin.getLogger().warning("Error while trying to connect to " + database.getName() + " (bad connection)");
+            Arrays.stream(e.getStackTrace()).forEach(stackTraceElement -> NotBounties.debugMessage(stackTraceElement.toString(), false));
+            AsyncDatabaseWrapper databaseWrapper = getDatabase(database.getName());
+            if (databaseWrapper != null) {
+                databaseWrapper.disconnect();
+            } else {
+                database.disconnect();
+            }
+            return;
+        }
+
+        syncDatabase(database, databaseBounties, databaseStats, playerDataMap);
+    }
+
+    private static <T extends Comparable<T>> void insertIntoSortedList(List<T> list, T element) {
+        int index = Collections.binarySearch(list, element);
+        if (index < 0) {
+            index = -index - 1;
+        }
+        list.add(index, element);
+    }
+
+    private static synchronized void syncDatabase(NotBountiesDatabase database, List<Bounty> databaseBounties, Map<UUID, PlayerStat> databaseStats, List<PlayerData> databasePlayerData) {
         NotBounties.debugMessage("Synchronizing database \"" + database.getName() + "\" with " + databaseBounties.size() + " bounties and "  + databaseStats.size() + " stat records.", false);
         AsyncDatabaseWrapper databaseWrapper = null;
         for (AsyncDatabaseWrapper asyncDatabaseWrapper : databases) {
@@ -932,12 +1058,102 @@ public class DataManager {
 
         List<Bounty> localBounties = getAllBounties(2);
         Map<UUID, PlayerStat> localStats = getAllStats();
-
+        List<PlayerData> localPlayerData = getAllPlayerData();
 
         long lastSyncTime = database.getLastSync();// get last sync time
         database.setLastSync(System.currentTimeMillis());
 
-        List<Bounty>[] dataChanges = Inconsistent.getAsyncronousObjects(localBounties, databaseBounties, lastSyncTime);
+        // <TODO> delete or archive this essay </TODO>
+        // goals:
+        // When connecting to a database for the first time, local data should be added to the database
+
+        // sync with empty temp, then sync with perm and get a bunch of older stuff, sync with temp again
+        // solutions:
+        // on first connect, add to every other connected database instantly - maybe not1
+        // stats? -
+        // when connecting to a perm database for the first time, all data changed on local should be changed on any connected temp databases if the temp database doesn't have global stuff already - what if changes already occured from another server? - only change if the temp database hasn't connected to a global
+        // add last reset time to temp database, no, cant tell if data was removed
+        // on temp connect, if a perm database is connected and the temp database doesnt have any global data, set temp database to all local data + temp changes since last sync
+        // only write to lower priority databases, syncing with the highest priority-
+
+        // theory:
+        // when a new database connects, it may add old data that other databases do not have. This old data is less than the sync time of the other databases, so it will dissapear on sync.
+        // data added to local on a sync should also be added to other connected databases iff it isn't there already
+        // idealy, the databases should all be consistent, but temp databases may not, assume the others are.
+        // localdata clears on restart if perm is connected
+        // sync times are only saved for temp databases
+
+        // problems:
+        // data may be desynchronized on different databases, Inconsistent will work for perm databases, but temp databases may lose data after sync
+        // when a database syncs, adding a new item, and then the server syncs with another database that also has this new item, the item was updated after both last syncs - inconsistent will fix this
+        // syncing a database on first connect, local data is empty, db has data, but older than lastSync - last sync is not saved for perm databases
+        // why is last sync saved for temp databases? Because we store the temp database data locally when we restart
+        // database connects with old data that needs to be added to other databases that are already connected, the databases may or may not already have the data - already have? inconsistent will merge. doesn't have? can't tell if it was deleted or just old data that needs to be added. With more than 1 perm database, one cannot go down before a restart
+
+        // chosen:
+        // when a perm database is connected for the first time, (lasySync=0 or firstConnect), scan for any connected temp databases and add the bounties added to local
+        // on temp connect, if a perm database is connected and the temp database doesnt have any global data, set temp database to all local data + temp changes since last sync
+        // get consistent list of player data, then add any missing values back to the list, then update all on temp database
+        // get local bounties added and database removed to the database remove local removed from the database, add database added to local bounties
+
+        // add all server-id data if haven't connected to this temp database before
+        // data with global server id is in a perm database already
+        // if the temp database is empty, add all data because it hasn't received anything from the perm database
+        if (database instanceof TempDatabase tempDatabase) {
+            if (tempDatabase.hasServerData()) {
+                // regular data
+                syncConsistentData(database, databaseBounties, databaseStats, databasePlayerData, localBounties, lastSyncTime, databaseWrapper, localPlayerData, localStats);
+            } else {
+                if (tempDatabase.isEmpty()) {
+                    // add all data
+                    databaseWrapper.addBounty(localBounties);
+                    databaseWrapper.addStats(localStats);
+                    databaseWrapper.addPlayerData(localPlayerData);
+                } else {
+                    // add any data from the database with a non-global-id to local data
+                    for (Bounty bounty : databaseBounties) {
+                        if (!bounty.getServerID().equals(DataManager.GLOBAL_SERVER_ID)) {
+                            localData.addBounty(bounty);
+                            insertIntoSortedList(localBounties, bounty);
+                        }
+                    }
+                    for (PlayerData playerData : databasePlayerData) {
+                        if (!playerData.getServerID().equals(DataManager.GLOBAL_SERVER_ID)) {
+                            localData.updatePlayerData(playerData);
+                            insertIntoSortedList(localPlayerData, playerData);
+                        }
+                    }
+
+                    // add data with server-id to the database - any global-id data will be added in the next step
+                    for (Bounty bounty : localBounties) {
+                        if (DataManager.databaseServerID.equals(bounty.getServerID())) {
+                            databaseWrapper.addBounty(bounty);
+                            insertIntoSortedList(databaseBounties, bounty);
+                        }
+                    }
+                    for (PlayerData playerData : localPlayerData) {
+                        if (DataManager.databaseServerID.equals(playerData.getServerID())) {
+                            databaseWrapper.updatePlayerData(playerData);
+                            insertIntoSortedList(databasePlayerData, playerData);
+                        }
+                    }
+
+                    // sync inconsistent data (for global-id elements)
+                    syncConsistentData(database, databaseBounties, databaseStats, databasePlayerData, localBounties, lastSyncTime, databaseWrapper, localPlayerData, localStats);
+                }
+                tempDatabase.addServerData();
+            }
+        } else {
+            syncConsistentData(database, databaseBounties, databaseStats, databasePlayerData, localBounties, lastSyncTime, databaseWrapper, localPlayerData, localStats);
+
+        }
+
+    }
+
+    // prob rename
+    private static void syncConsistentData(NotBountiesDatabase database, List<Bounty> databaseBounties, Map<UUID, PlayerStat> databaseStats, List<PlayerData> databasePlayerData, List<Bounty> localBounties, long lastSyncTime, AsyncDatabaseWrapper databaseWrapper, List<PlayerData> localPlayerData, Map<UUID, PlayerStat> localStats) {
+        // regular sync
+        List<Bounty>[] dataChanges = Inconsistent.getAsynchronousObjects(localBounties, databaseBounties, lastSyncTime, database.getName());
         // these bounties should be added/removed to local data
         List<Bounty> databaseAdded = dataChanges[0];
         List<Bounty> databaseRemoved = dataChanges[1];
@@ -952,85 +1168,143 @@ public class DataManager {
 
         NotBounties.debugMessage("Since last sync: databaseAdded=" + databaseAdded.size() + " databaseRemoved=" + databaseRemoved.size() + " localAdded=" + localAdded.size() + " localRemoved=" + localRemoved.size(), false);
 
-        if (lastSyncTime == 0) {
-            // never sunk
-            // doesn't have local data
-            // combine both local and database stats
-            databaseWrapper.addStats(localStats);
-            localData.addStats(databaseStats);
-        } else {
-            // database has connected before
-
-            if (databaseStats.isEmpty()) {
-                // nothing in the database yet
-                // if the database restarted, this will add old stats in
-                // add all local stats
-                databaseWrapper.addStats(localStats);
-            } else {
-
-                // check if this server's stats are in the db already
-                // if the database is a TempDatabase, their bounties will contain the local server id if the data is in the db already
-                // if the database isn't a TempDatabase, all local data with a local server id needs to be migrated
-                if (database instanceof TempDatabase tempDatabase && tempDatabase.getStoredServerIds().contains(DataManager.getDatabaseServerID(false))) {
-                    // db is a temp database that has this server's data
-                    // push stat changes since last connect
-                    Map<UUID, PlayerStat> pushedChanges = databaseWrapper.getStatChanges();
-                    databaseWrapper.addStats(pushedChanges);
-                } else {
-                    // db is a temp database that hasn't received this server's data before or a perm database
-                    // migrate local stats with the local server-id
-                    // push stat changes that weren't in the migrated local stats
-                    Map<UUID, PlayerStat> pushedChanges = databaseWrapper.getStatChanges();
-                    // remove any stats without the server-id
-                    localStats.entrySet().removeIf(entry -> !entry.getValue().serverID().equals(DataManager.databaseServerID));
-                    // add any pushed changes to the local stats
-                    for (Map.Entry<UUID, PlayerStat> entry : pushedChanges.entrySet()) {
-                        if (!localStats.containsKey(entry.getKey())) {
-                            localStats.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-
-                    // add changes to database
-                    databaseWrapper.addStats(localStats);
-                    // add changes to the local data
-                    for (Map.Entry<UUID, PlayerStat> entry : localStats.entrySet()) {
-                        if (databaseStats.containsKey(entry.getKey()))
-                            databaseStats.replace(entry.getKey(), databaseStats.get(entry.getKey()).combineStats(entry.getValue()));
-                        else
-                            databaseStats.put(entry.getKey(), entry.getValue());
-                    }
-                    localData.setStats(databaseStats);
-                }
-            }
-        }
-        // sync server IDs
-        if (database instanceof TempDatabase tempDatabase && isPermDatabaseConnected()) {
-            tempDatabase.replaceWithDefaultServerID();
-        } else if (!(database instanceof TempDatabase)) {
-            // remove local server ID from local data
-            localData.syncPermData();
-            // remove server ID of connected temp databases
-            for (AsyncDatabaseWrapper otherDatabase : databases) {
-                if (otherDatabase.isConnected() && otherDatabase.getDatabase() instanceof TempDatabase tempDatabase) {
-                    tempDatabase.replaceWithDefaultServerID();
-                }
-            }
-        }
-
         // log any unknown names in the database bounties
         for (Bounty bounty : databaseAdded) {
-            if (!LoggedPlayers.isLogged(bounty.getUUID()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)) {
+            if (LoggedPlayers.isMissing(bounty.getUUID()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)) {
                 LoggedPlayers.logPlayer(bounty.getName(), bounty.getUUID());
+            }
+        }
+
+        // push stat changes
+        Map<UUID, PlayerStat> pushedChanges = databaseWrapper.getStatChanges(); // these are the stats that have been added to the local data since the last sync or server start
+        Map<UUID, PlayerStat> localStatsCopy = new HashMap<>(localStats);
+        // remove any stats without the server-id
+        localStats.entrySet().removeIf(entry -> !entry.getValue().serverID().equals(DataManager.databaseServerID));
+        // add any pushed changes to the local stats
+        for (Map.Entry<UUID, PlayerStat> entry : pushedChanges.entrySet()) {
+            if (!localStats.containsKey(entry.getKey())) {
+                localStats.put(entry.getKey(), entry.getValue());
+            }
+        }
+        // localStats now has all server-bound data (only this server has it)
+
+        // add changes to database
+        databaseWrapper.addStats(localStats);
+        Map<UUID, PlayerStat> databaseStatCopy = new HashMap<>(databaseStats);
+        // add changes to the local data
+        for (Map.Entry<UUID, PlayerStat> entry : localStats.entrySet()) {
+            if (databaseStats.containsKey(entry.getKey()))
+                databaseStats.replace(entry.getKey(), databaseStats.get(entry.getKey()).combineStats(entry.getValue()));
+            else
+                databaseStats.put(entry.getKey(), entry.getValue());
+        }
+        localData.setStats(databaseStats);
+
+        // sync player data
+        syncTimes(localPlayerData, databasePlayerData);
+
+        List<PlayerData> syncedPlayerData = Inconsistent.compareInconsistentLists(localPlayerData, new ArrayList<>(databasePlayerData), lastSyncTime, database.getName(), false);
+
+        // apply consistency changes
+        localData.addPlayerData(syncedPlayerData);
+        databaseWrapper.addPlayerData(syncedPlayerData);
+
+        NotBounties.debugMessage("Player Data synced:" + syncedPlayerData.size() , false);
+
+        // check for any online refunds
+        if (NotBounties.getInstance().isEnabled()) {
+            NotBounties.getServerImplementation().global().run(() -> {
+                for (PlayerData playerData : syncedPlayerData) {
+                    if (playerData.hasRefund() && Bukkit.getPlayer(playerData.getUuid()) != null) {
+                        handleRefund(playerData);
+                    }
+                }
+            });
+        }
+
+        if (database.isPermDatabase()) {
+            // remove local server ID from local data
+            localData.syncPermData();
+            if (lastSyncTime == 0) {
+                // first time connecting since restart
+                // check if there are any temp databases to load global data to
+                for (AsyncDatabaseWrapper asyncDatabaseWrapper : databases) {
+                    if (asyncDatabaseWrapper.isConnected() && !asyncDatabaseWrapper.isPermDatabase() && !((TempDatabase) asyncDatabaseWrapper.getDatabase()).isGlobal()) {
+                        asyncDatabaseWrapper.addBounty(databaseAdded);
+                        asyncDatabaseWrapper.addPlayerData(syncedPlayerData);
+                        asyncDatabaseWrapper.addStats(databaseStatCopy);
+                        ((TempDatabase) asyncDatabaseWrapper.getDatabase()).setGlobal();
+                    }
+                }
+            }
+        } else if (isPermDatabaseConnected()) {
+            // temp database just connected
+            if (!((TempDatabase) database).isGlobal()) {
+                // add back removed data because it was probably just received from the last perm data connection
+                databaseWrapper.addBounty(databaseRemoved);
+                // sync missed data
+                List<PlayerData> missedPlayerData = new LinkedList<>();
+                for (PlayerData playerData : localPlayerData) {
+                    boolean found = false;
+                    for (PlayerData dbPlayerData : databasePlayerData) {
+                        if (dbPlayerData.getUuid().equals(playerData.getUuid())) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+                    for (PlayerData sPlayerData : syncedPlayerData) {
+                        if (sPlayerData.getUuid().equals(playerData.getUuid())) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                        missedPlayerData.add(playerData);
+                }
+                databaseWrapper.addPlayerData(missedPlayerData);
+                databaseWrapper.addStats(localStatsCopy);
+
+                ((TempDatabase) database).setGlobal();
+            }
+        }
+    }
+
+    /**
+     * Synchronize matching objects in 2 lists that hold time in PlayerData excluding the lastSeen variable.
+     * @param playerDataList1 A sorted player data list.
+     * @param playerDataList2 A sorted player data list.
+     */
+    private static void syncTimes(List<PlayerData> playerDataList1, List<PlayerData> playerDataList2) {
+        // lists are sorted
+        for (int i = 0; i < playerDataList1.size(); i++) {
+            PlayerData playerData1 = playerDataList1.get(i);
+            PlayerData playerData2 = null;
+            // find matching player data in the other list
+            for (int j = i; j < playerDataList2.size(); j++) {
+                if (playerData1.getID().equals(playerDataList2.get(j).getID())) {
+                    playerData2 = playerDataList2.get(i);
+                    break;
+                }
+            }
+            if (playerData2 != null) {
+                // sync times - not lastSeen because that is used to sync other options later
+                long lastClaim = Math.max(playerData1.getLastClaim(), playerData2.getLastClaim());
+                playerData1.setLastClaim(lastClaim);
+                playerData2.setLastClaim(lastClaim);
+                long bountyCooldown = Math.max(playerData1.getBountyCooldown(), playerData2.getBountyCooldown());
+                playerData1.setBountyCooldown(bountyCooldown);
+                playerData2.setBountyCooldown(bountyCooldown);
             }
         }
     }
 
 
-
     private static void tryDatabaseConnections() {
-        for (NotBountiesDatabase database : databases) {
+        for (AsyncDatabaseWrapper database : databases) {
             if (!database.isConnected())
-                database.connect();
+                database.connect(true);
         }
     }
 }

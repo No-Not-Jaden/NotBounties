@@ -1,7 +1,9 @@
 # databases.yml
 # Optional database connections for storing bounties and player stats.
-# You can add as many as you want.
+# You can connect to as many databases as you want. You could have 5 mySQL databases and 3 redis if you really wanted.
 
+# The time in seconds between connection attempts of the database - set to 0 to disable
+auto-connect-interval: 0
 # you can change 'example-sql' to a different name if it helps you keep track of it
 example-sql:
   # the type of database: SQL, REDIS, or PROXY
@@ -27,7 +29,7 @@ example-redis:
   ssl: false
   database-number: -1 # Redis specific: database number, -1 disables it
   # how long between database refreshes in seconds
-  refresh-interval: 300
+  refresh-interval: 60
   # higher priority means that this database will be used more
   priority: 2
 example-proxy:

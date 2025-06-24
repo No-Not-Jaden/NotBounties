@@ -60,6 +60,7 @@ public class BountyTypeAdapter extends TypeAdapter<Bounty> {
                 default -> {
                     // unexpected data
                     // this shouldn't be reached
+                    reader.skipValue();
                 }
             }
         }

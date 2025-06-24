@@ -2,7 +2,7 @@ package me.jadenp.notbounties.features;
 
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -314,42 +314,7 @@ public class LanguageOptions {
         int nextPage = getAdjustedPage(sender, currentPage + 1);
 
 
-        String footer = LanguageOptions.getMessage("help.footer");
-        String before = "";
-        String middle = "";
-        if (footer.contains("{prev}"))
-            before = footer.substring(0, footer.indexOf("{prev}"));
-        if (footer.contains("{next}"))
-            middle = footer.substring(before.length() + 6, footer.indexOf("{next}"));
-        String after = footer.substring(before.length() + middle.length() + 12).replace("{page}", currentPage + "").replace("{page}", currentPage + "");
-
-        TextComponent prevComponent;
-        if (previousPage <= 0) {
-            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-deny"), parser));
-        } else {
-            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-text"), parser));
-            prevComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
-            prevComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " help " + previousPage));
-        }
-
-        TextComponent nextComponent;
-        if (nextPage >= 11 || nextPage <= previousPage) {
-            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-deny"), parser));
-        } else {
-            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-text"), parser));
-            nextComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
-            nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " help " + nextPage));
-        }
-
-
-        BaseComponent[] baseComponents = new BaseComponent[]{
-                new TextComponent(parse(before.replace("{page}", currentPage + ""), parser)),
-                prevComponent,
-                new TextComponent(parse(middle.replace("{page}", currentPage + ""), parser)),
-                nextComponent,
-                new TextComponent(parse(after, parser))
-        };
-        sender.spigot().sendMessage(baseComponents);
+        Tutorial.sendUnifiedPageLine(sender, currentPage, parser, previousPage, nextPage, "help", 11);
     }
 
     public static void sendHelpMessage(CommandSender sender, List<String> message) {
@@ -433,7 +398,7 @@ public class LanguageOptions {
                 if (whitelist.getList().size() > num)
                     str = str.replace("{whitelist" + stringValue + "}", "");
                 else
-                    str = str.replace("{whitelist" + stringValue + "}", LoggedPlayers.getPlayerName(whitelist.getList().getLast()));
+                    str = str.replace("{whitelist" + stringValue + "}", LoggedPlayers.getPlayerName(whitelist.getList().last()));
             }
             // parsing for GUI
             if (receiver.isOnline() && GUI.playerInfo.containsKey(receiver.getUniqueId())) {

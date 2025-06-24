@@ -145,9 +145,9 @@ public class BountyExpire {
                                     player.sendMessage(parse(getPrefix() + getMessage("expired-bounty"), setter.getDisplayAmount(), Bukkit.getOfflinePlayer(bounty.getUUID())));
                                 }
                                 if (rewardReceiver) {
-                                    refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems());
+                                    refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems(), null);
                                 } else {
-                                    refundSetter(setter);
+                                    refundSetter(setter, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-expire"), Bukkit.getOfflinePlayer(bounty.getUUID())));
                                 }
                             });
                         }

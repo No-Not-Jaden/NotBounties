@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.utils.tasks;
 
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.data.PlayerData;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;

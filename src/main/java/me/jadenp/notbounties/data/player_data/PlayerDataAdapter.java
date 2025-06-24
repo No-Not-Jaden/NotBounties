@@ -1,11 +1,11 @@
-package me.jadenp.notbounties.data;
+package me.jadenp.notbounties.data.player_data;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import me.jadenp.notbounties.utils.SerializeInventory;
-import org.bukkit.inventory.ItemStack;
+import me.jadenp.notbounties.data.WhitelistTypeAdapter;
+import org.bukkit.Bukkit;
 
 import java.io.IOException;
 import java.util.*;
@@ -19,42 +19,34 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
             return;
         }
         jsonWriter.beginObject();
+        jsonWriter.name("uuid").value(playerData.getUuid().toString());
         jsonWriter.name("playerName").value(playerData.getPlayerName());
         writeImmunity(jsonWriter, playerData);
         TimeZone timeZone = playerData.getTimeZone();
         if (timeZone != null)
             jsonWriter.name("timeZone").value(timeZone.getID());
-        writeRefund(jsonWriter, playerData.getRefundAmount(), playerData.getRefundItems());
+        writeRefund(jsonWriter, playerData.getRefund());
         jsonWriter.name("disableBroadcast").value(playerData.getBroadcastSettings().toString());
-        writeRewardHeads(jsonWriter, playerData.getRewardHeads());
         jsonWriter.name("bountyCooldown").value(playerData.getBountyCooldown());
         jsonWriter.name("whitelist");
         new WhitelistTypeAdapter().write(jsonWriter, playerData.getWhitelist());
         jsonWriter.name("newPlayer").value(playerData.isNewPlayer());
         jsonWriter.name("lastSeen").value(playerData.getLastSeen());
+        jsonWriter.name("lastClaim").value(playerData.getLastClaim());
+        jsonWriter.name("serverID").value(playerData.getServerID().toString());
         jsonWriter.endObject();
     }
 
-    private void writeRewardHeads(JsonWriter jsonWriter, List<RewardHead> rewardHeads) throws IOException {
-        if (!rewardHeads.isEmpty()) {
-            jsonWriter.name("rewardHeads");
-            jsonWriter.beginArray();
-            for (RewardHead rewardHead : rewardHeads) {
-                jsonWriter.beginObject();
-                jsonWriter.name("uuid").value(rewardHead.uuid().toString());
-                jsonWriter.name("killer").value(rewardHead.killer().toString());
-                jsonWriter.name("amount").value(rewardHead.amount());
-                jsonWriter.endObject();
-            }
-            jsonWriter.endArray();
+    private void writeRefund(JsonWriter jsonWriter, List<OnlineRefund> refunds) throws IOException {
+        jsonWriter.name("refunds");
+        jsonWriter.beginArray();
+        for (OnlineRefund refund : refunds) {
+            jsonWriter.beginObject();
+            jsonWriter.name(refund.getClass().getName());
+            PlayerData.writeRefund(jsonWriter, refund);
+            jsonWriter.endObject();
         }
-    }
-
-    private void writeRefund(JsonWriter jsonWriter, double amount, List<ItemStack> items) throws IOException {
-        if (amount > 0)
-            jsonWriter.name("refundAmount").value(amount);
-        if (!items.isEmpty())
-            jsonWriter.name("refundItems").value(SerializeInventory.itemStackArrayToBase64(items.toArray(new ItemStack[0])));
+        jsonWriter.endArray();
     }
 
     private void writeImmunity(JsonWriter jsonWriter, PlayerData playerData) throws IOException {
@@ -89,16 +81,20 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
                         playerData.setPlayerName(jsonReader.nextString());
                     }
                 }
+                case "uuid" -> playerData.setUuid(UUID.fromString(jsonReader.nextString()));
                 case "immunity" -> readImmunity(jsonReader, playerData);
                 case "timeZone" -> playerData.setTimeZone(TimeZone.getTimeZone(jsonReader.nextString()));
-                case "refundAmount" -> playerData.addRefund(jsonReader.nextDouble());
-                case "refundItems" -> playerData.addRefund(Arrays.asList(SerializeInventory.itemStackArrayFromBase64(jsonReader.nextString())));
+                case "refundAmount" -> playerData.addRefund(new AmountRefund(jsonReader.nextDouble(), null)); // old data since 1.22.0
+                case "refundItems" -> playerData.addRefund(new ItemRefund(jsonReader.nextString(), null)); // old data since 1.22.0
+                case "refunds" -> readRefund(jsonReader, playerData);
                 case "disableBroadcast" -> readBroadcast(jsonReader, playerData);
-                case "rewardHeads" -> readRewardHeads(jsonReader, playerData);
+                case "rewardHeads" -> readRewardHeads(jsonReader, playerData); // old data since 1.22.0
                 case "bountyCooldown" -> playerData.setBountyCooldown(jsonReader.nextLong());
                 case "whitelist" -> playerData.setWhitelist(new WhitelistTypeAdapter().read(jsonReader));
                 case "newPlayer" -> playerData.setNewPlayer(jsonReader.nextBoolean());
                 case "lastSeen" -> playerData.setLastSeen(jsonReader.nextLong());
+                case "lastClaim" -> playerData.setLastClaim(jsonReader.nextLong());
+                case "serverID" -> playerData.setServerID(UUID.fromString(jsonReader.nextString()));
                 default -> // unexpected name
                         jsonReader.skipValue();
             }
@@ -106,6 +102,32 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
 
         jsonReader.endObject();
         return playerData;
+    }
+
+    private void readRefund(JsonReader jsonReader, PlayerData playerData) throws IOException {
+        jsonReader.beginArray();
+        while (jsonReader.hasNext()) {
+            jsonReader.beginObject();
+            String type = jsonReader.nextName();
+            try {
+                Class<?> clazz = Class.forName(type);
+                if (OnlineRefund.class.isAssignableFrom(clazz)) {
+                    @SuppressWarnings("unchecked")
+                    Class<? extends OnlineRefund> refundClass = (Class<? extends OnlineRefund>) clazz;
+                    playerData.addRefund(PlayerData.readRefund(jsonReader, refundClass));
+
+                } else {
+                    Bukkit.getLogger().warning("Found an invalid refund class: " + type + " for player " + playerData.getPlayerName());
+                    jsonReader.skipValue();
+                }
+
+            } catch (ClassNotFoundException e) {
+                Bukkit.getLogger().warning("Could not find refund class: " + type + " for player " + playerData.getPlayerName());
+                jsonReader.skipValue();
+            }
+            jsonReader.endObject();
+        }
+        jsonReader.endArray();
     }
 
     private void readBroadcast(JsonReader jsonReader, PlayerData playerData) throws IOException {
@@ -124,8 +146,8 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
         playerData.setBroadcastSettings(broadcastSettings);
     }
 
+    @Deprecated(since = "1.22.0")
     private void readRewardHeads(JsonReader jsonReader, PlayerData playerData) throws IOException {
-        List<RewardHead> rewardHeads = new LinkedList<>();
         jsonReader.beginArray();
         while (jsonReader.hasNext()) {
             jsonReader.beginObject();
@@ -143,11 +165,10 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
                     }
                 }
             }
-            rewardHeads.add(new RewardHead(uuid, killer, amount));
+            playerData.addRefund(new RewardHead(uuid, killer, amount, null));
             jsonReader.endObject();
         }
         jsonReader.endArray();
-        playerData.addRewardHeads(rewardHeads);
     }
 
     private void readImmunity(JsonReader jsonReader, PlayerData playerData) throws IOException {
