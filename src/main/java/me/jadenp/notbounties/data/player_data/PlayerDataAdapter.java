@@ -5,6 +5,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.data.WhitelistTypeAdapter;
+import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 
 import java.io.IOException;
@@ -99,8 +100,9 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
                         jsonReader.skipValue();
             }
         }
-
         jsonReader.endObject();
+        if (playerData.getServerID() == null)
+            playerData.setServerID(DataManager.GLOBAL_SERVER_ID);
         return playerData;
     }
 

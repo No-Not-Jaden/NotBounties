@@ -116,6 +116,9 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
 
     public void setUuid(UUID uuid) {
         this.uuid = uuid;
+        if (playerName != null && uuid != null && (LoggedPlayers.isMissing(uuid) || !LoggedPlayers.isLogged(playerName))) {
+            LoggedPlayers.logPlayer(playerName, uuid);
+        }
     }
 
     public void setServerID(UUID serverID) {
@@ -123,9 +126,6 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     }
 
     public UUID getServerID() {
-        if (serverID == null) {
-            throw new IllegalStateException("Server ID is null for " + uuid);
-        }
         return serverID;
     }
 
@@ -147,7 +147,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
 
     public void setPlayerName(String playerName) {
         this.playerName = playerName;
-        if (playerName != null && (LoggedPlayers.isMissing(uuid) || !LoggedPlayers.isLogged(playerName))) {
+        if (playerName != null && uuid != null && (LoggedPlayers.isMissing(uuid) || !LoggedPlayers.isLogged(playerName))) {
             LoggedPlayers.logPlayer(playerName, uuid);
         }
     }

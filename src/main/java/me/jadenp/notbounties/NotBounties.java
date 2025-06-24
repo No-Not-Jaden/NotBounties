@@ -75,6 +75,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * option to stop setter from claiming their own bounty - x
  * is data stored locally with redis?
  * check new player after running command - time might be off? message is seconds are actually minutes -
+ * connected to proxy spam
  */
 public final class NotBounties extends JavaPlugin {
 

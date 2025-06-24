@@ -755,7 +755,7 @@ public class DataManager {
      * @param uuid The unique identifier of the player whose data is being synchronized.
      * @param consumer An optional callback to handle the resolved or retrieved {@code PlayerData}. Can be null.
      */
-    public static synchronized void syncPlayerData(UUID uuid, @Nullable Consumer<PlayerData> consumer) {
+    public static synchronized void syncPlayerData(@NotNull UUID uuid, @Nullable Consumer<PlayerData> consumer) {
         // most up-to-date database
         for (AsyncDatabaseWrapper database : databases) {
             if (database.isConnected()) {

@@ -318,7 +318,7 @@ public class LocalData extends NotBountiesDatabase {
         playerDataMap.put(playerData.getUuid(), playerData);
     }
 
-    public PlayerData getPlayerData(UUID uuid) {
+    public PlayerData getPlayerData(@NotNull UUID uuid) {
         PlayerData playerData;
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID)) {
             playerData = new PlayerData();

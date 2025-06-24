@@ -157,7 +157,7 @@ public class ProxyDatabase extends NotBountiesDatabase {
     }
 
     @Override
-    public PlayerData getPlayerData(UUID uuid) throws IOException {
+    public PlayerData getPlayerData(@NotNull UUID uuid) throws IOException {
         return DataManager.getLocalData().getPlayerData(uuid);
     }
 

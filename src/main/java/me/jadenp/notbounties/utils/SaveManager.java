@@ -311,7 +311,7 @@ public class SaveManager {
             // serverID is a new value, and old data may not have one set
             if (playerDataList != null)
                 for (PlayerData playerData : playerDataList)
-                    if (playerData.getServerID().equals(DataManager.GLOBAL_SERVER_ID))
+                    if (playerData.getServerID() == null || playerData.getServerID().equals(DataManager.GLOBAL_SERVER_ID))
                         playerData.setServerID(DataManager.getDatabaseServerID(true));
         }
 

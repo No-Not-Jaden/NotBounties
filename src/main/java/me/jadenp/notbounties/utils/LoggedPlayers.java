@@ -68,7 +68,7 @@ public class LoggedPlayers {
      * @param name Name of the player
      * @return The OfflinePlayer or null if one hasn't been logged yet.
      */
-    public static UUID getPlayer(String name) {
+    public static UUID getPlayer(@NotNull String name) {
         Player player = Bukkit.getPlayer(name);
         if (player != null)
             return player.getUniqueId();
@@ -81,12 +81,12 @@ public class LoggedPlayers {
         }
     }
 
-    public static void logPlayer(String name, UUID uuid) {
+    public static void logPlayer(@NotNull String name, @NotNull UUID uuid) {
         playerIDs.put(name.toLowerCase(), uuid);
         DataManager.getPlayerData(uuid).setPlayerName(name);
     }
 
-    public static void replacePlayerName(String newName, UUID uuid) {
+    public static void replacePlayerName(@NotNull String newName, @NotNull UUID uuid) {
         PlayerData playerData = DataManager.getPlayerData(uuid);
         String oldName =  playerData.getPlayerName();
         if (oldName != null)
@@ -95,11 +95,11 @@ public class LoggedPlayers {
         playerData.setPlayerName(newName);
     }
 
-    public static boolean isLogged(String name) {
+    public static boolean isLogged(@NotNull String name) {
         return playerIDs.containsKey(name.toLowerCase());
     }
 
-    public static boolean isMissing(UUID uuid) {
+    public static boolean isMissing(@NotNull UUID uuid) {
         return DataManager.getPlayerData(uuid).getPlayerName() == null;
     }
 
@@ -129,7 +129,7 @@ public class LoggedPlayers {
         return playerIDs.get(viableNames.get(0));
     }
 
-    public static @NotNull String getPlayerName(UUID uuid) {
+    public static @NotNull String getPlayerName(@NotNull UUID uuid) {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
             return ConfigOptions.getAutoBounties().getConsoleBountyName();
         PlayerData playerData = DataManager.getPlayerData(uuid);

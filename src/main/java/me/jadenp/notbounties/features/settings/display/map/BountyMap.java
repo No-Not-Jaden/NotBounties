@@ -141,7 +141,8 @@ public class BountyMap implements Listener {
     }
 
     public static void shutdown() {
-        hologramUpdateTask.cancel();
+        if (hologramUpdateTask != null)
+            hologramUpdateTask.cancel();
         for (HologramRenderer renderer : holograms)
             renderer.remove();
     }

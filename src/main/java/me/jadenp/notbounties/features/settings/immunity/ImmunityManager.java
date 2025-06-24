@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Statistic;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -261,7 +262,7 @@ public class ImmunityManager {
         return Leaderboard.IMMUNITY.getStatMap();
     }
 
-    public static long getGracePeriod(UUID uuid) {
+    public static long getGracePeriod(@NotNull UUID uuid) {
             long timeSinceDeath = System.currentTimeMillis() - DataManager.getPlayerData(uuid).getLastClaim();
             if (timeSinceDeath < gracePeriod * 1000L) {
                 // still in grace period
@@ -288,7 +289,7 @@ public class ImmunityManager {
      * @param amount The amount of currency the bounty will be set for
      * @return The immunity type preventing the bounty or ImmunityType.DISABLE if there is none
      */
-    public static ImmunityType getAppliedImmunity(UUID uuid, double amount) {
+    public static ImmunityType getAppliedImmunity(@NotNull UUID uuid, double amount) {
         // check for grace period
         if (getGracePeriod(uuid) > 0)
             return ImmunityType.GRACE_PERIOD;

@@ -229,7 +229,7 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * @return The player data of the player.
      * @throws IOException When the database isn't connected.
      */
-    public abstract PlayerData getPlayerData(UUID uuid) throws IOException;
+    public abstract PlayerData getPlayerData(@NotNull UUID uuid) throws IOException;
 
     /**
      * Add player data to the database. Existing player data with the same UUID will be overwritten.

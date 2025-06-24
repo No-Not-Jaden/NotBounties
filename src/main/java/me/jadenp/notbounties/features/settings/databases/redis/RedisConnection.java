@@ -548,7 +548,7 @@ public class RedisConnection extends NotBountiesDatabase implements TempDatabase
     }
 
     @Override
-    public PlayerData getPlayerData(UUID uuid) throws IOException {
+    public PlayerData getPlayerData(@NotNull UUID uuid) throws IOException {
         if (isConnected()) {
             try {
                 String jsonResponse = getData().hget(PLAYER_DATA_KEY, uuid.toString());
