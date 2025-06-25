@@ -346,7 +346,7 @@ public class LocalData extends NotBountiesDatabase {
     @Override
     public List<PlayerData> getPlayerData() throws IOException {
         // An alternative to sorting each time is to use a TreeMap, but time complexity increases for other operations.
-        return playerDataMap.values().stream().sorted().toList();
+        return new ArrayList<>(playerDataMap.values().stream().sorted().toList());
     }
 
     @Override

@@ -132,7 +132,7 @@ public class ProxyDatabase extends NotBountiesDatabase {
     @Override
     public boolean connect(boolean syncData) {
         // if this returns false, it will stop the update task
-        return ProxyMessaging.hasConnectedBefore() && ProxyDatabase.isEnabled() && ProxyDatabase.isDatabaseSynchronization();
+        return isConnected();
     }
 
     @Override

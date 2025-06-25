@@ -346,6 +346,9 @@ class SkinResponseHandler {
             if (statusLine.getStatusCode() == 200 && response.getEntity() != null) {
                 String text = EntityUtils.toString(response.getEntity());
                 JsonObject input = new JsonParser().parse(text).getAsJsonObject();
+                if (!input.has("value") || !input.has("texture_id")) {
+                    throw new IOException("Missing value or texture_id from bedrock skin response. (" + text + ")");
+                }
                 String value = input.get("value").getAsString();
                 String id = input.get("texture_id").getAsString();
 

@@ -579,7 +579,7 @@ public class RedisConnection extends NotBountiesDatabase implements TempDatabase
         if (!isConnected())
             throw notConnectedException;
         try {
-            return getData().hgetall(PLAYER_DATA_KEY).values().stream().map(PlayerData::fromJson).sorted().toList();
+            return new ArrayList<>(getData().hgetall(PLAYER_DATA_KEY).values().stream().map(PlayerData::fromJson).sorted().toList());
         } catch (RedisConnectionException e) {
             if (reconnect(e))
                 return getPlayerData();
