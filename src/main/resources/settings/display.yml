@@ -35,7 +35,7 @@ bounty-posters:
   # save created maps to be used later - player heads will not change unless the player changes their name
   save-templates: true
   # mix available map colors for new colors on player faces
-  # this causes a pixelated effect when looking closely, but looks nicer from far away
+  # this causes a pixelated effect when looking close, but it looks nicer from far away
   # changing this section will require a restart of the server to apply
   face-shading:
     # how many shades of colors should be used - 0 for no shading
