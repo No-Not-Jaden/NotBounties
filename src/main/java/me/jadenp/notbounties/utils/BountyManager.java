@@ -10,6 +10,7 @@ import me.jadenp.notbounties.data.player_data.ItemRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.player_data.RewardHead;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
+import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -267,6 +268,7 @@ public class BountyManager {
         WantedTags.removeWantedTag(uuid);
         BigBounty.removeParticle(uuid);
         DataManager.deleteBounty(uuid);
+        BountyHunt.endHunt(uuid);
     }
 
 
@@ -290,8 +292,17 @@ public class BountyManager {
     public static void claimBounty(@NotNull Player player, Player killer, List<ItemStack> drops, boolean forceEditDrops, double deathTax) {
         NotBounties.debugMessage("Received a bounty claim request.", false);
         Item droppedHead = null;
-        if (RewardHead.isRewardAnyKill())
-            droppedHead = player.getWorld().dropItemNaturally(player.getLocation(), Head.createPlayerSkull(player.getUniqueId(), SkinManager.getSkin(player.getUniqueId()).url()));
+        if (RewardHead.isRewardAnyKill()) {
+            ItemStack head = Head.createPlayerSkull(player.getUniqueId(), SkinManager.getSkin(player.getUniqueId()).url());
+            ItemMeta headMeta = head.getItemMeta();
+            assert headMeta != null;
+            headMeta.setDisplayName(LanguageOptions.parse(LanguageOptions.getMessage("any-kill-head-name"), player));
+            List<String> lore = new ArrayList<>();
+            LanguageOptions.getListMessage("any-kill-head-lore").forEach(str -> lore.add(LanguageOptions.parse(str ,player)));
+            headMeta.setLore(lore);
+            head.setItemMeta(headMeta);
+            droppedHead = player.getWorld().dropItemNaturally(player.getLocation(), head);
+        }
         // possible remove this later when the other functions allow null killers aka non-player deaths
         if (killer == null)
             return;
@@ -308,7 +319,7 @@ public class BountyManager {
         }
 
         TimedBounties.onDeath(player); // reset next bounty timer for being killed
-        MurderBounties.killPlayer(player, killer); // possibly add bounty on killer
+        boolean cancelTrickle = MurderBounties.killPlayer(player, killer); // possibly add bounty on killer
 
         // check if killer can steal a bounty
         // stealing a bounty is killing someone that placed a bounty on you, and taking those rewards.
@@ -561,20 +572,20 @@ public class BountyManager {
             }
         }
 
+        BountyHunt.claimBounty(player, killer);
+
         DataManager.changeStat(player.getUniqueId(), Leaderboard.DEATHS, 1);
         DataManager.changeStats(killer.getUniqueId(), new PlayerStat(1,0,0,0,0, bounty.getTotalDisplayBounty(killer)));
         NotBounties.debugMessage("Given stats.", false);
-        Bounty transferedBounty = TrickleBounties.transferBounty(bounty, killer);
-        // modify the bounty to remove the rewarded setters.
         List<Setter> removedSetters = new LinkedList<>(rewardedBounty.getSetters());
-        removedSetters.addAll(transferedBounty.getSetters());
+        if (!cancelTrickle) {
+            Bounty transferedBounty = TrickleBounties.transferBounty(bounty, killer);
+            removedSetters.addAll(transferedBounty.getSetters());
+        }
 
         DataManager.removeSetters(bounty, removedSetters);
 
-
         // the bounty object is no longer accurate of the current bounty
-
-
 
         // play sound for setters
         for (Setter setter : claimedBounties) {

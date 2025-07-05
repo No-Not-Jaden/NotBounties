@@ -8,6 +8,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -64,11 +65,11 @@ public class LoggedPlayers {
     }
 
     /**
-     * Returns an OfflinePlayer from their logged name
+     * Returns a UUID from their logged name.
      * @param name Name of the player
-     * @return The OfflinePlayer or null if one hasn't been logged yet.
+     * @return The UUID or null if one hasn't been logged yet.
      */
-    public static UUID getPlayer(@NotNull String name) {
+    public static @Nullable UUID getPlayer(@NotNull String name) {
         Player player = Bukkit.getPlayer(name);
         if (player != null)
             return player.getUniqueId();
@@ -83,7 +84,6 @@ public class LoggedPlayers {
 
     public static void logPlayer(@NotNull String name, @NotNull UUID uuid) {
         playerIDs.put(name.toLowerCase(), uuid);
-        DataManager.getPlayerData(uuid).setPlayerName(name);
     }
 
     public static void replacePlayerName(@NotNull String newName, @NotNull UUID uuid) {
@@ -107,7 +107,7 @@ public class LoggedPlayers {
         // check if they are logged yet
         if (isMissing(player.getUniqueId())) {
             // if not, add them
-            logPlayer(player.getName(), player.getUniqueId());
+            DataManager.getPlayerData(player.getUniqueId()).setPlayerName(player.getName());
             // send a proxy message to log
             ProxyMessaging.logNewPlayer(player.getName(), player.getUniqueId());
         } else

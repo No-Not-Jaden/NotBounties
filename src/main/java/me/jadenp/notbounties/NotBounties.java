@@ -7,6 +7,7 @@ import me.jadenp.notbounties.features.settings.auto_bounties.*;
 import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyDatabase;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
+import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -54,28 +55,12 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * Better SQL and Redis config with connection string and address options to replace others.
  * Redo vouchers with persistent data, give items, & reward delay
  * Redis Pub Sub messages for player data storage. - proxy messaging too
- * database message table
+ * database message table with server IDs
  * fast database option to use directly instead of an update interval
  * Multiple proxy databases
  * 1.21.6 dialog
  * 3 suggestions
  *
- * holographic posters
- * poster regenerate command
- * cannot remove bounty from specific setter - x
- * use inconsistent to sync data & get a guaranteed player data before giving any refunds <--- use guarenteedPlayerData method in datamanager -
- * sort player data by uuid, or do so when syncing databases -
- * add server ID to player data -
- * save player data if not in perm database -
- * currency and other config options work? -
- * check online players for refunds after sync -
- * tutorial page line -
- * bounty refunds changed -
- * similar respawn points for ally bounty claim - x
- * option to stop setter from claiming their own bounty - x
- * is data stored locally with redis?
- * check new player after running command - time might be off? message is seconds are actually minutes -
- * connected to proxy spam
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -213,6 +198,10 @@ public final class NotBounties extends JavaPlugin {
 
             // big bounty particle
             BigBounty.displayParticle();
+        }, 100, 40);
+        getServerImplementation().global().runAtFixedRate(() -> {
+            if (paused)
+                return;
 
             ImmunityManager.update();
             RandomBounties.update();
@@ -222,7 +211,8 @@ public final class NotBounties extends JavaPlugin {
             ChallengeManager.checkChallengeChange();
 
             BountyBoard.update();
-        }, 100, 40);
+            BountyHunt.updateBossBars();
+        }, 120, 40);
         // auto save bounties & do some ram cleaning
         getServerImplementation().async().runAtFixedRate(() -> {
             if (paused)
@@ -404,11 +394,11 @@ public final class NotBounties extends JavaPlugin {
 
         // remove bounty entities
         WantedTags.disableWantedTags();
-        BountyBoard.clearBoard();
 
         if (!started) {
             // Plugin failed to start.
             // Returning, so save data isn't overwritten.
+            BountyBoard.clearBoard();
             DataManager.shutdown();
             return;
         }
@@ -421,11 +411,15 @@ public final class NotBounties extends JavaPlugin {
 
         try {
             SaveManager.save(this);
+            if (ChallengeManager.isEnabled()) {
+                ChallengeManager.saveChallengeData();
+            }
         } catch (IOException e) {
             getLogger().severe("Error saving data!");
             getLogger().severe(e.toString());
         }
 
+        BountyBoard.clearBoard();
         DataManager.shutdown();
 
 

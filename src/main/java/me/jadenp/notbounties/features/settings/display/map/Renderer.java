@@ -1,5 +1,7 @@
 package me.jadenp.notbounties.features.settings.display.map;
 
+import me.jadenp.notbounties.ui.SkinManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapRenderer;
@@ -20,6 +22,10 @@ public class Renderer extends MapRenderer {
 
     @Override
     public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player renderer) {
+        if (!mapProvider.isPlayerFacePresent() && SkinManager.isSkinLoaded(renderer.getUniqueId())) {
+            // load new skin for poster
+            mapProvider.setPlayerFace(SkinManager.getPlayerFace(renderer.getUniqueId()), LoggedPlayers.getPlayerName(renderer.getUniqueId()));
+        }
         mapProvider.setCanvas(canvas);
         mapProvider.render();
     }

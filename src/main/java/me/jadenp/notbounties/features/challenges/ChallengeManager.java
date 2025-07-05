@@ -112,11 +112,9 @@ public class ChallengeManager implements Listener {
      */
     public static void readChallengeData() throws IOException {
         // load in challenge data
-        File challengeDataFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "challenges/challenge-data.yml");
+        File challengeFolder = new File(NotBounties.getInstance().getDataFolder() + File.separator + "challenges");
+        File challengeDataFile = new File(challengeFolder + File.separator + "challenge-data.yml");
         if (!challengeDataFile.exists()) {
-            challengeDataFile.mkdirs();
-            challengeDataFile.createNewFile();
-            Bukkit.getLogger().info("[NotBounties] Created new challenge data file.");
             return;
         }
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(challengeDataFile);
@@ -214,7 +212,11 @@ public class ChallengeManager implements Listener {
 
     public static void saveChallengeData() throws IOException {
         // make sure the file exists
-        File challengeDataFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + "challenges/challenge-data.yml");
+        File challengeFolder = new File(NotBounties.getInstance().getDataFolder() + File.separator + "challenges");
+        if (challengeFolder.mkdir()) {
+            Bukkit.getLogger().info("[NotBounties] Created new challenges folder.");
+        }
+        File challengeDataFile = new File(challengeFolder + File.separator + "challenge-data.yml");
         if (challengeDataFile.createNewFile()) {
             Bukkit.getLogger().info("[NotBounties] Created new challenge data file.");
         }

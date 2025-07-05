@@ -186,6 +186,14 @@ public class BountyTracker implements Listener {
         }
     }
 
+    private static boolean isHuntTracker(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() != Material.COMPASS)
+            return false;
+        ItemMeta meta = itemStack.getItemMeta();
+        assert meta != null;
+        return meta.getPersistentDataContainer().has(BountyHunt.getHuntKey());
+    }
+
     /**
      * Get the player that a bounty compass is tracking.
      * @param itemStack Compass that is tracking a bounty.
@@ -235,37 +243,48 @@ public class BountyTracker implements Listener {
      * Uses the config options to remove trackers from the player
      * @param player Player to remove the tracker from
      */
-    public static void removeTracker(Player player) {
-        removeTracker(player.getInventory());
+    public static boolean removeTracker(Player player) {
+        return removeTracker(player.getInventory(), player);
     }
 
     /**
      * Uses the config options to remove trackers from an inventory
      * @param inventory Inventory to check for trackers
+     * @return True if a tracker was removed or changed to be empty.
      */
-    public static void removeTracker(Inventory inventory) {
-        if (trackerRemove <= 0)
-            return;
+    public static boolean removeTracker(Inventory inventory, Player owner) {
+        if (trackerRemove <= 0 && !BountyHunt.isRemoveOldTrackers())
+            return false;
         boolean update = false;
         ItemStack[] contents = inventory.getContents();
         for (int i = 0; i < contents.length; i++) {
             if (contents[i] != null) {
                 UUID trackedUUID = getTrackedPlayer(contents[i]);
-                if (trackedUUID != null && !trackedUUID.equals(DataManager.GLOBAL_SERVER_ID) && !hasBounty(trackedUUID)) {
-                    if (resetRemovedTrackers) {
-                        ItemStack emptyTracker = getEmptyTracker().clone();
-                        emptyTracker.setAmount(contents[i].getAmount());
-                        contents[i] = emptyTracker;
-                    } else {
-                        contents[i] = null;
+                if (trackedUUID != null && !trackedUUID.equals(DataManager.GLOBAL_SERVER_ID)) {
+                    if (BountyHunt.isRemoveOldTrackers() && isHuntTracker(contents[i])) {
+                        // this will also remove the hunt tracker if there is no bounty
+                        BountyHunt hunt = BountyHunt.getHunt(trackedUUID);
+                        if (hunt == null || !hunt.isParticipating(owner.getUniqueId())) {
+                            contents[i] = null;
+                            update = true;
+                        }
+                    } else if (!hasBounty(trackedUUID)) {
+                        if (resetRemovedTrackers) {
+                            ItemStack emptyTracker = getEmptyTracker().clone();
+                            emptyTracker.setAmount(contents[i].getAmount());
+                            contents[i] = emptyTracker;
+                        } else {
+                            contents[i] = null;
+                        }
+                        update = true;
                     }
-                    update = true;
                 }
             }
         }
         if (update) { // only update if there was a change to the inventory
             inventory.setContents(contents);
         }
+        return update;
     }
 
     /**
@@ -475,7 +494,7 @@ public class BountyTracker implements Listener {
     public void onOpenInv(InventoryOpenEvent event) {
         if (trackerRemove != 3 || event.getInventory().getType() == InventoryType.CRAFTING || NotBounties.isPaused())
             return;
-        removeTracker(event.getInventory());
+        removeTracker(event.getInventory(), (Player) event.getPlayer());
     }
 
     // poster tracking
@@ -627,7 +646,7 @@ public class BountyTracker implements Listener {
         if (!tracker || !washTrackers || NotBounties.isPaused())
             return;
         UUID trackedPlayer = getTrackedPlayer(event.getItemDrop().getItemStack());
-        if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer))
+        if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer) || isHuntTracker(event.getItemDrop().getItemStack()))
             // not a tracker or it's an empty tracker
             return;
         NotBounties.getServerImplementation().entity(event.getItemDrop()).runDelayed(() -> {

@@ -7,6 +7,7 @@ import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.player_data.RewardHead;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
+import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -59,6 +60,7 @@ public class Events implements Listener {
         if (ConfigOptions.getIntegrations().isMmoLibEnabled())
             MMOLibClass.removeStats(event.getPlayer());
 
+        BountyHunt.logout(event.getPlayer());
         TimedBounties.logout(event.getPlayer());
         ImmunityManager.logout(event.getPlayer());
         BountyExpire.logout(event.getPlayer());
@@ -157,6 +159,7 @@ public class Events implements Listener {
     }
 
     public static void login(Player player) {
+        BountyHunt.login(player);
         TimedBounties.login(player);
         ImmunityManager.login(player);
         BountyExpire.login(player);

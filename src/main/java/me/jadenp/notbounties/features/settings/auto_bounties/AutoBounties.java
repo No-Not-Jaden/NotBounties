@@ -16,6 +16,22 @@ public class AutoBounties extends ResourceConfiguration {
     private Set<String> blockedBountyCommands;
 
     @Override
+    protected void prepareConfig(YamlConfiguration config) {
+        // add different transfers for bounties
+        if (config.isBoolean("trickle-bounties.require-bounty")) {
+            boolean value = config.getBoolean("trickle-bounties.require-bounty");
+            config.set("trickle-bounties.require-bounty", null);
+            if (!value) {
+                config.set("trickle-bounties.unbountied-claim.given-reward", config.getDouble("trickle-bounties.given-reward"));
+                config.set("trickle-bounties.unbountied-claim.bounty-transfer", config.getDouble("trickle-bounties.bounty-transfer"));
+            } else {
+                config.set("trickle-bounties.unbountied-claim.given-reward", 1);
+                config.set("trickle-bounties.unbountied-claim.bounty-transfer", 0);
+            }
+        }
+    }
+
+    @Override
     protected void loadConfiguration(YamlConfiguration config) {
         MurderBounties.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("murder-bounty")));
         RandomBounties.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("random-bounties")));

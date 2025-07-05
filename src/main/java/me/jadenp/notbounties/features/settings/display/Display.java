@@ -14,6 +14,7 @@ public class Display extends ResourceConfiguration {
         BountyMap.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("bounty-posters")));
         BountyBoard.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("bounty-board")));
         BountyTracker.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("bounty-tracker")));
+        BountyHunt.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("bounty-hunt")));
     }
 
     @Override

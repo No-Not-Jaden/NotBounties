@@ -36,6 +36,17 @@ custom-items:
       - ''
     commands:
       - '[pprompt] notbounties {player1} <&eEnter in chat the bounty amount or type "cancel" to cancel.>'
+  enter-hunt-time:
+    material: WRITABLE_BOOK
+    amount: 1
+    name: '&eEnter Hunt Time &7->'
+    lore:
+      - ''
+      - '&6Click to manually'
+      - '&6enter hunt time'
+      - ''
+    commands:
+      - '[pprompt] notbounties hunt {player1} <&eEnter in chat the hunt time minutes or type "cancel" to cancel.>'
   exit:
     material: BARRIER
     amount: 1
@@ -184,6 +195,14 @@ custom-items:
       - '&7Return to price selection'
     commands:
       - '[gui] select-price {page}'
+  return-hunt-player:
+    material: WHITE_BED
+    amount: 1
+    name: '&6&lReturn'
+    lore:
+      - '&7Return to player selection'
+    commands:
+      - '[gui] bounty-hunt-player 1'
   toggle-whitelist:
     material: PAPER
     amount: 1
@@ -663,5 +682,73 @@ confirm-remove-immunity:
     8:
       item: yes-remove-immunity
       slot: 41-43
-
-
+bounty-hunt-player:
+  size: 54
+  gui-name: '&c&lSelect player for hunt. &7Page'
+  add-page: true
+  remove-page-items: true
+  player-slots:
+    - '0-44'
+  head-name: '&e&l{player}'
+  head-lore:
+    - ''
+    - '&6Immunity: {amount}'
+    - '&7Click to select player'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 45-53
+    2:
+      item: return
+      slot: 48
+    3:
+      item: next
+      slot: 53
+    4:
+      item: back
+      slot: 45
+    5:
+      item: add-offline
+      slot: 50
+bounty-hunt-time:
+  size: 54
+  gui-name: '&c&lSelect time. &4Minutes:&f'
+  add-page: true
+  remove-page-items: false
+  player-slots:
+    - 13
+  head-name: '&2Price: &a{amount}'
+  head-lore:
+    - ''
+    - '&7{player}'
+    - '&7Click to start hunt.'
+    - ''
+  layout:
+    1:
+      item: fill
+      slot: 0-53
+    2:
+      item: return-hunt-player
+      slot: 49
+    3:
+      item: remove1
+      slot: 19-21
+    4:
+      item: remove10
+      slot: 28-30
+    5:
+      item: remove100
+      slot: 37-39
+    6:
+      item: add1
+      slot: 23-25
+    7:
+      item: add10
+      slot: 32-34
+    8:
+      item: add100
+      slot: 41-43
+    9:
+      item: enter-hunt-time
+      slot: 31

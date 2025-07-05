@@ -14,6 +14,8 @@ import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.features.settings.display.BountyHunt;
+import me.jadenp.notbounties.features.settings.display.BountyHuntTypeAdapter;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
@@ -204,6 +206,18 @@ public class SaveManager {
                     writer.value(loc);
                 writer.endArray();
             }
+
+            List<BountyHunt> hunts = BountyHunt.getHunts();
+            if (!hunts.isEmpty()) {
+                writer.name("bountyHunts");
+                writer.beginArray();
+                BountyHuntTypeAdapter bountyHuntTypeAdapter = new BountyHuntTypeAdapter();
+                for (BountyHunt hunt : hunts) {
+                    bountyHuntTypeAdapter.write(writer, hunt);
+                }
+                writer.endArray();
+            }
+
             writer.endObject();
         }
     }
@@ -284,17 +298,8 @@ public class SaveManager {
                         DataManager.getLocalData().addPlayerData(playerDataList);
                     }
                     case "trackedBounties" -> BountyTracker.setTrackedBounties(readTrackedBounties(reader));
-                    case "databaseSyncTimes" -> {
-                        databaseSyncTimes = readDatabaseSyncTimes(reader);
-                    }
-                    case "nextRandomBounty" -> {
-                        RandomBounties.setNextRandomBounty(reader.nextLong());
-                        if (!RandomBounties.isEnabled()) {
-                            RandomBounties.setNextRandomBounty(0);
-                        } else if (RandomBounties.getNextRandomBounty() == 0) {
-                            RandomBounties.setNextRandomBounty();
-                        }
-                    }
+                    case "databaseSyncTimes" -> databaseSyncTimes = readDatabaseSyncTimes(reader);
+                    case "nextRandomBounty" -> readNextRandomBounty(reader);
                     case "nextTimedBounties" -> TimedBounties.setNextBounties(readTimedBounties(reader));
                     case "bountyBoards" -> BountyBoard.addBountyBoards(readBountyBoards(reader));
                     case "nextChallengeChange" -> ChallengeManager.setNextChallengeChange(reader.nextLong());
@@ -302,6 +307,7 @@ public class SaveManager {
                     case "paused" -> NotBounties.setPaused(reader.nextBoolean());
                     case "wantedTagLocations" -> readWantedTagLocations(reader);
                     case "newPlayerImmunity" -> ImmunityManager.setNewPlayerImmunity(reader.nextLong());
+                    case "bountyHunts" -> readBountyHunts(reader);
                     default -> // unexpected name
                             reader.skipValue();
                 }
@@ -317,6 +323,30 @@ public class SaveManager {
 
         // tell LoggedPlayers that it can read all the player names and store them in an easy-to-read hashmap
         LoggedPlayers.loadPlayerData();
+    }
+
+    private static void readNextRandomBounty(JsonReader reader) throws IOException {
+        RandomBounties.setNextRandomBounty(reader.nextLong());
+        if (!RandomBounties.isEnabled()) {
+            RandomBounties.setNextRandomBounty(0);
+        } else if (RandomBounties.getNextRandomBounty() == 0) {
+            RandomBounties.setNextRandomBounty();
+        }
+    }
+
+    private static void readBountyHunts(JsonReader reader) throws IOException {
+        List<BountyHunt> hunts = new LinkedList<>();
+        reader.beginArray();
+        BountyHuntTypeAdapter bountyHuntTypeAdapter = new BountyHuntTypeAdapter();
+        while (reader.hasNext()) {
+            BountyHunt hunt = bountyHuntTypeAdapter.read(reader);
+            if (hunt != null)
+                hunts.add(hunt);
+            else
+                plugin.getLogger().info("Could not load a saved bounty hunt");
+        }
+        reader.endArray();
+        BountyHunt.loadSavedHunts(hunts);
     }
 
     private static void readWantedTagLocations(JsonReader reader) throws IOException {

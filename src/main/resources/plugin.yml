@@ -98,6 +98,18 @@ permissions:
   notbounties.immunity.timed:
     default: false
     description: Immune to timed auto-bounties.
+  notbounties.hunt:
+    default: true
+    description: Allow players to use the bounty hunt feature.
+    children:
+      - notbounties.hunt.start
+      - notbounties.hunt.participate
+  notbounties.hunt.start:
+    default: true
+    description: Start a bounty hunt.
+  notbounties.hunt.participate:
+    default: true
+    description: Join or leave a bounty hunt.
 libraries:
   - com.mysql:mysql-connector-j:9.2.0
   - io.lettuce:lettuce-core:6.6.0.RELEASE

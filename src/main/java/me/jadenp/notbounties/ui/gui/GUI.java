@@ -4,6 +4,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
@@ -148,6 +149,13 @@ public class GUI implements Listener {
             saveConfigurationSection("gui.yml", guiConfig, "custom-items.remove-immunity");
             saveConfigurationSection("gui.yml", guiConfig, "custom-items.yes-remove-immunity");
             saveConfigurationSection("gui.yml", guiConfig, "custom-items.no-setting");
+            guiChanges = true;
+        }
+        if (!guiConfig.isSet("bounty-hunt-player")) {
+            saveConfigurationSection("gui.yml", guiConfig, "bounty-hunt-player");
+            saveConfigurationSection("gui.yml", guiConfig, "bounty-hunt-time");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.enter-hunt-time");
+            saveConfigurationSection("gui.yml", guiConfig, "custom-items.return-hunt-player");
             guiChanges = true;
         }
         File guiFile = new File(bounties.getDataFolder() + File.separator + "gui.yml");
@@ -346,7 +354,7 @@ public class GUI implements Listener {
                 break;
             case "set-bounty":
                 NotBounties.debugMessage("Viewing Online players: " + online + "  Online: " + onlinePlayers, false);
-                    List<UUID> addedPlayers = new ArrayList<>();
+                    Set<UUID> addedPlayers = new HashSet<>();
                     for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
                         if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                             // skip if offline or vanished
@@ -360,15 +368,7 @@ public class GUI implements Listener {
                             if (ConfigOptions.isReducePageCalculations() && displayItems.size() > gui.getPlayerSlots().size() * page)
                                 break;
                             if (!addedPlayers.contains(uuid) && !cantSeePlayer(player, onlinePlayers, uuid)) {
-                                ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(uuid, 69);
-                                if (immunityType == ImmunityManager.ImmunityType.PERMANENT
-                                        || immunityType == ImmunityManager.ImmunityType.GRACE_PERIOD
-                                        || immunityType == ImmunityManager.ImmunityType.TIME
-                                        || immunityType == ImmunityManager.ImmunityType.NEW_PLAYER) {
-                                    // skip if they would be immune to this bounty regardless of the bounty amount
-                                    NotBounties.debugMessage(uuid + " has immunity.", false);
-                                    continue;
-                                }
+                                if (checkPermImmunity(uuid)) continue;
                                 displayItems.add(new PlayerItem(uuid, 0, Leaderboard.IMMUNITY, addedPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
                                 addedPlayers.add(uuid);
                             }
@@ -392,6 +392,46 @@ public class GUI implements Listener {
                             }
                         }
                     }
+                break;
+            case "bounty-hunt-player":
+                Set<UUID> addedBountyPlayers = new HashSet<>();
+                for (Map.Entry<UUID, Double> entry : Leaderboard.CURRENT.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
+                    if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
+                        // skip if offline or vanished
+                        continue;
+                    }
+                    displayItems.add(new PlayerItem(entry.getKey(), entry.getValue(), Leaderboard.IMMUNITY, addedBountyPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
+                    addedBountyPlayers.add(entry.getKey());
+                }
+                if (online) {
+                    for (UUID uuid : onlinePlayers) {
+                        if (ConfigOptions.isReducePageCalculations() && displayItems.size() > gui.getPlayerSlots().size() * page)
+                            break;
+                        if (!addedBountyPlayers.contains(uuid) && !cantSeePlayer(player, onlinePlayers, uuid)) {
+                            if (checkPermImmunity(uuid)) continue;
+                            displayItems.add(new PlayerItem(uuid, 0, Leaderboard.CURRENT, addedBountyPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
+                            addedBountyPlayers.add(uuid);
+                        }
+                    }
+                } else {
+                    for (Map.Entry<UUID, String> entry : LoggedPlayers.getLoggedPlayers().entrySet()) {
+                        if (ConfigOptions.isReducePageCalculations() && displayItems.size() > gui.getPlayerSlots().size() * page)
+                            break;
+                        if (!addedBountyPlayers.contains(entry.getKey())) {
+
+                            ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(entry.getKey(), 69);
+                            if (immunityType == ImmunityManager.ImmunityType.PERMANENT
+                                    || immunityType == ImmunityManager.ImmunityType.GRACE_PERIOD
+                                    || immunityType == ImmunityManager.ImmunityType.TIME
+                                    || immunityType == ImmunityManager.ImmunityType.NEW_PLAYER) {
+                                // skip if they are immune
+                                continue;
+                            }
+                            displayItems.add(new PlayerItem(entry.getKey(), 0, Leaderboard.CURRENT, addedBountyPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
+                            addedBountyPlayers.add(entry.getKey());
+                        }
+                    }
+                }
                 break;
             case "set-whitelist":
                 List<UUID> playersAdded = new ArrayList<>();
@@ -433,6 +473,13 @@ public class GUI implements Listener {
                     displayItems.add(new PlayerItem(player.getUniqueId(), page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
                 }
                 break;
+            case "bounty-hunt-time":
+                if (data.length > 0 && data[0] instanceof UUID uuid) {
+                    displayItems.add(new PlayerItem(uuid, page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
+                } else {
+                    displayItems.add(new PlayerItem(player.getUniqueId(), page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
+                }
+                break;
             case "bounty-item-select":
                 UUID uuid3 = data.length > 0 && data[0] instanceof UUID uuid ? uuid : player.getUniqueId();
                 double total = 0;
@@ -457,6 +504,19 @@ public class GUI implements Listener {
         }
     return displayItems;
 
+    }
+
+    private static boolean checkPermImmunity(UUID uuid) {
+        ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(uuid, 69);
+        if (immunityType == ImmunityManager.ImmunityType.PERMANENT
+                || immunityType == ImmunityManager.ImmunityType.GRACE_PERIOD
+                || immunityType == ImmunityManager.ImmunityType.TIME
+                || immunityType == ImmunityManager.ImmunityType.NEW_PLAYER) {
+            // skip if they would be immune to this bounty regardless of the bounty amount
+            NotBounties.debugMessage(uuid + " has immunity.", false);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -565,6 +625,8 @@ public class GUI implements Listener {
         int maxPage;
         if (type.equals("select-price")) {
             maxPage = (int) NumberFormatting.getBalance(viewer);
+        } else if (type.equals("bounty-hunt-time")) {
+            maxPage = (int) (NumberFormatting.getBalance(viewer) * BountyHunt.getCostPerMinute());
         } else if (type.equals("bounty-gui")) {
             int numBounties = BountyManager.getAllBounties(-1).size();
             int playerSlots = Math.max(numPlayerSlots, 1);
@@ -756,6 +818,9 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), "select-price", (long) ConfigOptions.getMoney().getMinBounty(), playerUUID.toString());
                     }
                     break;
+                case "bounty-hunt-player":
+                    openGUI((Player) event.getWhoClicked(), "bounty-hunt-time", BountyHunt.getMinimumMinutes(), playerUUID);
+                    break;
                 case "set-whitelist":
                     Set<UUID> whitelist = DataManager.getPlayerData(event.getWhoClicked().getUniqueId()).getWhitelist().getList();
                     if (!whitelist.remove(playerUUID)) {
@@ -770,6 +835,9 @@ public class GUI implements Listener {
                     Bukkit.dispatchCommand(event.getWhoClicked(),   ConfigOptions.getPluginBountyCommands().get(0) + " " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
                     if (!ConfigOptions.isBountyConfirmation())
                         event.getView().close();
+                    break;
+                case "bounty-hunt-time":
+                    Bukkit.dispatchCommand(event.getWhoClicked(),   ConfigOptions.getPluginBountyCommands().get(0) + " hunt " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
                     break;
                 case "bounty-item-select":
                     if (!gui.getPlayerSlots().isEmpty() && event.getRawSlot() ==  gui.getPlayerSlots().get(0)) {

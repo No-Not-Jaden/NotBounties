@@ -2,6 +2,7 @@ package me.jadenp.notbounties.features.settings.integrations;
 
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.integrations.external_api.*;
 import me.jadenp.notbounties.features.settings.integrations.external_api.worldguard.WorldGuardClass;
 import org.bukkit.Bukkit;
@@ -226,6 +227,10 @@ public class BountyClaimRequirements {
                 && player.getRespawnLocation().getWorld().equals(killer.getRespawnLocation().getWorld())
                 && player.getRespawnLocation().distance(killer.getRespawnLocation()) < minRespawnDistance) {
             NotBounties.debugMessage("Bounty claim canceled due to a close respawn distance.", false);
+            return false;
+        }
+        if (BountyHunt.isPauseOtherBounties() && !BountyHunt.getHunts().isEmpty()) {
+            NotBounties.debugMessage("Bounty claim canceled due to an active bounty hunt.", false);
             return false;
         }
 

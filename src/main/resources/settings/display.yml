@@ -148,3 +148,31 @@ wanted-tag:
     1000: '&f☠ '
     2500: '&c☠☠ '
     5000: '&4☠☠☠ '
+
+# manhunt themed event that players can start
+bounty-hunt:
+  enabled: true
+  # The cost to start a hunt
+  cost-per-minute: 0.5
+  # The minimum time for a hunt.
+  minimum-minutes: 10
+  # Adds the money that the player spent to initiate the hunt to the bounty.
+  add-cost-to-bounty: true
+  # Give all players who join the hunt a bounty tracker for the hunted player.
+  give-trackers: true
+  # Remove trackers from players after the hunt is finished. This follows the remove rule in the bounty-trackers
+  # configration section but will not turn into an empty tracker
+  remove-old-trackers: true
+  # Whether bounties not a part of the hunt will be paused, meaning they can't be claimed during.
+  pause-other-bounties: false
+  # How many bounty hunts can be active at the same time. 0 to disable
+  max-concurrent-hunts: 5
+  # How many bounty hunts a player can participate in at the same time. 0 to disable
+  max-joinable-hunts: 1
+  # Bossbar timer for the hunt.
+  bossbar:
+    enabled: true
+    color: RED
+    text: '&4Hunt for &c&l{player}&4! &7Time remaining: &f{time}'
+  # Commands to be run when the bounty is claimed
+  commands: []

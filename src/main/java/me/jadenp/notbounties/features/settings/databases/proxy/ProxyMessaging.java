@@ -80,7 +80,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                         short numPlayers = msgIn.readShort();
                         for (short i = 0; i < numPlayers; i++) {
                             Map.Entry<UUID, String> entry = parsePlayerString(msgIn.readUTF());
-                            LoggedPlayers.logPlayer(entry.getValue(), entry.getKey());
+                            DataManager.getPlayerData(entry.getKey()).setPlayerName(entry.getValue());
                         }
                     }
                     default -> throw new IllegalStateException("Unknown message!");

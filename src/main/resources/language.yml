@@ -125,6 +125,8 @@ buy-back-lore:
   - '&9Left Click &7to buy back for &a{amount}'
   - ''
 murder: '&cYour bounty has been increased for murdering &4{player}&c!'
+any-kill-head-name: '&c&l{player}''s Head'
+any-kill-head-lore: []
 reward-head-name: '&c&l{player}''s Head'
 reward-head-lore:
   - ''
@@ -170,6 +172,19 @@ edit-setter-clickable: '&6To edit {player}''s amount on {receiver}''s bounty, &e
 deny-entry: '&c&lHey! &7Sorry, but you cannot enter here with a bounty.'
 deny-exit: '&c&lHey! &7Sorry, but you cannot exit here with a bounty.'
 blocked-bounty-command: '&cYou can''t use this command when you have a bounty! &7&o(/bounty)'
+hunt-broadcast: '&e{player}&6 has started a bounty hunt on &e{receiver}&6! Time to claim: &f{time}&6. Do &7/bounty hunt join {receiver}&6 to join.'
+hunt-end: '&6The hunt on &e{receiver}&6 has ended!'
+no-hunt-found: '&cCould not find a bounty hunt for &4{player}&c!'
+max-hunts-joined: '&cYou have already joined the maximum number of bounty hunts!'
+max-hunts-active: '&cThe maximum number of active hunts has been reached.'
+minimum-duration: '&cThe minimum duration for the hunt is {time} minutes.'
+own-hunt: '&cYou cannot join your own hunt!'
+extend-hunt: '&aYou have extended the hunt time on &f{player}&a!'
+hunt-join: '&aYou have joined the bounty hunt for &f{player}&a!'
+hunt-leave: '&eYou have left the bounty hunt for &f{player}&e!'
+not-in-hunt: '&cYou are not participating in this hunt.'
+list-hunts: '&eActive bounty hunts:'
+list-hunt-players: '&ePlayers participating in the hunt for &f{player}&e:'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore
@@ -259,6 +274,13 @@ help:
     - '&9/bounty challenges &8- &dOpens the challenges GUI.'
     - '&9/bounty challenges claim <challenge #> &8- &dClaim a challenge reward.'
     - '&9/bounty challenges check <challenge #> &8- &dDisplays challenge info in chat.'
+  hunt-start:
+    - '&9/bounty hunt &8- &dOpens the bounty hunt GUI.'
+    - '&9/bounty hunt (player) (time) &8- &dStarts a bounty hunt on a player.'
+  hunt-participate:
+    - '&9/bounty hunt join (player) &8- &dJoin a bounty hunt for a player.'
+    - '&9/bounty hunt leave (player) &8- &dLeave a bounty hunt for a player.'
+    - '&9/bounty hunt list &8- &dList all active hunts.'
   admin: #
     - '&9/bounty immunity remove (player) &8- &dRemoves purchased immunity from a player.'
     - '&9/bounty remove (player) &8- &dRemoves all bounties from a player.'

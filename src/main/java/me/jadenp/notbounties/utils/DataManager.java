@@ -1171,7 +1171,7 @@ public class DataManager {
         // log any unknown names in the database bounties
         for (Bounty bounty : databaseAdded) {
             if (LoggedPlayers.isMissing(bounty.getUUID()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)) {
-                LoggedPlayers.logPlayer(bounty.getName(), bounty.getUUID());
+                DataManager.getPlayerData(bounty.getUUID()).setPlayerName(bounty.getName());
             }
         }
 

@@ -116,7 +116,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
 
     public void setUuid(UUID uuid) {
         this.uuid = uuid;
-        if (playerName != null && uuid != null && (LoggedPlayers.isMissing(uuid) || !LoggedPlayers.isLogged(playerName))) {
+        if (playerName != null && uuid != null) {
             LoggedPlayers.logPlayer(playerName, uuid);
         }
     }
@@ -147,7 +147,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
 
     public void setPlayerName(String playerName) {
         this.playerName = playerName;
-        if (playerName != null && uuid != null && (LoggedPlayers.isMissing(uuid) || !LoggedPlayers.isLogged(playerName))) {
+        if (playerName != null && uuid != null && !LoggedPlayers.isLogged(playerName)) {
             LoggedPlayers.logPlayer(playerName, uuid);
         }
     }

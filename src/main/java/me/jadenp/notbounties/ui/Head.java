@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
+import org.jetbrains.annotations.NotNull;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -40,7 +41,7 @@ public class Head {
         return item;
     }
 
-    public static ItemStack createPlayerSkull(UUID uuid, URL textureURL) {
+    public static @NotNull ItemStack createPlayerSkull(UUID uuid, URL textureURL) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;

@@ -21,6 +21,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.server.MapInitializeEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemFlag;
@@ -56,6 +57,7 @@ public class BountyMap implements Listener {
     private static MapColor mapColor = null;
     private static final List<HologramRenderer> holograms = new ArrayList<>();
     private static TaskImplementation<Void> hologramUpdateTask = null;
+    private static boolean loadedPregeneratedChunks = false;
 
     private static boolean enabled;
     private static boolean giveOwn;
@@ -138,6 +140,20 @@ public class BountyMap implements Listener {
 
         if (mapColor == null)
             mapColor = new MapColor();
+
+        if (enabled && !loadedPregeneratedChunks) {
+            for (World world : Bukkit.getWorlds()) {
+                for (Chunk chunk : world.getLoadedChunks()) {
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME)) {
+                            ItemFrame itemFrame = (ItemFrame) entity;
+                            loadItem(itemFrame.getItem());
+                        }
+                    }
+                }
+            }
+        }
+        loadedPregeneratedChunks = true;
     }
 
     public static void shutdown() {
@@ -223,7 +239,7 @@ public class BountyMap implements Listener {
         loadItem(newItem);
     }
 
-    private void loadItem(ItemStack item) {
+    private static void loadItem(ItemStack item) {
         if (item == null || !isPoster(item) || !enabled)
             return;
         MapMeta mapMeta = (MapMeta) item.getItemMeta();

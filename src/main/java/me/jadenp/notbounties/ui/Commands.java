@@ -7,6 +7,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.data.Whitelist;
+import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.display.map.HologramRenderer;
@@ -138,6 +139,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 }
                 LanguageOptions.sendHelpMessage(sender, page);
+            } else if (args[0].equalsIgnoreCase("hunt")) {
+                if (adminPermission || sender.hasPermission("notbounties.hunt")) {
+                    return BountyHunt.executeHuntCommand(sender, args, silent, adminPermission, parser);
+                } else {
+                    // no permission
+                    if (!silent)
+                        sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
+                    return false;
+                }
             } else if (args[0].equalsIgnoreCase("challenges") && ChallengeManager.isEnabled()) {
                 if ((adminPermission || sender.hasPermission("notbounties.challenges")) && sender instanceof Player) {
                     if (args.length == 1) {
@@ -1783,55 +1793,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // check if it is a player
                     if (sender instanceof Player) {
                         // check for immunity
-                        boolean usingImmunity = true;
-                        switch (ImmunityManager.getAppliedImmunity(playerUUID, amount)) {
-                            case GRACE_PERIOD:
-                                if (!silent)
-                                    sender.sendMessage(parse(getPrefix()
-                                            + LanguageOptions.getMessage("grace-period")
-                                            .replace("{time}", (LocalTime.formatTime(
-                                                    ImmunityManager.getGracePeriod(playerUUID)
-                                                    , LocalTime.TimeFormat.RELATIVE))), player));
-                                break;
-                            case NEW_PLAYER:
-                                long immunityMS = (long) ((ImmunityManager.getNewPlayerImmunity() - ((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20)) * 1000L);
-                                if (!silent)
-                                    sender.sendMessage(parse(getPrefix()
-                                            + LanguageOptions.getMessage("new-player-immunity")
-                                            .replace("{time}", (LocalTime.formatTime(
-                                                    immunityMS,
-                                                    LocalTime.TimeFormat.RELATIVE))), player));
-                                if (immunityMS <= 0) {
-                                    // does not have new player immunity anymore
-                                    DataManager.getPlayerData(playerUUID).setNewPlayer(false);
-                                    Bukkit.getLogger().info("immunity changed");
-                                    usingImmunity = false;
-                                }
-                                break;
-                            case PERMANENT:
-                                if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
-                                    break;
-                                if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + getMessage("permanent-immunity"), ImmunityManager.getImmunity(playerUUID), player));
-                                break;
-                            case SCALING:
-                                if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
-                                    break;
-                                if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + getMessage("scaling-immunity"), ImmunityManager.getImmunity(playerUUID), player));
-                                break;
-                            case TIME:
-                                if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
-                                    break;
-                                if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("time-immunity").replace("{time}", (LocalTime.formatTime(ImmunityManager.getTimeImmunity(playerUUID), LocalTime.TimeFormat.RELATIVE))), ImmunityManager.getImmunity(playerUUID), player));
-                                break;
-                            default:
-                                // Not using immunity
-                                usingImmunity = false;
-                                break;
-                        }
-                        if (usingImmunity) {
+                        if (checkAndNotifyImmunity(sender, amount, silent, player, items)) {
                             if (usingGUI)
                                 GUI.safeCloseGUI(parser, false);
                             return false;
@@ -1943,6 +1905,56 @@ public class Commands implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    public static boolean checkAndNotifyImmunity(@NotNull CommandSender sender, double amount, boolean silent, OfflinePlayer player, List<ItemStack> items) {
+        switch (ImmunityManager.getAppliedImmunity(player.getUniqueId(), amount)) {
+            case GRACE_PERIOD:
+                if (!silent)
+                    sender.sendMessage(parse(getPrefix()
+                            + LanguageOptions.getMessage("grace-period")
+                            .replace("{time}", (LocalTime.formatTime(
+                                    ImmunityManager.getGracePeriod(player.getUniqueId())
+                                    , LocalTime.TimeFormat.RELATIVE))), player));
+                break;
+            case NEW_PLAYER:
+                long immunityMS = (long) ((ImmunityManager.getNewPlayerImmunity() - ((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20)) * 1000L);
+                if (!silent)
+                    sender.sendMessage(parse(getPrefix()
+                            + LanguageOptions.getMessage("new-player-immunity")
+                            .replace("{time}", (LocalTime.formatTime(
+                                    immunityMS,
+                                    LocalTime.TimeFormat.RELATIVE))), player));
+                if (immunityMS <= 0) {
+                    // does not have new player immunity anymore
+                    DataManager.getPlayerData(player.getUniqueId()).setNewPlayer(false);
+                    Bukkit.getLogger().info("immunity changed");
+                    return false;
+                }
+                break;
+            case PERMANENT:
+                if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
+                    break;
+                if (!silent)
+                    sender.sendMessage(parse(getPrefix() + getMessage("permanent-immunity"), ImmunityManager.getImmunity(player.getUniqueId()), player));
+                break;
+            case SCALING:
+                if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
+                    break;
+                if (!silent)
+                    sender.sendMessage(parse(getPrefix() + getMessage("scaling-immunity"), ImmunityManager.getImmunity(player.getUniqueId()), player));
+                break;
+            case TIME:
+                if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
+                    break;
+                if (!silent)
+                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("time-immunity").replace("{time}", (LocalTime.formatTime(ImmunityManager.getTimeImmunity(player.getUniqueId()), LocalTime.TimeFormat.RELATIVE))), ImmunityManager.getImmunity(player.getUniqueId()), player));
+                break;
+            default:
+                // Not using immunity
+                return false;
+        }
+        return true;
+    }
+
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         List<String> tab = new ArrayList<>();
@@ -1986,6 +1998,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("bdc");
                     tab.add("broadcast");
                 }
+                if (sender.hasPermission("notbounties.hunt.start") || sender.hasPermission("notbounties.hunt.participate"))
+                    tab.add("hunt");
                 if (sender.hasPermission("notbounties.basic.tutorial")) {
                     tab.add("tutorial");
                 }
@@ -2045,6 +2059,23 @@ public class Commands implements CommandExecutor, TabCompleter {
                         for (Bounty bounty : bountyList) {
                             tab.add(bounty.getName());
                         }
+                    }
+                } else if (args[0].equalsIgnoreCase("hunt")) {
+                    if (sender.hasPermission("notbounties.hunt.start")) {
+                        List<Bounty> bountyList = BountyManager.getPublicBounties(-1);
+                        if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
+                            for (Bounty bounty : bountyList) {
+                                tab.add(bounty.getName());
+                            }
+                        }
+                    }
+                    if (sender.hasPermission("notbounties.hunt.participate") && sender instanceof Player player) {
+                        tab.add("list");
+                        int participatingHunts = BountyHunt.getParticipatingHunts(player.getUniqueId()).size();
+                        if (participatingHunts > 0)
+                            tab.add("leave");
+                        if ((participatingHunts < BountyHunt.getMaxJoinableHunts() || BountyHunt.getMaxJoinableHunts() <= 0) && !BountyHunt.getHunts().isEmpty())
+                            tab.add("join");
                     }
                 } else if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit") && sender.hasPermission(NotBounties.getAdminPermission()))) {
                     List<Bounty> bountyList = BountyManager.getAllBounties(-1);

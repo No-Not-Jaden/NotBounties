@@ -3,6 +3,7 @@ package me.jadenp.notbounties.features;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -140,9 +141,11 @@ public class LanguageOptions {
             page++;
         if (page == 9 && (!sender.hasPermission("notbounties.challenges") || !ChallengeManager.isEnabled()))
             page++;
-        if (page == 10 && !sender.hasPermission(NotBounties.getAdminPermission()))
+        if (page == 10 && (!BountyHunt.isEnabled() || (!sender.hasPermission("notbounties.hunt.start") && !sender.hasPermission("notbounties.hunt.participate"))))
             page++;
-        if (page >= 11)
+        if (page == 11 && !sender.hasPermission(NotBounties.getAdminPermission()))
+            page++;
+        if (page >= 12)
             page = 1;
         return page;
     }
@@ -201,6 +204,14 @@ public class LanguageOptions {
             }
         if (sender.hasPermission("notbounties.challenges") && ChallengeManager.isEnabled()) {
             sendHelpMessage(sender, getListMessage("help.challenges"));
+        }
+        if (BountyHunt.isEnabled()) {
+            if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.hunt.start")) {
+                sendHelpMessage(sender, getListMessage("help.hunt-start"));
+            }
+            if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.hunt.participate")) {
+                sendHelpMessage(sender, getListMessage("help.hunt-participate"));
+            }
         }
         if (sender.hasPermission(NotBounties.getAdminPermission())) {
             sendHelpMessage(sender, getListMessage("help.admin"));
@@ -288,9 +299,19 @@ public class LanguageOptions {
                     }
                 break;
             case 9:
+                // challenges
                 sendHelpMessage(sender, getListMessage("help.challenges"));
                 break;
             case 10:
+                // bounty hunt
+                if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.hunt.start")) {
+                    sendHelpMessage(sender, getListMessage("help.hunt-start"));
+                }
+                if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.hunt.participate")) {
+                    sendHelpMessage(sender, getListMessage("help.hunt-participate"));
+                }
+                break;
+            case 11:
                 // admin
                 sendHelpMessage(sender, getListMessage("help.admin"));
                 break;
@@ -314,7 +335,7 @@ public class LanguageOptions {
         int nextPage = getAdjustedPage(sender, currentPage + 1);
 
 
-        Tutorial.sendUnifiedPageLine(sender, currentPage, parser, previousPage, nextPage, "help", 11);
+        Tutorial.sendUnifiedPageLine(sender, currentPage, parser, previousPage, nextPage, "help", 12);
     }
 
     public static void sendHelpMessage(CommandSender sender, List<String> message) {
@@ -480,22 +501,11 @@ public class LanguageOptions {
     }
 
     public static String parse(String str, OfflinePlayer player, double amount, OfflinePlayer receiver) {
-        if (player != null) {
-            String replacement;
-            if (player.getName() != null) {
-                replacement = player.getName();
-            } else {
-                replacement = LoggedPlayers.getPlayerName(player.getUniqueId());
-            }
-            replacement = getMessage("player-prefix") + replacement + getMessage("player-suffix");
-            if (ConfigOptions.getIntegrations().isPapiEnabled())
-                replacement = new PlaceholderAPIClass().parse(player, replacement);
-            str = str.replace("{player}", replacement);
-        }
+        str = parsePlayerName(str, player);
         return parse(str, amount, receiver);
     }
 
-    public static String parse(String str, OfflinePlayer player, OfflinePlayer receiver) {
+    private static String parsePlayerName(String str, OfflinePlayer player) {
         if (player != null) {
             String replacement;
             if (player.getName() != null) {
@@ -508,6 +518,11 @@ public class LanguageOptions {
                 replacement = new PlaceholderAPIClass().parse(player, replacement);
             str = str.replace("{player}", replacement);
         }
+        return str;
+    }
+
+    public static String parse(String str, OfflinePlayer player, OfflinePlayer receiver) {
+        str = parsePlayerName(str, player);
         return parse(str, receiver);
     }
 

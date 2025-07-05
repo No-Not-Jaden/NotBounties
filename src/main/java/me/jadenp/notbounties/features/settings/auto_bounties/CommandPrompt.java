@@ -55,7 +55,7 @@ public class CommandPrompt {
     private void refreshExpireTask(){
         if (expireTask != null)
             expireTask.cancel();
-        expireTask = NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
+        expireTask = NotBounties.getServerImplementation().global().runDelayed(task -> {
             expired = true;
             if (!silentCancel && player.isOnline())
                     player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("prompt-expire"), player));
@@ -98,14 +98,14 @@ public class CommandPrompt {
         message = ChatColor.stripColor(message);
         String commandString = this.command.replace("<~placeholder~>", message);
         String finalMessage = message;
-        NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
+        NotBounties.getServerImplementation().global().runDelayed(task -> {
             if (playerPrompt) {
                 Bukkit.dispatchCommand(player, commandString);
             } else {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandString);
             }
         }, 1);
-        NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
+        NotBounties.getServerImplementation().global().runDelayed(task -> {
             if (responseType == ResponseType.NUMBER) {
                 try {
                     NumberFormatting.tryParse(finalMessage);

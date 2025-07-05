@@ -4,7 +4,6 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.LanguageOptions;
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
@@ -97,22 +96,19 @@ public class BountyBoard {
             int minUpdate = staggeredUpdate == 0 ? queuedBoards.size() : staggeredUpdate;
             List<Bounty> bountyCopy = getPublicBounties(type);
             for (int i = 0; i < Math.min(queuedBoards.size(), minUpdate); i++) {
-                BountyBoard board = queuedBoards.get(i);
+                BountyBoard board = queuedBoards.remove(0);
                 if (bountyCopy.size() >= board.getRank()) {
                     board.update(bountyCopy.get(board.getRank() - 1));
                 } else {
                     board.update(null);
                 }
             }
-            if (Math.min(queuedBoards.size(), minUpdate) > 0) {
-                queuedBoards.subList(0, Math.min(queuedBoards.size(), minUpdate)).clear();
-            }
+
             lastBountyBoardUpdate = System.currentTimeMillis();
         }
     }
 
     private final Location location;
-    private final Chunk chunk;
     private final BlockFace direction;
     private final int rank;
     private UUID lastUUID = null;
@@ -122,14 +118,14 @@ public class BountyBoard {
     public BountyBoard(Location location, BlockFace direction, int rank) {
 
         this.location = location;
-        chunk = location.getChunk();
         this.direction = direction;
         this.rank = rank;
 
     }
 
     public void update(Bounty bounty) {
-        if (!chunk.isLoaded())
+        if (location.getWorld() == null || !location.isWorldLoaded()
+                || !location.getWorld().isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4))
             return;
         if (bounty == null) {
             lastUUID = null;

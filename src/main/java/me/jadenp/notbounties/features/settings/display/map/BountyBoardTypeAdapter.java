@@ -59,9 +59,7 @@ public class BountyBoardTypeAdapter extends TypeAdapter<BountyBoard> {
                 case "z" -> z = jsonReader.nextDouble();
                 case "pitch" -> pitch = (float) jsonReader.nextDouble();
                 case "yaw" -> yaw = (float) jsonReader.nextDouble();
-                default -> {
-                    // unexpected name
-                }
+                default -> jsonReader.skipValue();
             }
         }
         jsonReader.endObject();
@@ -84,9 +82,7 @@ public class BountyBoardTypeAdapter extends TypeAdapter<BountyBoard> {
                 case "rank" -> rank = jsonReader.nextInt();
                 case "direction" -> direction = BlockFace.valueOf(jsonReader.nextString());
                 case "location" -> location = readLocation(jsonReader);
-                default -> {
-                    // unexpected name
-                }
+                default -> jsonReader.skipValue();
             }
         }
         jsonReader.endObject();
