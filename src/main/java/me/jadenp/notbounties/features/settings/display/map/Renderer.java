@@ -22,9 +22,9 @@ public class Renderer extends MapRenderer {
 
     @Override
     public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player renderer) {
-        if (!mapProvider.isPlayerFacePresent() && SkinManager.isSkinLoaded(renderer.getUniqueId())) {
+        if (!mapProvider.isPlayerFacePresent() && SkinManager.isSkinLoaded(mapProvider.getPlayer().getUniqueId())) {
             // load new skin for poster
-            mapProvider.setPlayerFace(SkinManager.getPlayerFace(renderer.getUniqueId()), LoggedPlayers.getPlayerName(renderer.getUniqueId()));
+            mapProvider.setPlayerFace(SkinManager.getPlayerFace(mapProvider.getPlayer().getUniqueId()), LoggedPlayers.getPlayerName(mapProvider.getPlayer().getUniqueId()));
         }
         mapProvider.setCanvas(canvas);
         mapProvider.render();
