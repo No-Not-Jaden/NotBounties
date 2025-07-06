@@ -16,6 +16,7 @@ import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock
 import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock.GeyserMCClass;
 import me.jadenp.notbounties.utils.tasks.OpenBedrockGUI;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -153,7 +154,7 @@ public class BedrockGUIOptions {
             // get the player text (will be parsed already)
             String parsedPlayerText = displayItem.parseText(playerText, player);
             // set default player uuid for GUIComponent
-            UUID p = player.getUniqueId();
+            OfflinePlayer p = player;
             // set default amount for GUIComponent
             double amount = 0;
             if (displayItem instanceof PlayerItem playerItem) {
@@ -166,7 +167,7 @@ public class BedrockGUIOptions {
                 String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png";
                 // add button to the component
                 builder.button(parsedPlayerText, new FormImageImpl(FormImage.Type.URL, imageURL));
-                p = playerItem.getUuid();
+                p = Bukkit.getOfflinePlayer(playerItem.getUuid());
             } else {
                 builder.button(parsedPlayerText);
             }
@@ -174,7 +175,7 @@ public class BedrockGUIOptions {
             if (displayItem instanceof AmountItem amountItem)
                 amount = amountItem.getAmount();
             // create a component to add to the playerComponents list
-            playerComponents.add(new GUIComponent(parsedPlayerText, GUIComponent.ComponentType.BUTTON, p, amount, playerButtonCommands, type));
+            playerComponents.add(new GUIComponent(parsedPlayerText, GUIComponent.ComponentType.BUTTON, p, amount, playerButtonCommands, type, player));
         }
         if (type.equalsIgnoreCase("challenges")) {
             GUIComponent[] items = ChallengeManager.getDisplayComponents(player);
@@ -305,13 +306,6 @@ public class BedrockGUIOptions {
         ActionCommands.executeCommands(player, actions);
     }
 
-    private void sendLoadingForm(Player player) {
-        ModalForm.Builder form = ModalForm.builder()
-                .content("Click continue if this form doesn't close automatically.")
-                .title("Loading...")
-                .button1("Continue");
-        sendForm(player, ModalForm.builder());
-    }
 
     // custom
     public void doClickActions(Player player, CustomFormResponse customFormResponse, List<GUIComponent> usedGUIComponents) {

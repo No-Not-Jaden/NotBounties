@@ -40,7 +40,7 @@ public class GUIComponent {
      * @param amount Amount tied to this component
      * @param playerCommands Commands to be executed on click (if a button)
      */
-    public GUIComponent(String text, ComponentType type, UUID player, double amount, List<String> playerCommands, String guiType) {
+    public GUIComponent(String text, ComponentType type, OfflinePlayer player, double amount, List<String> playerCommands, String guiType, Player viewer) {
         this.name = "?player_component?";
         this.text = text;
         this.type = type;
@@ -48,13 +48,13 @@ public class GUIComponent {
         // arguably better than parsing after click
         List<String> parsedCommands = new ArrayList<>();
         for (String cmd : playerCommands) {
-            parsedCommands.add(LanguageOptions.parse(cmd, amount, Bukkit.getOfflinePlayer(player)));
+            parsedCommands.add(LanguageOptions.parse(cmd.replace("{viewer}", viewer.getName()), amount, player));
         }
         commands = new ArrayList<>(parsedCommands);
         // save gui to be used when click actions are being run
         this.playerGUIType = guiType;
         // create components
-        buildComponent(Bukkit.getOfflinePlayer(player));
+        buildComponent(player);
     }
 
     /**
