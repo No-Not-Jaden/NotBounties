@@ -29,6 +29,11 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     private static boolean connectedBefore = false;
     private static final String CHANNEL = "notbounties:main";
 
+    private static List<Bounty> bountyCache;
+    private static Map<UUID, PlayerStat> statCache;
+    private static List<PlayerData> playerDataCache;
+
+
     private static void setConnectedBefore() {
         ProxyMessaging.connectedBefore = true;
     }
@@ -127,7 +132,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         };
     }
 
-    private void receiveConnection(DataInputStream msgIn) throws IOException {
+    private synchronized void receiveConnection(DataInputStream msgIn) throws IOException {
         if (!ProxyDatabase.isDatabaseSynchronization()) {
             msgIn.readFully(new byte[msgIn.available()]);
         }
@@ -157,10 +162,31 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         } catch (EOFException e) {
             // proxy isn't updated
             Bukkit.getLogger().severe("[NotBounties] Player data has not been transmitted from the proxy. Is the proxy NotBounties updated?");
-            playerData = DataManager.getLocalData().getPlayerData();
+        }
+        short currentMessage;
+        short remainingMessages;
+        try {
+            currentMessage = msgIn.readShort();
+            remainingMessages = msgIn.readShort();
+        } catch (EOFException e) {
+            // proxy isn't updated
+            Bukkit.getLogger().severe("[NotBounties] Message count has not been transmitted from the proxy. Is the proxy NotBounties updated?");
+            currentMessage = 1;
+            remainingMessages = 0;
+        }
+        if (currentMessage == 1) {
+            bountyCache = bounties;
+            statCache = playerStatMap;
+            playerDataCache = playerData;
+        } else {
+            bountyCache.addAll(bounties);
+            statCache.putAll(playerStatMap);
+            playerDataCache.addAll(playerData);
         }
 
-        DataManager.connectProxy(bounties, playerStatMap, playerData);
+        if (remainingMessages == 0) {
+            DataManager.connectProxy(bountyCache, statCache, playerDataCache);
+        }
     }
 
     private void receivePlayerSkin(DataInputStream msgIn) throws IOException, URISyntaxException {
@@ -250,12 +276,19 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param data data to be sent
      */
     public static void sendMessage(String identifier, byte[] data) {
-        if (ProxyDatabase.isEnabled())
-            NotBounties.getServerImplementation().global().run(() -> {
+        if (ProxyDatabase.isEnabled() && NotBounties.getInstance().isEnabled()) {
+            if (Bukkit.isPrimaryThread()) {
                 if (!Bukkit.getOnlinePlayers().isEmpty()) {
                     sendMessage(identifier, data, Bukkit.getOnlinePlayers().iterator().next());
                 }
-            });
+            } else {
+                NotBounties.getServerImplementation().global().run(() -> {
+                    if (!Bukkit.getOnlinePlayers().isEmpty()) {
+                        sendMessage(identifier, data, Bukkit.getOnlinePlayers().iterator().next());
+                    }
+                });
+            }
+        }
 
     }
 

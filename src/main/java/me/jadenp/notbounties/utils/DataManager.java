@@ -500,12 +500,11 @@ public class DataManager {
     }
 
     public static @Nullable Bounty getBounty(UUID receiver) {
-        for (Bounty bounty : localData.getAllBounties(-1)) {
-            if (bounty.getUUID().equals(receiver)) {
-                return bounty;
-            }
-        }
-        return null;
+        return localData.getBounty(receiver);
+    }
+
+    public static @Nullable Bounty getBounty(String name) {
+        return localData.getBounty(name);
     }
 
     public static boolean hasBounty(UUID receiver) {

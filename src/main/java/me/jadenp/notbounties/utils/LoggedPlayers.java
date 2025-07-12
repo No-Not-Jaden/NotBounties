@@ -51,9 +51,23 @@ public class LoggedPlayers {
      * Loads player data and saves their names to a map.
      */
     public static void loadPlayerData() {
-        DataManager.getAllPlayerData().stream()
-                .filter(entry -> entry.getPlayerName() != null)
-                .forEach(entry -> playerIDs.put(entry.getPlayerName().toLowerCase(), entry.getUuid()));
+        playerIDs.clear();
+        for (PlayerData entry : DataManager.getAllPlayerData()) {
+            if (entry.getPlayerName() != null) {
+                if (playerIDs.containsKey(entry.getPlayerName().toLowerCase())) {
+                    UUID duplicateUUID = playerIDs.get(entry.getPlayerName().toLowerCase());
+                    Bukkit.getLogger().warning("Duplicate player name found \"" + entry.getPlayerName() + "\" for "  + duplicateUUID + " and " + entry.getUuid() + ".");
+                    Bukkit.getLogger().warning("Replacing with UUID until the player login.");
+                    playerIDs.remove(entry.getPlayerName().toLowerCase());
+                    playerIDs.put(duplicateUUID.toString(), duplicateUUID);
+                    playerIDs.put(entry.getUuid().toString(), entry.getUuid());
+                    entry.setPlayerName(entry.getUuid().toString());
+                    DataManager.getPlayerData(duplicateUUID).setPlayerName(duplicateUUID.toString());
+                } else {
+                    playerIDs.put(entry.getPlayerName().toLowerCase(), entry.getUuid());
+                }
+            }
+        }
     }
 
     public static Map<UUID, String> getLoggedPlayers() {
@@ -73,7 +87,7 @@ public class LoggedPlayers {
         Player player = Bukkit.getPlayer(name);
         if (player != null)
             return player.getUniqueId();
-        if (playerIDs.containsKey(name))
+        if (playerIDs.containsKey(name.toLowerCase(Locale.ROOT)))
             return playerIDs.get(name.toLowerCase(Locale.ROOT));
         try {
             return UUID.fromString(name);
@@ -104,17 +118,29 @@ public class LoggedPlayers {
     }
 
     public static void login(Player player) {
+        // check to see if anyone else had this player name
+        if (playerIDs.containsKey(player.getName().toLowerCase(Locale.ROOT))) {
+            UUID uuid = playerIDs.get(player.getName().toLowerCase(Locale.ROOT));
+            if (!uuid.equals(player.getUniqueId())) {
+                // another player has this name logged - remove their reference
+                DataManager.getPlayerData(uuid).setPlayerName(uuid.toString());
+                playerIDs.put(uuid.toString(), uuid);
+                playerIDs.put(player.getName().toLowerCase(Locale.ROOT), player.getUniqueId());
+            }
+        }
+
         // check if they are logged yet
         if (isMissing(player.getUniqueId())) {
             // if not, add them
             DataManager.getPlayerData(player.getUniqueId()).setPlayerName(player.getName());
             // send a proxy message to log
             ProxyMessaging.logNewPlayer(player.getName(), player.getUniqueId());
-        } else
+        } else {
             // if they are, check if their username has changed, and update it
             if (!getPlayerName(player.getUniqueId()).equals(player.getName())) {
                 replacePlayerName(player.getName(), player.getUniqueId());
             }
+        }
     }
 
     private static UUID getClosestPlayer(String playerName) {

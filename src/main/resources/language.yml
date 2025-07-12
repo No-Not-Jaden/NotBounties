@@ -49,6 +49,7 @@ removed-other-immunity: '&aSuccessfully removed &2{receiver}''s &aimmunity to bo
 no-immunity: '&cYou do not have purchased immunity!'
 no-immunity-other: '&4{receiver} &cdoes not have purchased immunity!'
 immunity-expire: '&cYour bounty immunity has expired!'
+permission-immunity: '&cYou have immunity because of a permission &7{permission}&c. '
 expired-bounty: '&eYour bounty on &6{player}&e has expired.'
 refund: '&eYou have been refunded &f{amount}&e because {reason}'
 refund-reason-expire: 'your bounty on &f{player}&e has expired.'

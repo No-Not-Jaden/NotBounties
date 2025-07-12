@@ -194,7 +194,8 @@ public abstract class BountyPosterProvider {
 
     protected void render() {
         if ((BountyMap.isLockMaps() && currentCost != -1)
-            || System.currentTimeMillis() - lastRender < BountyMap.getUpdateInterval())
+            || System.currentTimeMillis() - lastRender < BountyMap.getUpdateInterval()
+            || playerFace == null || background == null)
             return;
         lastRender = System.currentTimeMillis();
         double bountyAmount = getBountyAmount();

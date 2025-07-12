@@ -717,8 +717,26 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         return true;
                                     } else {
                                         // doesn't have immunity
-                                        if (!silent)
-                                            sender.sendMessage(parse(getPrefix() + getMessage("no-immunity"), parser));
+                                        if (!silent) {
+                                            PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+                                            StringBuilder builder = new StringBuilder();
+                                            if (playerData.hasGeneralImmunity())
+                                                builder.append("notbounties.immune ");
+                                            if (playerData.hasMurderImmunity())
+                                                builder.append("notbounties.immunity.murder ");
+                                            if (playerData.hasTimedImmunity())
+                                                builder.append("notbounties.immunity.timed ");
+                                            if (playerData.hasRandomImmunity())
+                                                builder.append("notbounties.immunity.random ");
+                                            if (builder.isEmpty()) {
+                                                sender.sendMessage(parse(getPrefix() + getMessage("no-immunity"), parser));
+                                            } else {
+                                                sender.sendMessage(parse(getPrefix() + getMessage("permission-immunity").replace("{permission}", builder.substring(0, builder.length()-1)), parser));
+                                                if (sender.hasPermission(NotBounties.getAdminPermission())) {
+                                                    sender.sendMessage(parse(getPrefix() + ChatColor.RED + "If you think this is is a mistake, see this FAQ entry: " + ChatColor.GRAY + "https://github.com/No-Not-Jaden/NotBounties/wiki/FAQ#how-do-i-make-operatorsadmins-not-immune-to-bounties", parser));
+                                                }
+                                            }
+                                        }
                                         return false;
                                     }
                                 } else {

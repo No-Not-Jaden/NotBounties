@@ -175,6 +175,14 @@ public class LocalData extends NotBountiesDatabase {
         return null;
     }
 
+    public @Nullable Bounty getBounty(String name) {
+        for (Bounty bounty : activeBounties) {
+            if (bounty.getName().equalsIgnoreCase(name))
+                return bounty;
+        }
+        return null;
+    }
+
     public @Nullable Bounty getOnlineBounty(UUID uuid) {
         return onlineBounties.get(uuid);
     }

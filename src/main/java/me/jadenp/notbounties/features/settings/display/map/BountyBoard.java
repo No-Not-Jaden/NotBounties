@@ -87,15 +87,16 @@ public class BountyBoard {
     /**
      * Updates the bounty boards, following the config options.
      */
-    public static void update() {
+    public static synchronized void update() {
         if (BountyBoard.getLastBountyBoardUpdate() + updateInterval * 1000L < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty()) {
             // update bounty board
             if (queuedBoards.isEmpty()) {
-                queuedBoards = new ArrayList<>(BountyBoard.getBountyBoards());
+                queuedBoards = new LinkedList<>(BountyBoard.getBountyBoards());
             }
             int minUpdate = staggeredUpdate == 0 ? queuedBoards.size() : staggeredUpdate;
             List<Bounty> bountyCopy = getPublicBounties(type);
-            for (int i = 0; i < Math.min(queuedBoards.size(), minUpdate); i++) {
+            int numBoards = Math.min(queuedBoards.size(), minUpdate);
+            for (int i = 0; i < numBoards; i++) {
                 BountyBoard board = queuedBoards.remove(0);
                 if (bountyCopy.size() >= board.getRank()) {
                     board.update(bountyCopy.get(board.getRank() - 1));

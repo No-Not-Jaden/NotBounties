@@ -50,6 +50,7 @@ import java.util.*;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 /**
+ * Separate messages sent to the proxy if they are too big. (Velocity version too)
  * Team bounties
  * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
