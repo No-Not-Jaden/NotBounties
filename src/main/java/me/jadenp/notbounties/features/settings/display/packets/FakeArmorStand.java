@@ -10,18 +10,15 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 
-public class FakeArmorStand implements TagProvider {
+public class FakeArmorStand extends TagProvider {
     private final int entityId;
     private final UUID uuid;
-    private Location lastLocation;
     private final Set<Player> activePlayers = new HashSet<>();
-    private final Player trackedPlayer;
-    private String text;
 
     public FakeArmorStand(Player trackedPlayer) {
+        super(trackedPlayer);
         this.entityId = SpigotReflectionUtil.generateEntityId();
         this.uuid = UUID.randomUUID();
-        this.trackedPlayer = trackedPlayer;
     }
 
     @Override

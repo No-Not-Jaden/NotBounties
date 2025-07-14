@@ -8,15 +8,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 
-public class EntityTag implements TagProvider {
+public class EntityTag extends TagProvider {
 
-    private final Player trackedPlayer;
     private ArmorStand armorStand = null;
-    private Location lastLocation;
-    private String text;
 
     public EntityTag(Player trackedPlayer) {
-        this.trackedPlayer = trackedPlayer;
+        super(trackedPlayer);
     }
 
     @Override
@@ -81,11 +78,6 @@ public class EntityTag implements TagProvider {
         if (NotBounties.getServerVersion() >= 17 && !WantedTags.isShowOwn())
             trackedPlayer.hideEntity(NotBounties.getInstance(), armorStand);
         lastLocation = armorStand.getLocation();
-    }
-
-    @Override
-    public Location getLocation() {
-        return lastLocation;
     }
 
     @Override

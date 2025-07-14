@@ -123,6 +123,7 @@ bounty-tracker:
     world: false
 
 # add a tag above a player's head if they have a bounty
+# %notbounties_wanted% placeholder can be used in other plugins
 wanted-tag:
   enabled: true
   # how high above the player's eyes the tag is (in blocks)

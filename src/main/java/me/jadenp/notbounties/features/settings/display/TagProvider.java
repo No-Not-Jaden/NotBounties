@@ -1,50 +1,65 @@
 package me.jadenp.notbounties.features.settings.display;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
-public interface TagProvider {
+public abstract class TagProvider {
+
+    protected String text;
+    protected Location lastLocation;
+    protected final Player trackedPlayer;
+
+    protected TagProvider(Player trackedPlayer) {
+        this.trackedPlayer = trackedPlayer;
+    }
 
     /**
      * Update the text on the tag.
      * @param text Text to be displayed.
      */
-    void setText(String text);
+    public void setText(String text) {
+        this.text = text;
+    }
 
     /**
      * Get the text on the tag.
      * @return Text on the tag.
      */
-    String getText();
+    public String getText() {
+        return text;
+    }
 
     /**
      * Update the visibility of the tag. This is run every update interval.
      */
-    void updateVisibility();
+    public abstract void updateVisibility();
 
     /**
      * Teleport the tag to the player.
      */
-    void teleport();
+    public abstract void teleport();
 
     /**
      * Remove the tag.
      */
-    void remove();
+    public abstract void remove();
 
     /**
      * Spawn to tag in.
      */
-    void spawn();
+    public abstract void spawn();
 
     /**
      * Get the location of the tag.
      * @return The location of the tag.
      */
-    Location getLocation();
+    public Location getLocation() {
+        return lastLocation;
+    }
 
     /**
      * Check if the tag is being used.
      * @return True if the tag is valid.
      */
-    boolean isValid();
+    public abstract boolean isValid();
 }

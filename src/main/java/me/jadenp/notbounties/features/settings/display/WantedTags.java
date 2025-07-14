@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.features.settings.display;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
@@ -252,10 +253,13 @@ public class WantedTags {
     public WantedTags(Player player) {
         this.player = player;
         lastPlayerLocation = player.getLocation();
-        if (ConfigOptions.getIntegrations().isPacketEventsEnabled())
+        if (NotBounties.isAboveVersion(19, 3)) {
+            tag = new TextDisplayTag(player);
+        } else if (ConfigOptions.getIntegrations().isPacketEventsEnabled()) {
             tag = new FakeArmorStand(player); // packed based tag
-        else
+        } else {
             tag = new EntityTag(player); // entity-based tag
+        }
         if (!BountyManager.hasBounty(player.getUniqueId()))
             return;
         spawnWantedTag();
