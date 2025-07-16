@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -35,6 +36,7 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
     }
 
     public Setter(String name, UUID uuid, double amount, List<ItemStack> items, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime){
+        double displayBounty1;
 
         this.name = name;
         this.uuid = uuid;
@@ -44,7 +46,12 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
         this.notified = Objects.requireNonNullElse(notified, true);
         this.whitelist = whitelist;
         this.receiverPlaytime = receiverPlaytime;
-        displayBounty = amount + NumberFormatting.getTotalValue(items);
+        try {
+            displayBounty1 = amount + NumberFormatting.getTotalValue(items);
+        } catch (ExcludedItemException e) {
+            displayBounty1 = amount;
+        }
+        displayBounty = displayBounty1;
     }
 
     public Setter(String name, UUID uuid, double amount, List<ItemStack> items, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime, double displayBounty){
@@ -58,7 +65,13 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
         this.whitelist = new Whitelist(whitelist.getList(), whitelist.isBlacklist());
         this.receiverPlaytime = receiverPlaytime;
         if (displayBounty == -1) {
-            this.displayBounty = amount + NumberFormatting.getTotalValue(items);
+            double displayBounty1;
+            try {
+                displayBounty1 = amount + NumberFormatting.getTotalValue(items);
+            } catch (ExcludedItemException e) {
+                displayBounty1 = amount;
+            }
+            this.displayBounty = displayBounty1;
         } else {
             this.displayBounty = displayBounty;
         }

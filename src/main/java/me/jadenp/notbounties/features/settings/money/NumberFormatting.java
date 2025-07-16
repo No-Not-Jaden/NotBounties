@@ -360,7 +360,7 @@ public class NumberFormatting {
         return usingPapi || shouldUseDecimals();
     }
 
-    public static double getItemValue(ItemStack item) {
+    public static double getItemValue(ItemStack item) throws ExcludedItemException {
         if (item == null)
             return 0;
         switch (bountyItemsUseItemValues) {
@@ -377,14 +377,20 @@ public class NumberFormatting {
                 // check if registered as an item value
                 if (itemValues.containsKey(material)) {
                     double value = itemValues.get(material).getValue(customModelData);
+                    if (value == 0)
+                        throw new ExcludedItemException(material.toString());
                     if (value != -1)
                         return (value * itemValueMultiplier + getEnchantmentValue(item)) * item.getAmount();
                 }
+                if (defaultItemValue == 0)
+                    throw new ExcludedItemException(material.toString());
                 return (defaultItemValue + getEnchantmentValue(item)) * item.getAmount();
             }
             case ESSENTIALS -> {
                 BigDecimal price = essentialsXClass.getItemValue(item);
                 if (price == null) {
+                    if (defaultItemValue == 0)
+                        throw new ExcludedItemException(item.getType().toString());
                     return defaultItemValue * item.getAmount();
                 }
                 return price.doubleValue() * item.getAmount();
@@ -410,10 +416,17 @@ public class NumberFormatting {
     }
 
 
-    public static double getTotalValue(List<ItemStack> items) {
+    public static double getTotalValue(List<ItemStack> items) throws ExcludedItemException {
         if (items.isEmpty())
             return 0;
-        return items.stream().filter(Objects::nonNull).mapToDouble(NumberFormatting::getItemValue).sum();
+        double sum = 0.0;
+        for (ItemStack item : items) {
+            if (item != null) {
+                double itemValue = getItemValue(item);
+                sum += itemValue;
+            }
+        }
+        return sum;
     }
 
     public static String formatNumber(String number) {

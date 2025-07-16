@@ -12,6 +12,7 @@ import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.display.map.HologramRenderer;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
+import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
@@ -39,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
 import static me.jadenp.notbounties.ui.gui.GUI.reopenBountiesGUI;
@@ -1769,7 +1771,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 }
                             }
                             // get value from items
-                            amount = NumberFormatting.getTotalValue(items);
+                            try {
+                                amount = NumberFormatting.getTotalValue(items);
+                            } catch (ExcludedItemException e) {
+                                sender.sendMessage(parse(getPrefix() + getMessage("excluded-bounty-item").replace("{material}", e.getMessage()), parser));
+                                if (usingGUI)
+                                    GUI.safeCloseGUI(parser, false);
+                                return false;
+                            }
                         }
                     }
 
@@ -2199,6 +2208,25 @@ public class Commands implements CommandExecutor, TabCompleter {
             } else if (args.length == 3) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission(NotBounties.getAdminPermission())) {
                     tab.add("from");
+                } else if (args[0].equalsIgnoreCase("hunt")) {
+                    if (sender.hasPermission("notbounties.hunt.participate") && sender instanceof Player player) {
+                        if (args[1].equalsIgnoreCase("leave")) {
+                            for (BountyHunt bountyHunt : BountyHunt.getParticipatingHunts(player.getUniqueId())) {
+                                tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer().getUniqueId()));
+                            }
+                        } else if (args[1].equalsIgnoreCase("list")) {
+                            for (BountyHunt bountyHunt : BountyHunt.getHunts()) {
+                                tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer().getUniqueId()));
+                            }
+                        } else if (args[1].equalsIgnoreCase("join")) {
+                            Set<UUID> participatingHunts = BountyHunt.getParticipatingHunts(player.getUniqueId()).stream().map(bountyHunt -> bountyHunt.getHuntedPlayer().getUniqueId()).collect(Collectors.toSet());
+                            for (BountyHunt bountyHunt : BountyHunt.getHunts()) {
+                                if (bountyHunt.getHuntedPlayer().getUniqueId() != player.getUniqueId() && !participatingHunts.contains(bountyHunt.getHuntedPlayer().getUniqueId())) {
+                                    tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer().getUniqueId()));
+                                }
+                            }
+                        }
+                    }
                 } else if (args[0].equalsIgnoreCase("immunity")) {
                     if (args[1].equalsIgnoreCase("remove") && sender.hasPermission(NotBounties.getAdminPermission())) {
                         for (Map.Entry<UUID, String> entry : NotBounties.getNetworkPlayers().entrySet()) {

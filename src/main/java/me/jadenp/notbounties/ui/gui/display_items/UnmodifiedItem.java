@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.ui.gui.display_items;
 
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -56,6 +57,10 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
 
     @Override
     public double getAmount() {
-        return NumberFormatting.getItemValue(itemStack);
+        try {
+            return NumberFormatting.getItemValue(itemStack);
+        } catch (ExcludedItemException e) {
+            return 0;
+        }
     }
 }

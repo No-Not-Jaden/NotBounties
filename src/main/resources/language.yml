@@ -186,6 +186,7 @@ hunt-leave: '&eYou have left the bounty hunt for &f{player}&e!'
 not-in-hunt: '&cYou are not participating in this hunt.'
 list-hunts: '&eActive bounty hunts:'
 list-hunt-players: '&ePlayers participating in the hunt for &f{player}&e:'
+excluded-bounty-item: '&cYou cannot set a bounty with &f{material}&c.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

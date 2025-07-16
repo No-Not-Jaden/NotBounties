@@ -35,20 +35,11 @@ import java.util.*;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 import static me.jadenp.notbounties.features.LanguageOptions.getListMessage;
 
-// send join message when players join the server -
-// can join with a command -
-// when adding the cost to the bounty, deduct tax from the added amount -
 // admin command to extend a hunt time, or cancel a hunt
-// save hunt time after restart -
-// immune players are immune to hunts -
-// gui to select player and time -
-// stop from participating in own hunt -
-// pause other bounties -
-// list hunts -
 // tab complete duration
-// tab complete leave/join/list for players
-// don't need to specify player when leaving a bounty hunt if you only have one
-// use proper capitalization in messages
+// tab complete leave/join/list for players -
+// don't need to specify player when leaving a bounty hunt if you only have one -
+// use proper capitalization in messages -
 // cannot use GUI
 // view hunts GUI
 public class BountyHunt {
@@ -275,11 +266,11 @@ public class BountyHunt {
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), args[2], parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), LoggedPlayers.getPlayerName(uuid), parser));
         }
 
         hunt.addParticipatingPlayer(player);
-        sender.sendMessage(parse(getPrefix() + getMessage("hunt-join"), args[2], parser));
+        sender.sendMessage(parse(getPrefix() + getMessage("hunt-join"), LoggedPlayers.getPlayerName(uuid), parser));
         return true;
     }
 
@@ -289,6 +280,12 @@ public class BountyHunt {
         }
 
         if (args.length <= 2) {
+            List<BountyHunt> participatingHunts = getParticipatingHunts(player.getUniqueId());
+            if (participatingHunts.size() == 1) {
+                participatingHunts.get(0).removeParticipatingPlayer(player);
+                sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), LoggedPlayers.getPlayerName(participatingHunts.get(0).getHuntedPlayer().getUniqueId()), parser));
+                return true;
+            }
             return failUnknownCommand(sender, silent, parser, "help.hunt-participate");
         }
 
@@ -299,15 +296,15 @@ public class BountyHunt {
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), args[2], parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), LoggedPlayers.getPlayerName(uuid), parser));
         }
 
         if (!hunt.isParticipating(player.getUniqueId())) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("not-in-hunt"), args[2], parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("not-in-hunt"), LoggedPlayers.getPlayerName(hunt.getHuntedPlayer().getUniqueId()), parser));
         }
 
         hunt.removeParticipatingPlayer(player);
-        sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), args[2], parser));
+        sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), LoggedPlayers.getPlayerName(hunt.getHuntedPlayer().getUniqueId()), parser));
         return true;
     }
 
@@ -327,10 +324,10 @@ public class BountyHunt {
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), args[2], parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), LoggedPlayers.getPlayerName(uuid), parser));
         }
 
-        sender.sendMessage(parse(getPrefix() + getMessage("list-hunt-players"), args[2], parser));
+        sender.sendMessage(parse(getPrefix() + getMessage("list-hunt-players"), LoggedPlayers.getPlayerName(uuid), parser));
         hunt.getParticipatingPlayers().forEach(player -> sender.sendMessage(ChatColor.YELLOW + LoggedPlayers.getPlayerName(player.getUniqueId())));
         sender.sendMessage("");
         return true;
@@ -509,7 +506,8 @@ public class BountyHunt {
 
     public void extendHunt(@Nullable Player setter, long time) {
         if (setter != null)
-            addParticipatingPlayer(setter);
+            if (!isParticipating(setter.getUniqueId()))
+                addParticipatingPlayer(setter);
         this.endTime += time;
     }
 

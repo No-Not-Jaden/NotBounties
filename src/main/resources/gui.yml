@@ -684,7 +684,7 @@ confirm-remove-immunity:
       slot: 41-43
 bounty-hunt-player:
   size: 54
-  gui-name: '&c&lSelect player for hunt. &7Page'
+  gui-name: '&c&lSelect player for hunt. &7'
   add-page: true
   remove-page-items: true
   player-slots:
@@ -692,7 +692,7 @@ bounty-hunt-player:
   head-name: '&e&l{player}'
   head-lore:
     - ''
-    - '&6Immunity: {amount}'
+    - '&Bounty: {amount}'
     - '&7Click to select player'
     - ''
   layout:

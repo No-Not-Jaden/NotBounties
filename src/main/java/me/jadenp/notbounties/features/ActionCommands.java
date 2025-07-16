@@ -4,6 +4,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
@@ -101,7 +102,14 @@ public class ActionCommands {
         PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, "", new Object[0], new ArrayList<>(), "");
         double totalBounty = bounty != null ? bounty.getTotalDisplayBounty() : 0;
         double bountyCurrency = bounty != null ? bounty.getTotalBounty() : 0;
-        double bountyItemValues = bounty != null ? NumberFormatting.getTotalValue(bounty.getTotalItemBounty()) : 0;
+        double bountyItemValues = 0;
+        if (bounty != null) {
+            try {
+                bountyItemValues = NumberFormatting.getTotalValue(bounty.getTotalItemBounty());
+            } catch (ExcludedItemException ignored) {
+                // no value for items
+            }
+        }
         String bountyItems = bounty != null ? NumberFormatting.listItems(bounty.getTotalItemBounty(), ':') : "";
         String killerName = killer != null ? killer.getName() : "";
 
@@ -505,6 +513,19 @@ public class ActionCommands {
                         uuid = DataManager.GLOBAL_SERVER_ID.toString();
                 }
                 openGUI(player, info.guiType(), info.page() + amount, uuid);
+            } else if (info.guiType().equals("bounty-hunt-time")) {
+                GUIOptions gui = GUI.getGUI("bounty-hunt-time");
+                UUID uuid;
+                if (info.data().length > 0) {
+                    uuid = (UUID) info.data()[0];
+                } else {
+                    if (gui != null)
+                        uuid = ((PlayerItem) info.displayItems().get(0)).getUuid();
+                    else
+                        // select-price GUI hasn't been set up
+                        uuid = DataManager.GLOBAL_SERVER_ID;
+                }
+                openGUI(player, info.guiType(), info.page() + amount, uuid);
             } else if (info.guiType().equals("leaderboard")) {
                 Leaderboard leaderboard = (Leaderboard) info.data()[0];
                 openGUI(player, info.guiType(), info.page() + amount, leaderboard);
@@ -556,6 +577,20 @@ public class ActionCommands {
                         else
                             // select-price GUI hasn't been set up
                             uuid = new UUID(0, 0).toString();
+                    }
+                    openGUI(player, info.guiType(), info.page() - amount, uuid);
+                }
+                 case "bounty-hunt-time" -> {
+                    GUIOptions gui = GUI.getGUI("bounty-hunt-time");
+                    UUID uuid;
+                    if (info.data().length > 0) {
+                        uuid = (UUID) info.data()[0];
+                    } else {
+                        if (gui != null)
+                            uuid = ((PlayerItem) info.displayItems().get(0)).getUuid();
+                        else
+                            // select-price GUI hasn't been set up
+                            uuid = DataManager.GLOBAL_SERVER_ID;
                     }
                     openGUI(player, info.guiType(), info.page() - amount, uuid);
                 }

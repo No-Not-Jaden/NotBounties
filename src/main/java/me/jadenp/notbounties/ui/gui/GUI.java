@@ -6,6 +6,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
+import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUIOptions;
@@ -485,7 +486,11 @@ public class GUI implements Listener {
                 double total = 0;
                 ItemStack[][] items = data.length > 1 && data[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[1][getMaxBountyItemSlots()];
                 for (ItemStack[] item : items) {
-                    total += NumberFormatting.getTotalValue(Arrays.asList(item));
+                    try {
+                        total += NumberFormatting.getTotalValue(Arrays.asList(item));
+                    } catch (ExcludedItemException ignored) {
+                        // cant get value
+                    }
                 }
                 displayItems.add(new PlayerItem(uuid3, total, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
                 break;
@@ -502,8 +507,7 @@ public class GUI implements Listener {
             default:
                 break;
         }
-    return displayItems;
-
+        return displayItems;
     }
 
     private static boolean checkPermImmunity(UUID uuid) {
@@ -572,7 +576,7 @@ public class GUI implements Listener {
                 String title = createTitle(gui, player, finalPage, displayItems, data);
                 PlayerGUInfo info = new PlayerGUInfo(finalPage, name, data, displayItems, title);
                 Inventory inventory = gui.createInventory(player, finalPage, displayItems, title, data);
-                NotBounties.getServerImplementation().entity(player).run(() -> {
+                NotBounties.getServerImplementation().global().run(() -> {
                     boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).title());
                     playerInfo.put(player.getUniqueId(), info);
                     if (guiOpen) {
@@ -768,7 +772,7 @@ public class GUI implements Listener {
         if (bottomInventory && !guiType.equals("bounty-item-select")) // make sure it is in the top inventory
             return;
         // check if it is a player slot
-        int pageAddition = guiType.equals("select-price") || guiType.equals("confirm-bounty") ? 0 : (int) ((info.page() - 1) * gui.getPlayerSlots().size());
+        int pageAddition = guiType.equals("select-price") || guiType.equals("confirm-bounty") || guiType.equals("bounty-hunt-time") ? 0 : (int) ((info.page() - 1) * gui.getPlayerSlots().size());
         if (gui.getPlayerSlots().contains(event.getRawSlot()) && (event.getCurrentItem() != null && gui.getPlayerSlots().indexOf(event.getRawSlot()) + pageAddition < info.displayItems().size() && event.getCurrentItem().getType() == Material.PLAYER_HEAD)) {
             SkullMeta meta = (SkullMeta) event.getCurrentItem().getItemMeta();
             assert meta != null;
@@ -838,6 +842,7 @@ public class GUI implements Listener {
                     break;
                 case "bounty-hunt-time":
                     Bukkit.dispatchCommand(event.getWhoClicked(),   ConfigOptions.getPluginBountyCommands().get(0) + " hunt " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
+                    event.getView().close();
                     break;
                 case "bounty-item-select":
                     if (!gui.getPlayerSlots().isEmpty() && event.getRawSlot() ==  gui.getPlayerSlots().get(0)) {
@@ -865,6 +870,16 @@ public class GUI implements Listener {
                 // If in the bounty item select inventory, allow user to move non-custom items around and not the first player slot
                 if (guiType.equals("bounty-item-select") && (bottomInventory || (!gui.getPlayerSlots().isEmpty() && event.getRawSlot() !=  gui.getPlayerSlots().get(0)))) {
                     event.setCancelled(false);
+                    if (event.getCurrentItem() != null) {
+                        try {
+                            NumberFormatting.getItemValue(event.getCurrentItem());
+                        } catch (ExcludedItemException e) {
+                            event.getWhoClicked().sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("excluded-bounty-item").replace("{material}", e.getMessage()), (OfflinePlayer) event.getWhoClicked()));
+                            event.setCancelled(true);
+                            return;
+                        }
+                    }
+
 
                     if (!bottomInventory)
                         // reopen gui to update tax

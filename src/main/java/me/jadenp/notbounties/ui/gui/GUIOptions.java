@@ -120,7 +120,7 @@ public class GUIOptions {
         if (slot >= customItems.length || slot < 0 || customItems[slot] == null)
             return null;
         CustomItem item = customItems[slot];
-        if (!type.equals("select-price")) {
+        if (!type.equals("select-price") && !type.equals("bounty-hunt-time")) {
             // next
             if (getPageType(item.getCommands()) == 1 && page * playerSlots.size() >= entryAmount) {
                 if (pageReplacements.containsKey(slot))
@@ -161,7 +161,7 @@ public class GUIOptions {
                 replacements = new String[] {string, string, "", ""};
             }
 
-        } else if (type.equals("select-price") || type.equals("confirm-bounty")) {
+        } else if (type.equals("select-price") || type.equals("confirm-bounty") || type.equals("bounty-hunt-time")) {
             double tax = page * ConfigOptions.getMoney().getBountyTax() + DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList().size() * Whitelist.getCost();
             double total = page + tax;
             replacements = new String[]{"",
@@ -202,7 +202,7 @@ public class GUIOptions {
         }
         // set up player slots
         List<QueuedHead> unloadedHeads = new ArrayList<>();
-        boolean isSinglePlayerSlot = type.equals("select-price") || type.equals("confirm-bounty") || type.equals("bounty-item-select") || type.equals("challenges");
+        boolean isSinglePlayerSlot = type.equals("select-price") || type.equals("confirm-bounty") || type.equals("bounty-item-select") || type.equals("challenges") || type.equals("bounty-hunt-time");
         for (int i = isSinglePlayerSlot ? 0 : (int) ((page - 1) * playerSlots.size()); i < Math.min(playerSlots.size() * page, displayItems.size()); i++) {
             DisplayItem displayItem = displayItems.get(i);
             ItemStack item = displayItem.getFormattedItem(player, headName, headLore, customModelData);

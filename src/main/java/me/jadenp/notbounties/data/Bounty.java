@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.utils.*;
 import me.jadenp.notbounties.features.BountyExpire;
 import me.jadenp.notbounties.features.ConfigOptions;
@@ -238,7 +239,12 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
     public double getTotalDisplayBounty(UUID claimerUuid) {
         if (claimerUuid.equals(uuid))
             return getTotalDisplayBounty();
-        return  getTotalBounty(claimerUuid) + NumberFormatting.getTotalValue(getTotalItemBounty(claimerUuid));
+        double totalBounty = getTotalBounty(claimerUuid);
+        try {
+            return totalBounty + NumberFormatting.getTotalValue(getTotalItemBounty(claimerUuid));
+        } catch (ExcludedItemException e) {
+            return totalBounty;
+        }
     }
 
     public String getFormattedTotalBounty() {

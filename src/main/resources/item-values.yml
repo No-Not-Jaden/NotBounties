@@ -1,5 +1,5 @@
 # These values are for converting items set as bounty to a value for the bounty tax or leaderboards.
-# Disable this in the currency section in the config.yml file with the bounty-items.mode option.
+# Disable this in the currency section in the money.yml file with the bounty-items.mode option.
 # default item value for items not defined in this file
 default: 0.1
 # A multiplier you can add to all the prices if you want to just scale everything instead of choosing all new values
