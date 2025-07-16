@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>dev_1.22.5.23</version>
+    <version>dev_1.22.5.24</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>

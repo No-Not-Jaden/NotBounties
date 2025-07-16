@@ -412,7 +412,7 @@ public class BountyMap implements Listener {
         if (meta == null)
             return false;
 
-        return meta.getPersistentDataContainer().has(NotBounties.getNamespacedKey());
+        return meta.getPersistentDataContainer().has(NotBounties.getNamespacedKey(), PersistentDataType.STRING);
 
     }
 

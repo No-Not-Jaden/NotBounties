@@ -191,7 +191,7 @@ public class BountyTracker implements Listener {
             return false;
         ItemMeta meta = itemStack.getItemMeta();
         assert meta != null;
-        return meta.getPersistentDataContainer().has(BountyHunt.getHuntKey());
+        return meta.getPersistentDataContainer().has(BountyHunt.getHuntKey(), PersistentDataType.STRING);
     }
 
     /**
@@ -206,7 +206,7 @@ public class BountyTracker implements Listener {
             return null;
         ItemMeta meta = itemStack.getItemMeta();
         assert meta != null;
-        if (meta.getPersistentDataContainer().has(getNamespacedKey())) {
+        if (meta.getPersistentDataContainer().has(getNamespacedKey(), PersistentDataType.STRING)) {
             return UUID.fromString(Objects.requireNonNull(meta.getPersistentDataContainer().get(getNamespacedKey(), PersistentDataType.STRING)));
         }
         // old ids
@@ -514,7 +514,7 @@ public class BountyTracker implements Listener {
         ItemStack frameItem = itemFrame.getItem();
         MapMeta mapMeta = (MapMeta) frameItem.getItemMeta();
         assert mapMeta != null;
-        if (!mapMeta.getPersistentDataContainer().has(getNamespacedKey()))
+        if (!mapMeta.getPersistentDataContainer().has(getNamespacedKey(), PersistentDataType.STRING))
             return;
         event.setCancelled(true);
         UUID posterPlayerUUID = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(getNamespacedKey(), PersistentDataType.STRING)));
