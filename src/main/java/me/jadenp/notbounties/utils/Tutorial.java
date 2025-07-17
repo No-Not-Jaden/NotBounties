@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
@@ -108,16 +109,19 @@ public class Tutorial {
     }
 
     private static void sendPage(@NotNull CommandSender sender, int page) {
+        NotBounties.debugMessage("Sending Tutorial Page " + page + " to " + sender.getName(), false);
         if (pages.size() < page)
             return;
         Player parser = sender instanceof Player player ? player : null;
         List<String> get = pages.get(page - 1);
+        NotBounties.debugMessage("Tutorial (" + page + ":" + sender.getName() + ") Sending Title.", false);
         sender.sendMessage(parse(getMessage("help.title"), parser));
+        NotBounties.debugMessage("Tutorial (" + page + ":" + sender.getName() + ") Sending Contents.", false);
         for (String line : get) {
             TextComponent[] components = parseLine(line, parser);
             sender.spigot().sendMessage(components);
         }
-
+        NotBounties.debugMessage("Tutorial (" + page + ":" + sender.getName() + ") Sending Page Line.", false);
         sendPageLine(sender, page);
 
     }
@@ -132,7 +136,7 @@ public class Tutorial {
             baseComponents.add(new TextComponent(before));
             builder.delete(0, builder.indexOf(RUN_COMMAND_PREFIX));
             String commandText = builder.substring(13, builder.indexOf("}"));
-            TextComponent command = (TextComponent) TextComponent.fromLegacy(parse(lastColors + commandText, parser));
+            TextComponent command = new TextComponent(parse(lastColors + commandText, parser));
 
             command.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(runCommandHover, parser))));
             command.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, commandText));
@@ -147,7 +151,7 @@ public class Tutorial {
             baseComponents.add(new TextComponent(before));
             builder.delete(0, builder.indexOf(SUGGEST_COMMAND_PREFIX));
             String commandText = builder.substring(17, builder.indexOf("}"));
-            TextComponent command = (TextComponent) TextComponent.fromLegacy(parse(lastColors + commandText, parser));
+            TextComponent command = new TextComponent(parse(lastColors + commandText, parser));
             // don't send parenthesis options in command
             if (commandText.contains("("))
                 commandText = commandText.substring(0, commandText.indexOf("("));
@@ -156,7 +160,7 @@ public class Tutorial {
             baseComponents.add(command);
             builder.delete(0, builder.indexOf("}") + 1);
         }
-        baseComponents.add((TextComponent) TextComponent.fromLegacy(parse(builder.toString(), parser)));
+        baseComponents.add(new TextComponent(parse(builder.toString(), parser)));
         return baseComponents.toArray(new TextComponent[0]);
     }
 
