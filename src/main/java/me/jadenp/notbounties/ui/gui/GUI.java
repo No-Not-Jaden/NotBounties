@@ -798,8 +798,8 @@ public class GUI implements Listener {
                             if (event.isRightClick()) {
                                 event.getView().close();
                                 String messageText = LanguageOptions.parse(LanguageOptions.getMessage("edit-setter-clickable").replace("{player}", playerName).replace("{receiver}", viewedBounty.getName()), (OfflinePlayer) event.getWhoClicked());
-                                TextComponent message = (TextComponent) TextComponent.fromLegacy(messageText);
-                                TextComponent prefix = (TextComponent) TextComponent.fromLegacy(LanguageOptions.parse(LanguageOptions.getPrefix(), (OfflinePlayer) event.getWhoClicked()));
+                                TextComponent message = (TextComponent) new TextComponent(messageText);
+                                TextComponent prefix = (TextComponent) new TextComponent(LanguageOptions.parse(LanguageOptions.getPrefix(), (OfflinePlayer) event.getWhoClicked()));
                                 message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(messageText)));
                                 message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " edit " + viewedBounty.getName() + " from " + playerName + " "));
                                 prefix.addExtra(message);
