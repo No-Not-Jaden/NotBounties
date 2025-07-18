@@ -170,6 +170,8 @@ public class BountyHunt {
     }
 
     public static void claimBounty(Player receiver, Player killer) {
+        if (!enabled)
+            return;
         ListIterator<BountyHunt> huntListIterator = hunts.listIterator();
         while (huntListIterator.hasNext()) {
             BountyHunt hunt = huntListIterator.next();

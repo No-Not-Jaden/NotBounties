@@ -141,7 +141,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 }
                 LanguageOptions.sendHelpMessage(sender, page);
-            } else if (args[0].equalsIgnoreCase("hunt")) {
+            } else if (args[0].equalsIgnoreCase("hunt") && BountyHunt.isEnabled()) {
                 if (adminPermission || sender.hasPermission("notbounties.hunt")) {
                     return BountyHunt.executeHuntCommand(sender, args, silent, adminPermission, parser);
                 } else {
@@ -1065,10 +1065,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (Whitelist.isShowWhitelistedBounties() || sender.hasPermission(NotBounties.getAdminPermission()) || !(sender instanceof Player) || setters.canClaim(parser)) {
                                         if (getMessage("list-setter").contains("{items}") && !setters.getItems().isEmpty()) {
                                             BaseComponent[] components = new BaseComponent[setters.getItems().size() + 2];
-                                            components[0] = new TextComponent(parse(getPrefix() + getMessage("list-setter").substring(0, getMessage("list-setter").indexOf("{items}")), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
+                                            components[0] = LanguageOptions.getTextComponent(parse(getPrefix() + getMessage("list-setter").substring(0, getMessage("list-setter").indexOf("{items}")), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
                                             BaseComponent[] itemComponents = NumberFormatting.listHoverItems(setters.getItems(), 'x');
                                             System.arraycopy(itemComponents, 0, components, 1, itemComponents.length);
-                                            components[components.length - 1] = new TextComponent(parse(getMessage("list-setter").substring(getMessage("list-setter").indexOf("{items}") + 7), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
+                                            components[components.length - 1] = LanguageOptions.getTextComponent(parse(getMessage("list-setter").substring(getMessage("list-setter").indexOf("{items}") + 7), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
                                             sender.spigot().sendMessage(components);
                                         } else {
                                             sender.sendMessage(parse(getPrefix() + getMessage("list-setter").replace("{items}", ""), setters.getDisplayAmount(), setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER, Bukkit.getOfflinePlayer(setters.getUuid())));
@@ -2025,7 +2025,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("bdc");
                     tab.add("broadcast");
                 }
-                if (sender.hasPermission("notbounties.hunt.start") || sender.hasPermission("notbounties.hunt.participate"))
+                if (BountyHunt.isEnabled() && (sender.hasPermission("notbounties.hunt.start") || sender.hasPermission("notbounties.hunt.participate")))
                     tab.add("hunt");
                 if (sender.hasPermission("notbounties.basic.tutorial")) {
                     tab.add("tutorial");
@@ -2087,7 +2087,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             tab.add(bounty.getName());
                         }
                     }
-                } else if (args[0].equalsIgnoreCase("hunt")) {
+                } else if (args[0].equalsIgnoreCase("hunt") && BountyHunt.isEnabled()) {
                     if (sender.hasPermission("notbounties.hunt.start")) {
                         List<Bounty> bountyList = BountyManager.getPublicBounties(-1);
                         if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
@@ -2208,7 +2208,7 @@ public class Commands implements CommandExecutor, TabCompleter {
             } else if (args.length == 3) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && sender.hasPermission(NotBounties.getAdminPermission())) {
                     tab.add("from");
-                } else if (args[0].equalsIgnoreCase("hunt")) {
+                } else if (args[0].equalsIgnoreCase("hunt") && BountyHunt.isEnabled()) {
                     if (sender.hasPermission("notbounties.hunt.participate") && sender instanceof Player player) {
                         if (args[1].equalsIgnoreCase("leave")) {
                             for (BountyHunt bountyHunt : BountyHunt.getParticipatingHunts(player.getUniqueId())) {

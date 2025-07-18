@@ -569,4 +569,15 @@ public class LanguageOptions {
     public static String getPrefix() {
         return prefix;
     }
+
+    public static TextComponent getTextComponent(String message) {
+        TextComponent textComponent;
+        try {
+            textComponent = (TextComponent) TextComponent.fromLegacy(message);
+        } catch (Exception e) {
+            // not using a version that supports fromLegacy
+            textComponent = new TextComponent(message);
+        }
+        return textComponent;
+    }
 }

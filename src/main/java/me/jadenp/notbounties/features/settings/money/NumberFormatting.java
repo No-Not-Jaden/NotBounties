@@ -1089,7 +1089,7 @@ public class NumberFormatting {
             if (i > 0)
                 nameString = nameString + ",";
             nameString = nameString + itemStack.getType().name() + amountDenote + itemStack.getAmount();
-            TextComponent name = new TextComponent(nameString);
+            TextComponent name = LanguageOptions.getTextComponent(nameString);
             name.setHoverEvent(getHoverEvent(itemStack));
             components[i] = name;
         }

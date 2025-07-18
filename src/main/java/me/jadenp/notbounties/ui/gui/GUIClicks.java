@@ -146,9 +146,9 @@ public class GUIClicks {
                 if (player.hasPermission(NotBounties.getAdminPermission())) {
                     player.getOpenInventory().close();
                     String messageText = LanguageOptions.parse(LanguageOptions.getMessage("edit-bounty-clickable").replace("{receiver}", bounty.getName()), player);
-                    TextComponent message = (TextComponent) new TextComponent(messageText);
+                    TextComponent message =  LanguageOptions.getTextComponent(messageText);
 
-                    BaseComponent prefix = new TextComponent(LanguageOptions.parse(LanguageOptions.getPrefix(), player));
+                    BaseComponent prefix = LanguageOptions.getTextComponent(LanguageOptions.parse(LanguageOptions.getPrefix(), player));
                     message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(messageText)));
                     message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " edit " + bounty.getName() + " "));
                     prefix.addExtra(message);

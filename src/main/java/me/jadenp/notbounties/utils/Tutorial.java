@@ -7,6 +7,7 @@ import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -133,10 +134,10 @@ public class Tutorial {
         while (builder.indexOf(RUN_COMMAND_PREFIX) >= 0 && builder.indexOf("}", builder.indexOf(RUN_COMMAND_PREFIX)) >= 0) {
             String before = parse(builder.substring(0, builder.indexOf(RUN_COMMAND_PREFIX)), parser);
             String lastColors = ChatColor.getLastColors(before);
-            baseComponents.add(new TextComponent(before));
+            baseComponents.add(LanguageOptions.getTextComponent(before));
             builder.delete(0, builder.indexOf(RUN_COMMAND_PREFIX));
             String commandText = builder.substring(13, builder.indexOf("}"));
-            TextComponent command = new TextComponent(parse(lastColors + commandText, parser));
+            TextComponent command = LanguageOptions.getTextComponent(parse(lastColors + commandText, parser));
 
             command.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(runCommandHover, parser))));
             command.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, commandText));
@@ -148,10 +149,10 @@ public class Tutorial {
         while (builder.indexOf(SUGGEST_COMMAND_PREFIX) >= 0 && builder.indexOf("}", builder.indexOf(SUGGEST_COMMAND_PREFIX)) >= 0) {
             String before = parse(builder.substring(0, builder.indexOf(SUGGEST_COMMAND_PREFIX)), parser);
             String lastColors = ChatColor.getLastColors(before);
-            baseComponents.add(new TextComponent(before));
+            baseComponents.add(LanguageOptions.getTextComponent(before));
             builder.delete(0, builder.indexOf(SUGGEST_COMMAND_PREFIX));
             String commandText = builder.substring(17, builder.indexOf("}"));
-            TextComponent command = new TextComponent(parse(lastColors + commandText, parser));
+            TextComponent command = LanguageOptions.getTextComponent(parse(lastColors + commandText, parser));
             // don't send parenthesis options in command
             if (commandText.contains("("))
                 commandText = commandText.substring(0, commandText.indexOf("("));
@@ -160,7 +161,7 @@ public class Tutorial {
             baseComponents.add(command);
             builder.delete(0, builder.indexOf("}") + 1);
         }
-        baseComponents.add(new TextComponent(parse(builder.toString(), parser)));
+        baseComponents.add(LanguageOptions.getTextComponent(parse(builder.toString(), parser)));
         return baseComponents.toArray(new TextComponent[0]);
     }
 
@@ -198,29 +199,29 @@ public class Tutorial {
 
         TextComponent prevComponent;
         if (previousPage <= 0) {
-            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-deny"), parser));
+            prevComponent = LanguageOptions.getTextComponent(parse(LanguageOptions.getMessage("help.prev-deny"), parser));
         } else {
-            prevComponent = new TextComponent(parse(LanguageOptions.getMessage("help.prev-text"), parser));
+            prevComponent = LanguageOptions.getTextComponent(parse(LanguageOptions.getMessage("help.prev-text"), parser));
             prevComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
             prevComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " " + changePageCommand + " " + previousPage));
         }
 
         TextComponent nextComponent;
         if (nextPage >= maxPage || nextPage <= previousPage) {
-            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-deny"), parser));
+            nextComponent = LanguageOptions.getTextComponent(parse(LanguageOptions.getMessage("help.next-deny"), parser));
         } else {
-            nextComponent = new TextComponent(parse(LanguageOptions.getMessage("help.next-text"), parser));
+            nextComponent = LanguageOptions.getTextComponent(parse(LanguageOptions.getMessage("help.next-text"), parser));
             nextComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
             nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " " + changePageCommand + " " + nextPage));
         }
 
 
         BaseComponent[] baseComponents = new BaseComponent[]{
-                new TextComponent(parse(before.replace("{page}", currentPage + ""), parser)),
+                LanguageOptions.getTextComponent(parse(before.replace("{page}", currentPage + ""), parser)),
                 prevComponent,
-                new TextComponent(parse(middle.replace("{page}", currentPage + ""), parser)),
+                LanguageOptions.getTextComponent(parse(middle.replace("{page}", currentPage + ""), parser)),
                 nextComponent,
-                new TextComponent(parse(after, parser))
+                LanguageOptions.getTextComponent(parse(after, parser))
         };
         sender.spigot().sendMessage(baseComponents);
     }

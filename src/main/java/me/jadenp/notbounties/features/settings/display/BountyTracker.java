@@ -365,7 +365,9 @@ public class BountyTracker implements Listener {
             }
             if (!DataManager.GLOBAL_SERVER_ID.equals(uuid)) // not an empty tracker
                 if (trackerActionBar && (TABShowAlways || force)) {
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(getMessage("tracker-no-permission"), player)));
+                    String message = LanguageOptions.parse(getMessage("tracker-no-permission"), player);
+                    TextComponent textComponent = getTextComponent(message);
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, textComponent);
                 }
 
             if (previousLocation == null || !Objects.equals(previousLocation.getWorld(), Objects.requireNonNull(compassMeta.getLodestone()).getWorld())) {
@@ -398,7 +400,9 @@ public class BountyTracker implements Listener {
             }
             // give tracked player alert if close enough
             if ((alert > 0 && trackedPlayer.getWorld().equals(player.getWorld()) && player.getLocation().distance(trackedPlayer.getLocation()) < alert) || alert == -1) {
-                trackedPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(parse(getMessage("tracked-notify"), trackedPlayer)));
+                String message = LanguageOptions.parse(getMessage("tracked-notify"), trackedPlayer);
+                TextComponent textComponent = getTextComponent(message);
+                trackedPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, textComponent);
             }
 
             // build actionbar
@@ -417,7 +421,7 @@ public class BountyTracker implements Listener {
                     actionBar.append(" ").append(ChatColor.RED).append(trackedPlayer.getLocation().getBlockX()).append("x ").append(trackedPlayer.getLocation().getBlockY()).append("y ").append(trackedPlayer.getLocation().getBlockZ()).append("z").append(ChatColor.DARK_GRAY).append(" |");
                 if (TABWorld)
                     actionBar.append(" ").append(ChatColor.LIGHT_PURPLE).append(trackedPlayer.getWorld().getName()).append(ChatColor.DARK_GRAY).append(" |");
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(actionBar.toString()));
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, getTextComponent(actionBar.toString()));
             }
             if (previousLocation == null || !Objects.equals(previousLocation.getWorld(), Objects.requireNonNull(compassMeta.getLodestone()).getWorld()) || previousLocation.distance(compassMeta.getLodestone()) > 2) {
                 // only update if location is greater than 2 blocks away
@@ -427,7 +431,7 @@ public class BountyTracker implements Listener {
         } else {
             // player offline -
             if (trackerActionBar && (TABShowAlways || force)) {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(LanguageOptions.parse(getMessage("tracker-offline"), player)));
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, getTextComponent(LanguageOptions.parse(getMessage("tracker-offline"), player)));
             }
             if (Bukkit.getWorlds().size() > 1) {
                 for (World world : Bukkit.getWorlds()) {
