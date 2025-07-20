@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.features;
 
+import com.cjcrafter.foliascheduler.util.ServerVersions;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
@@ -319,11 +320,11 @@ public class ActionCommands {
                 command = command.substring(9);
             else
                 command = command.substring(4);
-            Bukkit.dispatchCommand(player,command);
+            runPlayerCommand(player, command);
         } else if (command.startsWith("[killer] ")) {
             if (ConfigOptions.getIntegrations().isPapiEnabled())
                 command = new PlaceholderAPIClass().parse(killer, command);
-            Bukkit.dispatchCommand(killer, command.substring(9));
+            runPlayerCommand(killer, command.substring(9));
         } else if (command.startsWith("[message_player] ")) {
             String message = command.substring(17);
             player.sendMessage(LanguageOptions.parse(getPrefix() + message, player));
@@ -634,6 +635,14 @@ public class ActionCommands {
             if (ConfigOptions.getIntegrations().isPapiEnabled())
                 command = new PlaceholderAPIClass().parse(player, command);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+        }
+    }
+
+    public static void runPlayerCommand(Player player, String command) {
+        if (ServerVersions.isFolia()) {
+            NotBounties.getServerImplementation().entity(player).run(() -> Bukkit.dispatchCommand(player, command));
+        } else {
+            Bukkit.dispatchCommand(player, command);
         }
     }
 

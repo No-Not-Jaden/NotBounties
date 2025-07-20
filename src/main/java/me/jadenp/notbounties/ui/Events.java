@@ -29,6 +29,7 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
@@ -39,6 +40,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -236,9 +238,6 @@ public class Events implements Listener {
             RemovePersistentEntitiesEvent.cleanChunk(event.getPlayer().getLocation());
 
     }
-
-
-
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {

@@ -2,6 +2,7 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -100,7 +101,7 @@ public class CommandPrompt {
         String finalMessage = message;
         NotBounties.getServerImplementation().global().runDelayed(task -> {
             if (playerPrompt) {
-                Bukkit.dispatchCommand(player, commandString);
+                ActionCommands.runPlayerCommand(player, commandString);
             } else {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandString);
             }
