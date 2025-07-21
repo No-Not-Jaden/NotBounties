@@ -3,10 +3,12 @@ package me.jadenp.notbounties.features.settings.display;
 import me.jadenp.notbounties.NotBounties;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Nullable;
 
 public class EntityTag extends TagProvider {
 

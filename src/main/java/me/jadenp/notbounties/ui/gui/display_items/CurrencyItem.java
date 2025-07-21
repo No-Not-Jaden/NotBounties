@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.ui.gui.display_items;
 
+import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -21,7 +22,7 @@ public class CurrencyItem implements DisplayItem, AmountItem{
     private final List<String> additionalLore;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData) {
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData, String itemModel) {
         ItemStack item = GUI.getGeneralCurrencyItem().getFormattedItem(player, new String[] {"", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(amount) + NumberFormatting.getCurrencySuffix(), "", ""});
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
@@ -34,6 +35,8 @@ public class CurrencyItem implements DisplayItem, AmountItem{
         meta.setLore(previousLore.stream().map(string -> LanguageOptions.parse(string, amount, player)).toList());
         if (customModelData != -1)
             meta.setCustomModelData(customModelData);
+        if (itemModel != null)
+            meta.setItemModel(CustomItem.getItemModel(itemModel));
         item.setItemMeta(meta);
         return item;
     }

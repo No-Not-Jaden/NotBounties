@@ -17,16 +17,13 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 
 import static me.jadenp.notbounties.NotBounties.*;
 
 public class RemovePersistentEntitiesEvent implements Listener {
     private static final List<Chunk> completedChunks = new ArrayList<>();
-    private static final List<Entity> removedEntities = new ArrayList<>();
+    private static final List<Entity> removedEntities = Collections.synchronizedList(new ArrayList<>());
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
@@ -111,15 +108,19 @@ public class RemovePersistentEntitiesEvent implements Listener {
         if (toRemove.isEmpty() && sender == null)
             // nothing to remove and no message to be sent.
             return;
-        NotBounties.getServerImplementation().global().run(() -> {
-            for (Entity entity : toRemove) {
+        for (Entity entity : toRemove) {
+            NotBounties.getServerImplementation().entity(entity).run(() -> {
                 entity.remove();
                 removedEntities.add(entity);
+            });
+        }
+        if (sender != null) {
+            if (sender instanceof Player player) {
+                NotBounties.getServerImplementation().entity(player).run(() -> sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("entity-remove").replace("{amount}", NumberFormatting.formatNumber(toRemove.size())), player)));
+            } else {
+                NotBounties.getServerImplementation().global().run(() -> sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("entity-remove").replace("{amount}", NumberFormatting.formatNumber(toRemove.size())), null)));
             }
-            if (sender != null) {
-                Player parser = sender instanceof Player player ? player : null;
-                sender.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("entity-remove").replace("{amount}", NumberFormatting.formatNumber(toRemove.size())), parser));
-            }
-        });
+        }
+
     }
 }

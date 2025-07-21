@@ -170,7 +170,7 @@ public class GUI implements Listener {
     }
 
     public static CustomItem getGeneralCurrencyItem() {
-        return customItems.computeIfAbsent(GENERAL_CURRENCY_ITEM_NAME, k -> new CustomItem(Material.SUNFLOWER, 1, -1, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>(), null));
+        return customItems.computeIfAbsent(GENERAL_CURRENCY_ITEM_NAME, k -> new CustomItem(Material.SUNFLOWER, 1, -1, null, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>(), null));
     }
 
     public static Map<String, CustomItem> getCustomItems() {
@@ -573,9 +573,10 @@ public class GUI implements Listener {
                 if (!customGuis.containsKey(name))
                     return;
                 GUIOptions gui = customGuis.get(name);
-                String title = createTitle(gui, player, finalPage, displayItems, data);
-                PlayerGUInfo info = new PlayerGUInfo(finalPage, name, data, displayItems, title);
-                Inventory inventory = gui.createInventory(player, finalPage, displayItems, title, data);
+                long maxPage = estimateMaxPage(gui.getType(), player, gui.getPlayerSlots().size(), displayItems, data);
+                String title = createTitle(gui, player, finalPage, maxPage, displayItems, data);
+                PlayerGUInfo info = new PlayerGUInfo(finalPage, maxPage, name, data, displayItems, title);
+                Inventory inventory = gui.createInventory(player, finalPage, maxPage, displayItems, title, data);
                 NotBounties.getServerImplementation().global().run(() -> {
                     boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && player.getOpenInventory().getTitle().equals(playerInfo.get(player.getUniqueId()).title());
                     playerInfo.put(player.getUniqueId(), info);
@@ -596,13 +597,13 @@ public class GUI implements Listener {
 
     }
 
-    public static String createTitle(BedrockGUIOptions guiOptions, Player viewer, long page, List<DisplayItem> displayItems, Object[] data) {
-        return createTitle(guiOptions.getName(), guiOptions.getType(), guiOptions.getMaxPlayers(), guiOptions.isAddPage(), viewer, page, displayItems, data);
+    public static String createTitle(BedrockGUIOptions guiOptions, Player viewer, long page, long maxPage, List<DisplayItem> displayItems, Object[] data) {
+        return createTitle(guiOptions.getName(), guiOptions.getType(), maxPage, guiOptions.isAddPage(), viewer, page, displayItems, data);
     }
-    private static String createTitle(GUIOptions guiOptions, Player viewer, long page, List<DisplayItem> displayItems, Object[] data) {
-        return createTitle(guiOptions.getName(), guiOptions.getType(), guiOptions.getPlayerSlots().size(), guiOptions.isAddPage(), viewer, page, displayItems, data);
+    private static String createTitle(GUIOptions guiOptions, Player viewer, long page, long maxPage, List<DisplayItem> displayItems, Object[] data) {
+        return createTitle(guiOptions.getName(), guiOptions.getType(), maxPage, guiOptions.isAddPage(), viewer, page, displayItems, data);
     }
-    private static String createTitle(String name, String type, int numPlayerSlots, boolean addPage, Player viewer, long page, List<DisplayItem> displayItems, Object[] data) {
+    private static String createTitle(String name, String type, long maxPage, boolean addPage, Player viewer, long page, List<DisplayItem> displayItems, Object[] data) {
         String title = name;
         if (type.equals("leaderboard") && data.length > 0 && data[0] instanceof String string) {
             try {
@@ -626,11 +627,27 @@ public class GUI implements Listener {
                 }
             }
         }
+        title = title.replace("{page}", (page + ""))
+                .replace("{page_max}", (maxPage + ""));
+        if (addPage)
+            title = title + " " + page;
+        return LanguageOptions.parse(title, viewer);
+    }
+
+    public static int estimateMaxPage(String type, Player viewer, int numPlayerSlots, List<DisplayItem> displayItems, Object[] data) {
         int maxPage;
         if (type.equals("select-price")) {
             maxPage = (int) NumberFormatting.getBalance(viewer);
         } else if (type.equals("bounty-hunt-time")) {
             maxPage = (int) (NumberFormatting.getBalance(viewer) * BountyHunt.getCostPerMinute());
+        } else if (type.equals("confirm-bounty") || type.equals("confirm-remove-immunity") || type.equals("confirm") || type.equals("settings-gui")) {
+            maxPage = 1;
+        } else if (type.equals("bounty-item-select")) {
+            if (data.length > 1 && data[1] instanceof ItemStack[][] itemStacks) {
+                maxPage = itemStacks.length;
+            } else {
+                maxPage = 1;
+            }
         } else if (type.equals("bounty-gui")) {
             int numBounties = BountyManager.getAllBounties(-1).size();
             int playerSlots = Math.max(numPlayerSlots, 1);
@@ -653,11 +670,7 @@ public class GUI implements Listener {
                 maxPage++;
             }
         }
-        title = title.replace("{page}", (page + ""))
-                .replace("{page_max}", (maxPage + ""));
-        if (addPage)
-            title = title + " " + page;
-        return LanguageOptions.parse(title, viewer);
+        return maxPage;
     }
 
 

@@ -424,6 +424,8 @@ public class LanguageOptions {
             // parsing for GUI
             if (receiver.isOnline() && GUI.playerInfo.containsKey(receiver.getUniqueId())) {
                 PlayerGUInfo info = GUI.playerInfo.get(receiver.getUniqueId());
+                str = str.replace("{page}", info.page() + "").replace("{page_max}", info.maxPage() + "");
+
                 // check for {player<x>}
                 while (str.contains("{player") && str.substring(str.indexOf("{player")).contains("}")) {
                     String replacement = "";

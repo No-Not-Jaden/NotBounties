@@ -82,9 +82,10 @@ public class BedrockGUI {
         if (!customGuis.containsKey(guiName))
             return;
         BedrockGUIOptions gui = customGuis.get(guiName);
-        String title = GUI.createTitle(gui, player, page, displayItems, data);
+        int maxPage = GUI.estimateMaxPage(guiName, player, gui.getMaxPlayers(), displayItems, data);
+        String title = GUI.createTitle(gui, player, page, maxPage, displayItems, data);
         gui.openInventory(player, page, displayItems, title, data);
-        GUI.playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, guiName, data, displayItems, title));
+        GUI.playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, maxPage, guiName, data, displayItems, title));
     }
 
     public static boolean isGUIEnabled(String guiName) {

@@ -5,6 +5,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
@@ -62,11 +63,25 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_immunity_spent%</p>
      * <p>%notbounties_all_time_bounty%</p>
      * <p>%notbounties_currency_gained%</p>
+     * <p>%notbounties_current_page%</p>
+     * <p>%notbounties_total_pages%</p>
      */
 
     @Override
     public String onRequest(OfflinePlayer player, String params){
         UUID uuid = player.getUniqueId();
+        if (params.equalsIgnoreCase("current_page")) {
+            if (GUI.playerInfo.containsKey(player.getUniqueId())) {
+                return GUI.playerInfo.get(player.getUniqueId()).page() + "";
+            }
+            return "";
+        }
+        if (params.equalsIgnoreCase("total_pages")) {
+            if (GUI.playerInfo.containsKey(player.getUniqueId())) {
+                return GUI.playerInfo.get(player.getUniqueId()).maxPage() + "";
+            }
+            return "";
+        }
         if (params.equalsIgnoreCase("timed_bounty")) {
             if (BountyManager.hasBounty(uuid) && TimedBounties.isMaxed(Objects.requireNonNull(BountyManager.getBounty(uuid)).getTotalDisplayBounty()))
                 // maxed out, cant get any higher

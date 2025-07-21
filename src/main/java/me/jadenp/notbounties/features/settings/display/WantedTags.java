@@ -12,6 +12,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -215,7 +216,12 @@ public class WantedTags {
 
     public static void update() {
         for (WantedTags wantedTags : activeTags.values()) {
-            wantedTags.updateArmorStand();
+            if (wantedTags.player != null && wantedTags.player.isOnline()) {
+                NotBounties.getServerImplementation().entity(wantedTags.player).run(wantedTags::updateArmorStand);
+            } else {
+                wantedTags.updateArmorStand();
+            }
+
         }
     }
 
@@ -314,7 +320,7 @@ public class WantedTags {
         }
 
 
-        if (tag.isValid() && tag.getLocation().getChunk().isLoaded()) {
+        if (tag.isValid()) {
             teleport();
         }
     }
@@ -327,13 +333,18 @@ public class WantedTags {
 
     public void disable() {
         enabled = false;
-        tag.remove();
+        try {
+            tag.remove();
+        } catch (NullPointerException ignored) {
+            // world data isn't loaded on folia
+        }
     }
 
     private void spawnWantedTag() {
         tag.spawn();
         displayText = getWantedDisplayText(player);
         tag.setText(displayText);
+        nextTextUpdateTime = System.currentTimeMillis() + wantedTextUpdateInterval;
     }
 
     public Location getLastLocation() {

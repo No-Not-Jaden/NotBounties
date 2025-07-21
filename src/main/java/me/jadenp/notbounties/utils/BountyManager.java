@@ -469,7 +469,7 @@ public class BountyManager {
                     // modify drops
                     if (forceEditDrops)
                         for (Map.Entry<Material, Long> entry : removedItems.entrySet())
-                            NumberFormatting.removeItem(player, entry.getKey(), entry.getValue(), -1);
+                            NumberFormatting.removeItem(player, entry.getKey(), entry.getValue(), "-1");
                     ListIterator<ItemStack> dropsIterator = drops.listIterator();
                     while (dropsIterator.hasNext()) {
                         ItemStack drop = dropsIterator.next();

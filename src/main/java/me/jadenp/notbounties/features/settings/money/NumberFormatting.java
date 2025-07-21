@@ -4,6 +4,7 @@ import com.google.common.primitives.Floats;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.utils.ItemValue;
 import me.jadenp.notbounties.utils.tasks.MultipleItemGive;
 import me.jadenp.notbounties.utils.tasks.SingleItemGive;
@@ -38,7 +39,7 @@ import java.util.stream.IntStream;
 
 public class NumberFormatting {
     private static List<String> currency;
-    private static List<Integer> customModelDatas;
+    private static List<String> customModelDatas;
     private static LinkedHashMap<String, Float> currencyValues;
     private static List<Float> currencyWeights;
     private static List<String> removeCommands;
@@ -123,13 +124,8 @@ public class NumberFormatting {
                 if (!currencyName.contains(" "))
                     currencyIterator.set(currencyName);
             }
-            try {
-                customModelDatas.add(Integer.parseInt(customModelData));
-            } catch (NumberFormatException e) {
-                plugin.getLogger().warning("Could not get custom model data <" + customModelData + "> for currency: " + currencyName);
-                customModelDatas.add(-1);
-            }
-            // seperate weight and value attached if there is any
+            customModelDatas.add(customModelData);
+            // separate weight and value attached if there is any
             if (currencyName.contains(" ")){
                 value = currencyName.substring(currencyName.indexOf(" ") + 1);
                 currencyName = currencyName.substring(0, currencyName.indexOf(" "));
@@ -315,16 +311,11 @@ public class NumberFormatting {
         if (itemValuesConfig.isConfigurationSection("item-values"))
             for (String key : Objects.requireNonNull(itemValuesConfig.getConfigurationSection("item-values")).getKeys(false)) {
                 String materialName = key;
-                int customModelData = -1;
+                String customModelData = "-1";
                 // check if materialName has two arrows <>
                 if (materialName.contains("<") && materialName.substring(materialName.indexOf("<")).contains(">")) {
                     // has custom model data
-                    try {
-                        // parse custom model data for number between arrows
-                        customModelData = Integer.parseInt(materialName.substring(materialName.indexOf("<") + 1, materialName.indexOf(">")));
-                    } catch (NumberFormatException e) {
-                        plugin.getLogger().warning("Couldn't get custom model data for item value: " + materialName);
-                    }
+                    customModelData = materialName.substring(materialName.indexOf("<") + 1, materialName.indexOf(">"));
                     materialName = materialName.substring(0, materialName.indexOf("<"));
                 }
                 Material material;
@@ -366,9 +357,15 @@ public class NumberFormatting {
         switch (bountyItemsUseItemValues) {
             case FILE -> {
                 Material material = item.getType();
-                int customModelData = -1;
-                if (item.getItemMeta() != null && item.getItemMeta().hasCustomModelData())
-                    customModelData = item.getItemMeta().getCustomModelData();
+                String customModelData = "-1";
+                if (item.getItemMeta() != null) {
+                    if (item.getItemMeta().hasItemModel()) {
+                        customModelData = CustomItem.getItemModel(item.getItemMeta().getItemModel());
+                    } else if (item.getItemMeta().hasCustomModelData()) {
+                        customModelData = item.getItemMeta().getCustomModelData() + "";
+                    }
+                }
+
                 // check if material is a currency
                 for (String s : currency) {
                     if (material.toString().equalsIgnoreCase(s))
@@ -898,10 +895,14 @@ public class NumberFormatting {
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
-                    if (customModelDatas.get(i) != -1) {
+                    if (!customModelDatas.get(i).equals("-1")) {
                         ItemMeta meta = item.getItemMeta();
                         if (meta != null) {
-                            meta.setCustomModelData(customModelDatas.get(i));
+                            if (customModelDatas.get(i).contains(":")) {
+                                meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(i)));
+                            } else {
+                                meta.setCustomModelData(Integer.parseInt(customModelDatas.get(i)));
+                            }
                             item.setItemMeta(meta);
                         }
                     }
@@ -928,10 +929,14 @@ public class NumberFormatting {
             // give item if using
             if (!currency.get(0).contains("%")) {
                 ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
-                if (customModelDatas.get(0) != -1) {
+                if (!customModelDatas.get(0).equals("-1")) {
                     ItemMeta meta = item.getItemMeta();
                     if (meta != null) {
-                        meta.setCustomModelData(customModelDatas.get(0));
+                        if (customModelDatas.get(0).contains(":")) {
+                            meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(0)));
+                        } else {
+                            meta.setCustomModelData(Integer.parseInt(customModelDatas.get(0)));
+                        }
                         item.setItemMeta(meta);
                     }
                 }
@@ -948,10 +953,14 @@ public class NumberFormatting {
             // give item if using
             if (!currency.get(0).contains("%")) {
                 ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
-                if (customModelDatas.get(0) != -1) {
+                if (!customModelDatas.get(0).equals("-1")) {
                     ItemMeta meta = item.getItemMeta();
                     if (meta != null) {
-                        meta.setCustomModelData(customModelDatas.get(0));
+                        if (customModelDatas.get(0).contains(":")) {
+                            meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(0)));
+                        } else {
+                            meta.setCustomModelData(Integer.parseInt(customModelDatas.get(0)));
+                        }
                         item.setItemMeta(meta);
                     }
                 }
@@ -975,10 +984,14 @@ public class NumberFormatting {
                     Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
                 } else {
                     ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
-                    if (customModelDatas.get(i) != -1) {
+                    if (!customModelDatas.get(i).equals("-1")) {
                         ItemMeta meta = item.getItemMeta();
                         if (meta != null) {
-                            meta.setCustomModelData(customModelDatas.get(i));
+                            if (customModelDatas.get(i).contains(":")) {
+                                meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(i)));
+                            } else {
+                                meta.setCustomModelData(Integer.parseInt(customModelDatas.get(i)));
+                            }
                             item.setItemMeta(meta);
                         }
                     }
@@ -996,7 +1009,7 @@ public class NumberFormatting {
         }
     }
 
-    public static void removeItem(Player player, Material material, long amount, int customModelData) {
+    public static void removeItem(Player player, Material material, long amount, String customModelData) {
         ItemStack[] contents = player.getInventory().getContents();
         for (int i = 0; i < contents.length; i++) {
             if (contents[i] != null) {
@@ -1239,7 +1252,7 @@ public class NumberFormatting {
         return sortedBalance;
     }
 
-    private static double getBalance(OfflinePlayer player, String currencyName, int customModelData){
+    private static double getBalance(OfflinePlayer player, String currencyName, String customModelData){
         float currencyValue;
         if (currencyValues.containsKey(currencyName)) {
             currencyValue = currencyValues.get(currencyName);
@@ -1323,7 +1336,7 @@ public class NumberFormatting {
      * @param material Material to check for
      * @return amount of items in the players inventory that are a certain material
      */
-    public static int checkAmount(Player player, Material material, int customModelData) {
+    public static int checkAmount(Player player, Material material, String customModelData) {
         int amount = 0;
         ItemStack[] contents = player.getInventory().getContents();
         for (ItemStack content : contents) {
@@ -1336,9 +1349,9 @@ public class NumberFormatting {
         return amount;
     }
 
-    public static boolean isCorrectMaterial(ItemStack item, Material material, int customModelData) {
+    public static boolean isCorrectMaterial(ItemStack item, Material material, String customModelData) {
         return item.getType().equals(material) &&
-                (customModelData == -1 || (item.hasItemMeta() && Objects.requireNonNull(item.getItemMeta()).hasCustomModelData() && item.getItemMeta().getCustomModelData() == customModelData));
+                (customModelData.equals("-1") || (item.hasItemMeta() && (Objects.requireNonNull(item.getItemMeta()).hasCustomModelData() && customModelData.equals(item.getItemMeta().getCustomModelData() + "")) || (item.getItemMeta().hasItemModel() && CustomItem.isItemModelEqual(item.getItemMeta().getItemModel(), customModelData))));
     }
 
     public static Map<Long, String> sortByValue(Map<Long, String> hm) {

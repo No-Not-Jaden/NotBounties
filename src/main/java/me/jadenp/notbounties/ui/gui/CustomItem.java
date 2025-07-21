@@ -4,10 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.Head;
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.ConfigurationSection;
@@ -18,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +26,7 @@ public class CustomItem {
     private final Material material;
     private final int amount;
     private final int customModelData;
+    private final String itemModel;
     private final String name;
     private final List<String> lore;
     private final boolean enchanted;
@@ -60,6 +59,9 @@ public class CustomItem {
         if (configurationSection.isInt("custom-model-data"))
             customModelData = configurationSection.getInt("custom-model-data");
         else customModelData = -1;
+        if (configurationSection.isString("item-model"))
+            itemModel = configurationSection.getString("item-model");
+        else itemModel = null;
         lore = configurationSection.getStringList("lore");
         enchanted = configurationSection.getBoolean("enchanted");
         hideNBT = configurationSection.getBoolean("hide-nbt");
@@ -73,6 +75,7 @@ public class CustomItem {
         material = Material.STONE;
         amount = 1;
         customModelData = -1;
+        itemModel = null;
         name = null;
         lore = new ArrayList<>();
         enchanted = false;
@@ -82,11 +85,12 @@ public class CustomItem {
         color = null;
     }
 
-    public CustomItem(Material material, int amount, int customModelData, String name, List<String> lore, boolean enchanted, boolean hideNBT, boolean hideTooltip, List<String> commands, Color color) {
+    public CustomItem(Material material, int amount, int customModelData, String itemModel, String name, List<String> lore, boolean enchanted, boolean hideNBT, boolean hideTooltip, List<String> commands, Color color) {
 
         this.material = material;
         this.amount = amount;
         this.customModelData = customModelData;
+        this.itemModel = itemModel;
         this.name = name;
         this.lore = lore;
         this.enchanted = enchanted;
@@ -128,6 +132,8 @@ public class CustomItem {
         }
         if (customModelData != -1)
             meta.setCustomModelData(customModelData);
+        if (itemModel != null)
+            meta.setItemModel(CustomItem.getItemModel(itemModel));
         if (enchanted) {
             if (NotBounties.isAboveVersion(20, 4)) {
                 if (!meta.hasEnchantmentGlintOverride())
@@ -265,4 +271,24 @@ public class CustomItem {
         };
     }
 
+    public static NamespacedKey getItemModel(@Nullable String model) {
+        if (model == null) return null;
+        if (model.contains(":")) {
+            String[] split = model.split(":");
+            return new NamespacedKey(split[0], split[1]);
+        } else {
+            return new NamespacedKey(NotBounties.getInstance(), model);
+        }
+    }
+
+    public static String getItemModel(@Nullable NamespacedKey model) {
+        if (model == null) return null;
+        return model.getNamespace() + ":" + model.getKey();
+    }
+
+    public static boolean isItemModelEqual(@Nullable NamespacedKey key, @Nullable String model) {
+        if (key == null) return model == null;
+        if (model == null) return false;
+        return model.equals(key.getNamespace() + ":" + key.getKey());
+    }
 }

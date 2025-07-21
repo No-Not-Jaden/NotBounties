@@ -35,6 +35,7 @@ public class GUIOptions {
     private final Map<Integer, CustomItem> pageReplacements = new HashMap<>();
     private final InventoryType inventoryType;
     private final int customModelData;
+    private final String itemModel;
 
     public GUIOptions(ConfigurationSection settings) {
         InventoryType inventoryType1;
@@ -63,6 +64,7 @@ public class GUIOptions {
         headName = settings.isSet("head-name") ? settings.getString("head-name") : "{player}";
         headLore = settings.isSet("head-lore") ? settings.getStringList("head-lore") : new ArrayList<>();
         customModelData = settings.isSet("custom-model-data") ? settings.getInt("custom-model-data") : -1;
+        itemModel = settings.isSet("item-model") ? settings.getString("item-model") : null;
         customItems = new CustomItem[size];
         if (settings.isConfigurationSection("layout"))
             for (String key : Objects.requireNonNull(settings.getConfigurationSection("layout")).getKeys(false)) {
@@ -144,7 +146,7 @@ public class GUIOptions {
      * @param page   Page of gui - This will change the items in player slots and page items if enabled
      * @return Custom GUI Inventory
      */
-    public Inventory createInventory(Player player, long page, List<DisplayItem> displayItems, String title, Object[] data) {
+    public Inventory createInventory(Player player, long page, long maxPage, List<DisplayItem> displayItems, String title, Object[] data) {
         if (page < 1) {
             page = 1;
         }
@@ -205,7 +207,7 @@ public class GUIOptions {
         boolean isSinglePlayerSlot = type.equals("select-price") || type.equals("confirm-bounty") || type.equals("bounty-item-select") || type.equals("challenges") || type.equals("bounty-hunt-time");
         for (int i = isSinglePlayerSlot ? 0 : (int) ((page - 1) * playerSlots.size()); i < Math.min(playerSlots.size() * page, displayItems.size()); i++) {
             DisplayItem displayItem = displayItems.get(i);
-            ItemStack item = displayItem.getFormattedItem(player, headName, headLore, customModelData);
+            ItemStack item = displayItem.getFormattedItem(player, headName, headLore, customModelData, itemModel);
             int slot = isSinglePlayerSlot ? playerSlots.get(i) : (playerSlots.get((int) (i - playerSlots.size() * (page-1))));
 
             if (displayItem instanceof PlayerItem playerItem)
@@ -218,7 +220,7 @@ public class GUIOptions {
                 contents[playerSlots.get(i)] = items[i];
             }
         } else {
-            new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, type, data, displayItems, title), unloadedHeads);
+            new HeadFetcher().loadHeads(player, new PlayerGUInfo(page, maxPage, type, data, displayItems, title), unloadedHeads);
         }
 
         if  (type.equals("bounty-item-select") && data.length > 1 && data[1] instanceof ItemStack[][] items && items.length >= page) {

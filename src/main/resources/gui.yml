@@ -4,7 +4,7 @@ custom-items:
     material: GRAY_STAINED_GLASS_PANE
     amount: 1
     # for resource packs. Not required to use this
-    custom-model-data: 10
+    #item-model: 'namespace:key'
     # name and lore accept placeholders and hex
     # {amount} will be replaced with the value you are sorting by. This changes for different GUIs
     # {amount_tax} will be replaced with {amount} * bounty tax
@@ -312,6 +312,7 @@ bounty-gui:
     - '&7<&m                        &7>'
   # if you want to apply custom model data to the heads
   custom-model-data: 334113539
+  #item-model: 'namespace:key'
   layout:
     1:
       # use custom items here or preset items such as 'exit' 'next' 'back'

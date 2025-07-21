@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui.gui.display_items;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.ui.HeadFetcher;
+import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
@@ -30,7 +31,7 @@ public class PlayerItem implements DisplayItem, AmountItem{
     private final List<String> additionalLore;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData) {
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData, String itemModel) {
         ItemStack item = HeadFetcher.getUnloadedHead(uuid);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         if (meta == null)
@@ -41,6 +42,8 @@ public class PlayerItem implements DisplayItem, AmountItem{
         meta.setLore(lore.stream().map(string -> parseText(string, player)).toList());
         if (customModelData != -1)
             meta.setCustomModelData(customModelData);
+        if (itemModel != null)
+            meta.setItemModel(CustomItem.getItemModel(itemModel));
         item.setItemMeta(meta);
         return item;
     }

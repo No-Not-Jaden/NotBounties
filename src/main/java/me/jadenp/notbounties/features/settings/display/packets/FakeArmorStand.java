@@ -6,7 +6,9 @@ import me.jadenp.notbounties.features.settings.display.TagProvider;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 

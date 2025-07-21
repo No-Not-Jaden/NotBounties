@@ -45,7 +45,7 @@ claim-order: REGULAR
 # automatically display times in the timezone of each player
 auto-timezone: true
 # reduce the number of players that are stored when using the GUI
-# you cannot use the {max_page} placeholder if this is true
+# the {page_max} placeholder may not be accurate if this is true
 reduce-page-calculations: true
 # An extra check to make sure the player is visible to see them in the player selection
 see-player-list: false

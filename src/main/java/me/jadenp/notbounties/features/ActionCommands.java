@@ -100,7 +100,7 @@ public class ActionCommands {
         if (command.isEmpty())
             return;
         NotBounties.debugMessage("Executing Command for " + player.getName() + " : " + command, false);
-        PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, "", new Object[0], new ArrayList<>(), "");
+        PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, 1, "", new Object[0], new ArrayList<>(), "");
         double totalBounty = bounty != null ? bounty.getTotalDisplayBounty() : 0;
         double bountyCurrency = bounty != null ? bounty.getTotalBounty() : 0;
         double bountyItemValues = 0;
@@ -141,7 +141,7 @@ public class ActionCommands {
                 ItemStack[][] allItems = data.length > 1 && data[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[GUI.getMaxBountyItemSlots()][(int) info.page()];
                 allItems[(int) info.page() - 1] = currentContents; // set current content
                 data = new Object[]{data[0], allItems};
-                playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(info.page(), info.guiType(), data, info.displayItems(), info.title()));
+                playerInfo.replace(player.getUniqueId(), new PlayerGUInfo(info.page(), info.maxPage(), info.guiType(), data, info.displayItems(), info.title()));
             }
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < data.length; i++) {
@@ -667,15 +667,10 @@ public class ActionCommands {
                 }
                 return compareObjects(parsedValue, parsedPlaceholder, operator);
             } else {
-                int customModelData = -1;
+                String customModelData = "-1";
                 if (placeholder.contains("<") && placeholder.contains(">"))
-                    try {
-                        customModelData = (int) tryParse(placeholder.substring(placeholder.indexOf("<") + 1, placeholder.indexOf(">")));
-                        placeholder = placeholder.substring(0, placeholder.indexOf("<"));
-                    } catch (NumberFormatException e) {
-                        plugin.getLogger().warning("Could not get custom model data from " + placeholder);
-                        plugin.getLogger().warning(e.toString());
-                    }
+                    customModelData = placeholder.substring(placeholder.indexOf("<") + 1, placeholder.indexOf(">"));
+                placeholder = placeholder.substring(0, placeholder.indexOf("<"));
                 // check if it is a material
                 if (player.isOnline() && player.getPlayer() != null) {
                     Material m = Material.getMaterial(placeholder);

@@ -50,6 +50,8 @@ import java.util.*;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 /**
+ * Go through wiki for outdated materials
+ * Update front page
  * Separate messages sent to the proxy if they are too big. (Velocity version too)
  * Team bounties
  * Bungee support.
@@ -60,8 +62,9 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * fast database option to use directly instead of an update interval
  * Multiple proxy databases
  * 1.21.6 dialog
- * 3 suggestions
  *
+ * page number placeholder
+ * item model
  */
 public final class NotBounties extends JavaPlugin {
 
