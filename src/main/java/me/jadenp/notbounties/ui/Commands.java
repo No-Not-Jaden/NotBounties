@@ -657,7 +657,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // value is now the to-be-updated value
                     DataManager.changeStat(playerUUID, leaderboard, value);
                     if (!silent)
-                        sender.sendMessage(parse(getPrefix() + getMessage("update-stat").replace("{leaderboard}", (leaderboard.toString())), leaderboard.getStat(playerUUID), Bukkit.getOfflinePlayer(playerUUID)));
+                        sender.sendMessage(parse(getPrefix() + getMessage("update-stat").replace("{leaderboard_name}", leaderboard.getDisplayName()).replace("{leaderboard}", (leaderboard.toString())), leaderboard.getStat(playerUUID), Bukkit.getOfflinePlayer(playerUUID)));
                 }
 
                 return true;

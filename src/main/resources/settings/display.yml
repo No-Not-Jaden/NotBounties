@@ -152,7 +152,7 @@ wanted-tag:
 
 # manhunt themed event that players can start
 bounty-hunt:
-  enabled: true
+  enabled: false
   # The cost to start a hunt
   cost-per-minute: 0.5
   # The minimum time for a hunt.

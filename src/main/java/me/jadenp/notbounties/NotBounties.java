@@ -62,9 +62,6 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * fast database option to use directly instead of an update interval
  * Multiple proxy databases
  * 1.21.6 dialog
- *
- * page number placeholder
- * item model
  */
 public final class NotBounties extends JavaPlugin {
 

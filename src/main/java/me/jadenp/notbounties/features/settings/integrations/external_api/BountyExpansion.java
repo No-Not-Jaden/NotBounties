@@ -53,18 +53,18 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_(all/kills/claimed/deaths/set/immunity/current)%</p>
      * <p>%notbounties_top_[x]_(all/kills/claimed/deaths/set/immunity/current)%</p>
      * <p>%notbounties_wanted%</p> Wanted tag
-     * <p>%notbounties_notification%</p> Bounty broadcast -> True/False
+     * <p>%notbounties_notification%</p> Bounty broadcast -> EXTENDED, SHORT, or DISABLED
      * <p>%notbounties_mode%</p> Whitelist/Blacklist
      * <p>%notbounties_timed_bounty%</p>
      * <p>%notbounties_challenge_[x/time]%</p>
+     * <p>%notbounties_current_page%</p>
+     * <p>%notbounties_total_pages%</p>
      * @Depricated <p>%notbounties_bounties_claimed%</p>
      * <p>%notbounties_bounties_set%</p>
      * <p>%notbounties_bounties_received%</p>
      * <p>%notbounties_immunity_spent%</p>
      * <p>%notbounties_all_time_bounty%</p>
      * <p>%notbounties_currency_gained%</p>
-     * <p>%notbounties_current_page%</p>
-     * <p>%notbounties_total_pages%</p>
      */
 
     @Override
@@ -120,19 +120,20 @@ public class BountyExpansion extends PlaceholderExpansion {
             }
         }
         if (params.startsWith("total")) {
-            if (params.equalsIgnoreCase("total")) {
-                int bounties = BountyManager.getAllBounties(-1).size();
-                return NumberFormatting.formatNumber(bounties);
-            } else if (params.equalsIgnoreCase("total_unique")) {
+             if (params.startsWith("total_unique")) {
+                 // notbounties_total_unique
                 List<Bounty> bounties = BountyManager.getAllBounties(-1);
-                List<UUID> counted = new ArrayList<>();
+                Set<UUID> counted = new HashSet<>();
                 for (Bounty bounty : bounties) {
                     for (Setter setter : bounty.getSetters()) {
-                        if (!counted.contains(setter.getUuid()))
-                            counted.add(setter.getUuid());
+                        counted.add(setter.getUuid());
                     }
                 }
                 return NumberFormatting.formatNumber(counted.size());
+            } else {
+                 // notbounties_total
+                int bounties = BountyManager.getAllBounties(-1).size();
+                return NumberFormatting.formatNumber(bounties);
             }
         }
 
