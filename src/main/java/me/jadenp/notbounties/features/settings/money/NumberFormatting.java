@@ -137,7 +137,7 @@ public class NumberFormatting {
             }
             // placeholder or item
             if (currencyName.contains("%")){
-                if (!ConfigOptions.getIntegrations().isPapiEnabled() && !(vaultEnabled && !overrideVault)) {
+                if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI") && !(vaultEnabled && !overrideVault)) {
                     plugin.getLogger().warning("Detected a placeholder as currency, but PlaceholderAPI is not enabled!");
                     plugin.getLogger().warning("Ignoring placeholder from currency.");
                     currencyIterator.remove();
@@ -182,10 +182,11 @@ public class NumberFormatting {
         // in case all the currency is invalid
         if (currency.isEmpty() && currencyOptions.isSet("object")){
             if (!vaultEnabled || overrideVault)
-                plugin.getLogger().info("No currency to use. Defaulting to DIAMOND as currency");
-            currency.add("DIAMOND");
-            currencyValues.put("DIAMOND", 1f);
-            currencyWeights.add(0f);
+                plugin.getLogger().info("No valid currency to use.");
+            // make owner fix the problem, changing currency could cause issues
+            //currency.add("DIAMOND");
+            //currencyValues.put("DIAMOND", 1f);
+            //currencyWeights.add(0f);
         }
 
 
