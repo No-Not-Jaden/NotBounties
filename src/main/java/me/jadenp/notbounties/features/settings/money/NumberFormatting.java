@@ -899,7 +899,7 @@ public class NumberFormatting {
                     if (!customModelDatas.get(i).equals("-1")) {
                         ItemMeta meta = item.getItemMeta();
                         if (meta != null) {
-                            if (customModelDatas.get(i).contains(":")) {
+                            if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(i).contains(":")) {
                                 meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(i)));
                             } else {
                                 meta.setCustomModelData(Integer.parseInt(customModelDatas.get(i)));
@@ -933,7 +933,7 @@ public class NumberFormatting {
                 if (!customModelDatas.get(0).equals("-1")) {
                     ItemMeta meta = item.getItemMeta();
                     if (meta != null) {
-                        if (customModelDatas.get(0).contains(":")) {
+                        if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(0).contains(":")) {
                             meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(0)));
                         } else {
                             meta.setCustomModelData(Integer.parseInt(customModelDatas.get(0)));
@@ -957,7 +957,7 @@ public class NumberFormatting {
                 if (!customModelDatas.get(0).equals("-1")) {
                     ItemMeta meta = item.getItemMeta();
                     if (meta != null) {
-                        if (customModelDatas.get(0).contains(":")) {
+                        if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(0).contains(":")) {
                             meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(0)));
                         } else {
                             meta.setCustomModelData(Integer.parseInt(customModelDatas.get(0)));
@@ -988,7 +988,7 @@ public class NumberFormatting {
                     if (!customModelDatas.get(i).equals("-1")) {
                         ItemMeta meta = item.getItemMeta();
                         if (meta != null) {
-                            if (customModelDatas.get(i).contains(":")) {
+                            if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(i).contains(":")) {
                                 meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(i)));
                             } else {
                                 meta.setCustomModelData(Integer.parseInt(customModelDatas.get(i)));

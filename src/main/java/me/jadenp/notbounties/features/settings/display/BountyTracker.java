@@ -3,6 +3,7 @@ package me.jadenp.notbounties.features.settings.display;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.ui.gui.CompatabilityUtils;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.LanguageOptions;
@@ -596,7 +597,7 @@ public class BountyTracker implements Listener {
                 NotBounties.getServerImplementation().entity(event.getWhoClicked()).runDelayed(() -> {
                     if (result != null)
                         result.setAmount(previousAmount + 1);
-                    event.getWhoClicked().getOpenInventory().setCursor(result);
+                    CompatabilityUtils.setCursor((Player) event.getWhoClicked(), result);
                 }, 1);
                 break;
             case DROP_ONE_SLOT, DROP_ONE_CURSOR, DROP_ALL_CURSOR, DROP_ALL_SLOT:
@@ -618,8 +619,9 @@ public class BountyTracker implements Listener {
                 break;
             case HOTBAR_SWAP, HOTBAR_MOVE_AND_READD:
                 // hit a number button to move to a hotbar slot - slot must be empty
-                if (event.getWhoClicked().getOpenInventory().getBottomInventory().getItem(event.getHotbarButton()) == null)
-                    event.getWhoClicked().getOpenInventory().getBottomInventory().setItem(event.getHotbarButton(), inventory.getResult());
+                Inventory bottomInventory = CompatabilityUtils.getBottomInventory((Player) event.getWhoClicked());
+                if (bottomInventory.getItem(event.getHotbarButton()) == null)
+                    bottomInventory.setItem(event.getHotbarButton(), inventory.getResult());
                 break;
             default:
                 return;

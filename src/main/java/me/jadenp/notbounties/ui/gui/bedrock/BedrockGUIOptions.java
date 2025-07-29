@@ -142,7 +142,7 @@ public class BedrockGUIOptions {
         return sortType;
     }
 
-    public List<GUIComponent> addPlayerComponents(SimpleForm.Builder builder, Player player, long page, List<DisplayItem> displayItems, Object[] data) {
+    public List<GUIComponent> addPlayerComponents(SimpleForm.Builder builder, Player player, long page, long maxPage, List<DisplayItem> displayItems, Object[] data) {
         // keeping track of added components
         List<GUIComponent> playerComponents = new ArrayList<>();
         // iterate through players to add
@@ -187,7 +187,7 @@ public class BedrockGUIOptions {
         return playerComponents;
     }
 
-    public List<String> getPlayerText(Player player, long page, List<DisplayItem> displayItems, Object[] data) {
+    public List<String> getPlayerText(Player player, long page, long maxPage, List<DisplayItem> displayItems, Object[] data) {
         List<String> text = new ArrayList<>();
         if (playerText == null)
             return text;
@@ -209,14 +209,14 @@ public class BedrockGUIOptions {
         return text;
     }
 
-    public void openInventory(Player player, long page, List<DisplayItem> displayItems, String title, Object[] data) {
+    public void openInventory(Player player, long page, long maxPage, List<DisplayItem> displayItems, String title, Object[] data) {
         NotBounties.getServerImplementation().global().run(() -> {
             if (!LanguageOptions.getMessage("bedrock-open-gui").isEmpty() && !GUI.playerInfo.containsKey(player.getUniqueId())) {
                 player.sendMessage(LanguageOptions.parse(getPrefix() + getMessage("bedrock-open-gui").replace("{page}", page + ""), player));
             }
-            player.getOpenInventory().close();
+            player.closeInventory();
         });
-        OpenBedrockGUI openBedrockGUI = new OpenBedrockGUI(player, page, this, displayItems, title, data);
+        OpenBedrockGUI openBedrockGUI = new OpenBedrockGUI(player, page, maxPage, this, displayItems, title, data);
         openBedrockGUI.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(openBedrockGUI, 1, 4));
 
     }

@@ -106,9 +106,13 @@ public class TextDisplayTag extends TagProvider {
             textDisplay.setSeeThrough(false);
             textDisplay.setAlignment(TextDisplay.TextAlignment.CENTER);
             textDisplay.setBillboard(Display.Billboard.VERTICAL);
-            textDisplay.setTeleportDuration(2);
-            textDisplay.setInterpolationDelay(0);
-            textDisplay.setInterpolationDuration(10);
+            try {
+                textDisplay.setTeleportDuration(2);
+                textDisplay.setInterpolationDelay(0);
+                textDisplay.setInterpolationDuration(10);
+            } catch (NoSuchMethodError ignored) {
+                // using an older server version
+            }
             if (text != null && !text.isEmpty()) {
                 textDisplay.setText(text);
             }

@@ -95,8 +95,8 @@ public class RemovePersistentEntitiesEvent implements Listener {
         return entity != null
                 && (entity.getType() == EntityType.ARMOR_STAND || entity.getType() == EntityType.ITEM_FRAME
                 || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME)
-                || (NotBounties.isAboveVersion(19,4) && entity.getType() == EntityType.TEXT_DISPLAY
-                    || entity.getType() == EntityType.ITEM_DISPLAY || entity.getType() == EntityType.BLOCK_DISPLAY));
+                || (NotBounties.isAboveVersion(19,3) && (entity.getType() == EntityType.TEXT_DISPLAY
+                    || entity.getType() == EntityType.ITEM_DISPLAY || entity.getType() == EntityType.BLOCK_DISPLAY)));
     }
 
     /**

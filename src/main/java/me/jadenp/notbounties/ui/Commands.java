@@ -1871,7 +1871,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 } else {
                                                     // erase data from gui
                                                     GUI.playerInfo.remove(parser.getUniqueId());
-                                                    parser.getOpenInventory().close();
+                                                    parser.closeInventory();
                                                 }
                                             } else {
                                                 result = NumberFormatting.removeItems(parser, new ArrayList<>(items), NumberFormatting.getManualEconomy() == ManualEconomy.AUTOMATIC);

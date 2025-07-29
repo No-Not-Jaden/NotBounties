@@ -8,6 +8,7 @@ import me.jadenp.notbounties.features.challenges.ChallengeType;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
+import me.jadenp.notbounties.ui.gui.CompatabilityUtils;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
@@ -24,6 +25,7 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.server.MapInitializeEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.CraftingInventory;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
@@ -340,7 +342,7 @@ public class BountyMap implements Listener {
                 NotBounties.getServerImplementation().entity(event.getWhoClicked()).runDelayed(() -> {
                     if (result != null) {
                         result.setAmount(previousAmount + 1);
-                        event.getWhoClicked().getOpenInventory().setCursor(result);
+                        CompatabilityUtils.setCursor((Player) event.getWhoClicked(), result);
                     }
                 }, 1);
                 break;
@@ -362,8 +364,9 @@ public class BountyMap implements Listener {
                 break;
             case HOTBAR_MOVE_AND_READD,HOTBAR_SWAP:
                 // hit a number button to move to a hotbar slot - slot must be empty
-                if (event.getWhoClicked().getOpenInventory().getBottomInventory().getItem(event.getHotbarButton()) == null)
-                    event.getWhoClicked().getOpenInventory().getBottomInventory().setItem(event.getHotbarButton(), inventory.getResult());
+                Inventory bottomInventory = CompatabilityUtils.getBottomInventory((Player) event.getWhoClicked());
+                if (bottomInventory.getItem(event.getHotbarButton()) == null)
+                    bottomInventory.setItem(event.getHotbarButton(), inventory.getResult());
                 break;
             default:
                 return;

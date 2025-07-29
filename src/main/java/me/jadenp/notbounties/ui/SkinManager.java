@@ -15,6 +15,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.StatusLine;
 import org.bukkit.Bukkit;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
@@ -170,7 +171,7 @@ public class SkinManager {
         NotBounties.getServerImplementation().global().run(() -> rateLimit.add(System.currentTimeMillis()));
     }
 
-    public static void failRequest(UUID uuid) {
+    public static void failRequest(@NotNull UUID uuid) {
         requestCooldown.put(uuid, System.currentTimeMillis() + REQUEST_FAIL_TIMEOUT);
         savedSkins.computeIfAbsent(uuid, u -> missingSkin);
     }
@@ -290,7 +291,8 @@ class SkinResponseHandler {
                 }
             } catch(IOException | IllegalStateException e){
                 // skin request fail
-                SkinManager.failRequest(uuid);
+                if (uuid != null)
+                    SkinManager.failRequest(uuid);
                 NotBounties.debugMessage("Failed to request skin: " + uuid, true);
                 NotBounties.debugMessage(e.toString(), true);
             }

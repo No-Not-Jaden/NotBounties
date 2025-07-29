@@ -7,6 +7,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.ui.gui.CompatabilityUtils;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
@@ -31,10 +32,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
-import static me.jadenp.notbounties.ui.gui.GUI.playerInfo;
 import static me.jadenp.notbounties.features.LanguageOptions.getPrefix;
 import static me.jadenp.notbounties.features.settings.money.NumberFormatting.*;
+import static me.jadenp.notbounties.ui.gui.GUI.*;
 
 public class ActionCommands {
     private static List<String> bountyClaimCommands;
@@ -127,7 +127,7 @@ public class ActionCommands {
         command = command.replace("{min_bounty}", getValue(ConfigOptions.getMoney().getMinBounty()));
         if (info.data().length > 0) {
             Object[] data = info.data();
-            if (info.guiType().equals("bounty-item-select") && player.getOpenInventory().getTitle().equals(info.title())) {
+            if (info.guiType().equals("bounty-item-select") && CompatabilityUtils.getTitle(player).equals(info.title())) {
                 // update data with current item contentse
                 GUIOptions guiOptions = GUI.getGUI("bounty-item-select");
                 if (guiOptions == null)
@@ -135,7 +135,7 @@ public class ActionCommands {
                 // read current inventory
                 ItemStack[] currentContents = new ItemStack[GUI.getMaxBountyItemSlots()];
                 for (int i = 0; i < currentContents.length; i++) {
-                    currentContents[i] = player.getOpenInventory().getTopInventory().getContents()[guiOptions.getPlayerSlots().get(i + 1)];
+                    currentContents[i] = CompatabilityUtils.getTopInventory(player).getContents()[guiOptions.getPlayerSlots().get(i + 1)];
                 }
                 // get all items
                 ItemStack[][] allItems = data.length > 1 && data[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[GUI.getMaxBountyItemSlots()][(int) info.page()];
@@ -173,11 +173,11 @@ public class ActionCommands {
 
 
         // check for {slot<x>}
-        while (player.getOpenInventory().getType() != InventoryType.CRAFTING && command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")) {
+        while (CompatabilityUtils.getType(player) != InventoryType.CRAFTING && command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")) {
             String replacement = "";
             try {
                 int slot = Integer.parseInt(command.substring(command.indexOf("{slot") + 5, command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length()));
-                ItemStack item = player.getOpenInventory().getTopInventory().getContents()[slot];
+                ItemStack item = CompatabilityUtils.getTopInventory(player).getContents()[slot];
                 if (item != null) {
                     if (item.getType() == Material.PLAYER_HEAD) {
                         SkullMeta meta = (SkullMeta) item.getItemMeta();
@@ -339,7 +339,7 @@ public class ActionCommands {
                 }
             }
         } else if (command.startsWith("[sound_player] ")) {
-            command = command.substring(8);
+            command = command.substring(15);
             double volume = 1;
             double pitch = 1;
             String sound;
@@ -370,7 +370,7 @@ public class ActionCommands {
             }
             player.playSound(player.getEyeLocation(), realSound, (float) volume, (float) pitch);
         } else if (command.startsWith("[sound_killer] ")) {
-            command = command.substring(8);
+            command = command.substring(15);
             double volume = 1;
             double pitch = 1;
             String sound;
@@ -493,7 +493,7 @@ public class ActionCommands {
             player.closeInventory();
             Prompt.addCommandPrompt(player.getUniqueId(), new CommandPrompt(player, command, playerPrompt));
         } else if (command.startsWith("[close]")) {
-            player.getOpenInventory().close();
+            player.closeInventory();
             playerInfo.remove(player.getUniqueId());  // would only do something for bedrock players
         } else if (command.startsWith("[next]")) {
             int amount = 1;
@@ -544,7 +544,7 @@ public class ActionCommands {
                 // get all items in player slots except first one
                 ItemStack[] items = new ItemStack[allItems[0].length];
                 for (int i = 1; i < gui.getPlayerSlots().size(); i++) {
-                    ItemStack item = player.getOpenInventory().getItem(gui.getPlayerSlots().get(i));
+                    ItemStack item = CompatabilityUtils.getTopInventory(player).getItem(gui.getPlayerSlots().get(i));
                     items[i-1] = item;
                 }
                 // create new array to fit a new page if needed
@@ -612,7 +612,7 @@ public class ActionCommands {
                     // get all items in player slots except first one
                     ItemStack[] items = new ItemStack[allItems[0].length];
                     for (int i = 1; i < gui.getPlayerSlots().size(); i++) {
-                        ItemStack item = player.getOpenInventory().getItem(gui.getPlayerSlots().get(i));
+                        ItemStack item = CompatabilityUtils.getTopInventory(player).getItem(gui.getPlayerSlots().get(i));
                         items[i-1] = item;
                     }
                     // change current page in current inventory items

@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.ui.gui.display_items;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -33,7 +34,7 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
         meta.setLore(previousLore.stream().map(string -> LanguageOptions.parse(string, Bukkit.getOfflinePlayer(owningPlayer))).toList());
         if (customModelData != -1)
             meta.setCustomModelData(customModelData);
-        if (itemModel != null)
+        if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
             meta.setItemModel(CustomItem.getItemModel(itemModel));
         item.setItemMeta(meta);
         return item;

@@ -144,7 +144,7 @@ public class GUIClicks {
         switch (clickAction) {
             case EDIT -> {
                 if (player.hasPermission(NotBounties.getAdminPermission())) {
-                    player.getOpenInventory().close();
+                    player.closeInventory();
                     String messageText = LanguageOptions.parse(LanguageOptions.getMessage("edit-bounty-clickable").replace("{receiver}", bounty.getName()), player);
                     TextComponent message =  LanguageOptions.getTextComponent(messageText);
 
@@ -170,13 +170,13 @@ public class GUIClicks {
             }
             case POSTER -> {
                 if (BountyMap.isGiveOwn()) {
-                    player.getOpenInventory().close();
+                    player.closeInventory();
                     Bukkit.getServer().dispatchCommand(player, ConfigOptions.getPluginBountyCommands().get(0) + " poster " + LoggedPlayers.getPlayerName(bounty.getUUID()));
                 }
             }
             case TRACKER -> {
                 if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || player.hasPermission(NotBounties.getAdminPermission())) && player.hasPermission("notbounties.tracker")) {
-                    player.getOpenInventory().close();
+                    player.closeInventory();
                     Bukkit.getServer().dispatchCommand(player, ConfigOptions.getPluginBountyCommands().get(0) + " tracker " + LoggedPlayers.getPlayerName(bounty.getUUID()));
                 }
             }

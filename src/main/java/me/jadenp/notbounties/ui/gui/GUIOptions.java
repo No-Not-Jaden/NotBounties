@@ -154,13 +154,13 @@ public class GUIOptions {
         ItemStack[] contents = inventory.getContents();
         String[] replacements;
         if (data.length == 0) {
-            replacements = new String[0];
+            replacements = new String[]{"", "", "", "", page + "", maxPage + ""};
         } else if (type.equals("leaderboard") && data[0] instanceof String string) {
             try {
                 Leaderboard leaderboard = Leaderboard.valueOf(string.toUpperCase());
-                replacements = new String[]{leaderboard.toString(), leaderboard.getDisplayName(), "", ""};
+                replacements = new String[]{leaderboard.toString(), leaderboard.getDisplayName(), "", "", page + "", maxPage + ""};
             } catch (IllegalArgumentException ignored) {
-                replacements = new String[] {string, string, "", ""};
+                replacements = new String[] {string, string, "", "", page + "", maxPage + ""};
             }
 
         } else if (type.equals("select-price") || type.equals("confirm-bounty") || type.equals("bounty-hunt-time")) {
@@ -169,17 +169,19 @@ public class GUIOptions {
             replacements = new String[]{"",
                     NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(page) + NumberFormatting.getCurrencySuffix(), // amount
                     NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(tax) + NumberFormatting.getCurrencySuffix(), // tax
-                    NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(total) + NumberFormatting.getCurrencySuffix() // amount_tax
+                    NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(total) + NumberFormatting.getCurrencySuffix(), // amount_tax
+                    page + "", maxPage + ""
             };
         } else if (type.equals("confirm") && data[0] instanceof Number number) {
             String amount = NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(number.doubleValue()) + NumberFormatting.getCurrencySuffix();
             replacements = new String[]{"",
                     amount, // amount
                     amount, // tax
-                    amount // amount_tax
+                    amount, // amount_tax
+                    page + "", maxPage + ""
             };
         } else {
-            replacements = new String[0];
+            replacements = new String[]{"", "", "", "", page + "", maxPage + ""};
         }
         // set up regular items
         for (int i = 0; i < contents.length; i++) {
@@ -301,6 +303,10 @@ public class GUIOptions {
 
     public String getType() {
         return type;
+    }
+
+    public InventoryType getInventoryType() {
+        return inventoryType;
     }
 }
 

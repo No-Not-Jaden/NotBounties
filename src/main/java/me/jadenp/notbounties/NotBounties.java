@@ -30,7 +30,9 @@ import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock
 import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock.GeyserMCClass;
 import me.jadenp.notbounties.features.settings.integrations.external_api.worldguard.WorldGuardClass;
 import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -444,37 +446,20 @@ public final class NotBounties extends JavaPlugin {
                 + ChatColor.YELLOW + "Author: " + ChatColor.GRAY + "Not_Jaden"
                 + ChatColor.YELLOW + " Current Plugin Version: " + ChatColor.WHITE + getDescription().getVersion()
                 + ChatColor.YELLOW + " Latest Plugin Version: " + ChatColor.WHITE + getLatestVersion()
-                + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE
-                + "1." + serverVersion + "." + serverSubVersion
+                + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + getServer().getVersion()
                 + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug
                 + ChatColor.YELLOW + " Online Mode: " + ChatColor.WHITE + Bukkit.getOnlineMode());
+
+        TextComponent updateNotification = getUpdateNotificationInfo();
+        sender.spigot().sendMessage(updateNotification);
 
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties
                 + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + BountyTracker.getTrackedBounties().size()
                 + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + BountyBoard.getBountyBoards().size());
 
-        List<String> statuses = List.of(
-                status("Vault", NumberFormatting.isVaultEnabled()),
-                status("PlaceholderAPI", ConfigOptions.getIntegrations().isPapiEnabled()),
-                status("HeadDataBase", ConfigOptions.getIntegrations().isHeadDataBaseEnabled()),
-                status("LiteBans", ConfigOptions.getIntegrations().isLiteBansEnabled()),
-                status("SkinsRestorer", ConfigOptions.getIntegrations().isSkinsRestorerEnabled()),
-                status("BetterTeams", BountyClaimRequirements.isBetterTeamsEnabled()),
-                status("TownyAdvanced", BountyClaimRequirements.isTownyAdvancedEnabled()),
-                status("Floodgate", ConfigOptions.getIntegrations().isFloodgateEnabled()),
-                status("GeyserMC", ConfigOptions.getIntegrations().isGeyserEnabled()),
-                status("Kingdoms", BountyClaimRequirements.isKingdomsXEnabled()),
-                status("Lands", BountyClaimRequirements.isLandsEnabled()),
-                status("WorldGuard", ConfigOptions.getIntegrations().isWorldGuardEnabled()),
-                status("SuperiorSkyblock2", BountyClaimRequirements.isSuperiorSkyblockEnabled()),
-                status("MMOLib", ConfigOptions.getIntegrations().isMmoLibEnabled()),
-                status("SimpleClans", BountyClaimRequirements.isSimpleClansEnabled()),
-                status("Factions", BountyClaimRequirements.isFactionsEnabled()),
-                status("Duels", ConfigOptions.getIntegrations().isDuelsEnabled()),
-                status("PacketEvents", ConfigOptions.getIntegrations().isPacketEventsEnabled())
-        );
-        String joined = String.join(ChatColor.GRAY + "|", statuses);
-        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + joined + ChatColor.GRAY + "]");
+        List<String> hooks = getPluginHooks();
+        String joined = String.join(ChatColor.GRAY + "|" + ChatColor.GREEN, hooks);
+        sender.sendMessage(ChatColor.GOLD + "Plugin Hooks > " + ChatColor.GRAY + "[" + ChatColor.GREEN + joined + ChatColor.GRAY + "]");
         sender.sendMessage(ChatColor.GRAY + "Reloading the plugin will refresh connections.");
 
         TextComponent discord = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(114, 137, 218))
@@ -484,7 +469,7 @@ public final class NotBounties extends JavaPlugin {
                 + "Spigot: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://www.spigotmc.org/resources/notbounties.104484/");
         spigot.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://www.spigotmc.org/resources/notbounties.104484/"));
         TextComponent github = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(230, 237, 243))
-                + "Github: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://github.com/No-Not-Jaden/NotBounties");
+                + "Github + Wiki: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://github.com/No-Not-Jaden/NotBounties");
         github.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/No-Not-Jaden/NotBounties"));
         sender.spigot().sendMessage(discord);
         sender.spigot().sendMessage(spigot);
@@ -492,6 +477,65 @@ public final class NotBounties extends JavaPlugin {
         sender.sendMessage("");
     }
 
+    private static @NotNull TextComponent getUpdateNotificationInfo() {
+        TextComponent updateNotification;
+        String update = ConfigOptions.getUpdateNotification();
+        if (update.equalsIgnoreCase("false")){
+            updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.RED + "Disabled " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to enable.");
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification true"));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification true")));
+        } else if (update.equalsIgnoreCase("true")){
+            updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.GREEN + "Enabled " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to disable.");
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification false"));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification false")));
+        } else {
+            updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.YELLOW + "Paused for the latest version " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to enable.");
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification true"));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification true")));
+        }
+        return updateNotification;
+    }
+
+    private static @NotNull List<String> getPluginHooks() {
+        List<String> hooks = new LinkedList<>();
+        if (NumberFormatting.isVaultEnabled())
+            hooks.add("Vault");
+        if (ConfigOptions.getIntegrations().isPapiEnabled())
+            hooks.add("PlaceholderAPI");
+        if (ConfigOptions.getIntegrations().isHeadDataBaseEnabled())
+            hooks.add("HeadDataBase");
+        if (ConfigOptions.getIntegrations().isLiteBansEnabled())
+            hooks.add("LiteBans");
+        if (ConfigOptions.getIntegrations().isSkinsRestorerEnabled())
+            hooks.add("SkinsRestorer");
+        if (BountyClaimRequirements.isBetterTeamsEnabled())
+            hooks.add("BetterTeams");
+        if (BountyClaimRequirements.isTownyAdvancedEnabled())
+            hooks.add("TownyAdvanced");
+        if (ConfigOptions.getIntegrations().isFloodgateEnabled())
+            hooks.add("Floodgate");
+        if (ConfigOptions.getIntegrations().isGeyserEnabled())
+            hooks.add("GeyserMC");
+        if (BountyClaimRequirements.isKingdomsXEnabled())
+            hooks.add("Kingdoms");
+        if (BountyClaimRequirements.isLandsEnabled())
+            hooks.add("Lands");
+        if (ConfigOptions.getIntegrations().isWorldGuardEnabled())
+            hooks.add("WorldGuard");
+        if (BountyClaimRequirements.isSuperiorSkyblockEnabled())
+            hooks.add("SuperiorSkyblock2");
+        if (ConfigOptions.getIntegrations().isMmoLibEnabled())
+            hooks.add("MMOLib");
+        if (BountyClaimRequirements.isSimpleClansEnabled())
+            hooks.add("SimpleClans");
+        if (BountyClaimRequirements.isFactionsEnabled())
+            hooks.add("Factions");
+        if (ConfigOptions.getIntegrations().isDuelsEnabled())
+            hooks.add("Duels");
+        if (ConfigOptions.getIntegrations().isPacketEventsEnabled())
+            hooks.add("PacketEvents");
+        return hooks;
+    }
 
 
     public static Map<UUID, String> getNetworkPlayers() {

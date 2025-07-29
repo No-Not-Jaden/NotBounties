@@ -105,15 +105,19 @@ public class CustomItem {
                 .replace("{leaderboard_name}", replacements[1])
                 .replace("{amount}", replacements[1])
                 .replace("{tax}", replacements[2])
-                .replace("{amount_tax}", replacements[3]), player);
+                .replace("{amount_tax}", replacements[3]), player)
+                .replace("{page}", replacements[4])
+                .replace("{page_max}", replacements[5])
+                .replace("%notbounties_current_page%", replacements[4])
+                .replace("%notbounties_total_pages%", replacements[5]);
     }
 
 
     public ItemStack getFormattedItem(OfflinePlayer player, String[] replacements){
         if (replacements == null)
-            replacements = new String[]{"","","",""};
+            replacements = new String[]{"","","","","",""};
         if (replacements.length < 4) {
-            String[] newReplacements = new String[]{"","","",""};
+            String[] newReplacements = new String[]{"","","","","",""};
             System.arraycopy(replacements, 0, newReplacements, 0, replacements.length);
             replacements = newReplacements;
         }
@@ -132,7 +136,7 @@ public class CustomItem {
         }
         if (customModelData != -1)
             meta.setCustomModelData(customModelData);
-        if (itemModel != null)
+        if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
             meta.setItemModel(CustomItem.getItemModel(itemModel));
         if (enchanted) {
             if (NotBounties.isAboveVersion(20, 4)) {

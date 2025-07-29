@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.ui.gui.display_items;
 
 import me.jadenp.notbounties.Leaderboard;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.ui.HeadFetcher;
 import me.jadenp.notbounties.ui.gui.CustomItem;
@@ -42,7 +43,7 @@ public class PlayerItem implements DisplayItem, AmountItem{
         meta.setLore(lore.stream().map(string -> parseText(string, player)).toList());
         if (customModelData != -1)
             meta.setCustomModelData(customModelData);
-        if (itemModel != null)
+        if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
             meta.setItemModel(CustomItem.getItemModel(itemModel));
         item.setItemMeta(meta);
         return item;

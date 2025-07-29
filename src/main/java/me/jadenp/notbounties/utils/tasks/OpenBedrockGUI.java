@@ -21,16 +21,18 @@ public class OpenBedrockGUI extends CancelableTask{
 
     private final Player player;
     private long finalPage;
+    private long maxPage;
     private int maxRequests = 10;
     private final List<DisplayItem> displayItems;
     private final String title;
     private final Object[] data;
     private final BedrockGUIOptions guiOptions;
 
-    public OpenBedrockGUI(Player player, long page, BedrockGUIOptions guiOptions, List<DisplayItem> displayItems, String title, Object[] data) {
+    public OpenBedrockGUI(Player player, long page, long maxPage, BedrockGUIOptions guiOptions, List<DisplayItem> displayItems, String title, Object[] data) {
         super();
         this.player = player;
         finalPage = page;
+        this.maxPage = maxPage;
         this.guiOptions = guiOptions;
         this.displayItems = displayItems;
         this.title = title;
@@ -86,7 +88,7 @@ public class OpenBedrockGUI extends CancelableTask{
                     }
                 }
                 // player values
-                List<GUIComponent> addedComponents = guiOptions.addPlayerComponents(simpleBuilder, player, finalPage, displayItems, data);
+                List<GUIComponent> addedComponents = guiOptions.addPlayerComponents(simpleBuilder, player, finalPage, maxPage, displayItems, data);
                 // add all components because they will all be buttons from this method
                 usedGUIComponents.addAll(addedComponents);
                 // after player values
@@ -129,7 +131,7 @@ public class OpenBedrockGUI extends CancelableTask{
                     }
                 }
                 // add player values to content
-                for (String text : guiOptions.getPlayerText(player, finalPage, displayItems, data)) {
+                for (String text : guiOptions.getPlayerText(player, finalPage, maxPage, displayItems, data)) {
                     modalContent.append(text).append("\n");
                 }
                 modalBuilder.content(modalContent.toString());
@@ -151,7 +153,7 @@ public class OpenBedrockGUI extends CancelableTask{
                     customBuilder.component(component.getComponent());
                 }
                 // player items
-                for (String text : guiOptions.getPlayerText(player, finalPage, displayItems, data)) {
+                for (String text : guiOptions.getPlayerText(player, finalPage, maxPage, displayItems, data)) {
                     customBuilder.label(text);
                 }
                 // after player items

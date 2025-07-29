@@ -84,7 +84,7 @@ public class BedrockGUI {
         BedrockGUIOptions gui = customGuis.get(guiName);
         int maxPage = GUI.estimateMaxPage(guiName, player, gui.getMaxPlayers(), displayItems, data);
         String title = GUI.createTitle(gui, player, page, maxPage, displayItems, data);
-        gui.openInventory(player, page, displayItems, title, data);
+        gui.openInventory(player, page, maxPage, displayItems, title, data);
         GUI.playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, maxPage, guiName, data, displayItems, title));
     }
 
