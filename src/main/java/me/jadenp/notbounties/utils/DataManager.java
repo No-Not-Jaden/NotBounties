@@ -11,6 +11,7 @@ import me.jadenp.notbounties.features.settings.databases.LocalData;
 import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.features.settings.databases.TempDatabase;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyDatabase;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.features.settings.databases.redis.RedisConnection;
 import me.jadenp.notbounties.features.settings.databases.sql.MySQL;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
@@ -91,6 +92,7 @@ public class DataManager {
                     syncDatabase(database.getDatabase(), bounties, playerStatMap, playerDataMap);
                 }
             }
+            ProxyMessaging.setDataSynced(true);
         });
 
     }

@@ -10,6 +10,8 @@ import me.jadenp.notbounties.data.player_data.ItemRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.player_data.RewardHead;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxyDatabase;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
@@ -55,6 +57,7 @@ import static me.jadenp.notbounties.features.settings.money.NumberFormatting.*;
 public class BountyManager {
 
     private static final int BOUNTY_LIST_LENGTH = 10;
+    private static List<BountyClaimInstance> delayedBountyClaims = Collections.synchronizedList(new LinkedList<>());
 
     private BountyManager(){}
 
@@ -279,7 +282,16 @@ public class BountyManager {
 
     }
 
-
+    public static void checkDelayedBountyClaim() {
+        if (!delayedBountyClaims.isEmpty() && !ProxyDatabase.isWaitingForConnectionData()) {
+            List<BountyClaimInstance> delayedBountyClaimsCopy = new LinkedList<>(delayedBountyClaims);
+            delayedBountyClaims.clear();
+            for (int i = 0; i < delayedBountyClaimsCopy.size(); i++) {
+                BountyClaimInstance bountyClaimInstance = delayedBountyClaimsCopy.get(i);
+                NotBounties.getServerImplementation().global().runDelayed(bountyClaimInstance::claimBounty, 1 + i * 10L);
+            }
+        }
+    }
 
 
     /**
@@ -291,6 +303,11 @@ public class BountyManager {
      */
     public static void claimBounty(@NotNull Player player, Player killer, List<ItemStack> drops, boolean forceEditDrops, double deathTax) {
         NotBounties.debugMessage("Received a bounty claim request.", false);
+        if (ProxyDatabase.isWaitingForConnectionData()) {
+            NotBounties.debugMessage("A bounty claim request was received, but the proxy database is still syncing data. Delaying request.", false);
+            delayedBountyClaims.add(new BountyClaimInstance(player, killer, drops, deathTax));
+            return;
+        }
         Item droppedHead = null;
         if (RewardHead.isRewardAnyKill()) {
             ItemStack head = Head.createPlayerSkull(player.getUniqueId(), SkinManager.getSkin(player.getUniqueId()).url());

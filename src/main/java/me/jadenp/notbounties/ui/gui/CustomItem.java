@@ -116,7 +116,7 @@ public class CustomItem {
     public ItemStack getFormattedItem(OfflinePlayer player, String[] replacements){
         if (replacements == null)
             replacements = new String[]{"","","","","",""};
-        if (replacements.length < 4) {
+        if (replacements.length < 6) {
             String[] newReplacements = new String[]{"","","","","",""};
             System.arraycopy(replacements, 0, newReplacements, 0, replacements.length);
             replacements = newReplacements;

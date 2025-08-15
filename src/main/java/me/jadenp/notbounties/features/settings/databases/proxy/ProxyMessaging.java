@@ -33,6 +33,19 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     private static Map<UUID, PlayerStat> statCache;
     private static List<PlayerData> playerDataCache;
 
+    /**
+     * Whether this server has up-to-date data. This server will not have up-to-date data if no players are online
+     * or a few seconds after the first player joins.
+     */
+    private static boolean dataSynced = false;
+
+    public static void setDataSynced(boolean dataSynced) {
+        ProxyMessaging.dataSynced = dataSynced;
+    }
+
+    public static boolean isDataSynced() {
+        return dataSynced;
+    }
 
     private static void setConnectedBefore() {
         ProxyMessaging.connectedBefore = true;

@@ -576,7 +576,7 @@ public class LanguageOptions {
         TextComponent textComponent;
         try {
             textComponent = (TextComponent) TextComponent.fromLegacy(message);
-        } catch (Exception e) {
+        } catch (Exception | NoSuchMethodError e) {
             // not using a version that supports fromLegacy
             textComponent = new TextComponent(message);
         }

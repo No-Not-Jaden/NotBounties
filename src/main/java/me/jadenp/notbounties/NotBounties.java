@@ -64,6 +64,11 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * fast database option to use directly instead of an update interval
  * Multiple proxy databases
  * 1.21.6 dialog
+ *
+ * set bounty
+ * swap servers
+ * claim bounty
+ * swap again
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -215,6 +220,7 @@ public final class NotBounties extends JavaPlugin {
 
             BountyBoard.update();
             BountyHunt.updateBossBars();
+            BountyManager.checkDelayedBountyClaim();
         }, 120, 40);
         // auto save bounties & do some ram cleaning
         getServerImplementation().async().runAtFixedRate(() -> {
@@ -429,9 +435,6 @@ public final class NotBounties extends JavaPlugin {
 
     }
 
-    private static String status(String name, boolean enabled) {
-        return (enabled ? ChatColor.GREEN : ChatColor.RED) + name;
-    }
 
     public void sendDebug(CommandSender sender) {
         sender.sendMessage(parse(getPrefix() + ChatColor.WHITE + "NotBounties debug info:", null));

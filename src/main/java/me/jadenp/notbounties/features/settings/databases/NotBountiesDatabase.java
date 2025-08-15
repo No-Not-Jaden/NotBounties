@@ -178,10 +178,10 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     /**
      * Check if the database has ever been connected with this plugin instance.
      * The database doesn't need to be currently connected to return true.
-     * @return True if the redis database has been connected before.
+     * @return True if the database has been connected before.
      */
     public boolean hasConnectedBefore() {
-        return hasConnected;
+        return hasConnected; // I think this is only used with mySQL
     }
 
     /**

@@ -32,7 +32,8 @@ public class ProxyDatabase extends NotBountiesDatabase {
      */
     private static boolean enabled = false;
     private int numOnlinePlayers;
-    private boolean hasConnected = false;
+    private static long firstPlayerConnectTime = 0;
+    public static final long PROXY_CONNECTION_DELAY = 10000L; // max time it takes for the proxy to connect after a player joins
     private static Map<UUID, String> databaseOnlinePlayers = new HashMap<>();
     private static long lastOnlinePlayersCheck = 0;
     private static boolean databaseSynchronization = false;
@@ -231,7 +232,7 @@ public class ProxyDatabase extends NotBountiesDatabase {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         ProxyDatabase that = (ProxyDatabase) o;
-        return numOnlinePlayers == that.numOnlinePlayers && hasConnected == that.hasConnected;
+        return numOnlinePlayers == that.numOnlinePlayers;
     }
 
     @Override
@@ -248,6 +249,8 @@ public class ProxyDatabase extends NotBountiesDatabase {
 
     @Override
     public void login(UUID uuid, String playerName) {
+        if (numOnlinePlayers == 0)
+            setFirstPlayerConnectTime(System.currentTimeMillis());
         numOnlinePlayers++;
         databaseOnlinePlayers.put(uuid, playerName);
     }
@@ -256,12 +259,27 @@ public class ProxyDatabase extends NotBountiesDatabase {
     public void logout(UUID uuid) {
         numOnlinePlayers--;
         databaseOnlinePlayers.remove(uuid);
-        if (numOnlinePlayers == 0)
+        if (numOnlinePlayers == 0) {
+            setLastSync(System.currentTimeMillis());
             hasConnected = false;
+            ProxyMessaging.setDataSynced(false);
+        }
     }
 
     @Override
     public boolean isPermDatabase() {
         return true;
+    }
+
+    public static void setFirstPlayerConnectTime(long firstPlayerConnectTime) {
+        ProxyDatabase.firstPlayerConnectTime = firstPlayerConnectTime;
+    }
+
+    public static long getFirstPlayerConnectTime() {
+        return firstPlayerConnectTime;
+    }
+
+    public static boolean isWaitingForConnectionData(){
+        return ProxyDatabase.isEnabled() && ProxyDatabase.isDatabaseSynchronization() && !ProxyMessaging.isDataSynced() && System.currentTimeMillis() - ProxyDatabase.getFirstPlayerConnectTime() < ProxyDatabase.PROXY_CONNECTION_DELAY;
     }
 }
