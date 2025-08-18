@@ -66,11 +66,11 @@ public class GUIClicks {
             getListMessage("remove-bounty-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if (admin && usingActions(ClickAction.EDIT, false, true))
             getListMessage("edit-bounty-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
-        if (buyBack && !admin && usingActions(ClickAction.REMOVE, false, false)) // only add buy back if there isn't an admin remove action
+        if (buyBack && (!admin || !usingActions(ClickAction.REMOVE, false, true))) // only add buy back if there isn't an admin remove action
             getListMessage("buy-back-lore").stream().map(bbLore -> parse(bbLore, buyBackPrice, player)).forEach(lore::add);
-        if (BountyMap.isGiveOwn() && usingActions(ClickAction.POSTER, buyBack, admin))
+        if ((BountyMap.isGiveOwn() || player.hasPermission("notbounties.spawnposter")) && usingActions(ClickAction.POSTER, buyBack, admin))
             getListMessage("give-poster-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
-        if ((BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || admin) && player.hasPermission("notbounties.tracker")) && usingActions(ClickAction.TRACKER, buyBack, admin))
+        if ((BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || admin || player.hasPermission("notbounties.spawntracker") || player.hasPermission("notbounties.writeemptytracker")) && player.hasPermission("notbounties.tracker")) && usingActions(ClickAction.TRACKER, buyBack, admin))
             getListMessage("give-tracker-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if (usingActions(ClickAction.VIEW, buyBack, admin))
             getListMessage("view-bounty-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
@@ -105,7 +105,7 @@ public class GUIClicks {
                 if (player.hasPermission(NotBounties.getAdminPermission())) {
                     runAction(player, bounty, adminLeft);
                 } else {
-                    if (player.getUniqueId().equals(bounty.getUUID())) {
+                    if (player.getUniqueId().equals(bounty.getUUID()) && ConfigOptions.getMoney().isBuyOwn() && player.hasPermission("notbounties.buyown")) {
                         runAction(player, bounty, ClickAction.REMOVE); // buy back
                     } else {
                         runAction(player, bounty, playerLeft);
@@ -158,7 +158,7 @@ public class GUIClicks {
             case REMOVE -> {
                 if (player.hasPermission(NotBounties.getAdminPermission())) {
                     GUI.openGUI(player, "confirm", 1, bounty.getUUID(), 0);
-                } else if (player.getUniqueId().equals(bounty.getUUID()) && ConfigOptions.getMoney().isBuyOwn()) {
+                } else if (player.getUniqueId().equals(bounty.getUUID()) && ConfigOptions.getMoney().isBuyOwn() && player.hasPermission("notbounties.buyown")) {
                     // buy back
                     double balance = NumberFormatting.getBalance(player);
                     if (balance >= (int) (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply())) {
@@ -169,13 +169,13 @@ public class GUIClicks {
                 }
             }
             case POSTER -> {
-                if (BountyMap.isGiveOwn()) {
+                if (BountyMap.isGiveOwn() || player.hasPermission("notbounties.spawnposter")) {
                     player.closeInventory();
                     Bukkit.getServer().dispatchCommand(player, ConfigOptions.getPluginBountyCommands().get(0) + " poster " + LoggedPlayers.getPlayerName(bounty.getUUID()));
                 }
             }
             case TRACKER -> {
-                if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || player.hasPermission(NotBounties.getAdminPermission())) && player.hasPermission("notbounties.tracker")) {
+                if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || player.hasPermission(NotBounties.getAdminPermission()) || player.hasPermission("notbounties.spawntracker") || player.hasPermission("notbounties.writeemptytracker")) && player.hasPermission("notbounties.tracker")) {
                     player.closeInventory();
                     Bukkit.getServer().dispatchCommand(player, ConfigOptions.getPluginBountyCommands().get(0) + " tracker " + LoggedPlayers.getPlayerName(bounty.getUUID()));
                 }

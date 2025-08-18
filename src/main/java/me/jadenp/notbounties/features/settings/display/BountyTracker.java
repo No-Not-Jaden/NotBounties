@@ -3,6 +3,7 @@ package me.jadenp.notbounties.features.settings.display;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.ui.gui.CompatabilityUtils;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
@@ -14,6 +15,7 @@ import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -41,6 +43,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.*;
+import static me.jadenp.notbounties.utils.BountyManager.getBounty;
 import static me.jadenp.notbounties.utils.BountyManager.hasBounty;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
@@ -505,7 +508,7 @@ public class BountyTracker implements Listener {
     // poster tracking
     @EventHandler
     public void onEntityInteract(PlayerInteractEntityEvent event) {
-        if (!posterTracking || !(event.getRightClicked().getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)) || NotBounties.isPaused())
+        if ((!posterTracking && !event.getPlayer().hasPermission("notbounties.postertracking")) || !(event.getRightClicked().getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && event.getRightClicked().getType() == EntityType.GLOW_ITEM_FRAME)) || NotBounties.isPaused())
             return;
         ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
         UUID trackedPlayer = getTrackedPlayer(item);
@@ -523,8 +526,13 @@ public class BountyTracker implements Listener {
             return;
         event.setCancelled(true);
         UUID posterPlayerUUID = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(getNamespacedKey(), PersistentDataType.STRING)));
-        if (!hasBounty(posterPlayerUUID))
+        Bounty bounty = getBounty(posterPlayerUUID);
+        if (bounty == null)
             return;
+        if (bounty.getTotalDisplayBounty() < minBounty) {
+            event.getPlayer().sendMessage(parse(getPrefix() + getMessage("min-bounty"), minBounty, event.getPlayer()));
+            return;
+        }
         removeEmptyTracker(event.getPlayer(), true); // remove one empty tracker
         NumberFormatting.givePlayer(event.getPlayer(), getTracker(posterPlayerUUID), 1); // give tracker
         // you have been given
@@ -535,8 +543,19 @@ public class BountyTracker implements Listener {
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
-        if (!tracker || !craftTracker || NotBounties.isPaused())
+        if (!tracker || NotBounties.isPaused())
             return;
+        if (!craftTracker) {
+            boolean hasPerm = false;
+            for (HumanEntity humanEntity : event.getViewers()) {
+                if (humanEntity.hasPermission("notbounties.crafttracker")){
+                    hasPerm = true;
+                    break;
+                }
+            }
+            if (!hasPerm)
+                return;
+        }
         ItemStack[] matrix = event.getInventory().getMatrix();
         boolean hasEmptyTracker = false;
         ItemStack head = null;
@@ -570,7 +589,8 @@ public class BountyTracker implements Listener {
             return;
         }
         UUID trackedPlayer = meta.getOwningPlayer().getUniqueId();
-        if (!hasBounty(trackedPlayer))
+        Bounty bounty = getBounty(trackedPlayer);
+        if (bounty == null|| bounty.getTotalDisplayBounty() < minBounty)
             return;
         ItemStack tracker = getTracker(trackedPlayer);
         event.getInventory().setResult(tracker);
@@ -578,7 +598,7 @@ public class BountyTracker implements Listener {
     // complete tracker crafting
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!tracker || !craftTracker || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused())
+        if (!tracker || (!craftTracker && !event.getWhoClicked().hasPermission("notbounties.crafttracker")) || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused())
             return;
         UUID trackedPlayer = getTrackedPlayer(inventory.getResult());
         if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer))
@@ -649,7 +669,7 @@ public class BountyTracker implements Listener {
     // wash trackers
     @EventHandler
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        if (!tracker || !washTrackers || NotBounties.isPaused())
+        if (!tracker || (!washTrackers && !event.getPlayer().hasPermission("notbounties.washtracker")) || NotBounties.isPaused())
             return;
         UUID trackedPlayer = getTrackedPlayer(event.getItemDrop().getItemStack());
         if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer) || isHuntTracker(event.getItemDrop().getItemStack()))

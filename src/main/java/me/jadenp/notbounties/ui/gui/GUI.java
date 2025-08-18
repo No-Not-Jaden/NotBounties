@@ -213,7 +213,7 @@ public class GUI implements Listener {
                     Bounty bounty = sortedList.get(i);
                     double bountyAmount = Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
                     if (bountyAmount > 0) {
-                        List<String> additionalLore = GUIClicks.getClickLore(player, ConfigOptions.getMoney().isBuyOwn() && bounty.getUUID().equals(player.getUniqueId()), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()));
+                        List<String> additionalLore = GUIClicks.getClickLore(player, ConfigOptions.getMoney().isBuyOwn() && bounty.getUUID().equals(player.getUniqueId()) && player.hasPermission("notbounties.buyown"), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()));
                         if (bounty.getAllWhitelists().contains(player.getUniqueId()) && Whitelist.isEnableBlacklist()) {
                             additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
                         } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId()) && Whitelist.isEnabled()) {

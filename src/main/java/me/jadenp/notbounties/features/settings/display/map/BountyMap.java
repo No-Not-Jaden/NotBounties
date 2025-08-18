@@ -11,10 +11,7 @@ import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTi
 import me.jadenp.notbounties.ui.gui.CompatabilityUtils;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.ItemFrame;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -284,8 +281,19 @@ public class BountyMap implements Listener {
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
-        if (!craftPoster || NotBounties.isPaused() || !enabled)
+        if (NotBounties.isPaused() || !enabled)
             return;
+        if (!craftPoster) {
+            boolean hasPerm = false;
+            for (HumanEntity humanEntity : event.getViewers()) {
+                if (humanEntity.hasPermission("notbounties.craftposter")){
+                    hasPerm = true;
+                    break;
+                }
+            }
+            if (!hasPerm)
+                return;
+        }
         ItemStack[] matrix = event.getInventory().getMatrix();
         boolean hasMap = false;
         ItemStack head = null;
@@ -324,7 +332,7 @@ public class BountyMap implements Listener {
     // complete tracker crafting
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!craftPoster || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused() || !enabled)
+        if ((!craftPoster && !event.getWhoClicked().hasPermission("notbounties.craftposter")) || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused() || !enabled)
             return;
         if (inventory.getResult() == null || inventory.getResult().getType() != Material.FILLED_MAP)
             return;
@@ -393,7 +401,7 @@ public class BountyMap implements Listener {
     // wash trackers
     @EventHandler
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        if (!washPoster || !enabled || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused())
+        if ((!washPoster && !event.getPlayer().hasPermission("notbounties.washposter")) || !enabled || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused())
             return;
 
         NotBounties.getServerImplementation().entity(event.getItemDrop()).runDelayed(() -> {

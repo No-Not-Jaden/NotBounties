@@ -328,34 +328,130 @@ public abstract class BountyPosterProvider {
     }
 
 
+    // ChatGPT modified the following function and its helpers
     public static void drawColors(String text, Graphics2D graphics, int x, int y) {
-        Color currentColor = Color.BLACK;
+        Color currentColor = Color.BLACK; // start color
         StringBuilder currentText = new StringBuilder();
         FontMetrics metrics = graphics.getFontMetrics();
+
         int i = 0;
         while (i < text.length()) {
-            char c = text.charAt(i);
-            if (c == ChatColor.COLOR_CHAR) {
-                char code = text.charAt(i+1);
-                if (!colorTranslations.containsKey(code)) {
-                    i++;
+            char ch = text.charAt(i);
+
+            // Consider both § and & as color introducers
+            if ((ch == ChatColor.COLOR_CHAR) || (ch == '&')) {
+                // --- 1) Bungee verbose hex: §x§R§R§G§G§B§B (or &x&R&R&G&G&B&B) ---
+                if (i + 13 < text.length()) { // need 14 chars total
+                    char next = text.charAt(i + 1);
+                    if (next == 'x' || next == 'X') {
+                        if (isVerboseHexAt(text, i, ch)) {
+                            // flush current run
+                            if (!currentText.isEmpty()) {
+                                graphics.setColor(currentColor);
+                                graphics.drawString(currentText.toString(), x, y);
+                                x += metrics.stringWidth(currentText.toString());
+                                currentText.setLength(0);
+                            }
+                            String hex = "" +
+                                    text.charAt(i + 3) + text.charAt(i + 5) +
+                                    text.charAt(i + 7) + text.charAt(i + 9) +
+                                    text.charAt(i + 11) + text.charAt(i + 13);
+                            currentColor = parseHexColor(hex);
+
+                            // consume the whole verbose sequence (14 chars)
+                            i += 13; // loop's i++ will land us after it
+                            i++;
+                            continue;
+                        }
+                    }
+                }
+
+                // --- 2) Legacy color/reset/formatting: §a, §f, §r etc. (also &a) ---
+                if (i + 1 < text.length()) {
+                    char code = Character.toLowerCase(text.charAt(i + 1));
+
+                    // legacy color code
+                    if (colorTranslations.containsKey(code)) {
+                        if (!currentText.isEmpty()) {
+                            graphics.setColor(currentColor);
+                            graphics.drawString(currentText.toString(), x, y);
+                            x += metrics.stringWidth(currentText.toString());
+                            currentText.setLength(0);
+                        }
+                        currentColor = colorTranslations.get(code);
+                        i += 2; // consume introducer + code
+                        continue;
+                    }
+
+                    // reset (§r / &r) — if you keep 'r' in the map, the branch above already handled it.
+                    if (code == 'r') {
+                        if (!currentText.isEmpty()) {
+                            graphics.setColor(currentColor);
+                            graphics.drawString(currentText.toString(), x, y);
+                            x += metrics.stringWidth(currentText.toString());
+                            currentText.setLength(0);
+                        }
+                        currentColor = colorTranslations.getOrDefault('r', Color.BLACK);
+                        i += 2;
+                        continue;
+                    }
+
+                    // formatting codes (l, m, n, o, k) — ignore for color, just skip
+                    if ("klmno".indexOf(code) >= 0) {
+                        i += 2;
+                        continue;
+                    }
+
+                    // unknown code -> drop introducer and move on (matches your current behavior)
+                    i++; // skip introducer only
                     continue;
                 }
-                if (!currentText.isEmpty()) {
-                    graphics.setColor(currentColor);
-                    graphics.drawString(currentText.toString(), x, y);
-                    x+= metrics.stringWidth(currentText.toString());
-                }
-                currentColor = colorTranslations.get(code);
-                i++;
-                currentText.delete(0, currentText.length());
-            } else {
-                currentText.append(c);
             }
+
+            // Normal character
+            currentText.append(ch);
             i++;
         }
-        graphics.setColor(currentColor);
-        graphics.drawString(currentText.toString(), x, y);
+
+        // draw trailing text
+        if (!currentText.isEmpty()) {
+            graphics.setColor(currentColor);
+            graphics.drawString(currentText.toString(), x, y);
+        }
+    }
+
+    private static boolean isVerboseHexAt(String s, int i, char introducer) {
+        // Expect: [i] introducer, [i+1] 'x', then 6 times: introducer + hexDigit
+        if (i + 13 >= s.length()) return false;
+        if (s.charAt(i) != introducer) return false;
+        char x = s.charAt(i + 1);
+        if (!(x == 'x' || x == 'X')) return false;
+
+        // positions of the 6 introducers and 6 hex digits
+        int[] introPos = {i + 2, i + 4, i + 6, i + 8, i + 10, i + 12};
+        int[] digitPos = {i + 3, i + 5, i + 7, i + 9, i + 11, i + 13};
+
+        for (int p : introPos) {
+            if (p >= s.length() || s.charAt(p) != introducer) return false;
+        }
+        for (int p : digitPos) {
+            if (p >= s.length() || !isHexDigit(s.charAt(p))) return false;
+        }
+        return true;
+    }
+
+    private static boolean isHexDigit(char c) {
+        return (c >= '0' && c <= '9') ||
+                (c >= 'a' && c <= 'f') ||
+                (c >= 'A' && c <= 'F');
+    }
+
+    private static Color parseHexColor(String hex6) {
+        int rgb = Integer.parseInt(hex6, 16);
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        return new Color(r, g, b);
     }
 
     public double getBountyAmount() {

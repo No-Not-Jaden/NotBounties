@@ -137,7 +137,7 @@ public class LanguageOptions {
             page++;
         if (page == 7 && !(sender.hasPermission("notbounties.removeimmunity") && ImmunityManager.getImmunityType() != ImmunityManager.ImmunityType.DISABLE) && !(sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())))
             page++;
-        if (page == 8 && !(sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission(NotBounties.getAdminPermission()) || BountyMap.isGiveOwn()))
+        if (page == 8 && !(sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawntracker") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) && !(sender.hasPermission(NotBounties.getAdminPermission()) || BountyMap.isGiveOwn() || sender.hasPermission("notbounties.spawnposter")))
             page++;
         if (page == 9 && (!sender.hasPermission("notbounties.challenges") || !ChallengeManager.isEnabled()))
             page++;
@@ -191,13 +191,13 @@ public class LanguageOptions {
         if (sender.hasPermission("notbounties.removeset") && !sender.hasPermission(NotBounties.getAdminPermission())) {
             sendHelpMessage(sender, getListMessage("help.remove-set"));
         }
-        if (sender.hasPermission(NotBounties.getAdminPermission()) || BountyMap.isGiveOwn()) {
+        if (sender.hasPermission(NotBounties.getAdminPermission()) || BountyMap.isGiveOwn() || sender.hasPermission("notbounties.spawnposter")) {
             sendHelpMessage(sender, getListMessage("help.poster-own"));
             if (sender.hasPermission(NotBounties.getAdminPermission()))
                 sendHelpMessage(sender, getListMessage("help.poster-other"));
         }
         if (BountyTracker.isEnabled())
-            if (sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
+            if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawntracker") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
                 sendHelpMessage(sender, getListMessage("help.tracker-own"));
                 if (sender.hasPermission(NotBounties.getAdminPermission()))
                     sendHelpMessage(sender, getListMessage("help.tracker-other"));
@@ -286,13 +286,13 @@ public class LanguageOptions {
                 break;
             case 8:
                 // item
-                if (sender.hasPermission(NotBounties.getAdminPermission()) || BountyMap.isGiveOwn()) {
+                if (sender.hasPermission(NotBounties.getAdminPermission()) || BountyMap.isGiveOwn()|| sender.hasPermission("notbounties.spawnposter")) {
                     sendHelpMessage(sender, getListMessage("help.poster-own"));
                     if (sender.hasPermission(NotBounties.getAdminPermission()))
                         sendHelpMessage(sender, getListMessage("help.poster-other"));
                 }
                 if (BountyTracker.isEnabled())
-                    if (sender.hasPermission(NotBounties.getAdminPermission()) || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
+                    if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawntracker") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
                         sendHelpMessage(sender, getListMessage("help.tracker-own"));
                         if (sender.hasPermission(NotBounties.getAdminPermission()))
                             sendHelpMessage(sender, getListMessage("help.tracker-other"));

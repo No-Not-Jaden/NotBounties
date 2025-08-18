@@ -59,6 +59,31 @@ permissions:
   notbounties.tracker:
     default: true
     description: Use a bounty tracker.
+  # These tracker and poster perms override the settings in display.yml
+  notbounties.spawntracker:
+    default: false
+    description: Spawn in a bounty tracker.
+  notbounties.writeemptytracker:
+    default: false
+    description: Write a bounty into an empty tracker.
+  notbounties.washtracker:
+    default: false
+    description: Wash a bounty tracker.
+  notbounties.crafttracker:
+    default: false
+    description: Craft a bounty tracker.
+  notbounties.postertracking:
+    default: false
+    description: Click on a poster with an empty tracker to track it.
+  notbounties.spawnposter:
+    default: false
+    description: Spawn in a bounty poster.
+  notbounties.washposter:
+    default: false
+    description: Wash a bounty poster.
+  notbounties.craftposter:
+    default: false
+    description: Craft a bounty poster.
   notbounties.whitelist:
     default: true
     description: Whitelist players to claim your bounty.
