@@ -75,10 +75,8 @@ public class Events implements Listener {
         if (System.currentTimeMillis() - lastSeen > 1000 * 60) {
             // update player data if they have been online for more than a minute
             NotBounties.debugMessage("Updating player data for " + playerData.getPlayerName(), false);
-            DataManager.syncPlayerData(event.getPlayer().getUniqueId(), null);
+            NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(event.getPlayer().getUniqueId(), null));
         }
-
-
     }
 
     @EventHandler
