@@ -485,7 +485,7 @@ public class NumberFormatting {
      * @return String value of number
      */
     public static String getValue(double number) {
-        return ruz(String.format("%f",number));
+        return ruz(decimalFormat.format(number)).replace(decimalFormat.getDecimalFormatSymbols().getGroupingSeparator() + "", "");
     }
 
     /**

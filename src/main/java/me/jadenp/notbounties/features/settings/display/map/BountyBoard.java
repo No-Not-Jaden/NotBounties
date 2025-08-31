@@ -1,5 +1,7 @@
 package me.jadenp.notbounties.features.settings.display.map;
 
+import com.cjcrafter.foliascheduler.FoliaCompatibility;
+import com.cjcrafter.foliascheduler.util.ServerVersions;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.LanguageOptions;
@@ -145,17 +147,20 @@ public class BountyBoard {
                 ItemStack map = BountyMap.getMap(bounty);
                 if (map == null)
                     return;
-                frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, frameType);
-                frame.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
-                frame.setFacingDirection(direction, true);
-                ItemMeta mapMeta = map.getItemMeta();
-                assert mapMeta != null;
-                mapMeta.setDisplayName(LanguageOptions.parse(itemName, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
-                map.setItemMeta(mapMeta);
-                frame.setItem(map);
-                frame.setInvulnerable(true);
-                frame.setVisible(!invisible);
-                frame.setFixed(true);
+                NotBounties.getServerImplementation().region(location).run(() -> {
+                    frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, frameType);
+                    frame.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
+                    frame.setFacingDirection(direction, true);
+                    ItemMeta mapMeta = map.getItemMeta();
+                    assert mapMeta != null;
+                    mapMeta.setDisplayName(LanguageOptions.parse(itemName, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+                    map.setItemMeta(mapMeta);
+                    frame.setItem(map);
+                    frame.setInvulnerable(true);
+                    frame.setVisible(!invisible);
+                    frame.setFixed(true);
+                });
+
             } catch (IllegalArgumentException ignored) {
                 // this is thrown when there is no space to place the board
             }
@@ -180,15 +185,38 @@ public class BountyBoard {
 
     public void remove() {
         // remove any duplicate frames
-        for (Entity entity : Objects.requireNonNull(location.getWorld()).getNearbyEntities(location, 0.5,0.5,0.5)) {
-            if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01) {
-                entity.remove();
+        if (!NotBounties.getInstance().isEnabled()) {
+            if (ServerVersions.isFolia())
+                // cannot remove entities while the plugin is disabling
+                // https://github.com/PaperMC/Folia/issues/353
+                return;
+
+            for (Entity entity : Objects.requireNonNull(location.getWorld()).getNearbyEntities(location, 0.5, 0.5, 0.5))
+                if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01)
+                    entity.remove();
+
+            if (frame != null) {
+                frame.setItem(null);
+                frame.remove();
+                frame = null;
             }
-        }
-        if (frame != null) {
-            frame.setItem(null);
-            frame.remove();
-            frame = null;
+        } else {
+            NotBounties.getServerImplementation().region(location).run(() -> {
+                for (Entity entity : Objects.requireNonNull(location.getWorld()).getNearbyEntities(location, 0.5, 0.5, 0.5)) {
+                    if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01) {
+                        entity.remove();
+                    }
+                }
+            });
+
+
+            if (frame != null) {
+                NotBounties.getServerImplementation().entity(frame).run(() -> {
+                    frame.setItem(null);
+                    frame.remove();
+                    frame = null;
+                });
+            }
         }
     }
 
