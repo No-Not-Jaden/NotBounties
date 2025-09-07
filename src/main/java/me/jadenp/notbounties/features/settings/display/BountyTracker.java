@@ -400,7 +400,7 @@ public class BountyTracker implements Listener {
 
             // give tracked player glow if close enough
             if ((trackerGlow > 0 && trackedPlayer.getWorld().equals(player.getWorld()) && player.getLocation().distance(trackedPlayer.getLocation()) < trackerGlow) || trackerGlow == -1) {
-                trackedPlayer.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 45, 0));
+                NotBounties.getServerImplementation().entity(trackedPlayer).run(() -> trackedPlayer.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 45, 0)));
             }
             // give tracked player alert if close enough
             if ((alert > 0 && trackedPlayer.getWorld().equals(player.getWorld()) && player.getLocation().distance(trackedPlayer.getLocation()) < alert) || alert == -1) {

@@ -1551,8 +1551,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                                             if (!silent)
                                                 sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive-empty"), parser));
                                         } else {
-                                            if (!silent)
-                                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive"), parser));
+                                            if (!silent) {
+                                                if (playerUUID != null)
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive"), LoggedPlayers.getPlayerName(playerUUID), parser));
+                                                else
+                                                    sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive"), "???", parser));
+                                            }
+
                                         }
                                         return true;
                                     } else {
