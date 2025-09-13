@@ -25,7 +25,7 @@ public class PVPRestrictions implements Listener {
     private static List<String> worlds = new ArrayList<>();
     private static int rule;
     private static int pvpTime;
-    private static final Map<UUID, PVPHistory> historyMap = new HashMap<>();
+    private static final Map<UUID, List<PVPHistory>> historyMap = Collections.synchronizedMap(new HashMap<>()); // uuid = persion who got hit, list of the people who damaged them and when
     private static int combatLoggingTime;
     private static boolean combatLoggingSendMessage;
     private static double deathTaxOverride;
@@ -41,18 +41,74 @@ public class PVPRestrictions implements Listener {
 
     @EventHandler
     public void onPVP(EntityDamageByEntityEvent event) {
-        if ((event.getEntity() instanceof Player && event.getDamager() instanceof Player) && !NotBounties.isPaused())
-            controlPVP((Player) event.getEntity(), (Player) event.getDamager(), event);
+        if ((event.getEntity() instanceof Player entity && event.getDamager() instanceof Player damager) && !NotBounties.isPaused())
+            controlPVP(entity, damager, event);
 
     }
 
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
-        if (event.getHitEntity() != null && event.getEntity().getShooter() != null && !NotBounties.isPaused()) {
-            if (event.getHitEntity() instanceof Player && event.getEntity().getShooter() instanceof Player) {
-                controlPVP((Player) event.getHitEntity(), (Player) event.getEntity().getShooter(), event);
+        if (
+                event.getHitEntity() != null
+                && event.getEntity().getShooter() != null
+                && !NotBounties.isPaused()
+                && event.getHitEntity() instanceof Player hitEntity
+                && event.getEntity().getShooter() instanceof Player shooter
+        ) {
+            controlPVP(hitEntity, shooter, event);
+        }
+
+    }
+
+    /**
+     * Check if the damager attacked the receiver less than pvpTime seconds ago.
+     * @param damager Player that is attacking.
+     * @param receiver Player that is receiving the attack.
+     * @return True if the damager has attacked the receiver recently.
+     */
+    private boolean hasAttackedRecently(Player damager, Player receiver) {
+        if (!historyMap.containsKey(receiver.getUniqueId())) {
+            return false;
+        }
+        List<PVPHistory> pvpHistoryList = historyMap.get(receiver.getUniqueId());
+        for (PVPHistory pvpHistory : pvpHistoryList) {
+            if (pvpHistory.getAttacker().equals(damager.getUniqueId())) {
+                return pvpHistory.getLastHit() > System.currentTimeMillis() - pvpTime * 1000L;
             }
         }
+        return false;
+    }
+
+    private static boolean isCombatSafe(Player player) {
+        if (!historyMap.containsKey(player.getUniqueId())) {
+            return true;
+        }
+        return historyMap.get(player.getUniqueId()).stream().allMatch(PVPHistory::isCombatSafe);
+    }
+
+    private void recordAttack(Player damager, Player receiver) {
+        final UUID receiverId = receiver.getUniqueId();
+        final UUID attackerId = damager.getUniqueId();
+
+        List<PVPHistory> histories = historyMap.computeIfAbsent(receiverId, id -> new ArrayList<>());
+
+        PVPHistory existing = findHistoryForAttacker(histories, attackerId);
+        if (existing != null) {
+            existing.setLastHit(attackerId);
+            return;
+        }
+
+        // No history from the damager yet
+        histories.add(new PVPHistory(attackerId));
+    }
+
+    private PVPHistory findHistoryForAttacker(List<PVPHistory> histories, UUID attackerId) {
+        for (PVPHistory entry : histories) {
+            if (entry.getAttacker().equals(attackerId)) {
+                return entry;
+            }
+        }
+        return null;
     }
 
 
@@ -75,7 +131,7 @@ public class PVPRestrictions implements Listener {
                 }
                 break;
             case 2:
-                if (!BountyManager.hasBounty(player.getUniqueId()) && (!historyMap.containsKey(damager.getUniqueId()) || historyMap.get(damager.getUniqueId()).getLastHit() < System.currentTimeMillis() - pvpTime * 1000L)) {
+                if (!BountyManager.hasBounty(player.getUniqueId()) && !hasAttackedRecently(player, damager)) {
                     event.setCancelled(true);
                     return;
                 }
@@ -93,46 +149,49 @@ public class PVPRestrictions implements Listener {
         }
 
         if ((localCombatTime > 0 || localPVPRule == 2) && BountyManager.hasBounty(player.getUniqueId())) {
-            if (historyMap.containsKey(player.getUniqueId())) {
-                PVPHistory history = historyMap.get(player.getUniqueId());
-                if (history.isCombatSafe() && localCombatTime > 0 && combatLoggingSendMessage) {
-                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-tag").replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
-                }
-                history.setLastHit(damager.getUniqueId());
-            } else {
-                historyMap.put(player.getUniqueId(), new PVPHistory(damager.getUniqueId()));
-                if (localCombatTime > 0 && combatLoggingSendMessage) {
-                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-tag").replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
-                }
-
+            if (isCombatSafe(player) && localCombatTime > 0 && combatLoggingSendMessage) {
+                player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-tag").replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
             }
+            recordAttack(damager, player);
         }
     }
 
-    public static void checkCombatExpiry() {
+    public static synchronized void checkCombatExpiry() {
         if (combatLoggingTime < 1 && !ConfigOptions.getIntegrations().isWorldGuardEnabled()) // optimization return
             return;
-        Iterator<Map.Entry<UUID, PVPHistory>> iterator = historyMap.entrySet().iterator();
+        Iterator<Map.Entry<UUID, List<PVPHistory>>> iterator = historyMap.entrySet().iterator();
         while (iterator.hasNext()) {
-            Map.Entry<UUID, PVPHistory> entry = iterator.next();
-            PVPHistory pvpHistory = entry.getValue();
-            long timeSinceLastHit = System.currentTimeMillis() - pvpHistory.getLastHit();
-            int combatLoggingTime = getCombatLoggingTime(Bukkit.getOfflinePlayer(entry.getKey()));
-            if (!pvpHistory.isCombatSafe() && timeSinceLastHit > combatLoggingTime * 1000L) {
-                // too old for combat logging
-                if (combatLoggingSendMessage) {
-                    // send safe message
-                    Player player = Bukkit.getPlayer(entry.getKey());
-                    if (player != null)
-                        player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-safe"), player));
+            Map.Entry<UUID, List<PVPHistory>> entry = iterator.next();
+            List<PVPHistory> pvpHistories = entry.getValue();
+            boolean allCombatSafe = true;
+            boolean sendMsg = false;
+            // go through each last interaction for this player
+            for (Iterator<PVPHistory> iter = pvpHistories.iterator(); iter.hasNext(); ) {
+                PVPHistory pvpHistory = iter.next();
+                long timeSinceLastHit = System.currentTimeMillis() - pvpHistory.getLastHit();
+                int combatLoggingTime = getCombatLoggingTime(Bukkit.getOfflinePlayer(entry.getKey()));
+                if (!pvpHistory.isCombatSafe() && timeSinceLastHit > combatLoggingTime * 1000L) {
+                    // too old for combat logging
+                    sendMsg = true;
+                    pvpHistory.setCombatSafe(true);
+                } else {
+                    allCombatSafe = false;
                 }
-                pvpHistory.setCombatSafe(true);
+                if ((timeSinceLastHit > pvpTime * 1000L && pvpHistory.isCombatSafe())) {
+                    // is combat safe (for rule 2) and is past the combat logging time
+                    iter.remove();
+                }
             }
-            if (timeSinceLastHit > pvpTime * 1000L && pvpHistory.isCombatSafe()) {
+            if (allCombatSafe && sendMsg && combatLoggingSendMessage) {
+                // send the combat-safe message
+                Player player = Bukkit.getPlayer(entry.getKey());
+                if (player != null)
+                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-safe"), player));
+            }
+            if (pvpHistories.isEmpty()) {
                 iterator.remove();
             }
         }
-
     }
 
     private static int getCombatLoggingTime(OfflinePlayer player) {
@@ -164,7 +223,9 @@ public class PVPRestrictions implements Listener {
             return;
         if (!BountyManager.hasBounty(event.getPlayer().getUniqueId()) || !historyMap.containsKey(event.getPlayer().getUniqueId()))
             return;
-        PVPHistory pvpHistory = historyMap.get(event.getPlayer().getUniqueId());
+        PVPHistory pvpHistory = getLastHit(event.getPlayer());
+        if (pvpHistory == null)
+            return;
         long timeSinceLastHit = System.currentTimeMillis() - pvpHistory.getLastHit();
         if (localCombatLoggingTime == -1)
             localCombatLoggingTime = combatLoggingTime;
@@ -176,6 +237,20 @@ public class PVPRestrictions implements Listener {
 
     }
 
+    private static PVPHistory getLastHit(Player player) {
+        if (!historyMap.containsKey(player.getUniqueId()))
+            return null;
+        List<PVPHistory> pvpHistories = historyMap.get(player.getUniqueId());
+        if (pvpHistories.isEmpty())
+            return null;
+        PVPHistory minLastHit = pvpHistories.get(0);
+        for (PVPHistory pvpHistory : pvpHistories) {
+            if (pvpHistory.getLastHit() < minLastHit.getLastHit())
+                minLastHit = pvpHistory;
+        }
+        return minLastHit;
+    }
+
     public static void onBountyClaim(Player receiver) {
         // send safe message if player has combat timer
         int localCombatLoggingTime = ConfigOptions.getIntegrations().isWorldGuardEnabled() ? WorldGuardClass.getCombatLogOverride(receiver, receiver.getLocation()) : -1;
@@ -185,11 +260,13 @@ public class PVPRestrictions implements Listener {
             return;
         if (!historyMap.containsKey(receiver.getUniqueId()))
             return;
-        PVPHistory pvpHistory = historyMap.get(receiver.getUniqueId());
-        long timeSinceLastHit = System.currentTimeMillis() - pvpHistory.getLastHit();
+        PVPHistory lastHit = getLastHit(receiver);
+        if (lastHit == null)
+            return;
+        long timeSinceLastHit = System.currentTimeMillis() - lastHit.getLastHit();
         if (localCombatLoggingTime == -1)
             localCombatLoggingTime = combatLoggingTime;
-        if (!pvpHistory.isCombatSafe() && timeSinceLastHit < localCombatLoggingTime * 1000L) {
+        if (!isCombatSafe(receiver) && timeSinceLastHit < localCombatLoggingTime * 1000L) {
             receiver.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-safe"), receiver));
             historyMap.remove(receiver.getUniqueId());
         }
