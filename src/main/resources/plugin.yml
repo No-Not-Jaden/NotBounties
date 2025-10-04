@@ -24,6 +24,7 @@ softdepend:
   - Duels
   - SimpleClans
   - packetevents
+  - Skript
 commands:
   notbounties:
     description: Use all of the bounty commands.

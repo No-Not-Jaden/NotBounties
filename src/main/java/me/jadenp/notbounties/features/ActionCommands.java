@@ -40,21 +40,33 @@ public class ActionCommands {
     private static List<String> bountyClaimCommands;
     private static List<String> bigBountyCommands;
     private static List<String> bountySetCommands;
+    private static List<String> bountyRemoveCommands;
     private static Plugin plugin;
 
     private ActionCommands(){}
 
-    public static void loadConfiguration(Plugin plugin, List<String> bountyClaimCommands, List<String> bigBountyCommands, List<String> bountySetCommands) {
+    public static void loadConfiguration(Plugin plugin, List<String> bountyClaimCommands, List<String> bigBountyCommands, List<String> bountySetCommands, List<String> bountyRemoveCommands) {
         ActionCommands.plugin = plugin;
         ActionCommands.bountyClaimCommands = bountyClaimCommands;
         ActionCommands.bigBountyCommands = bigBountyCommands;
         ActionCommands.bountySetCommands = bountySetCommands;
+        ActionCommands.bountyRemoveCommands = bountyRemoveCommands;
+    }
+
+    public static void executeBountyRemove(UUID uuid) {
+        Bounty bounty = BountyManager.getBounty(uuid);
+        Player player = Bukkit.getPlayer(uuid);
+        NotBounties.getServerImplementation().global().run(() -> {
+            for (String command : bountyRemoveCommands) {
+                execute(player, player, bounty, command, uuid);
+            }
+        });
     }
 
     public static void executeBountyClaim(Player player, Player killer, Bounty bounty) {
         NotBounties.getServerImplementation().global().runDelayed(task -> {
             for (String command : bountyClaimCommands) {
-                execute(player, killer, bounty, command);
+                execute(player, killer, bounty, command, player.getUniqueId());
             }
         }, 10);
     }
@@ -63,7 +75,7 @@ public class ActionCommands {
         NotBounties.getServerImplementation().global().runDelayed(task -> {
             for (String command : bountySetCommands) {
                 command = command.replace("{receiver}", LoggedPlayers.getPlayerName(receiver));
-                execute(setter, setter, bounty, command);
+                execute(Bukkit.getPlayer(receiver), setter, bounty, command, receiver);
             }
         }, 10);
     }
@@ -82,7 +94,7 @@ public class ActionCommands {
         Bounty bounty = BountyManager.getBounty(killer.getUniqueId());
         NotBounties.getServerImplementation().global().run(() -> {
             for (String command : commands) {
-                execute(player, killer, bounty, command);
+                execute(player, killer, bounty, command, player.getUniqueId());
             }
         });
     }
@@ -90,17 +102,20 @@ public class ActionCommands {
     public static void executeBigBounty(Player player, Bounty bounty) {
         NotBounties.getServerImplementation().global().runDelayed(task -> {
             for (String command : bigBountyCommands) {
-                execute(player, player, bounty, command);
+                execute(player, player, bounty, command, player.getUniqueId());
             }
         }, 10);
     }
 
     // <TODO> move some string parsing to LanguageOptions.parse</TODO>
-    private static void execute(Player player, Player killer, @Nullable Bounty bounty, String command) {
+    private static void execute(@Nullable Player player, @Nullable Player killer, @Nullable Bounty bounty, String command, UUID playerUUID) {
         if (command.isEmpty())
             return;
-        NotBounties.debugMessage("Executing Command for " + player.getName() + " : " + command, false);
-        PlayerGUInfo info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, 1, "", new Object[0], new ArrayList<>(), "");
+        String playerName = LoggedPlayers.getPlayerName(playerUUID);
+        NotBounties.debugMessage("Executing Command for " + playerName + " : " + command, false);
+        PlayerGUInfo info = null;
+        if (player != null)
+            info = playerInfo.containsKey(player.getUniqueId()) ? playerInfo.get(player.getUniqueId()) : new PlayerGUInfo(1, 1, "", new Object[0], new ArrayList<>(), "");
         double totalBounty = bounty != null ? bounty.getTotalDisplayBounty() : 0;
         double bountyCurrency = bounty != null ? bounty.getTotalBounty() : 0;
         double bountyItemValues = 0;
@@ -114,8 +129,8 @@ public class ActionCommands {
         String bountyItems = bounty != null ? NumberFormatting.listItems(bounty.getTotalItemBounty(), ':') : "";
         String killerName = killer != null ? killer.getName() : "";
 
-        command = command.replace("{viewer}", player.getName());
-        command = command.replace("{player}", (player.getName()));
+        command = command.replace("{viewer}", playerName);
+        command = command.replace("{player}", playerName);
         command = command.replace("{killer}", (killerName));
         command = command.replace("{amount}", (NumberFormatting.getValue(totalBounty)));
         command = command.replace("{bounty}", (NumberFormatting.formatNumber(totalBounty)));
@@ -123,9 +138,11 @@ public class ActionCommands {
         command = command.replace("{bounty_item_values}", (NumberFormatting.formatNumber(bountyItemValues)));
         command = command.replace("{bounty_items}", (bountyItems));
         command = command.replace("{cost}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(totalBounty) + NumberFormatting.getCurrencySuffix()));
-        command = command.replace("{page}", (info.page() + ""));
+        if (info != null)
+            command = command.replace("{page}", (info.page() + ""));
         command = command.replace("{min_bounty}", getValue(ConfigOptions.getMoney().getMinBounty()));
-        if (info.data().length > 0) {
+        if (info != null && info.data().length > 0) {
+            assert player != null;
             Object[] data = info.data();
             if (info.guiType().equals("bounty-item-select") && CompatabilityUtils.getTitle(player).equals(info.title())) {
                 // update data with current item contentse
@@ -173,64 +190,68 @@ public class ActionCommands {
 
 
         // check for {slot<x>}
-        while (CompatabilityUtils.getType(player) != InventoryType.CRAFTING && command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")) {
-            String replacement = "";
-            try {
-                int slot = Integer.parseInt(command.substring(command.indexOf("{slot") + 5, command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length()));
-                ItemStack item = CompatabilityUtils.getTopInventory(player).getContents()[slot];
-                if (item != null) {
-                    if (item.getType() == Material.PLAYER_HEAD) {
-                        SkullMeta meta = (SkullMeta) item.getItemMeta();
-                        assert meta != null;
-                        OfflinePlayer p = meta.getOwningPlayer();
-                        if (p != null) {
-                            replacement = LoggedPlayers.getPlayerName(p.getUniqueId());
-                        } else {
-                            if (!info.guiType().isEmpty()) {
-                               GUIOptions guiOptions = GUI.getGUI(info.guiType());
-                               if (guiOptions != null) {
-                                   if (guiOptions.getPlayerSlots().contains(slot) && info.displayItems().get(guiOptions.getPlayerSlots().indexOf(slot)) instanceof PlayerItem playerItem) {
-                                        replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
-                                   }
-                               } else {
-                                   plugin.getLogger().warning("Invalid player for slot " + slot);
-                               }
+        if (player != null) {
+            while (CompatabilityUtils.getType(player) != InventoryType.CRAFTING && command.contains("{slot") && command.substring(command.indexOf("{slot")).contains("}")) {
+                String replacement = "";
+                try {
+                    int slot = Integer.parseInt(command.substring(command.indexOf("{slot") + 5, command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length()));
+                    ItemStack item = CompatabilityUtils.getTopInventory(player).getContents()[slot];
+                    if (item != null) {
+                        if (item.getType() == Material.PLAYER_HEAD) {
+                            SkullMeta meta = (SkullMeta) item.getItemMeta();
+                            assert meta != null;
+                            OfflinePlayer p = meta.getOwningPlayer();
+                            if (p != null) {
+                                replacement = LoggedPlayers.getPlayerName(p.getUniqueId());
                             } else {
-                                plugin.getLogger().warning("Invalid player for slot " + slot);
-                            }
+                                if (!info.guiType().isEmpty()) {
+                                    GUIOptions guiOptions = GUI.getGUI(info.guiType());
+                                    if (guiOptions != null) {
+                                        if (guiOptions.getPlayerSlots().contains(slot) && info.displayItems().get(guiOptions.getPlayerSlots().indexOf(slot)) instanceof PlayerItem playerItem) {
+                                            replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
+                                        }
+                                    } else {
+                                        plugin.getLogger().warning("Invalid player for slot " + slot);
+                                    }
+                                } else {
+                                    plugin.getLogger().warning("Invalid player for slot " + slot);
+                                }
 
+                            }
+                        }
+                        if (replacement.isEmpty()) {
+                            ItemMeta meta = item.getItemMeta();
+                            if (meta != null)
+                                replacement = meta.getDisplayName();
                         }
                     }
-                    if (replacement.isEmpty()) {
-                        ItemMeta meta = item.getItemMeta();
-                        if (meta != null)
-                            replacement = meta.getDisplayName();
-                    }
+                } catch (NumberFormatException e) {
+                    plugin.getLogger().warning("Error getting slot in command: \n" + command);
                 }
-            } catch (NumberFormatException e) {
-                plugin.getLogger().warning("Error getting slot in command: \n" + command);
+                command = command.substring(0, command.indexOf("{slot")) + replacement + command.substring(command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length() + 1);
             }
-            command = command.substring(0, command.indexOf("{slot")) + replacement + command.substring(command.substring(command.indexOf("{slot")).indexOf("}") + command.substring(0, command.indexOf("{slot")).length() + 1);
         }
 
         // check for {player<x>}
-        while (command.contains("{player") && command.substring(command.indexOf("{player")).contains("}")) {
-            String replacement = "";
-            String slotString = command.substring(command.indexOf("{player") + 7, command.substring(command.indexOf("{player")).indexOf("}") + command.substring(0, command.indexOf("{player")).length());
-            try {
-                int slot = Integer.parseInt(slotString);
-                if (info.displayItems().size() > slot-1 && info.displayItems().get(slot-1) instanceof PlayerItem playerItem) {
-                    replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
+        if (info != null) {
+            while (command.contains("{player") && command.substring(command.indexOf("{player")).contains("}")) {
+                String replacement = "";
+                String slotString = command.substring(command.indexOf("{player") + 7, command.substring(command.indexOf("{player")).indexOf("}") + command.substring(0, command.indexOf("{player")).length());
+                try {
+                    int slot = Integer.parseInt(slotString);
+                    if (info.displayItems().size() > slot - 1 && info.displayItems().get(slot - 1) instanceof PlayerItem playerItem) {
+                        replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
+                    }
+                } catch (NumberFormatException e) {
+                    plugin.getLogger().warning("Error getting player in command: \n" + command);
                 }
-            } catch (NumberFormatException e) {
-                plugin.getLogger().warning("Error getting player in command: \n" + command);
+                command = command.replace(("{player" + slotString + "}"), (replacement));
             }
-            command = command.replace(("{player" + slotString + "}"), (replacement));
         }
 
         boolean canceled = false;
         int loops = 100; // to stop an infinite loop if the command isn't formatted correctly
-        while (command.startsWith("<(") || command.startsWith(">(") || command.startsWith("@(") || command.startsWith("!@(") || command.startsWith("~player(") || command.startsWith("~killer(") || (player.getUniqueId().equals(killer.getUniqueId()) && (command.startsWith("@") || command.startsWith("!@")))) {
+        while (command.startsWith("<(") || command.startsWith(">(") || command.startsWith("@(") || command.startsWith("!@(") || command.startsWith("~player(") || command.startsWith("~killer(") || (player != null && killer != null && player.getUniqueId().equals(killer.getUniqueId()) && (command.startsWith("@") || command.startsWith("!@")))) {
             if (command.startsWith("<(") && command.contains(") ")) {
                 double amount;
                 try {
@@ -253,27 +274,27 @@ public class ActionCommands {
                     canceled = true;
             }
 
-            if (command.startsWith("@(player)")) {
+            if (command.startsWith("@(player)") && player != null) {
                 String permission = command.substring(9, command.indexOf(" "));
                 if (!player.hasPermission(permission))
                     canceled = true;
                 command = command.substring(command.indexOf(" ") + 1);
-            } else if (command.startsWith("!@(player)")) {
+            } else if (command.startsWith("!@(player)") && player != null) {
                 String permission = command.substring(10, command.indexOf(" "));
                 if (player.hasPermission(permission))
                     canceled = true;
                 command = command.substring(command.indexOf(" ") + 1);
-            } else if (command.startsWith("@(killer)")) {
+            } else if (command.startsWith("@(killer)") && killer != null) {
                 String permission = command.substring(9, command.indexOf(" "));
                 if (!killer.hasPermission(permission))
                     canceled = true;
                 command = command.substring(command.indexOf(" ") + 1);
-            } else if (command.startsWith("!@(killer)")) {
+            } else if (command.startsWith("!@(killer)") && killer != null) {
                 String permission = command.substring(10, command.indexOf(" "));
                 if (killer.hasPermission(permission))
                     canceled = true;
                 command = command.substring(command.indexOf(" ") + 1);
-            } else if (player.getUniqueId().equals(killer.getUniqueId())) {
+            } else if (player != null && killer != null && player.getUniqueId().equals(killer.getUniqueId())) {
                 if (command.startsWith("@")) {
                     String permission = command.substring(1, command.indexOf(" "));
                     if (!player.hasPermission(permission))
@@ -288,11 +309,12 @@ public class ActionCommands {
             }
 
             if (command.startsWith("~player(") && command.contains(") ")) {
+                OfflinePlayer player1 = player != null ? player : Bukkit.getOfflinePlayer(playerUUID);
                 String requirement = command.substring(8, command.indexOf(") "));
-                if (!isRequirementCompleted(requirement, player))
+                if (!isRequirementCompleted(requirement, player1))
                     canceled = true;
                 command = command.substring(command.indexOf(") ") + 2);
-            } else if (command.startsWith("~killer(") && command.contains(") ")) {
+            } else if (killer != null && command.startsWith("~killer(") && command.contains(") ")) {
                 String requirement = command.substring(8, command.indexOf(") "));
                 if (!isRequirementCompleted(requirement, killer))
                     canceled = true;
@@ -313,7 +335,7 @@ public class ActionCommands {
 
         NotBounties.debugMessage("Parsed Action: \"" + command + "\"", false);
 
-        if (command.startsWith("[player] ") || command.startsWith("[p] ")) {
+        if (player != null && (command.startsWith("[player] ") || command.startsWith("[p] "))) {
             if (ConfigOptions.getIntegrations().isPapiEnabled())
                 command = new PlaceholderAPIClass().parse(player, command);
             if (command.startsWith("[player] "))
@@ -321,14 +343,14 @@ public class ActionCommands {
             else
                 command = command.substring(4);
             runPlayerCommand(player, command);
-        } else if (command.startsWith("[killer] ")) {
+        } else if (killer != null && command.startsWith("[killer] ")) {
             if (ConfigOptions.getIntegrations().isPapiEnabled())
                 command = new PlaceholderAPIClass().parse(killer, command);
             runPlayerCommand(killer, command.substring(9));
-        } else if (command.startsWith("[message_player] ")) {
+        } else if (player != null && command.startsWith("[message_player] ")) {
             String message = command.substring(17);
             player.sendMessage(LanguageOptions.parse(getPrefix() + message, player));
-        } else if (command.startsWith("[message_killer] ")) {
+        } else if (killer != null && command.startsWith("[message_killer] ")) {
             String message = command.substring(17);
             killer.sendMessage(LanguageOptions.parse(getPrefix() + message, killer));
         } else if (command.startsWith("[broadcast] ")) {
@@ -338,7 +360,7 @@ public class ActionCommands {
                     p.sendMessage(LanguageOptions.parse(getPrefix() + message, killer));
                 }
             }
-        } else if (command.startsWith("[sound_player] ")) {
+        } else if (player != null && command.startsWith("[sound_player] ")) {
             command = command.substring(15);
             double volume = 1;
             double pitch = 1;
@@ -369,7 +391,7 @@ public class ActionCommands {
                 return;
             }
             player.playSound(player.getEyeLocation(), realSound, (float) volume, (float) pitch);
-        } else if (command.startsWith("[sound_killer] ")) {
+        } else if (killer != null && command.startsWith("[sound_killer] ")) {
             command = command.substring(15);
             double volume = 1;
             double pitch = 1;
@@ -400,7 +422,7 @@ public class ActionCommands {
                 return;
             }
             killer.playSound(killer.getEyeLocation(), realSound, (float) volume, (float) pitch);
-        } else if (command.startsWith("[sound] ")) {
+        } else if (killer != null && command.startsWith("[sound] ")) {
             command = command.substring(8);
             double volume = 1;
             double pitch = 1;
@@ -431,7 +453,7 @@ public class ActionCommands {
                 return;
             }
             killer.getWorld().playSound(killer.getLocation(), realSound, (float) volume, (float) pitch);
-        } else if (command.startsWith("[gui]")) {
+        } else if (player != null && command.startsWith("[gui]")) {
             int amount = 1; // default page
             command = command.substring(6); // remove "[gui] "
             String guiName = command;
@@ -487,15 +509,15 @@ public class ActionCommands {
                 else
                     openGUI(player, guiName, amount);
             }
-        } else if (command.startsWith("[cprompt] ") || command.startsWith("[pprompt] ")) {
+        } else if (player != null && (command.startsWith("[cprompt] ") || command.startsWith("[pprompt] "))) {
             boolean playerPrompt = command.startsWith("[pprompt] ");
             command = command.substring(10);
             player.closeInventory();
             Prompt.addCommandPrompt(player.getUniqueId(), new CommandPrompt(player, command, playerPrompt));
-        } else if (command.startsWith("[close]")) {
+        } else if (player != null && command.startsWith("[close]")) {
             player.closeInventory();
             playerInfo.remove(player.getUniqueId());  // would only do something for bedrock players
-        } else if (command.startsWith("[next]")) {
+        } else if (info != null && command.startsWith("[next]")) {
             int amount = 1;
             try {
                 amount = Integer.parseInt(command.substring(7));
@@ -560,7 +582,7 @@ public class ActionCommands {
                 openGUI(player, info.guiType(), info.page() + amount, info.data());
             }
 
-        } else if (command.startsWith("[back]")) {
+        } else if (info != null && command.startsWith("[back]")) {
             int amount = 1;
             try {
                 amount = Integer.parseInt(command.substring(7));
@@ -622,13 +644,13 @@ public class ActionCommands {
                 }
                 default -> openGUI(player, info.guiType(), info.page() - amount, info.data());
             }
-        } else if (command.equalsIgnoreCase("[offline]")) {
+        } else if (player != null && command.equalsIgnoreCase("[offline]")) {
             if (info.data().length > 0 && info.data()[0] instanceof String && ((String) info.data()[0]).equalsIgnoreCase("offline"))
                 openGUI(player, info.guiType(), info.page());
             else
                 openGUI(player, info.guiType(), info.page(), "offline");
 
-        } else if (command.equalsIgnoreCase("<respawn>")) {
+        } else if (player != null && command.equalsIgnoreCase("<respawn>")) {
             if (player.isDead())
                 player.spigot().respawn();
         } else {

@@ -30,6 +30,11 @@ public class WorldGuardClass {
 
     public static void registerFlags() {
         api = WorldGuard.getInstance();
+        if (Bukkit.getPluginManager().isPluginEnabled("WorldGuard")) {
+            // NotBounties was loaded after WorldGuard was enabled. (WorldGuard flags cannot be registered)
+            failedStartup = true;
+            return;
+        }
         registerClaimFlag();
         registerCombatLogFlag();
         registerPVPRuleFlag();

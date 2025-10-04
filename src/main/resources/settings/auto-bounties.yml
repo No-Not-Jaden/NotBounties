@@ -97,6 +97,8 @@ big-bounties:
 bounty-claim-commands: []
 # Commands to be executed when a bounty is set
 bounty-set-commands: []
+# Commands to be executed when a bounty is removed. The killer options for action commands will not work for this.
+bounty-remove-commands: []
 # Blocks commands for bountied players if they start with the following text.
 blocked-bounty-commands:
   - 'teamPlugin leave'

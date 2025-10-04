@@ -1,5 +1,7 @@
 package me.jadenp.notbounties;
 
+import ch.njol.skript.Skript;
+import ch.njol.skript.SkriptAddon;
 import com.cjcrafter.foliascheduler.FoliaCompatibility;
 import com.cjcrafter.foliascheduler.ServerImplementation;
 import me.jadenp.notbounties.data.*;
@@ -111,6 +113,15 @@ public final class NotBounties extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        if (Bukkit.getPluginManager().isPluginEnabled("Skript")) {
+            SkriptAddon addon = Skript.registerAddon(this);
+            try {
+                addon.loadClasses("me.jadenp.notbounties", "skripts");
+                Bukkit.getLogger().info("[NotBounties] Connected to Skript");
+            } catch (IOException e) {
+                Bukkit.getLogger().warning(e.toString());
+            }
+        }
         setServerImplementation(new FoliaCompatibility(this).getServerImplementation());
         Random random = new Random(System.currentTimeMillis());
         // Plugin startup logic

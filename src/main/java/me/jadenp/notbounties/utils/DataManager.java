@@ -6,6 +6,7 @@ import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.data.player_data.*;
+import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
 import me.jadenp.notbounties.features.settings.databases.LocalData;
 import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
@@ -575,6 +576,7 @@ public class DataManager {
             database.removeBounty(uuid);
         }
         localData.removeBounty(uuid);
+        ActionCommands.executeBountyRemove(uuid);
     }
 
     /**
@@ -944,6 +946,7 @@ public class DataManager {
             }
 
         }
+        ActionCommands.executeBountyRemove(bounty.getUUID());
     }
 
     /**
