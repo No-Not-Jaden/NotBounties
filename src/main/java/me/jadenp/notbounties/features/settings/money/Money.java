@@ -1,14 +1,18 @@
 package me.jadenp.notbounties.features.settings.money;
 
+import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.ResourceConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.util.Objects;
+import java.util.logging.Level;
 
 public class Money extends ResourceConfiguration {
     private double minBounty;
     private double maxBounty;
     private double minBroadcast;
+    private PlayerData.BroadcastSettings defaultBroadcastSetting;
     private double bountyTax;
     private double deathTax;
     private final RedeemRewardLater redeemRewardLater = new RedeemRewardLater();
@@ -26,6 +30,12 @@ public class Money extends ResourceConfiguration {
         deathTax = config.getDouble("death-tax");
         buyOwn = config.getBoolean("buy-own-bounties.enabled");
         buyOwnCostMultiply = config.getDouble("buy-own-bounties.cost-multiply");
+        try {
+            defaultBroadcastSetting = PlayerData.BroadcastSettings.valueOf(Objects.requireNonNull(config.getString("default-broadcast-setting")).toUpperCase());
+        } catch (IllegalArgumentException e) {
+            NotBounties.getInstance().getLogger().log(Level.WARNING, "Invalid default broadcast setting \"{0}\". Must be EXTENDED, SHORT, or DISABLE.", config.getString("default-broadcast-setting"));
+            defaultBroadcastSetting = PlayerData.BroadcastSettings.EXTENDED;
+        }
     }
 
     @Override
@@ -68,5 +78,9 @@ public class Money extends ResourceConfiguration {
 
     public RedeemRewardLater getRedeemRewardLater() {
         return redeemRewardLater;
+    }
+
+    public PlayerData.BroadcastSettings getDefaultBroadcastSetting() {
+        return defaultBroadcastSetting;
     }
 }

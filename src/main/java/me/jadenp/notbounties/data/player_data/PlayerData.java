@@ -8,6 +8,7 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.data.Whitelist;
+import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -101,7 +102,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     private boolean randomImmunity = false;
     private boolean timedImmunity = false;
     private TimeZone timeZone = null;
-    private BroadcastSettings broadcastSettings = BroadcastSettings.EXTENDED;
+    private BroadcastSettings broadcastSettings;
     private final List<OnlineRefund> refund = new LinkedList<>();
     private long bountyCooldown = 0;
     private Whitelist whitelist = new Whitelist(new TreeSet<>(), false);
@@ -109,6 +110,10 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     private long lastSeen = 0;
     private long lastClaim = 0;
     private UUID serverID = null;
+
+    public PlayerData() {
+        broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
+    }
 
     public JsonObject toJson() {
         return (JsonObject) gson.toJsonTree(this);

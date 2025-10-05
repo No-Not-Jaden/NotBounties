@@ -7,6 +7,9 @@ minimum-bounty: 1
 maximum-bounty: -1
 # minimum amount of currency that will broadcast bounties
 minimum-broadcast: 5
+# The default broadcast setting for players who join the server for the first time.
+# This can be EXTENDED (player head in text), SHORT (1-line message), or DISABLE
+default-broadcast-setting: EXTENDED
 # percent extra they have to pay to set a bounty - uses a DECIMAL
 # ex: bounty-tax = 0.25, a bounty set for 100 would cost 125 to be placed
 # use this if players are setting too many bounties
