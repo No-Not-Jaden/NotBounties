@@ -105,7 +105,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     private BroadcastSettings broadcastSettings;
     private final List<OnlineRefund> refund = new LinkedList<>();
     private long bountyCooldown = 0;
-    private Whitelist whitelist = new Whitelist(new TreeSet<>(), false);
+    private Whitelist whitelist;
     private boolean newPlayer = true;
     private long lastSeen = 0;
     private long lastClaim = 0;
@@ -113,6 +113,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
 
     public PlayerData() {
         broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
+        whitelist = new Whitelist(new TreeSet<>(), Whitelist.isDefaultWhitelist());
     }
 
     public JsonObject toJson() {

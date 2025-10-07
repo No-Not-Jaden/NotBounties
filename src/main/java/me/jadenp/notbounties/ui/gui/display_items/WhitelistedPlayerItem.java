@@ -42,4 +42,8 @@ public class WhitelistedPlayerItem extends PlayerItem{
         super(uuid, amount, displayType, index, time, additionalLore);
         this.playerPrefix = playerPrefix;
     }
+    public WhitelistedPlayerItem(String name, UUID uuid, double amount, Leaderboard displayType, int index, long time, List<String> additionalLore, String playerPrefix) {
+        super(name, uuid, amount, displayType, index, time, additionalLore);
+        this.playerPrefix = playerPrefix;
+    }
 }

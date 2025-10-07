@@ -165,7 +165,7 @@ public class LanguageOptions {
         }
         if (sender.hasPermission("notbounties.whitelist") && Whitelist.isEnabled()) {
             sendHelpMessage(sender, getListMessage("help.whitelist"));
-            if (Whitelist.isEnableBlacklist()) {
+            if (Whitelist.isAllowTogglingWhitelist()) {
                 sendHelpMessage(sender, getListMessage("help.blacklist"));
             }
         }
@@ -255,7 +255,7 @@ public class LanguageOptions {
             case 5:
                 // whitelist
                 sendHelpMessage(sender, getListMessage("help.whitelist"));
-                if (Whitelist.isEnableBlacklist())
+                if (Whitelist.isAllowTogglingWhitelist())
                     sendHelpMessage(sender, getListMessage("help.blacklist"));
                 break;
             case 6:

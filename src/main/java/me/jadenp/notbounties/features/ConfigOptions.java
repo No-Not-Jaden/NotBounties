@@ -138,6 +138,11 @@ public class ConfigOptions {
             plugin.getConfig().set("databases.example-proxy.database-sync", true);
         }
 
+        if (plugin.getConfig().isSet("bounty-whitelist.enable-blacklist")) {
+            plugin.getConfig().set("bounty-whitelist.allow-toggling-whitelist", plugin.getConfig().getBoolean("bounty-whitelist.enable-blacklist"));
+            plugin.getConfig().set("bounty-whitelist.enable-blacklist", null);
+        }
+
         boolean saveChanges = true;
         if (plugin.getConfig().getKeys(true).size() <= 2) {
             saveChanges = false;

@@ -214,7 +214,7 @@ public class GUI implements Listener {
                     double bountyAmount = Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
                     if (bountyAmount > 0) {
                         List<String> additionalLore = GUIClicks.getClickLore(player, ConfigOptions.getMoney().isBuyOwn() && bounty.getUUID().equals(player.getUniqueId()) && player.hasPermission("notbounties.buyown"), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()));
-                        if (bounty.getAllWhitelists().contains(player.getUniqueId()) && Whitelist.isEnableBlacklist()) {
+                        if (bounty.getAllWhitelists().contains(player.getUniqueId()) && Whitelist.isAllowTogglingWhitelist()) {
                             additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
                         } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId()) && Whitelist.isEnabled()) {
                             additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
@@ -228,9 +228,9 @@ public class GUI implements Listener {
                             }
                         }
                         if (onlinePlayers.contains(bounty.getUUID())) {
-                            displayItems.add(new WhitelistedPlayerItem(bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestUpdate(), additionalLore, ""));
+                            displayItems.add(new WhitelistedPlayerItem(bounty.getName(), bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestUpdate(), additionalLore, ""));
                         } else {
-                            displayItems.add(new PlayerItem(bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestUpdate(), additionalLore));
+                            displayItems.add(new PlayerItem(bounty.getName(), bounty.getUUID(), bountyAmount, Leaderboard.CURRENT, i, bounty.getLatestUpdate(), additionalLore));
                         }
 
                     }

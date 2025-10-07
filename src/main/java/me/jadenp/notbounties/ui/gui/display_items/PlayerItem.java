@@ -10,6 +10,7 @@ import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -30,6 +31,7 @@ public class PlayerItem implements DisplayItem, AmountItem{
     private final int index;
     private final long time;
     private final List<String> additionalLore;
+    private final String name;
 
     @Override
     public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData, String itemModel) {
@@ -60,7 +62,9 @@ public class PlayerItem implements DisplayItem, AmountItem{
         if (!displayType.isMoney()) {
             text = text.replace("{amount}", NumberFormatting.formatNumber(amount));
         }
-        text = text.replace("{rank}", (index + 1) + "")
+        text = text
+                .replace("{name}", name)
+                .replace("{rank}", (index + 1) + "")
                 .replace("{leaderboard}", displayType.toString())
                 .replace("{leaderboard_name}", displayType.getDisplayName())
                 .replace("{items}", "")
@@ -69,7 +73,17 @@ public class PlayerItem implements DisplayItem, AmountItem{
     }
 
     public PlayerItem(UUID uuid, double amount, Leaderboard displayType, int index, long time, List<String> additionalLore) {
+        this.name = LoggedPlayers.getPlayerName(uuid);
+        this.uuid = uuid;
+        this.amount = amount;
+        this.displayType = displayType;
+        this.index = index;
+        this.time = time;
+        this.additionalLore = additionalLore;
+    }
 
+    public PlayerItem(String name, UUID uuid, double amount, Leaderboard displayType, int index, long time, List<String> additionalLore) {
+        this.name = name;
         this.uuid = uuid;
         this.amount = amount;
         this.displayType = displayType;

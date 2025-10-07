@@ -383,7 +383,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("toggle")) {
-                        if (args.length == 2 && Whitelist.isEnableBlacklist()) {
+                        if (args.length == 2 && Whitelist.isAllowTogglingWhitelist()) {
                             // toggle
                             if (DataManager.getPlayerData(player.getUniqueId()).getWhitelist().toggleBlacklist()) {
                                 if (!silent)
@@ -706,6 +706,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 return true;
             } else if (args[0].equalsIgnoreCase("immunity")) {
+                if (ImmunityManager.isPermissionImmunity()) {
+                    if (sender.hasPermission("notbounties.immune")) {
+                        sender.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("permission-immunity-bounty"), parser));
+                    } else {
+                        if (sender.hasPermission("notbounties.immunity.murder")) {
+                            sender.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("permission-immunity-murder"), parser));
+                        }
+                        if (sender.hasPermission("notbounties.immunity.timed")) {
+                            sender.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("permission-immunity-timed"), parser));
+                        }
+                        if (sender.hasPermission("notbounties.immunity.random")) {
+                            sender.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("permission-immunity-random"), parser));
+                        }
+                    }
+                }
                 if (args.length > 1 && args[1].equalsIgnoreCase("remove")) {
                     if (args.length == 2 || (args.length == 3 && args[2].equalsIgnoreCase("--confirm"))) {
                         // reg command
@@ -2255,7 +2270,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         if (entry.getValue().length() < 25)
                             tab.add(entry.getValue());
                     }
-                } else if (args[0].equalsIgnoreCase("whitelist") && sender.hasPermission("notbounties.whitelist") && Whitelist.isEnabled() && Whitelist.isEnableBlacklist() && args[1].equalsIgnoreCase("toggle")) {
+                } else if (args[0].equalsIgnoreCase("whitelist") && sender.hasPermission("notbounties.whitelist") && Whitelist.isEnabled() && Whitelist.isAllowTogglingWhitelist() && args[1].equalsIgnoreCase("toggle")) {
                     tab.add("blacklist");
                     tab.add("whitelist");
                 } else if (args[0].equalsIgnoreCase("challenges") && ChallengeManager.isEnabled()) {

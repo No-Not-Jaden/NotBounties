@@ -132,6 +132,11 @@ bounty-whitelist:
   # allow players to change their whitelist for bounties that have already been set
   # I suggest setting cost to 0 if you are doing this
   variable-whitelist: false
+  # Whether the default list will be whitelist (true) or blacklist (false)
+  default-whitelist: true
+  # Allow players to toggle from whitelist to blacklist
+  allow-toggling-whitelist: true
+  # remove below
   # Allows players to change their whitelist into a blacklist
   enable-blacklist: true
 

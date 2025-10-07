@@ -67,10 +67,8 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * Multiple proxy databases
  * 1.21.6 dialog
  *
- * set bounty
- * swap servers
- * claim bounty
- * swap again
+ * bounty menu will show bounty name when missing logged player
+ * force blacklist mode for whitelist
  */
 public final class NotBounties extends JavaPlugin {
 

@@ -187,6 +187,10 @@ not-in-hunt: '&cYou are not participating in this hunt.'
 list-hunts: '&eActive bounty hunts:'
 list-hunt-players: '&ePlayers participating in the hunt for &f{player}&e:'
 excluded-bounty-item: '&cYou cannot set a bounty with &f{material}&c.'
+permission-immunity-bounty: '&cYou are immune to all bounties due to a permission.'
+permission-immunity-random: '&cYou are immune to random bounties due to a permission.'
+permission-immunity-murder: '&cYou are immune to murder bounties due to a permission.'
+permission-immunity-timed: '&cYou are immune to timed bounties due to a permission.'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

@@ -11,14 +11,16 @@ public class Whitelist {
     private static double cost;
     private static boolean showWhitelistedBounties;
     private static boolean variableWhitelist;
-    private static boolean enableBlacklist;
+    private static boolean defaultWhitelist;
+    private static boolean allowTogglingWhitelist;
 
     public static void loadConfiguration(ConfigurationSection config) {
         enabled = config.getBoolean("enabled");
         cost = config.getDouble("cost");
         showWhitelistedBounties = config.getBoolean("show-all-bounty");
         variableWhitelist = config.getBoolean("variable-whitelist");
-        enableBlacklist = config.getBoolean("enable-blacklist");
+        allowTogglingWhitelist = config.getBoolean("enable-blacklist");
+        defaultWhitelist = config.getBoolean("default-whitelist");
     }
 
     public static boolean isEnabled() {
@@ -29,8 +31,12 @@ public class Whitelist {
         return cost;
     }
 
-    public static boolean isEnableBlacklist() {
-        return enableBlacklist;
+    public static boolean isAllowTogglingWhitelist() { // replace all is blacklist enabled stuff
+        return allowTogglingWhitelist;
+    }
+
+    public static boolean isDefaultWhitelist() {
+        return defaultWhitelist;
     }
 
     public static boolean isShowWhitelistedBounties() {

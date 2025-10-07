@@ -2,6 +2,7 @@ package me.jadenp.notbounties.features.settings.databases;
 
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.DataManager;
@@ -394,6 +395,11 @@ public class LocalData extends NotBountiesDatabase {
         if (bounty != null) {
             onlineBounties.put(uuid, bounty);
         }
+        // Force whitelist change if only one is supported
+        if (Whitelist.isEnabled() && !Whitelist.isAllowTogglingWhitelist() && playerDataMap.containsKey(uuid)) {
+            playerDataMap.get(uuid).getWhitelist().setBlacklist(!Whitelist.isDefaultWhitelist());
+        }
+
     }
 
     @Override
