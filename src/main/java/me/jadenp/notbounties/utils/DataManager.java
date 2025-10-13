@@ -70,7 +70,10 @@ public class DataManager {
         // load modern data
         SaveManager.read(plugin);
 
-
+        // make sure all bounties are loaded into the player data
+        for (Bounty bounty : DataManager.getAllBounties(-1)) {
+            LoggedPlayers.getPlayerName(bounty.getUUID());
+        }
     }
 
 

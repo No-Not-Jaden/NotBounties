@@ -66,9 +66,15 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * fast database option to use directly instead of an update interval
  * Multiple proxy databases
  * 1.21.6 dialog
+ * Option to send api request when setting a bounty on offline player
  *
- * bounty menu will show bounty name when missing logged player
- * force blacklist mode for whitelist
+ * bounty menu will show bounty name when missing logged player x
+ * force blacklist mode for whitelist x
+ * webhook sends image x
+ * auto load names for logged players async x
+ * default bounty broadcast mode x
+ *
+ *
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -409,6 +415,7 @@ public final class NotBounties extends JavaPlugin {
             MMOLibClass.removeAllModifiers();
         SkinManager.shutdown();
         BountyMap.shutdown();
+        LoggedPlayers.shutdown();
 
         // remove bounty entities
         WantedTags.disableWantedTags();

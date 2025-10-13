@@ -136,9 +136,6 @@ bounty-whitelist:
   default-whitelist: true
   # Allow players to toggle from whitelist to blacklist
   allow-toggling-whitelist: true
-  # remove below
-  # Allows players to change their whitelist into a blacklist
-  enable-blacklist: true
 
 reward-heads:
   # give player heads to the setter of the bounty once claimed

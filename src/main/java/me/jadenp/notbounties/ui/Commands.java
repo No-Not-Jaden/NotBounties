@@ -383,14 +383,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                         return true;
                     }
                     if (args[1].equalsIgnoreCase("toggle")) {
-                        if (args.length == 2 && Whitelist.isAllowTogglingWhitelist()) {
+                        if (args.length == 2) {
                             // toggle
-                            if (DataManager.getPlayerData(player.getUniqueId()).getWhitelist().toggleBlacklist()) {
-                                if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + getMessage("blacklist-toggle"), parser));
+                            if (Whitelist.isAllowTogglingWhitelist()) {
+                                if (DataManager.getPlayerData(player.getUniqueId()).getWhitelist().toggleBlacklist()) {
+                                    if (!silent)
+                                        sender.sendMessage(parse(getPrefix() + getMessage("blacklist-toggle"), parser));
+                                } else {
+                                    if (!silent)
+                                        sender.sendMessage(parse(getPrefix() + getMessage("whitelist-toggle"), parser));
+                                }
                             } else {
+                                // unknown command
                                 if (!silent)
-                                    sender.sendMessage(parse(getPrefix() + getMessage("whitelist-toggle"), parser));
+                                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                                return false;
                             }
                         } else {
                             List<String> toggleOptions = List.of("blacklist", "false", "off", "whitelist", "true", "on");

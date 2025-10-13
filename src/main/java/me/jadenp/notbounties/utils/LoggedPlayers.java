@@ -1,8 +1,21 @@
 package me.jadenp.notbounties.utils;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -10,7 +23,9 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
 
 public class LoggedPlayers {
 
@@ -20,6 +35,8 @@ public class LoggedPlayers {
      * Name (lowercase), UUID
      */
     private static final Map<String, UUID> playerIDs = new HashMap<>();
+
+    private static HttpSyncPool httpPool;
 
     @Deprecated(since = "1.22.0")
     public static void readOldConfiguration(ConfigurationSection configuration) {
@@ -52,22 +69,37 @@ public class LoggedPlayers {
      */
     public static void loadPlayerData() {
         playerIDs.clear();
+        List<UUID> duplicateUUIDs = new LinkedList<>();
         for (PlayerData entry : DataManager.getAllPlayerData()) {
             if (entry.getPlayerName() != null) {
-                if (playerIDs.containsKey(entry.getPlayerName().toLowerCase())) {
-                    UUID duplicateUUID = playerIDs.get(entry.getPlayerName().toLowerCase());
-                    Bukkit.getLogger().warning("Duplicate player name found \"" + entry.getPlayerName() + "\" for "  + duplicateUUID + " and " + entry.getUuid() + ".");
-                    Bukkit.getLogger().warning("Replacing with UUID until the player login.");
-                    playerIDs.remove(entry.getPlayerName().toLowerCase());
-                    playerIDs.put(duplicateUUID.toString(), duplicateUUID);
-                    playerIDs.put(entry.getUuid().toString(), entry.getUuid());
-                    entry.setPlayerName(entry.getUuid().toString());
-                    DataManager.getPlayerData(duplicateUUID).setPlayerName(duplicateUUID.toString());
-                } else {
-                    playerIDs.put(entry.getPlayerName().toLowerCase(), entry.getUuid());
+                try {
+                    UUID uuid = UUID.fromString(entry.getPlayerName());
+                    duplicateUUIDs.add(uuid);
+                } catch (IllegalArgumentException e) {
+                    // name is not a uuid
+                    if (playerIDs.containsKey(entry.getPlayerName().toLowerCase())) {
+                        UUID duplicateUUID = playerIDs.get(entry.getPlayerName().toLowerCase());
+                        Bukkit.getLogger().warning("Duplicate player name found \"" + entry.getPlayerName() + "\" for "  + duplicateUUID + " and " + entry.getUuid() + ".");
+                        Bukkit.getLogger().warning("Replacing with UUID until the player login.");
+                        duplicateUUIDs.add(duplicateUUID);
+                        playerIDs.remove(entry.getPlayerName().toLowerCase());
+                        playerIDs.put(duplicateUUID.toString(), duplicateUUID);
+                        playerIDs.put(entry.getUuid().toString(), entry.getUuid());
+                        entry.setPlayerName(entry.getUuid().toString());
+                        DataManager.getPlayerData(duplicateUUID).setPlayerName(duplicateUUID.toString());
+                    } else {
+                        playerIDs.put(entry.getPlayerName().toLowerCase(), entry.getUuid());
+                    }
                 }
+
             }
         }
+        if (!duplicateUUIDs.isEmpty()) {
+            Bukkit.getLogger().log(Level.WARNING, "[NotBounties] There are {0} logged players with no associated name.", duplicateUUIDs.size());
+            NotBounties.debugMessage(duplicateUUIDs.toString(), false);
+        }
+        httpPool = new HttpSyncPool(5, 10);
+
     }
 
     public static Map<UUID, String> getLoggedPlayers() {
@@ -161,10 +193,26 @@ public class LoggedPlayers {
         PlayerData playerData = DataManager.getPlayerData(uuid);
         if (playerData.getPlayerName() != null)
             return playerData.getPlayerName();
+        if (uuid.version() == 4 /* check if online player */) {
+            httpPool.requestPlayerNameAsync(uuid, new HttpSyncPool.ResponseHandler())
+                    .thenAccept(playerData::setPlayerName)
+                    .exceptionally(ex -> {
+                        NotBounties.debugMessage("Failed to get player name for " + uuid + ".", true);
+                        return null;
+                    });
+        }
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         String name = player.getName();
         if (name != null)
             return name;
         return uuid.toString();
     }
+
+    public static void shutdown() {
+        if (httpPool != null) {
+            httpPool.close();
+            httpPool = null;
+        }
+    }
 }
+

@@ -79,7 +79,8 @@ public class WebhookBuilder extends CancelableTask{
                     .setFooter(ChatColor.stripColor(LanguageOptions.parse(webhook.getFooterText(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), webhook.getFooterURL());
             for (WebhookField field : webhook.getContent())
                 embed.addField(ChatColor.stripColor(LanguageOptions.parse(field.getName(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), ChatColor.stripColor(LanguageOptions.parse(field.getValue(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))), field.isInline());
-            embed.setImage(imageURL);
+            if (webhook.isSendImage())
+                embed.setImage(imageURL);
         }
         String username = ChatColor.stripColor(LanguageOptions.parse(webhook.getUsername(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver)));
         String content = ChatColor.stripColor(LanguageOptions.parse(webhook.getMessage(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver)));

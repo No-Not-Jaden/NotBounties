@@ -19,7 +19,7 @@ public class Whitelist {
         cost = config.getDouble("cost");
         showWhitelistedBounties = config.getBoolean("show-all-bounty");
         variableWhitelist = config.getBoolean("variable-whitelist");
-        allowTogglingWhitelist = config.getBoolean("enable-blacklist");
+        allowTogglingWhitelist = config.getBoolean("allow-toggling-whitelist");
         defaultWhitelist = config.getBoolean("default-whitelist");
     }
 
