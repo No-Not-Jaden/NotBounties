@@ -503,6 +503,9 @@ public class LanguageOptions {
     }
 
     public static String parse(String str, OfflinePlayer player, double amount, OfflinePlayer receiver) {
+        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+        Whitelist whitelist = playerData.getWhitelist();
+        str = str.replace("{whitelist}", (whitelist.toString()));
         str = parsePlayerName(str, player);
         return parse(str, amount, receiver);
     }
