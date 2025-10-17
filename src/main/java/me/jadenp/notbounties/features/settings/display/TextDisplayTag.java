@@ -1,27 +1,18 @@
 package me.jadenp.notbounties.features.settings.display;
 
-import com.cjcrafter.foliascheduler.util.ServerVersions;
 import me.jadenp.notbounties.NotBounties;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.ScoreboardManager;
-import org.bukkit.scoreboard.Team;
-import org.bukkit.util.Transformation;
-import org.jetbrains.annotations.Nullable;
-import org.joml.AxisAngle4f;
-import org.joml.Vector3f;
 
 import java.util.Objects;
 
 public class TextDisplayTag extends TagProvider {
 
     private TextDisplay textDisplay = null;
+    private boolean toBeRemoved = false;
 
     protected TextDisplayTag(Player trackedPlayer) {
         super(trackedPlayer);
@@ -29,7 +20,7 @@ public class TextDisplayTag extends TagProvider {
 
     @Override
     public void setText(String text) {
-        if (textDisplay == null)
+        if (!isValid())
             return;
         if (!NotBounties.getServerImplementation().isOwnedByCurrentRegion(textDisplay)) {
             NotBounties.getServerImplementation().entity(textDisplay).run(() -> textDisplay.setText(text));
@@ -42,7 +33,7 @@ public class TextDisplayTag extends TagProvider {
 
     @Override
     public void updateVisibility() {
-        if (textDisplay == null)
+        if (!isValid())
             return;
         if (!NotBounties.getServerImplementation().isOwnedByCurrentRegion(textDisplay)) {
             NotBounties.getServerImplementation().entity(textDisplay).run(() -> {
@@ -60,15 +51,14 @@ public class TextDisplayTag extends TagProvider {
 
     @Override
     public void teleport() {
-        if (textDisplay == null)
+        if (!isValid())
             return;
         Location spawnLocation = trackedPlayer.getEyeLocation().clone().add(0, WantedTags.getWantedOffset() + 0.3, 0);
         spawnLocation.setPitch(0);
         spawnLocation.setYaw(0);
         NotBounties.getServerImplementation().entity(textDisplay).run(() -> {
             if (isValid()) {
-                NotBounties.getServerImplementation().teleportAsync(textDisplay, spawnLocation);
-                lastLocation = spawnLocation;
+                NotBounties.getServerImplementation().teleportAsync(textDisplay, spawnLocation).thenRun(() -> lastLocation = spawnLocation);
             }
         });
 
@@ -76,15 +66,15 @@ public class TextDisplayTag extends TagProvider {
 
     @Override
     public void remove() {
-        if (textDisplay != null) {
+        if (isValid()) {
             if (!NotBounties.getServerImplementation().isOwnedByCurrentRegion(textDisplay) && NotBounties.getInstance().isEnabled()) {
                 NotBounties.getServerImplementation().entity(textDisplay).run(() -> {
                     textDisplay.remove();
-                    textDisplay = null;
+                    toBeRemoved = true;
                 });
             } else {
                 textDisplay.remove();
-                textDisplay = null;
+                toBeRemoved = true;
             }
 
         }
@@ -94,7 +84,7 @@ public class TextDisplayTag extends TagProvider {
     @Override
     public void spawn() {
         NotBounties.getServerImplementation().entity(trackedPlayer).run(() -> {
-            if (textDisplay != null) {
+            if (isValid()) {
                 return;
             }
             Location spawnLocation = trackedPlayer.getEyeLocation().add(0, WantedTags.getWantedOffset() + 0.3, 0);
@@ -130,6 +120,17 @@ public class TextDisplayTag extends TagProvider {
 
     @Override
     public boolean isValid() {
-        return textDisplay != null;
+        if (textDisplay == null)
+            return false;
+        if (toBeRemoved) {
+            try {
+                if (!textDisplay.isValid())
+                    textDisplay = null;
+            } catch (NullPointerException ignored) {
+                // won't be able to check if the display is valid if on Folia and not in the same region
+            }
+            return false;
+        }
+        return true;
     }
 }

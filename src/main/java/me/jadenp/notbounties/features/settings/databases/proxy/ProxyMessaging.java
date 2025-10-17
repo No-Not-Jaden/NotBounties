@@ -27,11 +27,12 @@ import java.util.*;
 
 public class ProxyMessaging implements PluginMessageListener, Listener {
     private static boolean connectedBefore = false;
-    private static final String CHANNEL = "notbounties:main";
+    protected static final String CHANNEL = "notbounties:main";
 
     private static List<Bounty> bountyCache;
     private static Map<UUID, PlayerStat> statCache;
     private static List<PlayerData> playerDataCache;
+    private static List<PreparedUpdateMessage> preparedUpdateMessage = new LinkedList<>();
 
     /**
      * Whether this server has up-to-date data. This server will not have up-to-date data if no players are online
@@ -200,6 +201,11 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         if (remainingMessages == 0) {
             DataManager.connectProxy(bountyCache, statCache, playerDataCache);
         }
+        if (!preparedUpdateMessage.isEmpty() && !preparedUpdateMessage.get(0).isSending()) {
+            // restart messages
+            preparedUpdateMessage.get(0).sendMessage();
+        }
+
     }
 
     private void receivePlayerSkin(DataInputStream msgIn) throws IOException, URISyntaxException {
@@ -288,7 +294,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param identifier message identifier
      * @param data data to be sent
      */
-    public static void sendMessage(String identifier, byte[] data) {
+    public static boolean sendMessage(String identifier, byte[] data) {
         if (ProxyDatabase.isEnabled() && NotBounties.getInstance().isEnabled()) {
             if (Bukkit.isPrimaryThread()) {
                 if (!Bukkit.getOnlinePlayers().isEmpty()) {
@@ -312,7 +318,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param data       data to be sent
      * @param player     player to send the message through
      */
-    private static void sendMessage(String identifier, byte[] data, Player player) {
+    public static void sendMessage(String identifier, byte[] data, Player player) {
         player.sendPluginMessage(NotBounties.getInstance(), identifier, data);
         // return is for future compatibility
     }
@@ -367,14 +373,14 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param stream A ByteArrayOutputStream to be sent as the message
      * @return A byte[] ready to be sent as a message
      */
-    private static byte[] wrapGlobalMessage(ByteArrayOutputStream stream) {
+    protected static byte[] wrapGlobalMessage(byte[] stream) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("Forward");
         //out.writeUTF("ALL"); // This is the target server. "ALL" will message all servers apart from the one sending the message
         //out.writeUTF(channel); // This is the channel.
 
-        out.writeShort(stream.toByteArray().length); // This is the length.
-        out.write(stream.toByteArray()); // This is the message.
+        out.writeShort(stream.length); // This is the length.
+        out.write(stream); // This is the message.
 
         return out.toByteArray();
     }
@@ -427,17 +433,20 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     }
     /**
      * Encodes a message in a byte array to be sent to all the other servers on the network.
-     * This function will encode the bounties into a string array.
+     * This function will encode player data.
      * @param playerDataList PlayerData to encode.
      * @return A ByteArrayOutputStream with the message ready to be wrapped
      * @throws IOException if an I/O error occurs
      */
-    private static ByteArrayOutputStream encodePlayerDataMessage(List<PlayerData> playerDataList) throws IOException {
+    private static ByteArrayOutputStream[] encodePlayerDataMessage(List<PlayerData> playerDataList) throws IOException {
+        List<ByteArrayOutputStream> messages = new ArrayList<>();
+
+        int index = 0;
         ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
         DataOutputStream msgout = new DataOutputStream(msgBytes);
 
         msgout.writeUTF("PlayerDataUpdate"); // write the channel
-        msgout.writeShort(playerDataList.size()); // write the number of stats
+        msgout.writeShort(playerDataList.size()); // write the number of entries
 
         for (PlayerData playerData : playerDataList) {
             msgout.writeUTF(playerData.toJson().toString());
@@ -527,6 +536,27 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         out.write(msgBytes.toByteArray()); // This is the message.
         sendMessage(CHANNEL, out.toByteArray());
         NotBounties.debugMessage("Sent player skin request.", false);
+    }
+
+    public static void onCompleteProxyMessage() {
+        preparedUpdateMessage.remove(0);
+        if (!preparedUpdateMessage.isEmpty())
+            preparedUpdateMessage.get(0).sendMessage();
+    }
+
+    public static void onFailProxyMessage() {
+        preparedUpdateMessage.set(0, preparedUpdateMessage.get(0).getFirstUnsent());
+    }
+
+    public static List<byte[]> getUnsentMessages() {
+        List<byte[]> messages = new LinkedList<>();
+        if (!preparedUpdateMessage.isEmpty()) {
+            preparedUpdateMessage.get(0).setCanceled(true);
+            for (PreparedUpdateMessage updateMessage : preparedUpdateMessage) {
+                messages.addAll(updateMessage.getUnsentMessages());
+            }
+        }
+        return messages;
     }
 
 }
