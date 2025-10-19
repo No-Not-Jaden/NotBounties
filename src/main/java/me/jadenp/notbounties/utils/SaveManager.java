@@ -14,6 +14,7 @@ import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
 import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.features.settings.databases.proxy.PreparedUpdateMessage;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyHuntTypeAdapter;
@@ -25,10 +26,8 @@ import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 
 public class SaveManager {
@@ -231,6 +230,10 @@ public class SaveManager {
         readPlayerData(dataDirectory);
         readBounties(dataDirectory);
         readStats(dataDirectory);
+
+        List<byte[]> messages = readUnsentProxyMessages(dataDirectory);
+        if (!messages.isEmpty())
+            ProxyMessaging.addPreparedUpdateMessage(new PreparedUpdateMessage(messages, -1));
     }
 
     private static void readStats(File dataDirectory) throws IOException {
@@ -482,9 +485,45 @@ public class SaveManager {
         return data;
     }
 
-    public static void saveUnsentProxyMessages(File dataDirectory) {
+    public static void saveUnsentProxyMessages(File dataDirectory) throws IOException {
         List<byte[]> messages = ProxyMessaging.getUnsentMessages();
-        File saveFile = new File(dataDirectory + File.separator + "proxy_message_cache.json");
-        s
+        File saveFile = new File(dataDirectory + File.separator + "proxy_message_cache.bin");
+        if (!saveFile.exists()) {
+            if (saveFile.createNewFile())
+                NotBounties.getInstance().getLogger().info("Created a new proxy_message_cache.bin file.");
+        }
+        try (DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(saveFile)))) {
+            // Write number of arrays
+            dos.writeInt(messages.size());
+
+            for (byte[] arr : messages) {
+                // Write array length
+                dos.writeInt(arr.length);
+                // Write array contents
+                dos.write(arr);
+            }
+        }
+    }
+
+    public static List<byte[]> readUnsentProxyMessages(File dataDirectory) throws IOException{
+        List<byte[]> messages = new LinkedList<>();
+        File saveFile = new File(dataDirectory + File.separator + "proxy_message_cache.bin");
+        if (!saveFile.exists())
+            return messages;
+        try (DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(saveFile)))) {
+            int count = dis.readInt(); // number of arrays
+
+            for (int i = 0; i < count; i++) {
+                int length = dis.readInt();
+                byte[] arr = new byte[length];
+                dis.readFully(arr);
+                messages.add(arr);
+            }
+        }
+
+        if (Files.deleteIfExists(saveFile.toPath()))
+            NotBounties.debugMessage("Deleted proxy_message_cache.bin.", false);
+
+        return messages;
     }
 }

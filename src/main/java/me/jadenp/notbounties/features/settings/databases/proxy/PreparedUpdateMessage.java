@@ -22,9 +22,18 @@ public class PreparedUpdateMessage {
     private boolean sent = false;
     private boolean sending = false;
     private boolean canceled = false;
+    private final long id;
 
+    public PreparedUpdateMessage(List<byte[]> messages, long id) {
+        this.id = id;
+        message = messages.remove(0);
+        if (!messages.isEmpty()) {
+            futureMessage = new PreparedUpdateMessage(messages, id);
+        }
+    }
 
-    public PreparedUpdateMessage(String channel, List<String[]> messages) {
+    public PreparedUpdateMessage(String channel, List<String[]> messages, long id) {
+        this.id = id;
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeUTF(channel);
@@ -53,50 +62,58 @@ public class PreparedUpdateMessage {
             tmpMsg.close();
 
             if (includedCount > 0 && !missedMessages.isEmpty()) {
-                futureMessage = new PreparedUpdateMessage(channel, missedMessages);
+                futureMessage = new PreparedUpdateMessage(channel, missedMessages, id);
             }
 
-            out.writeShort(msgBytes.toByteArray().length); // This is the length.
+            //out.writeShort(msgBytes.toByteArray().length); // This is the length.
             out.write(msgBytes.toByteArray()); // This is the message.
 
             message = out.toByteArray();
 
             msgout.close();
         }  catch (IOException e) {
-            NotBounties.getInstance().getLogger().log(Level.WARNING, "Failed to prepare proxy message {}", e);
+            NotBounties.getInstance().getLogger().log(Level.WARNING, "Failed to prepare proxy message", e);
             throw new IllegalStateException("Message preparation failed", e);
         }
 
 
     }
 
-    public void sendMessage() {
+    public void sendMessage(boolean delay) {
         if (message.length == 0) {
+            ProxyMessaging.onCompleteProxyMessage(id);
             return;
         }
         if (!NotBounties.getInstance().isEnabled()) {
             // save messages to be sent next connection
             NotBounties.getInstance().getLogger().log(Level.WARNING, "Plugin shutting down in the middle of a proxy message.");
-            // keep track outside this, and make a var if the msg was sent
+            ProxyMessaging.onFailProxyMessage(id);
             return;
         }
         sending = true;
-        NotBounties.getServerImplementation().global().runDelayed(() -> {
-            if (!Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled() && ProxyDatabase.isEnabled() && !canceled) {
-                ProxyMessaging.sendMessage(ProxyMessaging.CHANNEL, ProxyMessaging.wrapGlobalMessage(message), Bukkit.getOnlinePlayers().iterator().next());
-                sent = true;
-                if (futureMessage != null) {
-                    futureMessage.sendMessage();
-                } else {
-                    ProxyMessaging.onCompleteProxyMessage();
-                }
-            } else {
-                NotBounties.debugMessage("Failed to send proxy update.", true);
-                ProxyMessaging.onFailProxyMessage();
-                sending = false;
-            }
-        }, 5);
+        if (delay) {
+            NotBounties.getServerImplementation().global().runDelayed(this::executeMessage, 5);
+        } else {
+            executeMessage();
+        }
 
+
+    }
+
+    private void executeMessage() {
+        if (!Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled() && ProxyDatabase.isEnabled() && !canceled) {
+            ProxyMessaging.sendMessage(ProxyMessaging.CHANNEL, ProxyMessaging.wrapGlobalMessage(message), Bukkit.getOnlinePlayers().iterator().next());
+            sent = true;
+            if (futureMessage != null) {
+                futureMessage.sendMessage(true);
+            } else {
+                ProxyMessaging.onCompleteProxyMessage(id);
+            }
+        } else {
+            NotBounties.debugMessage("Failed to send proxy update.", true);
+            ProxyMessaging.onFailProxyMessage(id);
+            sending = false;
+        }
     }
 
     public List<byte[]> getUnsentMessages(){
@@ -125,5 +142,9 @@ public class PreparedUpdateMessage {
 
     public void setCanceled(boolean canceled) {
         this.canceled = canceled;
+    }
+
+    public long getId() {
+        return id;
     }
 }

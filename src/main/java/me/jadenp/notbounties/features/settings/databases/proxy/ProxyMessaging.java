@@ -32,7 +32,8 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     private static List<Bounty> bountyCache;
     private static Map<UUID, PlayerStat> statCache;
     private static List<PlayerData> playerDataCache;
-    private static List<PreparedUpdateMessage> preparedUpdateMessage = new LinkedList<>();
+    private static final List<PreparedUpdateMessage> preparedUpdateMessage = Collections.synchronizedList(new LinkedList<>());
+    private static long idCounter = 0;
 
     /**
      * Whether this server has up-to-date data. This server will not have up-to-date data if no players are online
@@ -203,7 +204,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         }
         if (!preparedUpdateMessage.isEmpty() && !preparedUpdateMessage.get(0).isSending()) {
             // restart messages
-            preparedUpdateMessage.get(0).sendMessage();
+            preparedUpdateMessage.get(0).sendMessage(!Bukkit.isPrimaryThread());
         }
 
     }
@@ -294,7 +295,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @param identifier message identifier
      * @param data data to be sent
      */
-    public static boolean sendMessage(String identifier, byte[] data) {
+    public static void sendMessage(String identifier, byte[] data) {
         if (ProxyDatabase.isEnabled() && NotBounties.getInstance().isEnabled()) {
             if (Bukkit.isPrimaryThread()) {
                 if (!Bukkit.getOnlinePlayers().isEmpty()) {
@@ -308,7 +309,6 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
                 });
             }
         }
-
     }
 
     /**
@@ -331,13 +331,10 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     public static void sendBountyUpdate(List<BountyChange> bountyChanges) {
         // send proxy message
         NotBounties.debugMessage("Sending Bounty Update of " + bountyChanges.size() + " changes.", false);
-        try {
-            byte[] message = wrapGlobalMessage(encodeBountyMessage(bountyChanges));
-            sendMessage(CHANNEL, message);
-        } catch (IOException e) {
-            Bukkit.getLogger().warning("Could not send a data update.");
-            Bukkit.getLogger().warning(e.toString());
-        }
+        List<String[]> encoded = new LinkedList<>();
+        for (BountyChange bountyChange : bountyChanges)
+            encoded.add(new String[]{bountyChange.changeType().toString(), bountyChange.change().toJson().toString()});
+        addPreparedUpdateMessage(new PreparedUpdateMessage("BountyUpdate", encoded, idCounter++));
     }
 
     /**
@@ -348,24 +345,18 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
     public static void sendStatUpdate(Map<UUID, PlayerStat> statChanges) {
         // send proxy message
         NotBounties.debugMessage("Sending Stat Update of " + statChanges.size() + " changes.", false);
-        try {
-            byte[] message = wrapGlobalMessage(encodeStatMessage(statChanges));
-            sendMessage(CHANNEL, message);
-        } catch (IOException e) {
-            Bukkit.getLogger().warning("Could not send a data update.");
-            Bukkit.getLogger().warning(e.toString());
-        }
+        List<String[]> encoded = new LinkedList<>();
+        for (Map.Entry<UUID, PlayerStat> entry : statChanges.entrySet())
+            encoded.add(new String[]{entry.getKey().toString(), entry.getValue().toJson().toString()});
+        addPreparedUpdateMessage(new PreparedUpdateMessage("StatUpdate", encoded, idCounter++));
     }
 
     public static void sendPlayerDataUpdate(List<PlayerData> playerDataList) {
         NotBounties.debugMessage("Sending PlayerData Update of " + playerDataList.size() + " changes.", false);
-        try {
-            byte[] message = wrapGlobalMessage(encodePlayerDataMessage(playerDataList));
-            sendMessage(CHANNEL, message);
-        } catch (IOException e) {
-            Bukkit.getLogger().warning("Could not send a data update.");
-            Bukkit.getLogger().warning(e.toString());
-        }
+        List<String[]> encoded = new LinkedList<>();
+        for (PlayerData playerData : playerDataList)
+            encoded.add(new String[]{playerData.toJson().toString()});
+        addPreparedUpdateMessage(new PreparedUpdateMessage("PlayerDataUpdate", encoded, idCounter++));
     }
 
     /**
@@ -383,75 +374,6 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         out.write(stream); // This is the message.
 
         return out.toByteArray();
-    }
-
-    private static List<String> encodeBounty(BountyChange bountyChange) {
-        List<String> encoded = new LinkedList<>();
-        encoded.add(bountyChange.changeType().toString());
-        encoded.add(bountyChange.change().toJson().toString());
-        return encoded;
-    }
-
-    /**
-     * Encodes a message in a byte array to be sent to all the other servers on the network.
-     * This function will encode the bounties into a string array.
-     * @param bountyChanges Bounties to encode.
-     * @return A ByteArrayOutputStream with the message ready to be wrapped
-     * @throws IOException if an I/O error occurs
-     */
-    private static ByteArrayOutputStream encodeBountyMessage(List<BountyChange> bountyChanges) throws IOException {
-        ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
-        DataOutputStream msgout = new DataOutputStream(msgBytes);
-
-        msgout.writeUTF("BountyUpdate"); // write the channel
-        msgout.writeShort(bountyChanges.size()); // write the number of bounties
-        for (BountyChange bounty : bountyChanges)
-            for (String str : encodeBounty(bounty))
-                msgout.writeUTF(str);
-
-        return msgBytes;
-    }
-
-    /**
-     * Encodes a message in a byte array to be sent to all the other servers on the network.
-     * This function will encode the bounties into a string array.
-     * @param statChanges Stats to encode.
-     * @return A ByteArrayOutputStream with the message ready to be wrapped
-     * @throws IOException if an I/O error occurs
-     */
-    private static ByteArrayOutputStream encodeStatMessage(Map<UUID, PlayerStat> statChanges) throws IOException {
-        ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
-        DataOutputStream msgout = new DataOutputStream(msgBytes);
-
-        msgout.writeUTF("StatUpdate"); // write the channel
-        msgout.writeShort(statChanges.size()); // write the number of stats
-        for (Map.Entry<UUID, PlayerStat> entry : statChanges.entrySet()) {
-            msgout.writeUTF(entry.getKey().toString());
-            msgout.writeUTF(entry.getValue().toJson().toString());
-        }
-        return msgBytes;
-    }
-    /**
-     * Encodes a message in a byte array to be sent to all the other servers on the network.
-     * This function will encode player data.
-     * @param playerDataList PlayerData to encode.
-     * @return A ByteArrayOutputStream with the message ready to be wrapped
-     * @throws IOException if an I/O error occurs
-     */
-    private static ByteArrayOutputStream[] encodePlayerDataMessage(List<PlayerData> playerDataList) throws IOException {
-        List<ByteArrayOutputStream> messages = new ArrayList<>();
-
-        int index = 0;
-        ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
-        DataOutputStream msgout = new DataOutputStream(msgBytes);
-
-        msgout.writeUTF("PlayerDataUpdate"); // write the channel
-        msgout.writeShort(playerDataList.size()); // write the number of entries
-
-        for (PlayerData playerData : playerDataList) {
-            msgout.writeUTF(playerData.toJson().toString());
-        }
-        return msgBytes;
     }
 
 
@@ -493,7 +415,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
             Bukkit.getLogger().warning(e.toString());
             return;
         }
-        sendMessage(CHANNEL, wrapGlobalMessage(msgBytes));
+        sendMessage(CHANNEL, wrapGlobalMessage(msgBytes.toByteArray()));
     }
 
     private static final List<UUID> queuedSkinRequests = new ArrayList<>();
@@ -538,25 +460,50 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
         NotBounties.debugMessage("Sent player skin request.", false);
     }
 
-    public static void onCompleteProxyMessage() {
-        preparedUpdateMessage.remove(0);
-        if (!preparedUpdateMessage.isEmpty())
-            preparedUpdateMessage.get(0).sendMessage();
+    public static void onCompleteProxyMessage(long id) {
+        synchronized (preparedUpdateMessage) {
+            for (int i = 0; i < preparedUpdateMessage.size(); i++) {
+                if (preparedUpdateMessage.get(i).getId() == id) {
+                    preparedUpdateMessage.remove(i);
+                    if (!preparedUpdateMessage.isEmpty() && !preparedUpdateMessage.get(0).isSending())
+                        preparedUpdateMessage.get(0).sendMessage(!Bukkit.isPrimaryThread());
+                    return;
+                }
+            }
+        }
+        NotBounties.debugMessage("Complete proxy message not found. id: " + id, true);
     }
 
-    public static void onFailProxyMessage() {
-        preparedUpdateMessage.set(0, preparedUpdateMessage.get(0).getFirstUnsent());
+    public static void onFailProxyMessage(long id) {
+        synchronized (preparedUpdateMessage) {
+            for (int i = 0; i < preparedUpdateMessage.size(); i++) {
+                if (preparedUpdateMessage.get(i).getId() == id) {
+                    preparedUpdateMessage.set(i, preparedUpdateMessage.get(i).getFirstUnsent());
+                    return;
+                }
+            }
+        }
+        NotBounties.debugMessage("Failed proxy message not found. id: " + id, true);
     }
 
     public static List<byte[]> getUnsentMessages() {
         List<byte[]> messages = new LinkedList<>();
         if (!preparedUpdateMessage.isEmpty()) {
-            preparedUpdateMessage.get(0).setCanceled(true);
             for (PreparedUpdateMessage updateMessage : preparedUpdateMessage) {
+                updateMessage.setCanceled(true);
                 messages.addAll(updateMessage.getUnsentMessages());
             }
         }
         return messages;
+    }
+
+    public static void addPreparedUpdateMessage(PreparedUpdateMessage updateMessage) {
+        synchronized (preparedUpdateMessage) {
+            if (preparedUpdateMessage.isEmpty()) {
+                updateMessage.sendMessage(!Bukkit.isPrimaryThread());
+            }
+            preparedUpdateMessage.add(updateMessage);
+        }
     }
 
 }
