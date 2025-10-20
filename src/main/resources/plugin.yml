@@ -36,6 +36,10 @@ permissions:
   notbounties.admin:
     default: op
     description: Remove or edit bounties.
+    children: [notbounties.cleanEntities]
+  notbounties.cleanentities:
+    default: op
+    description: Use the command /bounty cleanEntities (radius)
   notbounties.set:
     default: true
     description: Set bounties.
@@ -85,6 +89,9 @@ permissions:
   notbounties.craftposter:
     default: false
     description: Craft a bounty poster.
+  notbounties.writeposter:
+    default: false
+    description: Write a bounty poster to an empty map.
   notbounties.whitelist:
     default: true
     description: Whitelist players to claim your bounty.

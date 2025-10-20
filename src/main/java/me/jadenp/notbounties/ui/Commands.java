@@ -248,7 +248,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now skipping the version " + ChatColor.GOLD + ConfigOptions.getUpdateNotification() + ChatColor.YELLOW + ".", parser));
                     }
                 }
-            } else if (args[0].equalsIgnoreCase("cleanEntities") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
+            } else if (args[0].equalsIgnoreCase("cleanEntities") && (adminPermission || sender.hasPermission("notbounties.cleanentities"))) {
                 if (!(sender instanceof Player)) {
                     if (!silent)
                         sender.sendMessage("Only players can use this command!");
@@ -1413,7 +1413,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("poster") && BountyMap.isEnabled()) {
-                if (!(BountyMap.isGiveOwn() || sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawnposter"))) {
+                if (!(BountyMap.isGiveOwn() || sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawnposter") || sender.hasPermission("notbounties.writeposter") || BountyMap.isWritePoster())) {
                     // no permission
                     if (!silent)
                         sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
@@ -1462,8 +1462,24 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                     if (!silent)
                         sender.sendMessage(parse(getPrefix() + getMessage("map-give"), Bukkit.getOfflinePlayer(playerUUID), receiver));
-                } else if (sender instanceof Player) {
-                    receiver = parser;
+                } else if (sender instanceof Player player) {
+                    // /bounty poster (player)
+                    receiver = player;
+                    // check if they have an empty map in their hand
+                    if (player.getInventory().getItemInMainHand().getType() == Material.MAP) {
+                        // remove empty map
+                        if (player.getInventory().getItemInMainHand().getAmount() > 1) {
+                            player.getInventory().getItemInMainHand().setAmount(player.getInventory().getItemInMainHand().getAmount() - 1);
+                        } else {
+                            player.getInventory().setItemInMainHand(null);
+                        }
+                    } else if (!(BountyMap.isGiveOwn() || sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawnposter"))) {
+                        // needs an empty map in hand
+                        if (!silent) {
+                            sender.sendMessage(parse(getPrefix() + getMessage("require-empty-map"), parser));
+                        }
+                        return false;
+                    }
                 } else {
                     if (!silent)
                         sender.sendMessage("You cant give yourself this item!");
@@ -2073,6 +2089,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("top");
                     tab.add("stat");
                 }
+                if (sender.hasPermission("notbounties.cleanentities")) {
+                    tab.add("cleanEntities");
+                }
                 if (sender.hasPermission(NotBounties.getAdminPermission())) {
                     tab.add("remove");
                     tab.add("edit");
@@ -2080,7 +2099,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("currency");
                     tab.add("debug");
                     tab.add("board");
-                    tab.add("cleanEntities");
                     if (NotBounties.isPaused()) {
                         tab.add("unpause");
                     } else {
@@ -2089,7 +2107,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else if (sender.hasPermission("notbounties.removeset")) {
                     tab.add("remove");
                 }
-                if (BountyMap.isEnabled() && (sender.hasPermission(NotBounties.getAdminPermission()) || BountyMap.isGiveOwn()|| sender.hasPermission("notbounties.spawnposter")))
+                if (BountyMap.isEnabled() && (sender.hasPermission(NotBounties.getAdminPermission()) || BountyMap.isGiveOwn()|| sender.hasPermission("notbounties.spawnposter") || BountyMap.isWritePoster() || sender.hasPermission("notbounties.writeposter")))
                     tab.add("poster");
                 if ((sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawntracker") || sender.hasPermission("notbounties.writeemptytracker") || ((BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers()) && sender.hasPermission("notbounties.tracker"))) && BountyTracker.isEnabled())
                     tab.add("tracker");

@@ -118,6 +118,7 @@ map-lore:
   - ''
 map-give: '&eYou have given &6{receiver}&e a bounty poster of {player}.' #
 map-receive: '&eYou have been given a bounty poster of &6{player}&e.'
+require-empty-map: '&cYou are not holding an empty map.'
 admin-edit-lore: #
   - '&cLeft Click &7to Remove'
   - '&eRight Click &7to Edit'

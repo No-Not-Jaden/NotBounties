@@ -9,6 +9,8 @@ bounty-posters:
   give-own: false
   # players can craft a poster with an empty map and a player head
   craft-poster: true
+  # players can convert an empty map to a poster through the bounty poster command
+  write-poster: true
   # players can wash posters by throwing them in a filled cauldron to get a regular map back
   wash-poster: true
   # display bounty reward on the poster

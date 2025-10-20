@@ -61,6 +61,7 @@ public class BountyMap implements Listener {
     private static boolean enabled;
     private static boolean giveOwn;
     private static boolean craftPoster;
+    private static boolean writePoster;
     private static boolean washPoster;
     private static boolean displayReward;
     private static String rewardText;
@@ -118,6 +119,7 @@ public class BountyMap implements Listener {
         alwaysUpdate = config.getBoolean("always-update");
         craftPoster = config.getBoolean("craft-poster");
         washPoster = config.getBoolean("wash-poster");
+        writePoster = config.getBoolean("write-poster");
 
         MapColor.setBlends(config.getInt("face-shading.blends"));
         MapColor.setMaxColorDistance(config.getInt("face-shading.max-color-distance"));
@@ -551,5 +553,9 @@ public class BountyMap implements Listener {
 
     public static boolean isLockMaps() {
         return lockMaps;
+    }
+
+    public static boolean isWritePoster() {
+        return writePoster;
     }
 }

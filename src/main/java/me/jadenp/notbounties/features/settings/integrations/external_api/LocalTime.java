@@ -46,6 +46,9 @@ public class LocalTime {
     private static void readAuthentication() throws IOException {
         // checks if secret file is present
         File secretFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + SECRET_FILE);
+        if (secretFile.createNewFile()) {
+            NotBounties.debugMessage("Created Secret File!", false);
+        }
         YamlConfiguration configuration;
         if (secretFile.exists()) {
             configuration = YamlConfiguration.loadConfiguration(secretFile);
@@ -57,7 +60,7 @@ public class LocalTime {
 
         // load account id and license key from secret file
         account = configuration.getInt("geoip2.account");
-        license = decodeLicense(Objects.requireNonNull(configuration.getString("geoip2.license")));
+        license = Objects.requireNonNull(configuration.getString("geoip2.license"));
     }
 
     private static String decodeLicense(String input) {
@@ -78,6 +81,7 @@ public class LocalTime {
             try {
                 readAuthentication();
             } catch (IOException e) {
+                NotBounties.debugMessage(e.getMessage(), false);
                 return formatTime(time, player.getLocale());
             }
         }
