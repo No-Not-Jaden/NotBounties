@@ -43,7 +43,7 @@ public class LocalTime {
         savedTimeZones.put(uuid, TimeZone.getTimeZone(timeZone));
     }
 
-    private static void readAuthentication() throws IOException {
+    public static void readAuthentication() throws IOException {
         // checks if secret file is present
         File secretFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + SECRET_FILE);
         if (secretFile.createNewFile()) {
@@ -82,11 +82,15 @@ public class LocalTime {
                 readAuthentication();
             } catch (IOException e) {
                 NotBounties.debugMessage(e.getMessage(), false);
-                return formatTime(time, player.getLocale());
             }
         }
         if (savedTimeZones.containsKey(player.getUniqueId()))
             return formatTime(time, savedTimeZones.get(player.getUniqueId()));
+
+        if (license == null || account == 123456) {
+            // the authentication is not loaded or is using the default
+            return formatTime(time, player.getLocale());
+        }
 
         InetSocketAddress address = player.getAddress();
         if (address == null)

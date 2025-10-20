@@ -7,6 +7,7 @@ import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.settings.display.Display;
 import me.jadenp.notbounties.features.settings.immunity.Immunity;
 import me.jadenp.notbounties.features.settings.integrations.Integrations;
+import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.features.settings.money.Money;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.SkinManager;
@@ -244,6 +245,7 @@ public class ConfigOptions {
         WebhookOptions.reloadOptions();
         SkinManager.refreshSkinRequests();
         ChallengeManager.reloadOptions();
+        LocalTime.readAuthentication();
         if (integrations.isFloodgateEnabled() || integrations.isGeyserEnabled())
             BedrockGUI.reloadOptions();
 
