@@ -10,6 +10,8 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.UUID;
+
 public class EntityTag extends TagProvider {
 
     private ArmorStand armorStand = null;
@@ -85,5 +87,12 @@ public class EntityTag extends TagProvider {
     @Override
     public boolean isValid() {
         return armorStand != null;
+    }
+
+    @Override
+    public @Nullable UUID getTagUUID() {
+        if (armorStand != null)
+            return armorStand.getUniqueId();
+        return null;
     }
 }

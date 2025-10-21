@@ -3,6 +3,9 @@ package me.jadenp.notbounties.features.settings.integrations.external_api;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+
+import java.lang.reflect.Method;
 
 public class DuelsClass {
 
@@ -24,13 +27,22 @@ public class DuelsClass {
                 teleportDelay = duels.getConfig().getInt("duel.teleport-delay", 5);
             }
         } catch (NoClassDefFoundError | ClassCastException e) {
-            com.meteordevelopments.duels.api.Duels duels = (com.meteordevelopments.duels.api.Duels) Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-            if (duels != null) {
-                duels.reloadConfig();
-                teleportDelay = duels.getConfig().getInt("duel.teleport-delay", 5);
+            try {
+                Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+                if (plugin != null) {
+                    Method reloadConfigMethod = plugin.getClass().getMethod("reloadConfig");
+                    reloadConfigMethod.invoke(plugin);
+
+                    Method getConfigMethod = plugin.getClass().getMethod("getConfig");
+                    Object config = getConfigMethod.invoke(plugin);
+
+                    Method getIntMethod = config.getClass().getMethod("getInt", String.class, int.class);
+                    teleportDelay = (int) getIntMethod.invoke(config, "duel.teleport-delay", 5);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         }
-
     }
 
     /**
@@ -55,9 +67,18 @@ public class DuelsClass {
                 return duels.getArenaManager().isInMatch(player);
             }
         } catch (NoClassDefFoundError | ClassCastException e) {
-            com.meteordevelopments.duels.api.Duels duels = (com.meteordevelopments.duels.api.Duels) Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-            if (duels != null) {
-                return duels.getArenaManager().isInMatch(player);
+            // Use reflection for newer Duels API to avoid compile-time dependency
+            try {
+                Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+                if (plugin != null) {
+                    Method getArenaManagerMethod = plugin.getClass().getMethod("getArenaManager");
+                    Object arenaManager = getArenaManagerMethod.invoke(plugin);
+
+                    Method isInMatchMethod = arenaManager.getClass().getMethod("isInMatch", Player.class);
+                    return (boolean) isInMatchMethod.invoke(arenaManager, player);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         }
         return false;

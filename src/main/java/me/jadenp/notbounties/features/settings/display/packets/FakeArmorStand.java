@@ -108,4 +108,9 @@ public class FakeArmorStand extends TagProvider {
         }
 
     }
+
+    @Override
+    public @Nullable UUID getTagUUID() {
+        return uuid;
+    }
 }

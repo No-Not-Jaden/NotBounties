@@ -225,6 +225,16 @@ public class WantedTags {
         }
     }
 
+    public static Set<UUID> getTagUUIDs() {
+        HashSet<UUID> uuids = new HashSet<>();
+        for (WantedTags wantedTags : activeTags.values()) {
+            if (wantedTags.tag != null && wantedTags.tag.getTagUUID() != null) {
+                uuids.add(wantedTags.tag.getTagUUID());
+            }
+        }
+        return uuids;
+    }
+
     /**
      * The player that this wanted tag is tracking.
      */

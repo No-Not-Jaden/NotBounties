@@ -3,6 +3,9 @@ package me.jadenp.notbounties.features.settings.display;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import javax.annotation.Nullable;
+import java.util.UUID;
+
 public abstract class TagProvider {
 
     protected String text;
@@ -62,4 +65,6 @@ public abstract class TagProvider {
      * @return True if the tag is valid.
      */
     public abstract boolean isValid();
+
+    public abstract @Nullable UUID getTagUUID();
 }

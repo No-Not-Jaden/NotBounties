@@ -49,6 +49,15 @@ public class BountyBoard {
         return bountyBoards;
     }
 
+    public static Set<UUID> getBoardUUIDs() {
+        Set<UUID> uuids = new HashSet<>();
+        for (BountyBoard board : bountyBoards) {
+            if (board.getFrame() != null)
+                uuids.add(board.getFrame().getUniqueId());
+        }
+        return uuids;
+    }
+
     public static Map<UUID, Integer> getBoardSetup() {
         return boardSetup;
     }

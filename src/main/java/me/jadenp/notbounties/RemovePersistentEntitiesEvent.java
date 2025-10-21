@@ -75,6 +75,8 @@ public class RemovePersistentEntitiesEvent implements Listener {
      */
     public static void cleanAsync(List<Entity> entities, CommandSender sender) {
         NotBounties.getServerImplementation().async().runNow(() -> {
+            Set<UUID> activeEntities = WantedTags.getTagUUIDs();
+            activeEntities.addAll(BountyBoard.getBoardUUIDs());
             List<Entity> toRemove = new ArrayList<>();
             for (Entity entity : entities) {
                 if (!isBountyEntity(entity))
@@ -82,8 +84,15 @@ public class RemovePersistentEntitiesEvent implements Listener {
                 PersistentDataContainer container = entity.getPersistentDataContainer();
                 if (container.has(getNamespacedKey(), PersistentDataType.STRING)) {
                     String value = container.get(getNamespacedKey(), PersistentDataType.STRING);
-                    if (value != null && !value.equals(SESSION_KEY))
-                        toRemove.add(entity);
+                    if (value != null) {
+                        if (value.equals(SESSION_KEY)) {
+                            if (!activeEntities.contains(entity.getUniqueId()))
+                                toRemove.add(entity);
+                        } else {
+                            toRemove.add(entity);
+                        }
+                    }
+
                 }
             }
 

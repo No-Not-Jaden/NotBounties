@@ -8,6 +8,7 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class TextDisplayTag extends TagProvider {
 
@@ -87,6 +88,7 @@ public class TextDisplayTag extends TagProvider {
             if (isValid()) {
                 return;
             }
+            toBeRemoved = false;
             Location spawnLocation = trackedPlayer.getEyeLocation().add(0, WantedTags.getWantedOffset() + 0.3, 0);
             spawnLocation.setPitch(0);
             spawnLocation.setYaw(0);
@@ -124,13 +126,25 @@ public class TextDisplayTag extends TagProvider {
             return false;
         if (toBeRemoved) {
             try {
-                if (!textDisplay.isValid())
+                if (!textDisplay.isValid()) {
                     textDisplay = null;
+                } else {
+                    textDisplay.remove();
+                }
             } catch (NullPointerException ignored) {
                 // won't be able to check if the display is valid if on Folia and not in the same region
+                // validity checks will be made later on the correct region
+                return true;
             }
             return false;
         }
         return true;
+    }
+
+    @Override
+    public UUID getTagUUID() {
+        if (textDisplay == null)
+            return null;
+        return textDisplay.getUniqueId();
     }
 }
