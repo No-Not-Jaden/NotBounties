@@ -23,6 +23,7 @@ import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
+import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.features.settings.integrations.external_api.MMOLibClass;
 import org.bukkit.Bukkit;
@@ -305,7 +306,7 @@ public class DataManager {
                             }
                         if (configuration.isSet("data." + uuid + ".time-zone"))
                             LocalTime.addTimeZone(uuid, configuration.getString("data." + uuid + ".time-zone"));
-                        if (ConfigOptions.getBountyCooldown() > 0 && configuration.isSet("data." + uuid + ".last-set"))
+                        if (ImmunityManager.getBountyCooldown() > 0 && configuration.isSet("data." + uuid + ".last-set"))
                             playerData.setBountyCooldown(configuration.getLong("data." + uuid + ".last-set"));
                     }
                 if (!timedBounties.isEmpty())

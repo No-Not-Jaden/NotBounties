@@ -89,6 +89,10 @@ public class ImmunityManager {
      */
     private static boolean permissionImmunity;
     /**
+     * The time in seconds that a player must wait before they can set another bounty.
+     */
+    private static long bountyCooldown;
+    /**
      * Time immunity tracking. This will either display at what time in milliseconds that the immunity expires,
      * or how many milliseconds the player has left in their immunity.
      */
@@ -113,6 +117,7 @@ public class ImmunityManager {
         scalingRatio = configuration.getDouble("scaling-immunity.ratio");
         gracePeriod = configuration.getLong("grace-period");
         permissionImmunity = configuration.getBoolean("permission-immunity");
+        bountyCooldown = configuration.getLong("bounty-cooldown");
 
         // When the server starts, SaveManager loads the old newPlayerImmunity value from last start before this is run.
         long oldNewPlayerImmunity = newPlayerImmunity;
@@ -388,5 +393,9 @@ public class ImmunityManager {
                 if (random.nextInt(players.size()) < 50)
                     checkPermissionImmunity(player);
         });
+    }
+
+    public static long getBountyCooldown() {
+        return bountyCooldown;
     }
 }

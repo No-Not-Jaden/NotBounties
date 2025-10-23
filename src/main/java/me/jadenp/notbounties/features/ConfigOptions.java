@@ -68,7 +68,6 @@ public class ConfigOptions {
     private static boolean stealBounties;
     private static List<String> pluginBountyCommands;
     private static final String[] modifiableSections = new String[]{"number-formatting.divisions", "wanted-tag.level", "databases", "MMOLib"};
-    private static long bountyCooldown;
     private static int maxTabCompletePlayers;
     private static int autoSaveInterval;
     private static Plugin plugin;
@@ -203,7 +202,6 @@ public class ConfigOptions {
         if (firstStart)
             registerAliases(pluginBountyCommands);
         bountyBackups = plugin.getConfig().getBoolean("bounty-backups");
-        bountyCooldown = plugin.getConfig().getLong("bounty-cooldown");
         maxTabCompletePlayers = plugin.getConfig().getInt("max-tab-complete-players");
         autoSaveInterval = plugin.getConfig().getInt("auto-save-interval");
         offlineSet = plugin.getConfig().getBoolean("offline-set");
@@ -479,10 +477,6 @@ public class ConfigOptions {
 
     public static List<String> getPluginBountyCommands() {
         return pluginBountyCommands;
-    }
-
-    public static long getBountyCooldown() {
-        return bountyCooldown;
     }
 
     public static List<String> getHiddenNames() {
