@@ -252,7 +252,7 @@
         <dependency>
             <groupId>com.sk89q.worldguard</groupId>
             <artifactId>worldguard-bukkit</artifactId>
-            <version>7.0.14</version>
+            <version>7.0.9</version> <!-- newer versions are only compatable with newer java versions > 17 -->
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
