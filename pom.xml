@@ -13,7 +13,7 @@
 
     <description>kill...</description>
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -22,7 +22,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.13.0</version>
                 <configuration>
                     <source>17</source>
                     <target>17</target>
@@ -64,11 +64,11 @@
                         </filter>
                     </filters>
                     <relocations>
-                        <relocation>
+                        <!--<relocation>
                             <pattern>io.lettuce.lettuce-core</pattern>
                             <shadedPattern>me.jadenp.notbounties.internal.lettuce-core
                             </shadedPattern>
-                        </relocation>
+                        </relocation>-->
                         <relocation>
                             <pattern>com.cjcrafter.foliascheduler</pattern>
                             <shadedPattern>me.jadenp.notbounties.internal.foliascheduler</shadedPattern>
@@ -168,14 +168,14 @@
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
-            <version>2.11.5</version>
+            <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <version>9.2.0</version>
+            <version>9.4.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.arcaniax/HeadDatabase-API -->
@@ -196,21 +196,21 @@
         <dependency>
             <groupId>com.gitlab.ruany</groupId>
             <artifactId>LiteBansAPI</artifactId>
-            <version>0.5.0</version>
+            <version>0.6.1</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://github.com/booksaw/BetterTeams/releases -->
         <dependency>
             <groupId>com.github.booksaw</groupId>
             <artifactId>BetterTeams</artifactId>
-            <version>4.9.3</version>
+            <version>4.15.2</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://skinsrestorer.net/docs/development/api#add-to-your-build-file -->
         <dependency>
             <groupId>net.skinsrestorer</groupId>
             <artifactId>skinsrestorer-api</artifactId>
-            <version>15.0.13</version>
+            <version>15.8.2</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://github.com/TownyAdvanced/Towny/wiki/TownyAPI#add-towny-to-your-pomxml-file -->
@@ -218,20 +218,20 @@
         <dependency>
             <groupId>com.palmergames.bukkit.towny</groupId>
             <artifactId>towny</artifactId>
-            <version>0.100.2.8</version>
+            <version>0.101.2.6</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://wiki.geysermc.org/geyser/getting-started-with-the-api/ -->
         <dependency>
             <groupId>org.geysermc.geyser</groupId>
             <artifactId>api</artifactId>
-            <version>2.4.2-SNAPSHOT</version>
+            <version>2.8.3-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.geysermc.floodgate</groupId>
             <artifactId>api</artifactId>
-            <version>2.2.2-SNAPSHOT</version>
+            <version>2.2.4-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.github.cryptomorin/kingdoms -->
@@ -245,34 +245,35 @@
         <dependency>
             <groupId>com.github.angeschossen</groupId>
             <artifactId>LandsAPI</artifactId>
-            <version>7.0.2</version>
+            <version>7.15.20</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.sk89q.worldguard/worldguard-bukkit -->
         <dependency>
             <groupId>com.sk89q.worldguard</groupId>
             <artifactId>worldguard-bukkit</artifactId>
-            <version>7.0.9</version>
+            <version>7.0.14</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
-            <version>5.3.1</version>
+            <version>5.5.1</version>
             <scope>compile</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
-            <version>4.5.0-M2</version>
+            <version>4.5.0</version>
             <scope>compile</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.SaberLLC/Saber-Factions -->
         <dependency>
             <groupId>com.github.SaberLLC</groupId>
             <artifactId>Saber-Factions</artifactId>
-            <version>2.4.0-RC</version>
+            <version>4.1.4-STABLE</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -285,7 +286,7 @@
         <dependency>
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
-            <version>6.6.0.RELEASE</version>
+            <version>7.0.0.RELEASE</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -304,7 +305,7 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.11.0</version>
+            <version>2.13.2</version>
         </dependency>
         <!-- https://github.com/BG-Software-LLC/SuperiorSkyblock2 -->
         <dependency>
@@ -339,21 +340,21 @@
         <dependency>
             <groupId>com.cjcrafter</groupId>
             <artifactId>foliascheduler</artifactId>
-            <version>0.6.3</version>
+            <version>0.7.2</version>
             <scope>compile</scope>
         </dependency>
         <!-- https://docs.packetevents.com/getting-started -->
         <dependency>
             <groupId>com.github.retrooper</groupId>
             <artifactId>packetevents-spigot</artifactId>
-            <version>2.8.0</version>
+            <version>2.10.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.github.SkriptLang/Skript -->
         <dependency>
             <groupId>com.github.SkriptLang</groupId>
             <artifactId>Skript</artifactId>
-            <version>2.8.7</version>
+            <version>2.12.2</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
