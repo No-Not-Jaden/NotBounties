@@ -328,19 +328,6 @@
             <version>3.5.1</version>
             <scope>provided</scope>
         </dependency>
-        <!-- https://github.com/dumbo-the-developer/Duels -->
-        <dependency>
-            <groupId>com.github.dumbo-the-developer.Duels</groupId>
-            <artifactId>duels-api</artifactId>
-            <version>4.0</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>space.arim.morepaperlib</groupId>
-                    <artifactId>morepaperlib</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <!-- https://github.com/RoinujNosde/SimpleClans/releases -->
         <dependency>
             <groupId>net.sacredlabyrinth.phaed.simpleclans</groupId>
