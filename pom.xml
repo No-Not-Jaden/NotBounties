@@ -210,7 +210,7 @@
         <dependency>
             <groupId>net.skinsrestorer</groupId>
             <artifactId>skinsrestorer-api</artifactId>
-            <version>15.8.2</version>
+            <version>15.0.13</version> <!-- newer versions are only compatable with newer java versions > 17 -->
             <scope>provided</scope>
         </dependency>
         <!-- https://github.com/TownyAdvanced/Towny/wiki/TownyAPI#add-towny-to-your-pomxml-file -->
