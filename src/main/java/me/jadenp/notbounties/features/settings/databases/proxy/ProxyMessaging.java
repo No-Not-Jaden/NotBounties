@@ -365,6 +365,8 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
      * @return A byte[] ready to be sent as a message
      */
     protected static byte[] wrapGlobalMessage(byte[] stream) {
+        if (stream.length == 0)
+            return new byte[0];
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("Forward");
         //out.writeUTF("ALL"); // This is the target server. "ALL" will message all servers apart from the one sending the message

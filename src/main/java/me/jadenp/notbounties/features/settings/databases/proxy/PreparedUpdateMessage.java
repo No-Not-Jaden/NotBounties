@@ -36,7 +36,7 @@ public class PreparedUpdateMessage {
         this.id = id;
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            out.writeUTF(channel);
+            out.writeUTF(channel); // subchannel
             ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
             DataOutputStream msgout = new DataOutputStream(msgBytes);
 
@@ -68,7 +68,7 @@ public class PreparedUpdateMessage {
             //out.writeShort(msgBytes.toByteArray().length); // This is the length.
             out.write(msgBytes.toByteArray()); // This is the message.
 
-            message = out.toByteArray();
+            message = ProxyMessaging.wrapGlobalMessage(out.toByteArray());
 
             msgout.close();
         }  catch (IOException e) {
@@ -102,7 +102,7 @@ public class PreparedUpdateMessage {
 
     private void executeMessage() {
         if (!Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled() && ProxyDatabase.isEnabled() && !canceled) {
-            ProxyMessaging.sendMessage(ProxyMessaging.CHANNEL, ProxyMessaging.wrapGlobalMessage(message), Bukkit.getOnlinePlayers().iterator().next());
+            ProxyMessaging.sendMessage(ProxyMessaging.CHANNEL, message, Bukkit.getOnlinePlayers().iterator().next());
             sent = true;
             if (futureMessage != null) {
                 futureMessage.sendMessage(true);
@@ -142,6 +142,9 @@ public class PreparedUpdateMessage {
 
     public void setCanceled(boolean canceled) {
         this.canceled = canceled;
+        if (futureMessage != null) {
+            futureMessage.setCanceled(canceled);
+        }
     }
 
     public long getId() {
