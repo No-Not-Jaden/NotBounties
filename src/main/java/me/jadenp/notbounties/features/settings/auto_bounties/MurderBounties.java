@@ -97,7 +97,7 @@ public class MurderBounties {
                     playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L)
                     && (!murderExcludeClaiming || !hasBounty(player.getUniqueId()) || Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty(killer) < 0.01)) {
                 // increase
-                if (murderBountyIncrease > 0) {
+                if (bountyIncrease > 0) {
                     addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
                     killer.sendMessage(parse(getPrefix() + getMessage("murder"), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), player));
                 }
@@ -113,14 +113,24 @@ public class MurderBounties {
     }
 
     private static double getBountyIncrease(Player player) {
-        if (!multiplicative)
-            return murderBountyIncrease;
         Bounty bounty = getBounty(player.getUniqueId());
-        if (bounty != null && bounty.getTotalDisplayBounty() > ConfigOptions.getMoney().getMinBounty()) {
-            return bounty.getTotalBounty() * murderBountyIncrease;
+        double bountyAmount = bounty != null ? bounty.getTotalDisplayBounty() : 0;
+        double bountyIncrease;
+        if (multiplicative) {
+            if (bountyAmount > ConfigOptions.getMoney().getMinBounty()) {
+                bountyIncrease = bountyAmount * murderBountyIncrease;
+            } else {
+                bountyIncrease = ConfigOptions.getMoney().getMinBounty();
+            }
         } else {
-            return ConfigOptions.getMoney().getMinBounty();
+            // flat
+            bountyIncrease = murderBountyIncrease;
         }
+        // bound the increase to the max bounty
+        if (bountyIncrease + bountyAmount > ConfigOptions.getMoney().getMaxBounty() && ConfigOptions.getMoney().getMaxBounty() > -1) {
+            bountyIncrease = Math.max(ConfigOptions.getMoney().getMaxBounty() - bountyAmount, 0);
+        }
+        return bountyIncrease;
     }
 
     public static boolean isEnabled() {
