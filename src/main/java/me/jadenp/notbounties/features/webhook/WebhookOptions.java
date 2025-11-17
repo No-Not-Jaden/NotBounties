@@ -6,8 +6,10 @@ import me.jadenp.notbounties.bounty_events.BountyClaimEvent;
 import me.jadenp.notbounties.bounty_events.BountyEditEvent;
 import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
 import me.jadenp.notbounties.bounty_events.BountySetEvent;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.tasks.WebhookBuilder;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -25,6 +27,8 @@ import java.util.UUID;
 public class WebhookOptions implements Listener {
     private static String link;
     private static boolean tts;
+    private static String avatarURL;
+    private static String imageURL;
     private static final Map<Class<? extends Event>, Webhook> webhooks = new HashMap<>();
     private static final String UNSET_LINK = "https://discord.com/api/webhooks/...";
 
@@ -32,18 +36,51 @@ public class WebhookOptions implements Listener {
         return new File(NotBounties.getInstance().getDataFolder() + File.separator + "webhook.yml");
     }
 
-    public static void reloadOptions() {
+    public static void reloadOptions() throws IOException {
         if (!getFile().exists())
             NotBounties.getInstance().saveResource("webhook.yml", false);
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(getFile());
 
+        boolean saveChanges = true;
+        if (configuration.getKeys(true).size() <= 2) {
+            saveChanges = false;
+            NotBounties.getInstance().getLogger().severe("Loaded an empty configuration for the webhook.yml file. Fix the YAML formatting errors, or the plugin may not work!\nFor more information on YAML formatting, see here: https://spacelift.io/blog/yaml");
+        }
+        if (!configuration.isSet("avarar-url"))
+            configuration.set("avatar-url", "https://mc-heads.net/head/{any}.png");
+        if (!configuration.isSet("image-url"))
+            configuration.set("image-url", "https://mc-heads.net/avatar/{any}/128.png");
+        if (saveChanges)
+            configuration.save(getFile());
+
         link = configuration.getString("link");
         tts = configuration.getBoolean("text-to-speech");
+        avatarURL = configuration.getString("avatar-url");
+        imageURL = configuration.getString("image-url");
         webhooks.clear();
         webhooks.put(BountySetEvent.class, new Webhook(Objects.requireNonNull(configuration.getConfigurationSection("bounty-set"))));
         webhooks.put(BountyClaimEvent.class, new Webhook(Objects.requireNonNull(configuration.getConfigurationSection("bounty-claim"))));
         webhooks.put(BountyRemoveEvent.class, new Webhook(Objects.requireNonNull(configuration.getConfigurationSection("bounty-remove"))));
         webhooks.put(BountyEditEvent.class, new Webhook(Objects.requireNonNull(configuration.getConfigurationSection("bounty-edit"))));
+    }
+
+    public static String parseImageURL(boolean avatar, UUID uuid, boolean skinLoaded) {
+        String url = avatar ? avatarURL : imageURL;
+        if (url.contains("{any}")) {
+            String identifier;
+            if (skinLoaded) {
+                identifier = SkinManager.getSkin(uuid).id();
+            } else if (uuid.version() == 4) {
+                identifier = uuid.toString();
+            } else {
+                identifier = LoggedPlayers.getPlayerName(uuid);
+            }
+            url = url.replace("{any}", identifier);
+        }
+        if (url.contains("{name}")) {
+            url = url.replace("{name}", LoggedPlayers.getPlayerName(uuid));
+        }
+        return url.replace("{uuid}", uuid.toString());
     }
 
     @EventHandler

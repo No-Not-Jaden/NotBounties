@@ -1,5 +1,12 @@
 link: 'https://discord.com/api/webhooks/...'
 text-to-speech: false
+# URLs to load images for the message avatar and embed image
+# {uuid} is replaced with the player's uuid
+# {name} is replaced with the player's name
+# {texture} is replaced with the player's skin texture id
+# {any} will use the first available in the order: texture->uuid->name
+avatar-url: 'https://mc-heads.net/head/{any}.png'
+image-url: 'https://mc-heads.net/avatar/{any}/128.png'
 bounty-set:
   enabled: true
   # change the name of the webhook in the message
@@ -7,6 +14,7 @@ bounty-set:
   username: '{player}'
   # plain text message
   message: ''
+  # Message avatar is set to a player head, and the embed image is a player face
   # switch the avatar and the display image
   # by default, the avatar is the setter, and the message image is the receiver
   switch-images: false

@@ -1,11 +1,16 @@
 package me.jadenp.notbounties.ui;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.ui.iso_renderer.IsometricRenderer;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.ConfigOptions;
@@ -25,16 +30,23 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 public class SkinManager {
     private static final Map<UUID, PlayerSkin> savedSkins = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> requestCooldown = new ConcurrentHashMap<>();
+    private static final Cache<UUID, BufferedImage> isometricHeadCache = CacheBuilder.newBuilder()
+            .maximumSize(100)
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .build();
     private static final long REQUEST_FAIL_TIMEOUT = 60000 * 30L; // 30 min
     private static final long CONCURRENT_REQUEST_INTERVAL = 10000;
     private static final String MISSING_SKIN_TEXTURE = "https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57";
     private static final String MISSING_SKIN_ID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
     private static final BufferedImage MISSING_SKIN_FACE;
+    private static final BufferedImage MISSING_SKIN_ISO;
     private static final PlayerSkin missingSkin;
+    private static final IsometricRenderer isoRenderer = new IsometricRenderer();
 
     static {
         try {
@@ -44,6 +56,7 @@ public class SkinManager {
         }
         savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin);
         MISSING_SKIN_FACE = getPlayerFace(DataManager.GLOBAL_SERVER_ID);
+        MISSING_SKIN_ISO = getIsometricFace(DataManager.GLOBAL_SERVER_ID);
     }
 
     private static final List<Long> rateLimit = new ArrayList<>(); // 200 requests / min
@@ -207,8 +220,30 @@ public class SkinManager {
             return head;
 
         } catch (IOException e) {
-            NotBounties.debugMessage("Error reading texture url for bounty poster.\n" + e, true);
+            NotBounties.debugMessage("Error reading texture url for rendering player face.\n" + e, true);
 
+        }
+        return null;
+    }
+
+    public static BufferedImage getIsometricFace(UUID uuid) {
+        if (!isSkinLoaded(uuid))
+            return null;
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && MISSING_SKIN_ISO != null)
+            return MISSING_SKIN_ISO;
+        BufferedImage cachedHead = isometricHeadCache.getIfPresent(uuid);
+        if (cachedHead != null)
+            return cachedHead;
+        try {
+            URL textureUrl = getSkin(uuid).url();
+
+            BufferedImage skin = ImageIO.read(textureUrl);
+            BufferedImage head = isoRenderer.render(skin, 128, true);
+            isometricHeadCache.put(uuid, head);
+            return head;
+
+        } catch (IOException e) {
+            NotBounties.debugMessage("Error reading texture url for rendering isometric head.\n" + e, true);
         }
         return null;
     }

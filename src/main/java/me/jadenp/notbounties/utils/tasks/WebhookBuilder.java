@@ -52,24 +52,8 @@ public class WebhookBuilder extends CancelableTask{
             return;
         }
         this.cancel();
-        String avatarIdentifier;
-        if (avatarLoaded) {
-            avatarIdentifier = SkinManager.getSkin(avatarUUID).id();
-        } else if (avatarUUID.version() == 4) {
-            avatarIdentifier = avatarUUID.toString();
-        } else {
-            avatarIdentifier = LoggedPlayers.getPlayerName(avatarUUID);
-        }
-        String avatarURL = "https://mc-heads.net/head/" + avatarIdentifier + ".png";
-        String imageIdentifier;
-        if (imageLoaded) {
-            imageIdentifier = SkinManager.getSkin(imageUUID).id();
-        } else if (imageUUID.version() == 4) {
-            imageIdentifier = imageUUID.toString();
-        } else {
-            imageIdentifier = LoggedPlayers.getPlayerName(imageUUID);
-        }
-        String imageURL = "https://mc-heads.net/avatar/" + imageIdentifier + "/128.png";
+        String avatarURL = WebhookOptions.parseImageURL(true, avatarUUID, avatarLoaded);
+        String imageURL = WebhookOptions.parseImageURL(false, imageUUID, imageLoaded);
 
         if (sendEmbed) {
             embed = new DiscordWebhook.EmbedObject()
