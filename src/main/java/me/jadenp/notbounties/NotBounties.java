@@ -334,7 +334,7 @@ public final class NotBounties extends JavaPlugin {
 
     private static void checkForUpdate(Plugin plugin) {
         // update checker
-        if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("false"))
+        if ("false".equalsIgnoreCase(ConfigOptions.getUpdateNotification()))
             return;
         new UpdateChecker((JavaPlugin) plugin, 104484).getVersion(version -> {
             latestVersion = version;

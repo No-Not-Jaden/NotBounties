@@ -241,8 +241,13 @@ public class SaveManager {
         if (!statsFile.exists())
             return;
         try (JsonReader reader = new JsonReader(new FileReader(statsFile))) {
-            if (reader.peek() == JsonToken.NULL) {
-                reader.nextNull();
+            try {
+                if (reader.peek() == JsonToken.NULL) {
+                    reader.nextNull();
+                    return;
+                }
+            } catch (EOFException e) {
+                // empty file, ignore
                 return;
             }
             reader.beginArray();
@@ -270,8 +275,13 @@ public class SaveManager {
         if (!bountiesFile.exists())
             return;
         try (JsonReader reader = new JsonReader(new FileReader(bountiesFile))) {
-            if (reader.peek() == JsonToken.NULL) {
-                reader.nextNull();
+            try {
+                if (reader.peek() == JsonToken.NULL) {
+                    reader.nextNull();
+                    return;
+                }
+            } catch (EOFException e) {
+                // empty file, ignore
                 return;
             }
             reader.beginArray();
@@ -288,8 +298,13 @@ public class SaveManager {
         File playerDataFile = new File(dataDirectory + File.separator + "player_data.json");
         if (playerDataFile.exists()) {
             try (JsonReader reader = new JsonReader(new FileReader(playerDataFile))) {
-                if (reader.peek() == JsonToken.NULL) {
-                    reader.nextNull();
+                try {
+                    if (reader.peek() == JsonToken.NULL) {
+                        reader.nextNull();
+                        return;
+                    }
+                } catch (EOFException e) {
+                    // empty file, ignore
                     return;
                 }
                 List<PlayerData> playerDataList = null;
