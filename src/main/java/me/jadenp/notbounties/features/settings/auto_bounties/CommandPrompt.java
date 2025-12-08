@@ -10,6 +10,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
+import java.util.Collections;
+
 import static me.jadenp.notbounties.features.LanguageOptions.parse;
 
 public class CommandPrompt {
@@ -103,7 +105,7 @@ public class CommandPrompt {
             if (playerPrompt) {
                 ActionCommands.runPlayerCommand(player, commandString);
             } else {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandString);
+                ActionCommands.executeCommands(player, Collections.singletonList(commandString));
             }
         }, 1);
         NotBounties.getServerImplementation().global().runDelayed(task -> {

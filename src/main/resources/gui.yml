@@ -35,7 +35,7 @@ custom-items:
       - '&6enter bounty amount'
       - ''
     commands:
-      - '[pprompt] notbounties {player1} <&eEnter in chat the bounty amount or type "cancel" to cancel.>'
+      - '[cprompt] notbountiesadmin {player} {player1} <&eEnter in chat the bounty amount or type "cancel" to cancel.>'
   enter-hunt-time:
     material: WRITABLE_BOOK
     amount: 1
@@ -46,7 +46,7 @@ custom-items:
       - '&6enter hunt time'
       - ''
     commands:
-      - '[pprompt] notbounties hunt {player1} <&eEnter in chat the hunt time minutes or type "cancel" to cancel.>'
+      - '[cprompt] notbountiesadmin {player} hunt {player1} <&eEnter in chat the hunt time minutes or type "cancel" to cancel.>'
   exit:
     material: BARRIER
     amount: 1
