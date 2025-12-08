@@ -171,8 +171,10 @@ public class SaveManager {
             }
             writer.endArray();
 
-            if (RandomBounties.isEnabled())
+            if (RandomBounties.isEnabled()) {
                 writer.name("nextRandomBounty").value(RandomBounties.getNextRandomBounty());
+                writer.name("randomBountyTimeHash").value(RandomBounties.getTimeHash());
+            }
 
             if (TimedBounties.isEnabled()) {
                 writer.name("nextTimedBounties");
@@ -319,6 +321,7 @@ public class SaveManager {
                         case "trackedBounties" -> BountyTracker.setTrackedBounties(readTrackedBounties(reader));
                         case "databaseSyncTimes" -> databaseSyncTimes = readDatabaseSyncTimes(reader);
                         case "nextRandomBounty" -> readNextRandomBounty(reader);
+                        case "randomBountyTimeHash" -> RandomBounties.setTimeHash(reader.nextInt());
                         case "nextTimedBounties" -> TimedBounties.setNextBounties(readTimedBounties(reader));
                         case "bountyBoards" -> BountyBoard.addBountyBoards(readBountyBoards(reader));
                         case "nextChallengeChange" -> ChallengeManager.setNextChallengeChange(reader.nextLong());

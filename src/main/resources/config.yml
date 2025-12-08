@@ -63,6 +63,8 @@ bounty-backups: true
 plugin-bounty-commands:
   - 'notbounties'
   - 'bounty'
+# whether this will be used for GUI-based commands that are non-configurable
+use-plcmd-in-gui: false
 
 # restrict PVP
 pvp-restrictions:

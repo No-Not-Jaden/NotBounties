@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+import static me.jadenp.notbounties.features.ConfigOptions.runGUIPluginCommand;
 import static me.jadenp.notbounties.features.ConfigOptions.saveConfigurationSection;
 
 // <TODO>Dialog system to replace GUI
@@ -858,12 +859,12 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, info.data());
                         break;
                     case "select-price":
-                        Bukkit.dispatchCommand(event.getWhoClicked(), ConfigOptions.getPluginBountyCommands().get(0) + " " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
+                        runGUIPluginCommand(event.getWhoClicked(), playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
                         if (!ConfigOptions.isBountyConfirmation())
                             event.getWhoClicked().closeInventory();
                         break;
                     case "bounty-hunt-time":
-                        Bukkit.dispatchCommand(event.getWhoClicked(), ConfigOptions.getPluginBountyCommands().get(0) + " hunt " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
+                        runGUIPluginCommand(event.getWhoClicked(), "hunt " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
                         event.getWhoClicked().closeInventory();
                         break;
                     case "bounty-item-select":

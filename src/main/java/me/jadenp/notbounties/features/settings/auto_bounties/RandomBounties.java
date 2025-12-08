@@ -29,6 +29,10 @@ public class RandomBounties {
      */
     private static int randomBountyMaxTime;
     /**
+     * Combination of min+max time
+     */
+    private static int timeHash = 0;
+    /**
      * The minimum price of a random bounty.
      */
     private static double randomBountyMinPrice;
@@ -67,8 +71,10 @@ public class RandomBounties {
         // stop next random bounty if it is changed
         if (!isEnabled() && nextRandomBounty != 0)
             nextRandomBounty = 0;
-        if (isEnabled() && nextRandomBounty == 0)
+        if (isEnabled() && (nextRandomBounty == 0 || timeHash != randomBountyMinTime + randomBountyMaxTime)) {
             setNextRandomBounty();
+            timeHash = randomBountyMinTime + randomBountyMaxTime;
+        }
     }
 
     public static void update() {
@@ -122,6 +128,14 @@ public class RandomBounties {
 
     public static void setNextRandomBounty() {
         nextRandomBounty = System.currentTimeMillis() + randomBountyMinTime * 1000L + (random.nextInt(Math.abs(randomBountyMaxTime - randomBountyMinTime)) * 1000L);
+    }
+
+    public static int getTimeHash() {
+        return randomBountyMinTime + randomBountyMaxTime;
+    }
+
+    public static void setTimeHash(int timeHash) {
+        RandomBounties.timeHash = timeHash;
     }
 
     private static boolean hasImmunity(OfflinePlayer player) {

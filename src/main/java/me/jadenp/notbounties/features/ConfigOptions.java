@@ -22,6 +22,7 @@ import me.jadenp.notbounties.features.settings.databases.Databases;
 import me.jadenp.notbounties.features.webhook.WebhookOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
+import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -74,6 +75,7 @@ public class ConfigOptions {
     private static int defaultEntityTrackingRangePlayer;
     private static boolean hideInvisiblePlayers;
     private static boolean setterClaimOwn;
+    private static boolean usePlcmdInGui;
 
     public static void reloadOptions(Plugin plugin) throws IOException {
         ConfigOptions.plugin = plugin;
@@ -208,6 +210,7 @@ public class ConfigOptions {
         selfSetting = plugin.getConfig().getBoolean("self-setting");
         hideInvisiblePlayers = plugin.getConfig().getBoolean("hide-invisible-players");
         setterClaimOwn = plugin.getConfig().getBoolean("setter-claim-own");
+        usePlcmdInGui = plugin.getConfig().getBoolean("use-plcmd-in-gui");
 
         dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, NumberFormatting.getLocale());
 
@@ -443,7 +446,18 @@ public class ConfigOptions {
         NotBounties.getInstance().saveConfig();
     }
 
-
+    /**
+     * Run a GUI command for a player
+     * @param sender Player who is going to run the command
+     * @param command Command to be ran without the /bounty in front of it
+     */
+    public static void runGUIPluginCommand(CommandSender sender, String command) {
+        if (usePlcmdInGui) {
+            Bukkit.dispatchCommand(sender, pluginBountyCommands.get(0) + " " + command);
+        } else {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "notbountiesadmin " + sender.getName() + " " + command);
+        }
+    }
 
     public static boolean isOfflineSet() {
         return offlineSet;
