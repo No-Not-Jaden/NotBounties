@@ -12,8 +12,9 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-
+import java.util.Set;
 
 
 public class BountyClaimRequirements {
@@ -41,7 +42,8 @@ public class BountyClaimRequirements {
     /**
      * PlaceholderAPI
      */
-    private static List<String> teamsPlaceholder;
+    private static Set<String> teamsPlaceholder;
+    private static Set<String> excludedPlaceholderResults;
     /**
      * Vanilla Minecraft
      */
@@ -99,9 +101,13 @@ public class BountyClaimRequirements {
         btClaim = configuration.getBoolean("better-teams.team");
         btAllies = configuration.getBoolean("better-teams.ally");
         if (configuration.isList("placeholder"))
-            teamsPlaceholder = configuration.getStringList("placeholder");
+            teamsPlaceholder = new HashSet<>(configuration.getStringList("placeholder"));
         else
-            teamsPlaceholder = Collections.singletonList(configuration.getString("placeholder"));
+            teamsPlaceholder = new HashSet<>(Collections.singletonList(configuration.getString("placeholder")));
+        if (configuration.isList("excluded-placeholder-results"))
+            excludedPlaceholderResults = new HashSet<>(configuration.getStringList("excluded-placeholder-results"));
+        else
+            excludedPlaceholderResults = new HashSet<>(Collections.singletonList(configuration.getString("excluded-placeholder-results")));
         landsNation = configuration.getBoolean("lands.nation");
         landsNationAllies = configuration.getBoolean("lands.nation-ally");
         landsLand = configuration.getBoolean("lands.land");
@@ -163,9 +169,16 @@ public class BountyClaimRequirements {
         if (ConfigOptions.getIntegrations().isPapiEnabled() && !teamsPlaceholder.isEmpty()) {
             PlaceholderAPIClass placeholderAPIClass = new PlaceholderAPIClass();
             for (String placeholder : teamsPlaceholder) {
-                if (!placeholder.isEmpty() && placeholderAPIClass.parse(player, placeholder).equals(placeholderAPIClass.parse(killer, placeholder))) {
-                    NotBounties.debugMessage("Bounty claim canceled due to a PlaceholderAPI placeholder.", false);
-                    return false;
+                if (!placeholder.isBlank()) {
+                    if (!placeholder.contains("%")) {
+                        NotBounties.debugMessage("Warning: 'placeholder' option in the integrations.yml file does not include the '%' symbol.", true);
+                    }
+                    String parsed1 = placeholderAPIClass.parse(player, placeholder);
+                    String parsed2 = placeholderAPIClass.parse(killer, placeholder);
+                    if (parsed1 != null && !excludedPlaceholderResults.contains(parsed1) && parsed1.equals(parsed2)) {
+                        NotBounties.debugMessage("Bounty claim canceled due to a PlaceholderAPI placeholder match in integrations configuration: \"" + placeholder + "\" = \"" + parsed1 + "\"", false);
+                        return false;
+                    }
                 }
             }
         }

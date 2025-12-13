@@ -14,6 +14,10 @@ teams:
   # ex: '%luckperms_prefix%' would prevent anyone with the same prefix from killing each other
   # you can also use a list if you want multiple placeholders to be compared
   placeholder: ''
+  # Results of the placeholder that are excluded from being compared.
+  # If 2 players share one of these results, the bounty will still be claimed.
+  excluded-placeholder-results:
+    - 'not-on-a-team'
   # The minimum distance between players' respawn points to claim a bounty
   # Set to -1 to disable
   min-respawn-distance: -1
