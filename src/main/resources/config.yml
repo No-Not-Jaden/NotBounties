@@ -30,8 +30,6 @@ max-setters: -1
 offline-set: true
 # prompt the player with the confirm-bounty gui before they set a bounty
 confirmation: true
-# this will remove bounties of banned players - checks are run every 12 hours
-remove-banned-players: true
 # allow players to set bounties on themselves
 self-setting: true
 # allow players who set a bounty to claim it themselves

@@ -2,6 +2,7 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 
 import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.features.settings.ResourceConfiguration;
+import me.jadenp.notbounties.utils.BanChecker;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.util.Objects;
@@ -40,6 +41,7 @@ public class AutoBounties extends ResourceConfiguration {
         Prompt.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("prompts")));
         BigBounty.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("big-bounties")));
         ActionCommands.loadConfiguration(plugin, config.getStringList("bounty-claim-commands"), config.getStringList("big-bounties.commands"), config.getStringList("bounty-set-commands"), config.getStringList("bounty-remove-commands"));
+        BanChecker.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("ban-checker")));
 
         consoleBountyName = config.getString("console-bounty-name");
         expireTime = config.getDouble("expire-time");

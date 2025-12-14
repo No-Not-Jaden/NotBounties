@@ -2,11 +2,11 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.utils.BanChecker;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
-import me.jadenp.notbounties.features.settings.integrations.external_api.LiteBansClass;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.data.Whitelist;
 import org.bukkit.Bukkit;
@@ -95,7 +95,7 @@ public class RandomBounties {
                 if (!ConfigOptions.getAutoBounties().isOverrideImmunity() && ImmunityManager.getAppliedImmunity(player.getUniqueId(), price[0]) != ImmunityManager.ImmunityType.DISABLE || hasImmunity(player))
                     return;
                 NotBounties.getServerImplementation().async().runNow(task -> {
-                    if (!NotBounties.isPlayerBanned(player)) {
+                    if (!BanChecker.isPlayerBanned(player)) {
                         if (!NumberFormatting.shouldUseDecimals()) {
                             price[0] = (long) price[0];
                         }

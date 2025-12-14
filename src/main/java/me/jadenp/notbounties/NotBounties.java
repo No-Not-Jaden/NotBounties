@@ -257,39 +257,6 @@ public final class NotBounties extends JavaPlugin {
         // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration
         getServerImplementation().async().runAtFixedRate(BountyExpire::removeExpiredBounties, 5 * 60 * 20L + 2007, 5 * 60 * 20L);
 
-        // Check for banned players
-        //         * Runs every hour and will check a few players at a time
-        //         * Every player will be guaranteed to be checked after 12 hours
-        getServerImplementation().global().runAtFixedRate(new Runnable() {
-            List<Bounty> bountyListCopy = new ArrayList<>();
-            int playersPerRun = 1;
-            @Override
-            public void run() {
-                if (!ConfigOptions.isRemoveBannedPlayers() || paused)
-                    return;
-                if (bountyListCopy.isEmpty()) {
-                    bountyListCopy = BountyManager.getAllBounties(-1);
-                    playersPerRun = bountyListCopy.size() / 12 + 1;
-                }
-                for (int i = 0; i < playersPerRun; i++) {
-                    if (i >= bountyListCopy.size())
-                        break;
-                    Bounty bounty = bountyListCopy.get(i);
-                    OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
-                    getServerImplementation().async().runNow(() -> {
-                        if (NotBounties.isPlayerBanned(player)) {
-                            getServerImplementation().global().run(() -> BountyManager.removeBounty(bounty.getUUID()));
-                        }
-                    });
-                }
-                if (playersPerRun > 0) {
-                    if (bountyListCopy.size() > playersPerRun)
-                        bountyListCopy.subList(0, playersPerRun).clear();
-                    else
-                        bountyListCopy.clear();
-                }
-            }
-        }, 101, 72006);
 
         // wanted text
         getServerImplementation().global().runAtFixedRate(new Runnable() {
@@ -693,13 +660,4 @@ public final class NotBounties extends JavaPlugin {
         NotBounties.serverImplementation = serverImplementation;
     }
 
-    public static boolean isPlayerBanned(OfflinePlayer player) {
-        if (player.isBanned())
-            return true;
-        try {
-            return ConfigOptions.getIntegrations().isLiteBansEnabled() && !new LiteBansClass().isPlayerNotBanned(player.getUniqueId());
-        } catch (NoClassDefFoundError e) {
-            return false;
-        }
-    }
 }

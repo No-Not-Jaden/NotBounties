@@ -5,7 +5,6 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
-import me.jadenp.notbounties.features.settings.integrations.external_api.LiteBansClass;
 import me.jadenp.notbounties.data.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -14,7 +13,7 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.NotBounties.isPlayerBanned;
+import static me.jadenp.notbounties.utils.BanChecker.isPlayerBanned;
 import static me.jadenp.notbounties.NotBounties.isVanished;
 import static me.jadenp.notbounties.utils.BountyManager.*;
 

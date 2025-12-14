@@ -389,6 +389,7 @@ public class ConfigOptions {
         pathMap.put("bounty-set-commands", "bounty-set-commands");
         pathMap.put("blocked-bounty-commands", "blocked-bounty-commands");
         pathMap.put("prompts", "prompts");
+        pathMap.put("remove-banned-players", "ban-checking.enabled");
         migrateConfigResource("settings/auto-bounties.yml", pathMap);
 
         pathMap.clear();

@@ -25,10 +25,8 @@ import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.challenges.ChallengeType;
 import me.jadenp.notbounties.features.*;
 import me.jadenp.notbounties.features.settings.auto_bounties.Prompt;
-import me.jadenp.notbounties.features.settings.integrations.external_api.LiteBansClass;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -1894,7 +1892,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             boolean finalSilent1 = silent;
                             NotBounties.getServerImplementation().async().runNow(() -> {
                                 // async ban check
-                                if (!player.isOnline() && ConfigOptions.isRemoveBannedPlayers() && NotBounties.isPlayerBanned(player)) {
+                                if (!player.isOnline() && ConfigOptions.isRemoveBannedPlayers() && BanChecker.isPlayerBanned(player)) {
                                     NotBounties.getServerImplementation().global().run(() -> {
                                         // has permanent immunity
                                         if (!finalSilent)
