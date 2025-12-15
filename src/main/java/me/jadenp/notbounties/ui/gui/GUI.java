@@ -559,6 +559,20 @@ public class GUI implements Listener {
             }
         }
 
+        // check if previously in a GUI
+        if (playerInfo.containsKey(player.getUniqueId())) {
+            String title = CompatabilityUtils.getTitle(player);
+            PlayerGUInfo info = playerInfo.get(player.getUniqueId());
+            if (title.equals(info.title()) && !info.guiType().equals(name) && info.guiType().equals("bounty-item-select")) {
+                NotBounties.debugMessage("Returning GUI items.", false);
+                // titles match
+                // return items they have place in the inventory
+                // (only works for bounty-item-select)
+                returnGUIItems(player, player.getOpenInventory().getTopInventory(), false);
+                playerInfo.remove(player.getUniqueId());
+            }
+        }
+
         if (page < 1)
             page = 1;
 
@@ -687,10 +701,12 @@ public class GUI implements Listener {
     @EventHandler
     public void onGUIClose(InventoryCloseEvent event) {
         String title = CompatabilityUtils.getTitle(event);
+
         if (playerInfo.containsKey(event.getPlayer().getUniqueId()) && playerInfo.get(event.getPlayer().getUniqueId()).title().equals(title)) {
-                // titles match
+            NotBounties.debugMessage("Returning GUI items.", false);
+            // titles match
                 // return items they have place in the inventory
-                // (only works for bounty-item-select
+                // (only works for bounty-item-select)
                 returnGUIItems((Player) event.getPlayer(), event.getInventory(), false);
                 playerInfo.remove(event.getPlayer().getUniqueId());
             }

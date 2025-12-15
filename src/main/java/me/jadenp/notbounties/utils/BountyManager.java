@@ -230,7 +230,13 @@ public class BountyManager {
 
         if (refund)
             // sync player data with the most up-to-date database
-            NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(uuid, null));
+        {
+            if (NotBounties.getInstance().isEnabled()) {
+                NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(uuid, null));
+            } else {
+                DataManager.syncPlayerData(uuid, null);
+            }
+        }
     }
 
     private static void addRefund(UUID uuid, double amount, String reason) {

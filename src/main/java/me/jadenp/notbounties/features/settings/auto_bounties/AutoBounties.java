@@ -41,7 +41,7 @@ public class AutoBounties extends ResourceConfiguration {
         Prompt.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("prompts")));
         BigBounty.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("big-bounties")));
         ActionCommands.loadConfiguration(plugin, config.getStringList("bounty-claim-commands"), config.getStringList("big-bounties.commands"), config.getStringList("bounty-set-commands"), config.getStringList("bounty-remove-commands"));
-        BanChecker.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("ban-checker")));
+        BanChecker.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("ban-checking")));
 
         consoleBountyName = config.getString("console-bounty-name");
         expireTime = config.getDouble("expire-time");
