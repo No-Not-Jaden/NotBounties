@@ -35,11 +35,12 @@ public class BanChecker {
                     if (maxChecks > 0 && playersPerRun > maxChecks)
                         playersPerRun = maxChecks;
                 }
+                NotBounties.debugMessage("Checking " + playersPerRun + " players for bans.", false);
                 for (int i = 0; i < playersPerRun; i++) {
                     if (i >= bountyListCopy.size())
                         break;
                     Bounty bounty = bountyListCopy.get(i);
-                    OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
+                    OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID()); // not thread safe
                     NotBounties.getServerImplementation().async().runNow(() -> {
                         if (isPlayerBanned(player)) {
                             NotBounties.getServerImplementation().global().run(() -> BountyManager.removeBounty(bounty.getUUID()));
@@ -57,11 +58,22 @@ public class BanChecker {
     }
 
     public static void loadConfiguration(ConfigurationSection config) {
-        boolean enabled = config.getBoolean("ban-checker.enabled", false);
-        long taskInterval = config.getLong("ban-checker.task-interval", 100);
-        int maxChecks = config.getInt("ban-checker.max-checks", -1);
-        double completionPercent = config.getDouble("ban-checker.completion-percent", 0.005);
+        boolean enabled = config.getBoolean("enabled", false);
+        long taskInterval = config.getLong("task-interval", 100);
+        int maxChecks = config.getInt("max-checks", -1);
+        double completionPercent = config.getDouble("completion-percent", 0.005);
+        long simpleCheckInterval = config.getLong("simple-check-interval", 0);
         BanChecker.enabled = enabled;
+
+        if (simpleCheckInterval > 0) {
+            // override advanced options
+            maxChecks = 500;
+            // complete 10% every interval
+            completionPercent = 0.1;
+            // convert seconds to ticks and divide by 10 to reach the simple interval
+            taskInterval = simpleCheckInterval * 2;
+        }
+
         BanChecker.maxChecks = maxChecks;
         if (completionPercent <= 0)
             completionPercent = 0.005;

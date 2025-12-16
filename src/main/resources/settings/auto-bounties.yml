@@ -12,10 +12,14 @@ expire-time: -1
 override-immunity: true
 
 # Players are checked every once in a while if they are banned.
-# The default config of 72001, 0.083, 500, checks bans every hour and guarantee everyone will be checked after 12 hours (1/0.083)
-# except if there are more than 500 * 12 = 6000 bounties
+# This can cause lag if there are a lot of bounties.
 ban-checking:
   enabled: true
+  # How long in seconds until every player is guaranteed to be checked for a ban.
+  simple-check-interval: 43200
+  # ADVANCED OPTIONS - Set simple-check-interval to 0 to enable these.
+  # The default config of 72001, 0.083, 500, checks bans every hour and guarantees everyone will be checked after 12 hours (1/0.083)
+  # except if there are more than 500 * 12 = 6000 bounties
   # How often (in ticks) bans will be checked.
   interval: 72001
   # The ratio of players checked every interval.
