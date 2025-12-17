@@ -336,7 +336,7 @@ public class BountyMap implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if ((!craftPoster && !event.getWhoClicked().hasPermission("notbounties.craftposter")) || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused() || !enabled)
             return;
-        if (inventory.getResult() == null || inventory.getResult().getType() != Material.FILLED_MAP)
+        if (inventory.getResult() == null || !isPoster(inventory.getResult()))
             return;
         if (event.getRawSlot() == 0) {
             event.setCancelled(true);
