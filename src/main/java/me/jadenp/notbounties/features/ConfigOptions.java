@@ -453,10 +453,14 @@ public class ConfigOptions {
      * @param command Command to be ran without the /bounty in front of it
      */
     public static void runGUIPluginCommand(CommandSender sender, String command) {
-        if (usePlcmdInGui) {
-            Bukkit.dispatchCommand(sender, pluginBountyCommands.get(0) + " " + command);
+        if (!Bukkit.isPrimaryThread()) {
+            NotBounties.getServerImplementation().global().run(() -> runGUIPluginCommand(sender, command));
         } else {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "notbountiesadmin " + sender.getName() + " " + command);
+            if (usePlcmdInGui) {
+                Bukkit.dispatchCommand(sender, pluginBountyCommands.get(0) + " " + command);
+            } else {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "notbountiesadmin " + sender.getName() + " " + command);
+            }
         }
     }
 
