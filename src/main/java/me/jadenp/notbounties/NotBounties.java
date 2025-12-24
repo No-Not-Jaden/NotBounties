@@ -238,20 +238,22 @@ public final class NotBounties extends JavaPlugin {
             BountyManager.checkDelayedBountyClaim();
         }, 120, 40);
         // auto save bounties & do some ram cleaning
-        getServerImplementation().async().runAtFixedRate(() -> {
-            if (paused)
-                return;
-            MurderBounties.cleanPlayerKills();
-            SkinManager.removeOldData();
-            RemovePersistentEntitiesEvent.checkRemovedEntities();
+        if (ConfigOptions.getAutoSaveInterval() > 0) {
+            getServerImplementation().async().runAtFixedRate(() -> {
+                if (paused)
+                    return;
+                MurderBounties.cleanPlayerKills();
+                SkinManager.removeOldData();
+                RemovePersistentEntitiesEvent.checkRemovedEntities();
 
-            try {
-                SaveManager.save(this);
-            } catch (IOException e) {
-                getLogger().severe("Error autosaving saving data!");
-                getLogger().severe(e.toString());
-            }
-        }, ConfigOptions.getAutoSaveInterval() * 60 * 20L + 69, ConfigOptions.getAutoSaveInterval() * 60 * 20L);
+                try {
+                    SaveManager.save(this);
+                } catch (IOException e) {
+                    getLogger().severe("Error autosaving saving data!");
+                    getLogger().severe(e.toString());
+                }
+            }, ConfigOptions.getAutoSaveInterval() * 60 * 20L + 69, ConfigOptions.getAutoSaveInterval() * 60 * 20L);
+        }
 
 
         // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration

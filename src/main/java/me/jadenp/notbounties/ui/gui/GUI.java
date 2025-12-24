@@ -875,12 +875,14 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, info.data());
                         break;
                     case "select-price":
-                        runGUIPluginCommand(event.getWhoClicked(), playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
+                        NotBounties.getServerImplementation().global().run(() -> runGUIPluginCommand(event.getWhoClicked(), playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page()));
+                        //runGUIPluginCommand(event.getWhoClicked(), playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
                         if (!ConfigOptions.isBountyConfirmation())
                             event.getWhoClicked().closeInventory();
                         break;
                     case "bounty-hunt-time":
-                        runGUIPluginCommand(event.getWhoClicked(), "hunt " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
+                        NotBounties.getServerImplementation().global().run(() -> runGUIPluginCommand(event.getWhoClicked(), "hunt " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page()));
+                        //runGUIPluginCommand(event.getWhoClicked(), "hunt " + playerName + " " + playerInfo.get(event.getWhoClicked().getUniqueId()).page());
                         event.getWhoClicked().closeInventory();
                         break;
                     case "bounty-item-select":

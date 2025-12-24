@@ -52,7 +52,11 @@ public class RemovePersistentEntitiesEvent implements Listener {
      * @param location chunk location
      */
     public static void cleanChunk(Location location) {
-        cleanChunk(location.getChunk());
+        if (!NotBounties.getServerImplementation().isOwnedByCurrentRegion(location)) {
+            NotBounties.getServerImplementation().region(location).run(() -> cleanChunk(location.getChunk()));
+        } else {
+            cleanChunk(location.getChunk());
+        }
     }
 
     public static void cleanChunks(List<Location> locations) {
