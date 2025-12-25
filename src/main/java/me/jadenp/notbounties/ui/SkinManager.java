@@ -41,16 +41,16 @@ public class SkinManager {
             .build();
     private static final long REQUEST_FAIL_TIMEOUT = 60000 * 30L; // 30 min
     private static final long CONCURRENT_REQUEST_INTERVAL = 10000;
-    private static final String MISSING_SKIN_TEXTURE = "https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57";
+    private static final URL MISSING_SKIN_TEXTURE = new URI("https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57").toURL();
     private static final String MISSING_SKIN_ID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
     private static final BufferedImage MISSING_SKIN_FACE;
     private static final BufferedImage MISSING_SKIN_ISO;
-    private static final PlayerSkin missingSkin;
+    private static PlayerSkin missingSkin;
     private static final IsometricRenderer isoRenderer = new IsometricRenderer();
 
     static {
         try {
-            missingSkin = new PlayerSkin(new URI(MISSING_SKIN_TEXTURE).toURL(), MISSING_SKIN_ID);
+            missingSkin = new PlayerSkin(MISSING_SKIN_TEXTURE, MISSING_SKIN_ID);
         } catch (MalformedURLException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -63,6 +63,10 @@ public class SkinManager {
     private static final List<UUID> queuedRequests = new ArrayList<>();
 
     private SkinManager(){}
+
+    public static PlayerSkin getMissingSkin() {
+        return missingSkin;
+    }
 
     public static void refreshSkinRequests() {
         requestCooldown.clear(); // clear request times
@@ -190,7 +194,7 @@ public class SkinManager {
     }
 
     public static boolean isMissingSkin(PlayerSkin playerSkin) {
-        return Objects.equals(playerSkin.id(), missingSkin.id()) && playerSkin.url() == missingSkin.url();
+        return (Objects.equals(playerSkin.id(), MISSING_SKIN_ID) && playerSkin.url() == MISSING_SKIN_TEXTURE) || playerSkin.missing();
     }
 
     /**

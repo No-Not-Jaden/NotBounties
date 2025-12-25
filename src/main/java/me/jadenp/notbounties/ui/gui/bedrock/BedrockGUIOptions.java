@@ -159,12 +159,12 @@ public class BedrockGUIOptions {
             double amount = 0;
             if (displayItem instanceof PlayerItem playerItem) {
                 // default texture id (question mark head)
-                String imageTextureID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
+                String imageTextureID = SkinManager.getMissingSkin().id();
 
                 if (SkinManager.isSkinLoaded(playerItem.getUuid()))
                     imageTextureID = SkinManager.getSkin(playerItem.getUuid()).id();
                 // perspective head url
-                String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png";
+                String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png"; // <TODO> Make configurable
                 // add button to the component
                 builder.button(parsedPlayerText, new FormImageImpl(FormImage.Type.URL, imageURL));
                 p = Bukkit.getOfflinePlayer(playerItem.getUuid());

@@ -1,6 +1,11 @@
 # display.yml
 # Display bounties more on your server.
 
+skins:
+  missing-skin-url: 'https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57'
+  # The texture ID here is used for Discord webhooks or Bedrock player heads if configured to use a texture ID.
+  missing-skin-id: '46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82'
+
 # wanted posters of bounty
 bounty-posters:
   # enable bounty posters
