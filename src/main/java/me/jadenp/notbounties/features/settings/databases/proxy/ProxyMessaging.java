@@ -215,7 +215,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
             UUID uuid = UUID.fromString(msgIn.readUTF());
             String id = msgIn.readUTF();
             String url = msgIn.readUTF();
-            SkinManager.saveSkin(uuid, new PlayerSkin(new URI(url).toURL(), id));
+            SkinManager.saveSkin(uuid, new PlayerSkin(new URI(url).toURL(), id, false));
         }
     }
 

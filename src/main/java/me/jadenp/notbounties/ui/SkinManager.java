@@ -3,8 +3,6 @@ package me.jadenp.notbounties.ui;
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -20,6 +18,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.StatusLine;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,7 +40,8 @@ public class SkinManager {
             .build();
     private static final long REQUEST_FAIL_TIMEOUT = 60000 * 30L; // 30 min
     private static final long CONCURRENT_REQUEST_INTERVAL = 10000;
-    private static final URL MISSING_SKIN_TEXTURE = new URI("https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57").toURL();
+    private static final String MISSING_SKIN_TEXTURE = "https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57";
+    private static final URL MISSING_SKIN_URL;
     private static final String MISSING_SKIN_ID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
     private static final BufferedImage MISSING_SKIN_FACE;
     private static final BufferedImage MISSING_SKIN_ISO;
@@ -50,13 +50,22 @@ public class SkinManager {
 
     static {
         try {
-            missingSkin = new PlayerSkin(MISSING_SKIN_TEXTURE, MISSING_SKIN_ID);
+            MISSING_SKIN_URL = new URI(MISSING_SKIN_TEXTURE).toURL();
+            missingSkin = new PlayerSkin(MISSING_SKIN_URL, MISSING_SKIN_ID, true);
         } catch (MalformedURLException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
         savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin);
         MISSING_SKIN_FACE = getPlayerFace(DataManager.GLOBAL_SERVER_ID);
         MISSING_SKIN_ISO = getIsometricFace(DataManager.GLOBAL_SERVER_ID);
+    }
+
+    public static void loadConfiguration(ConfigurationSection config) {
+        try {
+            missingSkin = new PlayerSkin(new URI(Objects.requireNonNull(config.getString("missing-skin-url"))).toURL(), config.getString("missing-skin-id"), true);
+        } catch (URISyntaxException | MalformedURLException e) {
+            NotBounties.getInstance().getLogger().warning("Failed to load missing skin texture.");
+        }
     }
 
     private static final List<Long> rateLimit = new ArrayList<>(); // 200 requests / min
@@ -194,7 +203,7 @@ public class SkinManager {
     }
 
     public static boolean isMissingSkin(PlayerSkin playerSkin) {
-        return (Objects.equals(playerSkin.id(), MISSING_SKIN_ID) && playerSkin.url() == MISSING_SKIN_TEXTURE) || playerSkin.missing();
+        return (Objects.equals(playerSkin.id(), MISSING_SKIN_ID) && playerSkin.url() == MISSING_SKIN_URL) || playerSkin.missing();
     }
 
     /**
@@ -212,23 +221,34 @@ public class SkinManager {
 
             BufferedImage skin = ImageIO.read(textureUrl);
             BufferedImage head = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
-            try {
-                // base head
-                copySquare(skin, head, 8, 8);
-                // mask
-                copySquare(skin, head, 40, 8);
-            } catch (IndexOutOfBoundsException e) {
-                Bukkit.getLogger().warning(e.toString());
-                return null;
-            }
-            return head;
 
+            return copyHead(skin, head);
         } catch (IOException e) {
             NotBounties.debugMessage("Error reading texture url for rendering player face.\n" + e, true);
 
         }
         return null;
     }
+
+    /**
+     * Copies the head and mask from a skin to the head image.
+     * @param skin Skin image to copy from.
+     * @param head Image to paste the head and mask to.
+     * @return An image of the skin's face.
+     */
+    private static BufferedImage copyHead(BufferedImage skin, BufferedImage head) {
+        try {
+            // base head
+            copySquare(skin, head, 8, 8);
+            // mask
+            copySquare(skin, head, 40, 8);
+        } catch (IndexOutOfBoundsException e) {
+            Bukkit.getLogger().warning(e.toString());
+            return null;
+        }
+        return head;
+    }
+
 
     public static BufferedImage getIsometricFace(UUID uuid) {
         if (!isSkinLoaded(uuid))
@@ -393,7 +413,7 @@ class SkinResponseHandler {
                 String value = input.get("value").getAsString();
                 String id = input.get("texture_id").getAsString();
 
-                return new PlayerSkin(SkinManager.getTextureURL(value), id);
+                return new PlayerSkin(SkinManager.getTextureURL(value), id, false);
             } else {
                 throw new IOException("Couldn't get a skin from this xuid.");
             }
@@ -416,7 +436,7 @@ class SkinResponseHandler {
                 String value = textureProperty.get("value").getAsString();
                 String id = input.get("id").getAsString();
 
-                return new PlayerSkin(SkinManager.getTextureURL(value), id);
+                return new PlayerSkin(SkinManager.getTextureURL(value), id, false);
             } else {
                 if (tryNamed) {
                     NotBounties.debugMessage("Saving named skin", false);

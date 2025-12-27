@@ -271,6 +271,8 @@ bounty-gui:
   remove-page-items: true
   # text next to the player - only for a Simple Form
   player-text: '&c&l{player}&8: &4{amount}'
+  # the image on the button - only for a Simple Form
+  player-image: 'https://mc-heads.net/head/{texture}.png'
   # these commands are activated when a player button is clicked
   player-button-commands:
     - 'notbountiesadmin {viewer} check {player}'

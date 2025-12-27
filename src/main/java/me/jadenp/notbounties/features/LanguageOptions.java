@@ -8,6 +8,7 @@ import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
@@ -584,5 +585,23 @@ public class LanguageOptions {
             textComponent = new TextComponent(message);
         }
         return textComponent;
+    }
+
+    public static String parseImageURL(String url, UUID uuid, boolean skinLoaded) {
+        if (url.contains("{any}")) {
+            String identifier;
+            if (skinLoaded) {
+                identifier = SkinManager.getSkin(uuid).id();
+            } else if (uuid.version() == 4) {
+                identifier = uuid.toString();
+            } else {
+                identifier = LoggedPlayers.getPlayerName(uuid);
+            }
+            url = url.replace("{any}", identifier);
+        }
+        if (url.contains("{name}")) {
+            url = url.replace("{name}", LoggedPlayers.getPlayerName(uuid));
+        }
+        return url.replace("{uuid}", uuid.toString());
     }
 }

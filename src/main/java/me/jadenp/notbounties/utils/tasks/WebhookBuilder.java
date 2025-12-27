@@ -52,8 +52,8 @@ public class WebhookBuilder extends CancelableTask{
             return;
         }
         this.cancel();
-        String avatarURL = WebhookOptions.parseImageURL(true, avatarUUID, avatarLoaded);
-        String imageURL = WebhookOptions.parseImageURL(false, imageUUID, imageLoaded);
+        String avatarURL = LanguageOptions.parseImageURL(WebhookOptions.getAvatarURL(), avatarUUID, avatarLoaded);
+        String imageURL = LanguageOptions.parseImageURL(WebhookOptions.getImageURL(), imageUUID, imageLoaded);
 
         if (sendEmbed) {
             embed = new DiscordWebhook.EmbedObject()

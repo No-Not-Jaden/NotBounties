@@ -49,6 +49,7 @@ public class BedrockGUIOptions {
     private final String playerText;
     private final List<String> formCompletionCommands;
     private final List<String> playerButtonCommands;
+    private final String playerImage;
     private LinkedHashMap<Integer, GUIComponent> components = new LinkedHashMap<>();
 
     public enum GUIType {
@@ -82,6 +83,7 @@ public class BedrockGUIOptions {
         enabled = !settings.isSet("enabled") || settings.getBoolean("enabled");
         maxPlayers = settings.isSet("max-players") ? settings.getInt("max-players") : 9999;
         playerText = settings.isSet("player-text") ? settings.getString("player-text") : null;
+        playerImage = settings.isSet("player-image") ? settings.getString("player-image") : null;
         formCompletionCommands = settings.isSet("completion-commands") ? settings.getStringList("completion-commands") : new ArrayList<>();
         playerButtonCommands = settings.isSet("player-button-commands") ? settings.getStringList("player-button-commands") : new ArrayList<>();
         GUIType overrideType = null;
@@ -158,13 +160,9 @@ public class BedrockGUIOptions {
             // set default amount for GUIComponent
             double amount = 0;
             if (displayItem instanceof PlayerItem playerItem) {
-                // default texture id (question mark head)
-                String imageTextureID = SkinManager.getMissingSkin().id();
+                // get image url for player
+                String imageURL = LanguageOptions.parseImageURL(playerImage, playerItem.getUuid(), SkinManager.isSkinLoaded(playerItem.getUuid()));
 
-                if (SkinManager.isSkinLoaded(playerItem.getUuid()))
-                    imageTextureID = SkinManager.getSkin(playerItem.getUuid()).id();
-                // perspective head url
-                String imageURL = "https://mc-heads.net/head/" + imageTextureID + ".png"; // <TODO> Make configurable
                 // add button to the component
                 builder.button(parsedPlayerText, new FormImageImpl(FormImage.Type.URL, imageURL));
                 p = Bukkit.getOfflinePlayer(playerItem.getUuid());

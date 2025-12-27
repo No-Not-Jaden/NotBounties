@@ -6,10 +6,8 @@ import me.jadenp.notbounties.bounty_events.BountyClaimEvent;
 import me.jadenp.notbounties.bounty_events.BountyEditEvent;
 import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
 import me.jadenp.notbounties.bounty_events.BountySetEvent;
-import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.tasks.WebhookBuilder;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -64,23 +62,12 @@ public class WebhookOptions implements Listener {
         webhooks.put(BountyEditEvent.class, new Webhook(Objects.requireNonNull(configuration.getConfigurationSection("bounty-edit"))));
     }
 
-    public static String parseImageURL(boolean avatar, UUID uuid, boolean skinLoaded) {
-        String url = avatar ? avatarURL : imageURL;
-        if (url.contains("{any}")) {
-            String identifier;
-            if (skinLoaded) {
-                identifier = SkinManager.getSkin(uuid).id();
-            } else if (uuid.version() == 4) {
-                identifier = uuid.toString();
-            } else {
-                identifier = LoggedPlayers.getPlayerName(uuid);
-            }
-            url = url.replace("{any}", identifier);
-        }
-        if (url.contains("{name}")) {
-            url = url.replace("{name}", LoggedPlayers.getPlayerName(uuid));
-        }
-        return url.replace("{uuid}", uuid.toString());
+    public static String getAvatarURL() {
+        return avatarURL;
+    }
+
+    public static String getImageURL() {
+        return imageURL;
     }
 
     @EventHandler
