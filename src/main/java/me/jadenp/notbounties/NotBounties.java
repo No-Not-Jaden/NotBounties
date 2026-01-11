@@ -15,6 +15,7 @@ import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.BountyClaimRequirements;
 import me.jadenp.notbounties.features.settings.integrations.Integrations;
+import me.jadenp.notbounties.features.settings.integrations.LuckPermsClass;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.Commands;
 import me.jadenp.notbounties.ui.Events;
@@ -68,13 +69,8 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * 1.21.6 dialog
  * Option to send api request when setting a bounty on offline player
  *
- * bounty menu will show bounty name when missing logged player x
- * force blacklist mode for whitelist x
- * webhook sends image x
- * auto load names for logged players async x
- * default bounty broadcast mode x
- *
- *
+ * bounty join and quit commands
+ * luckperm contexts
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -197,6 +193,9 @@ public final class NotBounties extends JavaPlugin {
 
         if (ConfigOptions.getIntegrations().isWorldGuardEnabled())
             WorldGuardClass.registerHandlers();
+
+        if (ConfigOptions.getIntegrations().isLuckPermsEnabled())
+            LuckPermsClass.onEnable();
 
         checkForUpdate(this);
 
@@ -485,45 +484,32 @@ public final class NotBounties extends JavaPlugin {
     }
 
     private static @NotNull List<String> getPluginHooks() {
-        List<String> hooks = new LinkedList<>();
-        if (NumberFormatting.isVaultEnabled())
-            hooks.add("Vault");
-        if (ConfigOptions.getIntegrations().isPapiEnabled())
-            hooks.add("PlaceholderAPI");
-        if (ConfigOptions.getIntegrations().isHeadDataBaseEnabled())
-            hooks.add("HeadDataBase");
-        if (ConfigOptions.getIntegrations().isLiteBansEnabled())
-            hooks.add("LiteBans");
-        if (ConfigOptions.getIntegrations().isSkinsRestorerEnabled())
-            hooks.add("SkinsRestorer");
-        if (BountyClaimRequirements.isBetterTeamsEnabled())
-            hooks.add("BetterTeams");
-        if (BountyClaimRequirements.isTownyAdvancedEnabled())
-            hooks.add("TownyAdvanced");
-        if (ConfigOptions.getIntegrations().isFloodgateEnabled())
-            hooks.add("Floodgate");
-        if (ConfigOptions.getIntegrations().isGeyserEnabled())
-            hooks.add("GeyserMC");
-        if (BountyClaimRequirements.isKingdomsXEnabled())
-            hooks.add("Kingdoms");
-        if (BountyClaimRequirements.isLandsEnabled())
-            hooks.add("Lands");
-        if (ConfigOptions.getIntegrations().isWorldGuardEnabled())
-            hooks.add("WorldGuard");
-        if (BountyClaimRequirements.isSuperiorSkyblockEnabled())
-            hooks.add("SuperiorSkyblock2");
-        if (ConfigOptions.getIntegrations().isMmoLibEnabled())
-            hooks.add("MMOLib");
-        if (BountyClaimRequirements.isSimpleClansEnabled())
-            hooks.add("SimpleClans");
-        if (BountyClaimRequirements.isFactionsEnabled())
-            hooks.add("Factions");
-        if (ConfigOptions.getIntegrations().isDuelsEnabled())
-            hooks.add("Duels");
-        if (ConfigOptions.getIntegrations().isPacketEventsEnabled())
-            hooks.add("PacketEvents");
+        var integrations = ConfigOptions.getIntegrations();
+        List<String> hooks = new ArrayList<>();
+
+        if (NumberFormatting.isVaultEnabled()) hooks.add("Vault");
+        if (integrations.isPapiEnabled()) hooks.add("PlaceholderAPI");
+        if (integrations.isHeadDataBaseEnabled()) hooks.add("HeadDataBase");
+        if (integrations.isLiteBansEnabled()) hooks.add("LiteBans");
+        if (integrations.isSkinsRestorerEnabled()) hooks.add("SkinsRestorer");
+        if (BountyClaimRequirements.isBetterTeamsEnabled()) hooks.add("BetterTeams");
+        if (BountyClaimRequirements.isTownyAdvancedEnabled()) hooks.add("TownyAdvanced");
+        if (integrations.isFloodgateEnabled()) hooks.add("Floodgate");
+        if (integrations.isGeyserEnabled()) hooks.add("GeyserMC");
+        if (BountyClaimRequirements.isKingdomsXEnabled()) hooks.add("Kingdoms");
+        if (BountyClaimRequirements.isLandsEnabled()) hooks.add("Lands");
+        if (integrations.isWorldGuardEnabled()) hooks.add("WorldGuard");
+        if (BountyClaimRequirements.isSuperiorSkyblockEnabled()) hooks.add("SuperiorSkyblock2");
+        if (integrations.isMmoLibEnabled()) hooks.add("MMOLib");
+        if (BountyClaimRequirements.isSimpleClansEnabled()) hooks.add("SimpleClans");
+        if (BountyClaimRequirements.isFactionsEnabled()) hooks.add("Factions");
+        if (integrations.isDuelsEnabled()) hooks.add("Duels");
+        if (integrations.isPacketEventsEnabled()) hooks.add("PacketEvents");
+        if (integrations.isLuckPermsEnabled()) hooks.add("LuckPerms");
+
         return hooks;
     }
+
 
 
     public static Map<UUID, String> getNetworkPlayers() {

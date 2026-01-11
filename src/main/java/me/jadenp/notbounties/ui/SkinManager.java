@@ -12,6 +12,7 @@ import me.jadenp.notbounties.ui.iso_renderer.IsometricRenderer;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.utils.tasks.HeadLoader;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -40,29 +41,18 @@ public class SkinManager {
             .build();
     private static final long REQUEST_FAIL_TIMEOUT = 60000 * 30L; // 30 min
     private static final long CONCURRENT_REQUEST_INTERVAL = 10000;
-    private static final String MISSING_SKIN_TEXTURE = "https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57";
-    private static final URL MISSING_SKIN_URL;
-    private static final String MISSING_SKIN_ID = "46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82";
-    private static final BufferedImage MISSING_SKIN_FACE;
-    private static final BufferedImage MISSING_SKIN_ISO;
+    private static BufferedImage missingSkinFace;
+    private static BufferedImage missingSkinIso;
     private static PlayerSkin missingSkin;
     private static final IsometricRenderer isoRenderer = new IsometricRenderer();
-
-    static {
-        try {
-            MISSING_SKIN_URL = new URI(MISSING_SKIN_TEXTURE).toURL();
-            missingSkin = new PlayerSkin(MISSING_SKIN_URL, MISSING_SKIN_ID, true);
-        } catch (MalformedURLException | URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin);
-        MISSING_SKIN_FACE = getPlayerFace(DataManager.GLOBAL_SERVER_ID);
-        MISSING_SKIN_ISO = getIsometricFace(DataManager.GLOBAL_SERVER_ID);
-    }
 
     public static void loadConfiguration(ConfigurationSection config) {
         try {
             missingSkin = new PlayerSkin(new URI(Objects.requireNonNull(config.getString("missing-skin-url"))).toURL(), config.getString("missing-skin-id"), true);
+            savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin);
+            missingSkinFace = getPlayerFace(DataManager.GLOBAL_SERVER_ID);
+            missingSkinIso = getIsometricFace(DataManager.GLOBAL_SERVER_ID);
+
         } catch (URISyntaxException | MalformedURLException e) {
             NotBounties.getInstance().getLogger().warning("Failed to load missing skin texture.");
         }
@@ -203,7 +193,7 @@ public class SkinManager {
     }
 
     public static boolean isMissingSkin(PlayerSkin playerSkin) {
-        return (Objects.equals(playerSkin.id(), MISSING_SKIN_ID) && playerSkin.url() == MISSING_SKIN_URL) || playerSkin.missing();
+        return (Objects.equals(playerSkin.id(), missingSkin.id()) && playerSkin.url() == missingSkin.url()) || playerSkin.missing();
     }
 
     /**
@@ -214,8 +204,8 @@ public class SkinManager {
     public static BufferedImage getPlayerFace(UUID uuid) {
         if (!isSkinLoaded(uuid))
             return null;
-        if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && MISSING_SKIN_FACE != null)
-            return MISSING_SKIN_FACE;
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && missingSkinFace != null)
+            return missingSkinFace;
         try {
             URL textureUrl = getSkin(uuid).url();
 
@@ -253,8 +243,8 @@ public class SkinManager {
     public static BufferedImage getIsometricFace(UUID uuid) {
         if (!isSkinLoaded(uuid))
             return null;
-        if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && MISSING_SKIN_ISO != null)
-            return MISSING_SKIN_ISO;
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && missingSkinIso != null)
+            return missingSkinIso;
         BufferedImage cachedHead = isometricHeadCache.getIfPresent(uuid);
         if (cachedHead != null)
             return cachedHead;

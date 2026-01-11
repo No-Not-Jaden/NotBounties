@@ -40,7 +40,7 @@ public class AutoBounties extends ResourceConfiguration {
         TrickleBounties.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("trickle-bounties")));
         Prompt.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("prompts")));
         BigBounty.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("big-bounties")));
-        ActionCommands.loadConfiguration(plugin, config.getStringList("bounty-claim-commands"), config.getStringList("big-bounties.commands"), config.getStringList("bounty-set-commands"), config.getStringList("bounty-remove-commands"));
+        ActionCommands.loadConfiguration(plugin, config.getStringList("bounty-claim-commands"), config.getStringList("big-bounties.commands"), config.getStringList("bounty-set-commands"), config.getStringList("bounty-remove-commands"), config.getStringList("bounty-join-commands"), config.getStringList("bounty-quit-commands"));
         BanChecker.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("ban-checking")));
 
         consoleBountyName = config.getString("console-bounty-name");

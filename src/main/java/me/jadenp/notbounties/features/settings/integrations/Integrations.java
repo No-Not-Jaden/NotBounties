@@ -22,6 +22,7 @@ public class Integrations extends ResourceConfiguration {
     private boolean headDataBaseEnabled;
     private boolean worldGuardEnabled;
     private boolean packetEventsEnabled;
+    private boolean luckPermsEnabled;
 
     public static void onLoad(Plugin plugin) {
         // register api flags
@@ -61,6 +62,7 @@ public class Integrations extends ResourceConfiguration {
         headDataBaseEnabled = Bukkit.getPluginManager().isPluginEnabled("HeadDataBase");
         worldGuardEnabled = Bukkit.getPluginManager().isPluginEnabled("WorldGuard");
         packetEventsEnabled = Bukkit.getPluginManager().isPluginEnabled("packetevents");
+        luckPermsEnabled = Bukkit.getPluginManager().isPluginEnabled("LuckPerms");
     }
 
     @Override
@@ -123,5 +125,9 @@ public class Integrations extends ResourceConfiguration {
 
     public boolean isPacketEventsEnabled() {
         return packetEventsEnabled;
+    }
+
+    public boolean isLuckPermsEnabled() {
+        return luckPermsEnabled;
     }
 }

@@ -77,6 +77,11 @@ public class Events implements Listener {
             NotBounties.debugMessage("Updating player data for " + playerData.getPlayerName(), false);
             NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(event.getPlayer().getUniqueId(), null));
         }
+
+        Bounty bounty = getBounty(event.getPlayer().getUniqueId());
+        if (bounty != null) {
+            ActionCommands.executeBountyQuit(event.getPlayer(), bounty);
+        }
     }
 
     @EventHandler
@@ -210,6 +215,8 @@ public class Events implements Listener {
 
             if (ConfigOptions.getIntegrations().isMmoLibEnabled())
                 MMOLibClass.addStats(event.getPlayer(), bounty.getTotalDisplayBounty());
+
+            ActionCommands.executeBountyJoin(event.getPlayer(), bounty);
         }
 
         // check for updates

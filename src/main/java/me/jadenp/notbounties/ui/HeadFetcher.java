@@ -1,5 +1,9 @@
 package me.jadenp.notbounties.ui;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -12,9 +16,12 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class HeadFetcher {
-    private static final Map<UUID, ItemStack> savedHeads = new HashMap<>();
+    private static final Cache<UUID, ItemStack> savedHeads = CacheBuilder.newBuilder()
+            .expireAfterWrite(15, TimeUnit.MINUTES)
+            .build();
 
     public void loadHeads(Player player, PlayerGUInfo guInfo, List<QueuedHead> heads) {
         HeadLoader headLoader = new HeadLoader(player, guInfo, heads, savedHeads);
@@ -23,9 +30,10 @@ public class HeadFetcher {
 
 
     public static ItemStack getUnloadedHead(UUID uuid) {
-        if (savedHeads.containsKey(uuid))
-            return savedHeads.get(uuid);
-        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        ItemStack head = savedHeads.getIfPresent(uuid);
+        if (head != null)
+            return head;
+        head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         try {

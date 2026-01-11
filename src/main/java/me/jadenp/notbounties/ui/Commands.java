@@ -27,6 +27,10 @@ import me.jadenp.notbounties.features.*;
 import me.jadenp.notbounties.features.settings.auto_bounties.Prompt;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -246,6 +250,29 @@ public class Commands implements CommandExecutor, TabCompleter {
                         sender.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "The update notification is now skipping the version " + ChatColor.GOLD + ConfigOptions.getUpdateNotification() + ChatColor.YELLOW + ".", parser));
                     }
                 }
+            } else if (args[0].equalsIgnoreCase("skin") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission()))) {
+                if (args.length > 1) {
+                    UUID uuid = LoggedPlayers.getPlayer(args[1]);
+                    if (uuid == null) {
+                        sender.sendMessage(LanguageOptions.parse(getPrefix() + LanguageOptions.getMessage("unknown-player"), args[1], parser));
+                        return false;
+                    }
+                    if (SkinManager.isSkinLoaded(uuid)) {
+                        PlayerSkin playerSkin = SkinManager.getSkin(uuid);
+                        TextComponent textComponent = new TextComponent("Texture URL: " + playerSkin.url().toString());
+                        textComponent.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, playerSkin.url().toString()));
+                        textComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GREEN + "Click to copy")));
+                        sender.spigot().sendMessage(textComponent);
+                        return true;
+                    } else {
+                        sender.sendMessage("Skin is loading! Please enter the command again.");
+                        return false;
+                    }
+                } else {
+                    sender.sendMessage("/bounty skin (player name/uuid)");
+                    return false;
+                }
+
             } else if (args[0].equalsIgnoreCase("cleanEntities") && (adminPermission || sender.hasPermission("notbounties.cleanentities"))) {
                 if (!(sender instanceof Player)) {
                     if (!silent)
@@ -2097,6 +2124,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("currency");
                     tab.add("debug");
                     tab.add("board");
+                    tab.add("skin");
                     if (NotBounties.isPaused()) {
                         tab.add("unpause");
                     } else {

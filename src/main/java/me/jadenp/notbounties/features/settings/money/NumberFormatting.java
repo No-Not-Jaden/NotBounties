@@ -38,35 +38,35 @@ import java.util.stream.IntStream;
 
 
 public class NumberFormatting {
-    private static List<String> currency;
-    private static List<String> customModelDatas;
-    private static LinkedHashMap<String, Float> currencyValues;
-    private static List<Float> currencyWeights;
-    private static List<String> removeCommands;
-    private static List<String> addCommands;
+    private static List<String> currency = Collections.emptyList();
+    private static List<String> customModelDatas = Collections.emptyList();
+    private static LinkedHashMap<String, Float> currencyValues = new LinkedHashMap<>();
+    private static List<Float> currencyWeights = Collections.emptyList();
+    private static List<String> removeCommands = Collections.emptyList();
+    private static List<String> addCommands = Collections.emptyList();
     private static String currencyPrefix = "";
     private static String currencySuffix = "";
-    private static boolean useDivisions;
+    private static boolean useDivisions = true;
     private static LinkedHashMap<Long, String> nfDivisions = new LinkedHashMap<>();
-    private static DecimalFormat decimalFormat;
-    private static Locale locale;
+    private static DecimalFormat decimalFormat = new DecimalFormat("#,###.##");
+    private static Locale locale = Locale.ENGLISH;
     public enum CurrencyAddType {
         DESCENDING, FIRST, RATIO, BIMODAL
     }
     private static CurrencyAddType addSingleCurrency = CurrencyAddType.DESCENDING;
     private static boolean usingPapi = false;
     private static VaultClass vaultClass = null;
-    private static boolean vaultEnabled;
-    private static boolean overrideVault;
+    private static boolean vaultEnabled = false;
+    private static boolean overrideVault = true;
     private static boolean bountyItemsOverrideImmunity = false;
     public enum ManualEconomy {
         AUTOMATIC, PARTIAL, MANUAL
     }
-    private static ManualEconomy manualEconomy;
+    private static ManualEconomy manualEconomy = ManualEconomy.AUTOMATIC;
     public enum BountyItemMode {
         ALLOW, DENY, EXCLUSIVE
     }
-    private static BountyItemMode bountyItemMode;
+    private static BountyItemMode bountyItemMode = BountyItemMode.DENY;
     private static final Map<Material, ItemValue> itemValues = new HashMap<>();
     private static final Map<Enchantment, Double> enchantmentValues = new HashMap<>();
     private static double defaultItemValue = 1;
@@ -78,7 +78,7 @@ public class NumberFormatting {
         AUTO, ESSENTIALS, FILE, DISABLE
     }
     private static ItemValueMode bountyItemsUseItemValues = ItemValueMode.AUTO;
-    private static boolean essentialsEnabled;
+    private static boolean essentialsEnabled = false;
     private static EssentialsXClass essentialsXClass;
     private static Plugin plugin;
 

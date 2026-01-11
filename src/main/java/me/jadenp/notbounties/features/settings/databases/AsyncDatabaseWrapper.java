@@ -345,7 +345,7 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
                 Bukkit.getLogger().info("[NotBounties] Connected to " + database.getName() + "!");
             }
             return success;
-        } catch (NoClassDefFoundError e) {
+        } catch (NoClassDefFoundError | ExceptionInInitializerError e) {
             // Couldn't load a dependency.
             // This will be thrown if unable to use Spigot's library loader
             NotBounties.debugMessage("One or more dependencies could not be downloaded to use the database: " + database.getName(), true);

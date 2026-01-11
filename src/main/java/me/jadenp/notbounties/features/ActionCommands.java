@@ -41,16 +41,20 @@ public class ActionCommands {
     private static List<String> bigBountyCommands;
     private static List<String> bountySetCommands;
     private static List<String> bountyRemoveCommands;
+    private static List<String> bountyJoinCommands;
+    private static List<String> bountyQuitCommands;
     private static Plugin plugin;
 
     private ActionCommands(){}
 
-    public static void loadConfiguration(Plugin plugin, List<String> bountyClaimCommands, List<String> bigBountyCommands, List<String> bountySetCommands, List<String> bountyRemoveCommands) {
+    public static void loadConfiguration(Plugin plugin, List<String> bountyClaimCommands, List<String> bigBountyCommands, List<String> bountySetCommands, List<String> bountyRemoveCommands, List<String> bountyJoinCommands, List<String> bountyQuitCommands) {
         ActionCommands.plugin = plugin;
         ActionCommands.bountyClaimCommands = bountyClaimCommands;
         ActionCommands.bigBountyCommands = bigBountyCommands;
         ActionCommands.bountySetCommands = bountySetCommands;
         ActionCommands.bountyRemoveCommands = bountyRemoveCommands;
+        ActionCommands.bountyJoinCommands = bountyJoinCommands;
+        ActionCommands.bountyQuitCommands = bountyQuitCommands;
     }
 
     public static void executeBountyRemove(UUID uuid) {
@@ -59,6 +63,22 @@ public class ActionCommands {
         NotBounties.getServerImplementation().global().run(() -> {
             for (String command : bountyRemoveCommands) {
                 execute(player, player, bounty, command, uuid);
+            }
+        });
+    }
+
+    public static void executeBountyJoin(Player player, Bounty bounty) {
+        NotBounties.getServerImplementation().global().runDelayed(() -> {
+            for (String command : bountyJoinCommands) {
+                execute(player, player, bounty, command, player.getUniqueId());
+            }
+        }, 10);
+    }
+
+    public static void executeBountyQuit(Player player, Bounty bounty) {
+        NotBounties.getServerImplementation().global().run(() -> {
+            for (String command : bountyQuitCommands) {
+                execute(player, player, bounty, command, player.getUniqueId());
             }
         });
     }

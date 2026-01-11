@@ -145,4 +145,4 @@ permissions:
     description: Join or leave a bounty hunt.
 libraries:
   - com.mysql:mysql-connector-j:9.4.0
-  - io.lettuce:lettuce-core:7.0.0.RELEASE
+  - io.lettuce:lettuce-core:7.2.1.RELEASE

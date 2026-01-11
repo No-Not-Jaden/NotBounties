@@ -134,7 +134,10 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
 
     private void readBroadcast(JsonReader jsonReader, PlayerData playerData) throws IOException {
         PlayerData.BroadcastSettings broadcastSettings;
-        if (jsonReader.peek() == JsonToken.BOOLEAN) {
+        if (jsonReader.peek() == JsonToken.NULL) {
+            jsonReader.nextNull();
+            broadcastSettings = PlayerData.BroadcastSettings.EXTENDED;
+        } else if (jsonReader.peek() == JsonToken.BOOLEAN) {
             // old style
             broadcastSettings = jsonReader.nextBoolean() ? PlayerData.BroadcastSettings.EXTENDED : PlayerData.BroadcastSettings.DISABLE;
         } else {

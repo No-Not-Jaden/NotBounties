@@ -13,6 +13,7 @@ import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -158,7 +159,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
         }
     }
 
-    public String getPlayerName() {
+    public @Nullable String getPlayerName() {
         return playerName;
     }
 
@@ -223,11 +224,18 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
         return !refund.isEmpty();
     }
 
-    public void setBroadcastSettings(BroadcastSettings broadcastSettings) {
-        this.broadcastSettings = broadcastSettings;
+    public void setBroadcastSettings(@Nullable BroadcastSettings broadcastSettings) {
+        if (broadcastSettings == null)
+            this.broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
+        else
+            this.broadcastSettings = broadcastSettings;
     }
 
-    public BroadcastSettings getBroadcastSettings() {
+    public @NotNull BroadcastSettings getBroadcastSettings() {
+        if (broadcastSettings == null)
+            broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
+        if (broadcastSettings == null)
+            return BroadcastSettings.EXTENDED;
         return broadcastSettings;
     }
 

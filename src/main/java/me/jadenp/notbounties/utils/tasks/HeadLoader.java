@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils.tasks;
 
+import com.google.common.cache.Cache;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.PlayerSkin;
@@ -16,7 +17,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class HeadLoader extends CancelableTask{
@@ -25,9 +25,9 @@ public class HeadLoader extends CancelableTask{
     private final List<QueuedHead> heads;
     private final PlayerGUInfo guInfo;
     private final Player player;
-    private final Map<UUID, ItemStack> savedHeads;
+    private final Cache<UUID, ItemStack> savedHeads;
 
-    public HeadLoader(Player player, PlayerGUInfo guInfo, List<QueuedHead> heads, Map<UUID, ItemStack> savedHeads) {
+    public HeadLoader(Player player, PlayerGUInfo guInfo, List<QueuedHead> heads, Cache<UUID, ItemStack> savedHeads) {
         super();
         fetchedHeads = new ItemStack[heads.size()];
         this.player = player;
@@ -42,8 +42,9 @@ public class HeadLoader extends CancelableTask{
         int i = 0;
         for (QueuedHead queuedHead : heads) {
             if (fetchedHeads[i] == null) {
-                if (savedHeads.containsKey(queuedHead.uuid())) {
-                    fetchedHeads[i] = savedHeads.get(queuedHead.uuid());
+                ItemStack cachedHead = savedHeads.getIfPresent(queuedHead.uuid());
+                if (cachedHead != null) {
+                    fetchedHeads[i] = cachedHead;
                     headsToUpdate[i] = true;
                 } else {
                     if (SkinManager.isSkinLoaded(queuedHead.uuid())) {
@@ -116,10 +117,14 @@ public class HeadLoader extends CancelableTask{
         ItemMeta toMeta = to.getItemMeta();
         if (fromMeta == null || toMeta == null)
             return to;
-        if (fromMeta.hasCustomModelData())
+
+        if (NotBounties.isAboveVersion(21, 3)) {
+            if (fromMeta.hasItemModel()) {
+                toMeta.setItemModel(fromMeta.getItemModel());
+            }
+        } else if (fromMeta.hasCustomModelData()) {
             toMeta.setCustomModelData(fromMeta.getCustomModelData());
-        if (NotBounties.isAboveVersion(21, 3) && fromMeta.hasItemModel())
-            toMeta.setItemModel(fromMeta.getItemModel());
+        }
         if (fromMeta.hasDisplayName())
             toMeta.setDisplayName(fromMeta.getDisplayName());
         if (fromMeta.hasLore())
