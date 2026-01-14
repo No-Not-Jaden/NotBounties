@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.features.settings.display.map;
 
-import com.cjcrafter.foliascheduler.FoliaCompatibility;
 import com.cjcrafter.foliascheduler.util.ServerVersions;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
@@ -30,10 +29,10 @@ public class BountyBoard {
     private static String itemName;
     private static int updateName;
 
-    private static final List<BountyBoard> bountyBoards = new ArrayList<>();
+    private static final List<BountyBoard> bountyBoards = Collections.synchronizedList(new ArrayList<>());
     private static long lastBountyBoardUpdate = System.currentTimeMillis();
-    private static List<BountyBoard> queuedBoards = new ArrayList<>();
-    private static final Map<UUID, Integer> boardSetup = new HashMap<>();
+    private static List<BountyBoard> queuedBoards = Collections.synchronizedList(new LinkedList<>());
+    private static final Map<UUID, Integer> boardSetup = Collections.synchronizedMap(new HashMap<>());
 
     public static void loadConfiguration(ConfigurationSection config) {
         type = config.getInt("type");
@@ -99,7 +98,7 @@ public class BountyBoard {
      * Updates the bounty boards, following the config options.
      */
     public static synchronized void update() {
-        if (BountyBoard.getLastBountyBoardUpdate() + updateInterval * 1000L < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty()) {
+        if (BountyBoard.getLastBountyBoardUpdate() + updateInterval * 1000L < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled()) {
             // update bounty board
             if (queuedBoards.isEmpty()) {
                 queuedBoards = new LinkedList<>(BountyBoard.getBountyBoards());
@@ -140,14 +139,19 @@ public class BountyBoard {
                 || !location.getWorld().isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4))
             return;
         if (bounty == null) {
-            lastUUID = null;
-            lastBounty = 0;
-            remove();
+            if (frame != null) {
+                lastUUID = null;
+                lastBounty = 0;
+                remove();
+            }
             return;
         }
         if (updateName == 2 || !bounty.getUUID().equals(lastUUID) || (updateName == 1 && lastBounty != bounty.getTotalDisplayBounty())) {
             lastUUID = bounty.getUUID();
             lastBounty = bounty.getTotalDisplayBounty();
+            remove();
+        }
+        if (frame != null && !frame.isValid()) {
             remove();
         }
         if (frame == null) {
@@ -170,8 +174,9 @@ public class BountyBoard {
                     frame.setFixed(true);
                 });
 
-            } catch (IllegalArgumentException ignored) {
+            } catch (IllegalArgumentException e) {
                 // this is thrown when there is no space to place the board
+                NotBounties.debugMessage("Failed to place a bounty board: " + e, true);
             }
         }
 

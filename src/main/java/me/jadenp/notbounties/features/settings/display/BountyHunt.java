@@ -6,7 +6,6 @@ import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
-import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -178,11 +177,27 @@ public class BountyHunt {
             // check if player is being hunted
             if (hunt.getHuntedPlayer().getUniqueId().equals(receiver.getUniqueId())) {
                 // end hunt, run commands
+                List<String> huntCommands = extendCommands(commands, hunt);
                 hunt.endHunt();
-                ActionCommands.executeCommands(receiver, killer, commands);
+                ActionCommands.executeCommands(receiver, killer, huntCommands);
                 huntListIterator.remove();
             }
         }
+    }
+
+    private static List<String> extendCommands(List<String> commands, BountyHunt hunt) {
+        List<String> extendedCommands = new ArrayList<>();
+        Set<Player> participatingPlayers = hunt.getParticipatingPlayers();
+        for (String command : commands) {
+            if (command.contains("{participant}")) {
+                for (Player player : participatingPlayers) {
+                    extendedCommands.add(command.replace("{participant}", player.getName()));
+                }
+            } else {
+                extendedCommands.add(command);
+            }
+        }
+        return extendedCommands;
     }
 
     public static @Nullable BountyHunt getHunt(UUID huntedUUID) {

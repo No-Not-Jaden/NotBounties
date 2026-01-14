@@ -185,4 +185,5 @@ bounty-hunt:
     color: RED
     text: '&4Hunt for &c&l{player}&4! &7Time remaining: &f{time}'
   # Commands to be run when the bounty is claimed
+  # You can use the {participant} placeholder to run a command for everyone participating
   commands: []

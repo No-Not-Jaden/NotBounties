@@ -400,8 +400,6 @@ public class SaveManager {
             BountyBoard bountyBoard = bountyBoardTypeAdapter.read(reader);
             if (bountyBoard != null)
                 bountyBoards.add(bountyBoard);
-            else
-                plugin.getLogger().info("Could not load a saved bounty board. (Location does not exist)");
         }
         reader.endArray();
 

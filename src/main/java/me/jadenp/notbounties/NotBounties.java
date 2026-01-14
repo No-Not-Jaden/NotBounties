@@ -68,9 +68,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * Multiple proxy databases
  * 1.21.6 dialog
  * Option to send api request when setting a bounty on offline player
- *
- * bounty join and quit commands
- * luckperm contexts
+ * bounty hunt option to split the bounty between participants
  */
 public final class NotBounties extends JavaPlugin {
 

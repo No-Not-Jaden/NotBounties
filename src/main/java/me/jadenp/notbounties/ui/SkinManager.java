@@ -12,7 +12,6 @@ import me.jadenp.notbounties.ui.iso_renderer.IsometricRenderer;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.ConfigOptions;
-import me.jadenp.notbounties.utils.tasks.HeadLoader;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -43,7 +42,7 @@ public class SkinManager {
     private static final long CONCURRENT_REQUEST_INTERVAL = 10000;
     private static BufferedImage missingSkinFace;
     private static BufferedImage missingSkinIso;
-    private static PlayerSkin missingSkin;
+    private static PlayerSkin missingSkin = new PlayerSkin(null, null, true);
     private static final IsometricRenderer isoRenderer = new IsometricRenderer();
 
     public static void loadConfiguration(ConfigurationSection config) {

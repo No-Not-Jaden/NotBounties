@@ -4,6 +4,7 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import me.jadenp.notbounties.NotBounties;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -29,8 +30,10 @@ public class BountyBoardTypeAdapter extends TypeAdapter<BountyBoard> {
     }
 
     private void writeLocation(JsonWriter jsonWriter, Location location) throws IOException {
-        if (location.getWorld() == null)
+        if (location.getWorld() == null) {
+            NotBounties.getInstance().getLogger().warning("Invalid bounty board location found, skipping.");
             return;
+        }
         jsonWriter.name("location");
         jsonWriter.beginObject();
         jsonWriter.name("world").value(location.getWorld().getUID().toString());
@@ -86,8 +89,10 @@ public class BountyBoardTypeAdapter extends TypeAdapter<BountyBoard> {
             }
         }
         jsonReader.endObject();
-        if (location == null || location.getWorld() == null)
+        if (location == null || location.getWorld() == null) {
+            NotBounties.getInstance().getLogger().warning("Invalid bounty board location found, skipping.");
             return null;
+        }
         return new BountyBoard(location, direction, rank);
     }
 }

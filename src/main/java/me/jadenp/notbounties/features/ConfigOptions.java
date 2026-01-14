@@ -244,13 +244,13 @@ public class ConfigOptions {
             plugin.saveConfig();
         LanguageOptions.reloadOptions();
         WebhookOptions.reloadOptions();
-        SkinManager.refreshSkinRequests();
         ChallengeManager.reloadOptions();
         LocalTime.readAuthentication();
         if (integrations.isFloodgateEnabled() || integrations.isGeyserEnabled())
             BedrockGUI.reloadOptions();
 
         display.loadFile(plugin); // bounty tracker needs to be loaded later
+        SkinManager.refreshSkinRequests(); // must refresh after display is loaded
         firstStart = false;
     }
 
