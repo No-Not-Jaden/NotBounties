@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static me.jadenp.notbounties.utils.BountyManager.getPublicBounties;
 
@@ -31,7 +32,7 @@ public class BountyBoard {
 
     private static final List<BountyBoard> bountyBoards = Collections.synchronizedList(new ArrayList<>());
     private static long lastBountyBoardUpdate = System.currentTimeMillis();
-    private static List<BountyBoard> queuedBoards = Collections.synchronizedList(new LinkedList<>());
+    private static final Deque<BountyBoard> queuedBoards = new ConcurrentLinkedDeque<>();
     private static final Map<UUID, Integer> boardSetup = Collections.synchronizedMap(new HashMap<>());
 
     public static void loadConfiguration(ConfigurationSection config) {
@@ -98,16 +99,21 @@ public class BountyBoard {
      * Updates the bounty boards, following the config options.
      */
     public static synchronized void update() {
+        if (!Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTask(NotBounties.getInstance(), BountyBoard::update);
+            return;
+        }
         if (BountyBoard.getLastBountyBoardUpdate() + updateInterval * 1000L < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled()) {
             // update bounty board
-            if (queuedBoards.isEmpty()) {
-                queuedBoards = new LinkedList<>(BountyBoard.getBountyBoards());
+            if (queuedBoards.peek() == null) {
+                queuedBoards.addAll(bountyBoards);
             }
-            int minUpdate = staggeredUpdate == 0 ? queuedBoards.size() : staggeredUpdate;
+            int minUpdate = staggeredUpdate <= 0 ? queuedBoards.size() : staggeredUpdate; // 0 means update all boards
             List<Bounty> bountyCopy = getPublicBounties(type);
+            checkDuplicates(bountyCopy);
             int numBoards = Math.min(queuedBoards.size(), minUpdate);
             for (int i = 0; i < numBoards; i++) {
-                BountyBoard board = queuedBoards.remove(0);
+                BountyBoard board = queuedBoards.removeFirst();
                 if (bountyCopy.size() >= board.getRank()) {
                     board.update(bountyCopy.get(board.getRank() - 1));
                 } else {
@@ -117,6 +123,19 @@ public class BountyBoard {
 
             lastBountyBoardUpdate = System.currentTimeMillis();
         }
+    }
+
+    private static void checkDuplicates(List<Bounty> bounties) {
+        NotBounties.getServerImplementation().async().runNow(() -> {
+            Set<UUID> duplicateUUIDs = new HashSet<>();
+            for (Bounty bounty : bounties) {
+                if (duplicateUUIDs.contains(bounty.getUUID())) {
+                    NotBounties.debugMessage("Duplicate bounty UUID detected: " + bounty.getUUID(), true);
+                } else {
+                    duplicateUUIDs.add(bounty.getUUID());
+                }
+            }
+        });
     }
 
     private final Location location;
@@ -130,11 +149,14 @@ public class BountyBoard {
 
         this.location = location;
         this.direction = direction;
+        if (rank <= 0 ) {
+            rank = 1;
+        }
         this.rank = rank;
 
     }
 
-    public void update(Bounty bounty) {
+    public synchronized void update(Bounty bounty) {
         if (location.getWorld() == null || !location.isWorldLoaded()
                 || !location.getWorld().isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4))
             return;
@@ -155,34 +177,37 @@ public class BountyBoard {
             remove();
         }
         if (frame == null) {
-            EntityType frameType = glow && NotBounties.getServerVersion() >= 17 ? EntityType.GLOW_ITEM_FRAME : EntityType.ITEM_FRAME;
-            try {
-                ItemStack map = BountyMap.getMap(bounty);
-                if (map == null)
-                    return;
-                NotBounties.getServerImplementation().region(location).run(() -> {
-                    frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, frameType);
-                    frame.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
-                    frame.setFacingDirection(direction, true);
-                    ItemMeta mapMeta = map.getItemMeta();
-                    assert mapMeta != null;
-                    mapMeta.setDisplayName(LanguageOptions.parse(itemName, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
-                    map.setItemMeta(mapMeta);
-                    frame.setItem(map);
-                    frame.setInvulnerable(true);
-                    frame.setVisible(!invisible);
-                    frame.setFixed(true);
-                });
-
-            } catch (IllegalArgumentException e) {
-                // this is thrown when there is no space to place the board
-                NotBounties.debugMessage("Failed to place a bounty board: " + e, true);
-            }
+            placeBoard(bounty);
         }
 
 
     }
 
+    private void placeBoard(Bounty bounty) {
+        EntityType frameType = glow && NotBounties.getServerVersion() >= 17 ? EntityType.GLOW_ITEM_FRAME : EntityType.ITEM_FRAME;
+        try {
+            ItemStack map = BountyMap.getMap(bounty);
+            if (map == null)
+                return;
+            NotBounties.getServerImplementation().region(location).run(() -> {
+                frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, frameType);
+                frame.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
+                frame.setFacingDirection(direction, true);
+                ItemMeta mapMeta = map.getItemMeta();
+                assert mapMeta != null;
+                mapMeta.setDisplayName(LanguageOptions.parse(itemName, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+                map.setItemMeta(mapMeta);
+                frame.setItem(map);
+                frame.setInvulnerable(true);
+                frame.setVisible(!invisible);
+                frame.setFixed(true);
+            });
+
+        } catch (IllegalArgumentException e) {
+            // this is thrown when there is no space to place the board
+            NotBounties.debugMessage("Failed to place a bounty board: " + e, true);
+        }
+    }
 
 
     public ItemFrame getFrame() {
@@ -205,9 +230,7 @@ public class BountyBoard {
                 // https://github.com/PaperMC/Folia/issues/353
                 return;
 
-            for (Entity entity : Objects.requireNonNull(location.getWorld()).getNearbyEntities(location, 0.5, 0.5, 0.5))
-                if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01)
-                    entity.remove();
+            removeDuplicateFrames();
 
             if (frame != null) {
                 frame.setItem(null);
@@ -215,14 +238,7 @@ public class BountyBoard {
                 frame = null;
             }
         } else {
-            NotBounties.getServerImplementation().region(location).run(() -> {
-                for (Entity entity : Objects.requireNonNull(location.getWorld()).getNearbyEntities(location, 0.5, 0.5, 0.5)) {
-                    if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01) {
-                        entity.remove();
-                    }
-                }
-            });
-
+            NotBounties.getServerImplementation().region(location).run(this::removeDuplicateFrames);
 
             if (frame != null) {
                 NotBounties.getServerImplementation().entity(frame).run(() -> {
@@ -230,6 +246,14 @@ public class BountyBoard {
                     frame.remove();
                     frame = null;
                 });
+            }
+        }
+    }
+
+    private void removeDuplicateFrames() {
+        for (Entity entity : Objects.requireNonNull(location.getWorld()).getNearbyEntities(location, 0.5, 0.5, 0.5)) {
+            if (entity.getType() == EntityType.ITEM_FRAME || (NotBounties.getServerVersion() >= 17 && entity.getType() == EntityType.GLOW_ITEM_FRAME) && entity.getLocation().distance(location) < 0.01) {
+                entity.remove();
             }
         }
     }

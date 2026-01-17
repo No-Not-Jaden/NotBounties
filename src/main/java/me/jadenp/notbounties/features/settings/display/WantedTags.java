@@ -52,7 +52,7 @@ public class WantedTags {
     /**
      * The minimum amount of currency spent to get a wanted tag.
      */
-    private static double minWanted;
+    private static double minWanted = 100;
 
     /**
      * Whether the tag should be hidden when the player is sneaking.
@@ -159,7 +159,7 @@ public class WantedTags {
      */
     public static String getWantedDisplayText(OfflinePlayer player) {
         Bounty bounty = BountyManager.getBounty(player.getUniqueId());
-        if (bounty == null || bounty.getTotalDisplayBounty() < minWanted)
+        if (wantedText == null || bounty == null || bounty.getTotalDisplayBounty() < minWanted)
             return "";
         String levelReplace = "";
         for (Map.Entry<Double, String> entry : wantedLevels.entrySet()) {
@@ -276,7 +276,7 @@ public class WantedTags {
         } else {
             tag = new EntityTag(player); // entity-based tag
         }
-        if (!BountyManager.hasBounty(player.getUniqueId()))
+        if (!BountyManager.hasBounty(player.getUniqueId()) || !tagsEnabled)
             return;
         spawnWantedTag();
     }
