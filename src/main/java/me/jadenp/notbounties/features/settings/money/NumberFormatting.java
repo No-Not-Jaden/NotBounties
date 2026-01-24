@@ -5,6 +5,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.ui.gui.CustomItem;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ItemValue;
 import me.jadenp.notbounties.utils.tasks.MultipleItemGive;
 import me.jadenp.notbounties.utils.tasks.SingleItemGive;
@@ -865,7 +866,8 @@ public class NumberFormatting {
                 NotBounties.debugMessage("Deposited money with vault!", false);
                 return;
             } else {
-                plugin.getLogger().warning("Error depositing currency with vault!");
+                plugin.getLogger().warning("Error depositing currency with vault! Will retry later.");
+                BountyManager.refundPlayer(p.getUniqueId(), amount, Collections.emptyList(), "previous deposit error");
             }
         }
         if (currency.isEmpty()){

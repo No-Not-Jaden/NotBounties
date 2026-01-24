@@ -203,7 +203,7 @@ public class BountyManager {
         if (amount > 0) {
             if (NumberFormatting.isVaultEnabled() && !NumberFormatting.isOverrideVault()) {
                 if (!NumberFormatting.getVaultClass().deposit(player, amount)) {
-                    Bukkit.getLogger().warning("[NotBounties] Error depositing currency with vault!");
+                    Bukkit.getLogger().warning("[NotBounties] Error depositing currency with vault! Will retry when player joins next.");
                     addRefund(uuid, amount, reason);
                     refund = true;
                 }
