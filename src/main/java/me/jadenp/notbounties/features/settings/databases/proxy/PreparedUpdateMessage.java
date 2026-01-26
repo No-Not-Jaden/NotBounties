@@ -18,7 +18,7 @@ public class PreparedUpdateMessage {
 
     private PreparedUpdateMessage futureMessage = null;
     private final byte[] message;
-    private static final int MAX_MESSAGE_SIZE = Messenger.MAX_MESSAGE_SIZE - 1024;
+    private static final int MAX_MESSAGE_SIZE = 32000;
     private boolean sent = false;
     private boolean sending = false;
     private boolean canceled = false;
