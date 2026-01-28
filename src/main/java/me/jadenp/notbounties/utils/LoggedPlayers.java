@@ -98,7 +98,7 @@ public class LoggedPlayers {
             Bukkit.getLogger().log(Level.WARNING, "[NotBounties] There are {0} logged players with no associated name.", duplicateUUIDs.size());
             NotBounties.debugMessage(duplicateUUIDs.toString(), false);
         }
-        httpPool = new HttpSyncPool(5, 10);
+        httpPool = new HttpSyncPool(1, 10);
 
     }
 

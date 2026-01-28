@@ -52,6 +52,7 @@ public final class HttpSyncPool implements Closeable {
                 .setConnectionManager(cm)
                 .evictExpiredConnections()
                 .evictIdleConnections(TimeValue.ofSeconds(30))
+                .disableAutomaticRetries()
                 .build();
 
         limiter = new SimpleRateLimiter(requestsPerSecond, burstCapacity);
