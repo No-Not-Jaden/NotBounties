@@ -98,8 +98,13 @@ public class LoggedPlayers {
             Bukkit.getLogger().log(Level.WARNING, "[NotBounties] There are {0} logged players with no associated name.", duplicateUUIDs.size());
             NotBounties.debugMessage(duplicateUUIDs.toString(), false);
         }
-        httpPool = new HttpSyncPool(1, 10);
+        loadHttpPool();
+    }
 
+    private static void loadHttpPool() {
+        if (httpPool == null) {
+            httpPool = new HttpSyncPool(1, 100);
+        }
     }
 
     public static Map<UUID, String> getLoggedPlayers() {
@@ -194,6 +199,7 @@ public class LoggedPlayers {
         if (playerData.getPlayerName() != null)
             return playerData.getPlayerName();
         if (uuid.version() == 4 /* check if online player */) {
+            loadHttpPool();
             httpPool.requestPlayerNameAsync(uuid, new HttpSyncPool.ResponseHandler())
                     .thenAccept(playerData::setPlayerName)
                     .exceptionally(ex -> {

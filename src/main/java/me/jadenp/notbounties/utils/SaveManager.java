@@ -298,56 +298,62 @@ public class SaveManager {
     private static void readPlayerData(File dataDirectory) throws IOException {
         ChallengeManager.setNextChallengeChange(1); // prepare new challenges if the last challenge change wasn't read
         File playerDataFile = new File(dataDirectory + File.separator + "player_data.json");
-        if (playerDataFile.exists()) {
-            try (JsonReader reader = new JsonReader(new FileReader(playerDataFile))) {
-                try {
-                    if (reader.peek() == JsonToken.NULL) {
-                        reader.nextNull();
-                        return;
-                    }
-                } catch (EOFException e) {
-                    // empty file, ignore
-                    return;
-                }
-                List<PlayerData> playerDataList = null;
-                reader.beginObject();
-                while (reader.hasNext()) {
-                    String name = reader.nextName();
-                    switch (name) {
-                        case "players" -> {
-                            playerDataList = readPlayers(reader);
-                            DataManager.getLocalData().addPlayerData(playerDataList);
-                        }
-                        case "trackedBounties" -> BountyTracker.setTrackedBounties(readTrackedBounties(reader));
-                        case "databaseSyncTimes" -> databaseSyncTimes = readDatabaseSyncTimes(reader);
-                        case "nextRandomBounty" -> readNextRandomBounty(reader);
-                        case "randomBountyTimeHash" -> RandomBounties.setTimeHash(reader.nextInt());
-                        case "nextTimedBounties" -> TimedBounties.setNextBounties(readTimedBounties(reader));
-                        case "bountyBoards" -> BountyBoard.addBountyBoards(readBountyBoards(reader));
-                        case "nextChallengeChange" -> ChallengeManager.setNextChallengeChange(reader.nextLong());
-                        case "serverID" -> DataManager.setDatabaseServerID(UUID.fromString(reader.nextString()));
-                        case "paused" -> NotBounties.setPaused(reader.nextBoolean());
-                        case "wantedTagLocations" -> readWantedTagLocations(reader);
-                        case "newPlayerImmunity" -> ImmunityManager.setNewPlayerImmunity(reader.nextLong());
-                        case "bountyHunts" -> readBountyHunts(reader);
-                        default -> // unexpected name
-                                reader.skipValue();
-                    }
-                }
-                reader.endObject();
-                // set the server ID for these entries
-                // serverID is a new value, and old data may not have one set
-                if (playerDataList != null)
-                    for (PlayerData playerData : playerDataList)
-                        if (playerData.getServerID() == null || playerData.getServerID().equals(DataManager.GLOBAL_SERVER_ID))
-                            playerData.setServerID(DataManager.getDatabaseServerID(true));
-            }
+        try {
+            readPlayerFile(playerDataFile);
+        } catch (IOException e) {
+            LoggedPlayers.loadPlayerData();
+            throw e;
         }
-
         // tell LoggedPlayers that it can read all the player names and store them in an easy-to-read hashmap
         LoggedPlayers.loadPlayerData();
     }
 
+    private static void readPlayerFile(File playerDataFile) throws IOException {
+        if (!playerDataFile.exists()) return;
+        try (JsonReader reader = new JsonReader(new FileReader(playerDataFile))) {
+            try {
+                if (reader.peek() == JsonToken.NULL) {
+                    reader.nextNull();
+                    return;
+                }
+            } catch (EOFException e) {
+                // empty file, ignore
+                return;
+            }
+            List<PlayerData> playerDataList = null;
+            reader.beginObject();
+            while (reader.hasNext()) {
+                String name = reader.nextName();
+                switch (name) {
+                    case "players" -> {
+                        playerDataList = readPlayers(reader);
+                        DataManager.getLocalData().addPlayerData(playerDataList);
+                    }
+                    case "trackedBounties" -> BountyTracker.setTrackedBounties(readTrackedBounties(reader));
+                    case "databaseSyncTimes" -> databaseSyncTimes = readDatabaseSyncTimes(reader);
+                    case "nextRandomBounty" -> readNextRandomBounty(reader);
+                    case "randomBountyTimeHash" -> RandomBounties.setTimeHash(reader.nextInt());
+                    case "nextTimedBounties" -> TimedBounties.setNextBounties(readTimedBounties(reader));
+                    case "bountyBoards" -> BountyBoard.addBountyBoards(readBountyBoards(reader));
+                    case "nextChallengeChange" -> ChallengeManager.setNextChallengeChange(reader.nextLong());
+                    case "serverID" -> DataManager.setDatabaseServerID(UUID.fromString(reader.nextString()));
+                    case "paused" -> NotBounties.setPaused(reader.nextBoolean());
+                    case "wantedTagLocations" -> readWantedTagLocations(reader);
+                    case "newPlayerImmunity" -> ImmunityManager.setNewPlayerImmunity(reader.nextLong());
+                    case "bountyHunts" -> readBountyHunts(reader);
+                    default -> // unexpected name
+                            reader.skipValue();
+                }
+            }
+            reader.endObject();
+            // set the server ID for these entries
+            // serverID is a new value, and old data may not have one set
+            if (playerDataList != null)
+                for (PlayerData playerData : playerDataList)
+                    if (playerData.getServerID() == null || playerData.getServerID().equals(DataManager.GLOBAL_SERVER_ID))
+                        playerData.setServerID(DataManager.getDatabaseServerID(true));
+        }
+    }
     private static void readNextRandomBounty(JsonReader reader) throws IOException {
         RandomBounties.setNextRandomBounty(reader.nextLong());
         if (!RandomBounties.isEnabled()) {
