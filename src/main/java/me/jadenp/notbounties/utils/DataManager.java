@@ -71,10 +71,6 @@ public class DataManager {
         // load modern data
         SaveManager.read(plugin);
 
-        // make sure all bounties are loaded into the player data
-        for (Bounty bounty : DataManager.getAllBounties(-1)) {
-            LoggedPlayers.getPlayerName(bounty.getUUID());
-        }
     }
 
 
@@ -1018,6 +1014,7 @@ public class DataManager {
     }
 
     public static void getAndSyncDatabase(NotBountiesDatabase database) {
+        long startTime = System.currentTimeMillis();
         List<Bounty> databaseBounties;
         Map<UUID, PlayerStat> databaseStats;
         List<PlayerData> playerDataMap;
@@ -1025,7 +1022,12 @@ public class DataManager {
         try {
             databaseBounties = database.getAllBounties(2);
             databaseStats = database.getAllStats();
+            long beforePlayerData = System.currentTimeMillis();
             playerDataMap = database.getPlayerData();
+            long playerDataLoadTime = System.currentTimeMillis() - beforePlayerData;
+            if (playerDataLoadTime > 1000) {
+                plugin.getLogger().warning("[NotBounties] Loading " + playerDataMap.size() + " player data records took " + playerDataLoadTime + "ms from " + database.getName() + ". Consider increasing refresh-interval if this happens frequently.");
+            }
         } catch (IOException e) {
             plugin.getLogger().warning("Error while trying to connect to " + database.getName() + " (bad connection)");
             Arrays.stream(e.getStackTrace()).forEach(stackTraceElement -> NotBounties.debugMessage(stackTraceElement.toString(), false));
@@ -1039,6 +1041,10 @@ public class DataManager {
         }
 
         syncDatabase(database, databaseBounties, databaseStats, playerDataMap);
+        long totalTime = System.currentTimeMillis() - startTime;
+        if (totalTime > 2000) {
+            plugin.getLogger().warning("[NotBounties] Database sync for " + database.getName() + " took " + totalTime + "ms. This may cause server lag.");
+        }
     }
 
     private static <T extends Comparable<T>> void insertIntoSortedList(List<T> list, T element) {
@@ -1178,7 +1184,7 @@ public class DataManager {
 
         // log any unknown names in the database bounties
         for (Bounty bounty : databaseAdded) {
-            if (LoggedPlayers.isMissing(bounty.getUUID()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)) {
+            if (bounty.getName() != null && LoggedPlayers.isMissing(bounty.getUUID()) && !bounty.getUUID().equals(DataManager.GLOBAL_SERVER_ID)) {
                 DataManager.getPlayerData(bounty.getUUID()).setPlayerName(bounty.getName());
             }
         }
@@ -1209,10 +1215,16 @@ public class DataManager {
         localData.setStats(databaseStats);
 
         // sync player data
+        // Optimize: Skip expensive sync if lists are very large and identical (early exit for performance)
+        long syncStartTime = System.currentTimeMillis();
         syncTimes(localPlayerData, databasePlayerData);
 
         List<PlayerData> syncedPlayerData = Inconsistent.compareInconsistentLists(localPlayerData, new ArrayList<>(databasePlayerData), lastSyncTime, database.getName(), false);
 
+        long syncTime = System.currentTimeMillis() - syncStartTime;
+        if (syncTime > 1000 && (localPlayerData.size() > 10000 || databasePlayerData.size() > 10000)) {
+            NotBounties.debugMessage("Player data sync took " + syncTime + "ms for " + localPlayerData.size() + " local and " + databasePlayerData.size() + " database records. Synced: " + syncedPlayerData.size(), false);
+        }
         // apply consistency changes
         localData.addPlayerData(syncedPlayerData);
         databaseWrapper.addPlayerData(syncedPlayerData);
@@ -1285,17 +1297,16 @@ public class DataManager {
      * @param playerDataList2 A sorted player data list.
      */
     private static void syncTimes(List<PlayerData> playerDataList1, List<PlayerData> playerDataList2) {
-        // lists are sorted
-        for (int i = 0; i < playerDataList1.size(); i++) {
-            PlayerData playerData1 = playerDataList1.get(i);
-            PlayerData playerData2 = null;
-            // find matching player data in the other list
-            for (int j = i; j < playerDataList2.size(); j++) {
-                if (playerData1.getID().equals(playerDataList2.get(j).getID())) {
-                    playerData2 = playerDataList2.get(i);
-                    break;
-                }
-            }
+        // lists are sorted by uuid
+        // Optimize: Use HashMap for O(1) lookups instead of O(n*m) nested loops
+        // This is critical for performance when dealing with large player datasets (90k+ players)
+        Map<String, PlayerData> playerDataMap2 = new HashMap<>(playerDataList2.size());
+        for (PlayerData playerData : playerDataList2) {
+            playerDataMap2.put(playerData.getID(), playerData);
+        }
+
+        for (PlayerData playerData1 : playerDataList1) {
+            PlayerData playerData2 = playerDataMap2.get(playerData1.getID());
             if (playerData2 != null) {
                 // sync times - not lastSeen because that is used to sync other options later
                 long lastClaim = Math.max(playerData1.getLastClaim(), playerData2.getLastClaim());
@@ -1304,6 +1315,11 @@ public class DataManager {
                 long bountyCooldown = Math.max(playerData1.getBountyCooldown(), playerData2.getBountyCooldown());
                 playerData1.setBountyCooldown(bountyCooldown);
                 playerData2.setBountyCooldown(bountyCooldown);
+                if (playerData1.getPlayerName() == null && playerData2.getPlayerName() != null) {
+                    playerData1.setPlayerName(playerData2.getPlayerName());
+                } else if (playerData1.getPlayerName() != null && playerData2.getPlayerName() == null) {
+                    playerData2.setPlayerName(playerData1.getPlayerName());
+                }
             }
         }
     }

@@ -4,7 +4,6 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import me.jadenp.notbounties.NotBounties;
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.messaging.Messenger;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;

@@ -149,7 +149,8 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
 
     private synchronized void receiveConnection(DataInputStream msgIn) throws IOException {
         if (!ProxyDatabase.isDatabaseSynchronization()) {
-            msgIn.readFully(new byte[msgIn.available()]);
+            //msgIn.readFully(new byte[msgIn.available()]);
+            return;
         }
         short savedBounties = msgIn.readShort();
         List<Bounty> bounties = new LinkedList<>();
@@ -501,7 +502,7 @@ public class ProxyMessaging implements PluginMessageListener, Listener {
 
     public static void addPreparedUpdateMessage(PreparedUpdateMessage updateMessage) {
         synchronized (preparedUpdateMessage) {
-            if (preparedUpdateMessage.isEmpty()) {
+            if (preparedUpdateMessage.isEmpty() && !DataManager.getLocalData().getOnlinePlayers().isEmpty()) {
                 updateMessage.sendMessage(!Bukkit.isPrimaryThread());
             }
             preparedUpdateMessage.add(updateMessage);

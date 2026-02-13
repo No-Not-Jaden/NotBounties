@@ -100,6 +100,9 @@ public class BountyExpansion extends PlaceholderExpansion {
         if (params.startsWith("bounty")){
             Bounty bounty = BountyManager.getBounty(uuid);
             if (bounty != null){
+                if (params.endsWith("_rank")) {
+                    return DataManager.getLocalData().getBountyRank(bounty.getTotalDisplayBounty()) + "";
+                }
                 if (params.endsWith("_formatted"))
                     return LanguageOptions.color(NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(bounty.getTotalDisplayBounty()) + NumberFormatting.getCurrencySuffix());
                 return NumberFormatting.getValue(bounty.getTotalDisplayBounty());

@@ -340,6 +340,10 @@ public class BountyManager {
             NotBounties.debugMessage("Player killed themself. D:", false);
             return;
         }
+        if (!killer.hasPermission("notbounties.claim")) {
+            NotBounties.debugMessage("Player doesn't have the notbounties.claim permission.", false);
+            return;
+        }
 
         TimedBounties.onDeath(player); // reset next bounty timer for being killed
         boolean cancelTrickle = MurderBounties.killPlayer(player, killer); // possibly add bounty on killer

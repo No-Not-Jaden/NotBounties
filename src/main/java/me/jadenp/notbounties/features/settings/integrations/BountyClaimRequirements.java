@@ -76,6 +76,13 @@ public class BountyClaimRequirements {
     private static boolean simpleClansAlly;
 
     /**
+     * Konquest
+     */
+    private static boolean konquestEnabled;
+    private static boolean konquestKingdom;
+    private static boolean konquestKingdomAllies;
+
+    /**
      * Minecraft
      */
     private static int minRespawnDistance;
@@ -89,6 +96,7 @@ public class BountyClaimRequirements {
         factionsEnabled = Bukkit.getPluginManager().isPluginEnabled("Factions");
         superiorSkyblockEnabled = Bukkit.getPluginManager().isPluginEnabled("SuperiorSkyblock2");
         simpleClansEnabled = Bukkit.getPluginManager().isPluginEnabled("SimpleClans");
+        konquestEnabled = Bukkit.getPluginManager().isPluginEnabled("Konquest");
 
         kingdomsXNation = configuration.getBoolean("kingdoms-x.nation");
         kingdomsXNationAllies = configuration.getBoolean("kingdoms-x.nation-ally");
@@ -117,6 +125,8 @@ public class BountyClaimRequirements {
         superiorSkyblockIslandMember = configuration.getBoolean("superior-skyblock-2.island-member");
         simpleClansClan = configuration.getBoolean("simple-clans.clan");
         simpleClansAlly = configuration.getBoolean("simple-clans.ally");
+        konquestKingdom = configuration.getBoolean("konquest.kingdom");
+        konquestKingdomAllies = configuration.getBoolean("konquest.ally");
         minRespawnDistance = configuration.getInt("min-respawn-distance");
         sameIPClaim = configuration.getBoolean("same-ip-claim");
     }
@@ -225,6 +235,13 @@ public class BountyClaimRequirements {
                 && ((!simpleClansClan && SimpleClansClass.inSameClan(player, killer))
                     || (!simpleClansAlly && SimpleClansClass.inAlliedClan(player, killer)))) {
             NotBounties.debugMessage("Bounty claim canceled due to a SimpleClans clan.", false);
+            return false;
+        }
+        // check if players are in the same konquest kingdom or are allied
+        if (konquestEnabled
+        && ((!konquestKingdom && KonquestClass.isInSameKingdom(player, killer))
+                || (!konquestKingdomAllies && KonquestClass.isAllied(player, killer)))) {
+            NotBounties.debugMessage("Bounty claim canceled due to a Konquest kingdom.", false);
             return false;
         }
         // check IP

@@ -25,6 +25,7 @@ softdepend:
   - SimpleClans
   - packetevents
   - Skript
+  - Konquest
 commands:
   notbounties:
     description: Use all of the bounty commands.
@@ -109,6 +110,9 @@ permissions:
   notbounties.challenges:
     default: true
     description: View bounty challenges.
+  notbounties.claim:
+    default: true
+    description: Claim a bounty.
   notbounties.player:
     description: All the basic player permissions.
     children:
@@ -122,6 +126,7 @@ permissions:
       - notbounties.basic
       - notbounties.challenges
       - notbounties.stats
+      - notbounties.claim
   notbounties.immunity.murder:
     default: false
     description: Immune to murder auto-bounties.

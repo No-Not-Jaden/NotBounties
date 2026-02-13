@@ -92,13 +92,15 @@ public class LoggedPlayers {
                     }
                 }
 
+            } else {
+                webRequestPlayerName(entry.getUuid(), entry);
             }
         }
         if (!duplicateUUIDs.isEmpty()) {
             Bukkit.getLogger().log(Level.WARNING, "[NotBounties] There are {0} logged players with no associated name.", duplicateUUIDs.size());
             NotBounties.debugMessage(duplicateUUIDs.toString(), false);
         }
-        loadHttpPool();
+
     }
 
     private static void loadHttpPool() {
@@ -174,7 +176,15 @@ public class LoggedPlayers {
             ProxyMessaging.logNewPlayer(player.getName(), player.getUniqueId());
         } else {
             // if they are, check if their username has changed, and update it
-            if (!getPlayerName(player.getUniqueId()).equals(player.getName())) {
+            String recordedName = getPlayerName(player.getUniqueId());
+            if (!recordedName.equals(player.getName())) {
+                try {
+                    UUID.fromString(recordedName);
+                    // log new player if their old name was a uuid
+                    ProxyMessaging.logNewPlayer(player.getName(), player.getUniqueId());
+                } catch (IllegalArgumentException ignored) {
+                    // old name wasn't a uuid
+                }
                 replacePlayerName(player.getName(), player.getUniqueId());
             }
         }
@@ -198,6 +208,15 @@ public class LoggedPlayers {
         PlayerData playerData = DataManager.getPlayerData(uuid);
         if (playerData.getPlayerName() != null)
             return playerData.getPlayerName();
+        webRequestPlayerName(uuid, playerData);
+        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+        String name = player.getName();
+        if (name != null)
+            return name;
+        return uuid.toString();
+    }
+
+    private static void webRequestPlayerName(@NotNull UUID uuid, PlayerData playerData) {
         if (uuid.version() == 4 /* check if online player */) {
             loadHttpPool();
             httpPool.requestPlayerNameAsync(uuid, new HttpSyncPool.ResponseHandler())
@@ -207,11 +226,6 @@ public class LoggedPlayers {
                         return null;
                     });
         }
-        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-        String name = player.getName();
-        if (name != null)
-            return name;
-        return uuid.toString();
     }
 
     public static void shutdown() {

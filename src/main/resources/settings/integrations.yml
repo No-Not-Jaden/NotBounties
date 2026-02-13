@@ -78,10 +78,16 @@ teams:
   superior-skyblock-2:
     # claim if part of the same island
     island-member: false
-  # <===> SimpleClans<===>
+  # <===> SimpleClans <===>
   simple-clans:
     # claim if in the same clan
     clan: false
+    # claim if allied
+    ally: false
+  # <===> Konquest <===>
+  konquest:
+    # claim if in the same kingdom
+    kingdom: false
     # claim if allied
     ally: false
 

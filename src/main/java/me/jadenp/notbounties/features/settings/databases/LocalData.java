@@ -262,17 +262,13 @@ public class LocalData extends NotBountiesDatabase {
         }
         if (sortedList.isEmpty())
             return sortedList;
-        Bounty temp;
-        for (int i = 0; i < sortedList.size(); i++) {
-            for (int j = i + 1; j < sortedList.size(); j++) {
-                if (!sortedList.get(i).getSetters().isEmpty()
-                        && ((sortedList.get(i).getSetters().get(0).getTimeCreated() > sortedList.get(j).getSetters().get(0).getTimeCreated() && sortType == 0) || // oldest bounties at top
-                        (sortedList.get(i).getLatestUpdate() < sortedList.get(j).getLatestUpdate() && sortType == 1))) {// newest bounties at top
-                    temp = sortedList.get(i);
-                    sortedList.set(i, sortedList.get(j));
-                    sortedList.set(j, temp);
-                }
-            }
+        // Optimized sort using Comparator instead of O(n^2) swaps
+        if (sortType == 0) {
+            // oldest bounties at top -> ascending by first setter time
+            sortedList.sort(Comparator.comparingLong(b -> b.getSetters().isEmpty() ? Long.MAX_VALUE : b.getSetters().get(0).getTimeCreated()));
+        } else if (sortType == 1) {
+            // newest bounties at top -> descending by latest update
+            sortedList.sort(Comparator.comparingLong(Bounty::getLatestUpdate).reversed());
         }
         return sortedList;
     }
@@ -436,5 +432,35 @@ public class LocalData extends NotBountiesDatabase {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), activeBounties, onlineBounties, playerStats, playerDataMap);
+    }
+
+    public int getBountyRank(double display) {
+        // binary search
+        synchronized (activeBounties) {
+            if (activeBounties.isEmpty())
+                return 1;
+
+            int low = 0;
+            int high = activeBounties.size() - 1;
+            int result = -1; // track last seen index with value <= display
+
+            while (low <= high) {
+                int mid = (low + high) >>> 1;
+                double midVal = activeBounties.get(mid).getTotalDisplayBounty();
+
+                if (midVal > display) {
+                    // Need a lower bounty; move right
+                    low = mid + 1;
+                } else {
+                    // midVal <= display: this is a candidate, search left to find highest rank
+                    result = mid;
+                    high = mid - 1;
+                }
+            }
+
+            if (result == -1)
+                return activeBounties.size(); // no bounty with value <= display
+            return result + 1; // ranks are 1-based
+        }
     }
 }

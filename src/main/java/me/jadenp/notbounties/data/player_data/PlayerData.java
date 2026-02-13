@@ -7,9 +7,9 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
-import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.jetbrains.annotations.NotNull;
@@ -18,6 +18,8 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
 
@@ -152,9 +154,17 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
         return newPlayer;
     }
 
-    public void setPlayerName(String playerName) {
+    public void setPlayerName(@NotNull String playerName) {
+        try {
+            Objects.requireNonNull(playerName, "Player name cannot be null");
+        } catch (NullPointerException e) {
+            Logger logger = NotBounties.getInstance().getLogger();
+            NotBounties.getInstance().getLogger().log(Level.WARNING, "Player name cannot be null", e);
+            Arrays.asList(e.getStackTrace()).forEach(m -> logger.warning(m.toString()));
+            return;
+        }
         this.playerName = playerName;
-        if (playerName != null && uuid != null && !LoggedPlayers.isLogged(playerName)) {
+        if (uuid != null && !LoggedPlayers.isLogged(playerName)) {
             LoggedPlayers.logPlayer(playerName, uuid);
         }
     }

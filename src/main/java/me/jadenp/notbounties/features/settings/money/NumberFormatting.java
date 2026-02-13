@@ -2,6 +2,7 @@ package me.jadenp.notbounties.features.settings.money;
 
 import com.google.common.primitives.Floats;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.ui.gui.CustomItem;
@@ -512,20 +513,32 @@ public class NumberFormatting {
         return ruz(decimalFormat.format(number));
     }
 
+    /**
+     * Executes all commands in a list. {amount} is replaced with raw amount, and {amount_formatted} is replaced with formatted amount.
+     * @param p Player that the transaction is for.
+     * @param amount Amount of currency to be added or removed.
+     * @param commands Commands to be executed.
+     */
+    private static void runCurrencyCommands(Player p, double amount, List<String> commands) {
+            for (String command : commands) {
+                if (command.isEmpty())
+                    continue;
+                command = command.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount))).replace("{amount_formatted}", currencyPrefix + formatNumber(amount) + currencySuffix);
+                ActionCommands.executeCommands(p, Collections.singletonList(LanguageOptions.parse(command, p)));
+                //Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+            }
+    }
+
 
     public static Map<Material, Long> doRemoveCommands(Player p, double amount, List<ItemStack> additionalItems) throws NotEnoughCurrencyException {
         if (manualEconomy == ManualEconomy.MANUAL) {
-            for (String removeCommand : removeCommands) {
-                if (removeCommand.isEmpty())
-                    continue;
-                String command = removeCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
-            }
+            runCurrencyCommands(p, amount, removeCommands);
             return new EnumMap<>(Material.class);
         }
 
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.withdraw(p, amount)) {
+                runCurrencyCommands(p, amount, removeCommands);
                 return new EnumMap<>(Material.class);
             } else {
                 plugin.getLogger().warning("Error withdrawing currency with vault! This could be from someone trying to dupe or lag on the server.");
@@ -849,14 +862,7 @@ public class NumberFormatting {
     public static void doAddCommands(Player p, double amount) {
             NotBounties.debugMessage("Doing add commands for " + p.getName() + ". Amount: " + amount, false);
         if (manualEconomy == ManualEconomy.MANUAL) {
-            for (String addCommand : addCommands) {
-                if (addCommand.isEmpty())
-                    continue;
-                String command = addCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount / Floats.toArray(currencyValues.values())[0])));
-                NotBounties.debugMessage("Executing command: '" + command + "'", false);
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
-
-            }
+            runCurrencyCommands(p, amount / Floats.toArray(currencyValues.values())[0], addCommands);
             NotBounties.debugMessage("Manual economy is enabled, no more actions will be performed.", false);
             return;
         }
@@ -864,6 +870,7 @@ public class NumberFormatting {
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.deposit(p, amount)) {
                 NotBounties.debugMessage("Deposited money with vault!", false);
+                runCurrencyCommands(p, amount, addCommands);
                 return;
             } else {
                 plugin.getLogger().warning("Error depositing currency with vault! Will retry later.");

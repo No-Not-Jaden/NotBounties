@@ -47,6 +47,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.Color;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.*;
@@ -111,6 +112,10 @@ public final class NotBounties extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        if (new File(getDataFolder(), "debug.bin").exists()) {
+            debug = true;
+            getLogger().info("Debug mode enabled by debug.bin file.");
+        }
         if (Bukkit.getPluginManager().isPluginEnabled("Skript")) {
             SkriptAddon addon = Skript.registerAddon(this);
             try {

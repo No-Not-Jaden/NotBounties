@@ -585,8 +585,10 @@ public class GUI implements Listener {
                 BedrockGUI.openGUI(player, name, finalPage, displayItems, data);
             } else {
                 // open java gui
-                if (!customGuis.containsKey(name))
+                if (!customGuis.containsKey(name)) {
+                    NotBounties.debugMessage(player.getName() + " is attempting to open a GUI that doesn't exist: " + name, true);
                     return;
+                }
                 GUIOptions gui = customGuis.get(name);
                 long maxPage = estimateMaxPage(gui.getType(), player, gui.getPlayerSlots().size(), displayItems, data);
                 // update page so it will be parsed in text

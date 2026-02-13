@@ -18,6 +18,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class Bounty extends Inconsistent implements Comparable<Bounty> {
@@ -78,14 +80,14 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
         serverID = bounty.serverID;
     }
 
-    public Bounty(UUID uuid, List<Setter> setters, String name, UUID serverID){
+    public Bounty(UUID uuid, List<Setter> setters, @NotNull String name, UUID serverID){
         this.uuid = uuid;
         this.setters = Collections.synchronizedList(setters);
         this.name = name;
         this.serverID = serverID;
     }
 
-    public Bounty(UUID uuid, List<Setter> setters, String name) {
+    public Bounty(UUID uuid, List<Setter> setters, @NotNull String name) {
         this(uuid, setters, name, DataManager.getDatabaseServerID(true));
     }
 
@@ -106,7 +108,15 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
      * The name is reset every time the target logs in
      * @param name the new name of the target
      */
-    public void setDisplayName(String name) {
+    public void setDisplayName(@NotNull String name) {
+        try {
+            Objects.requireNonNull(name, "Bounty name cannot be null");
+        } catch (NullPointerException e) {
+            Logger logger = NotBounties.getInstance().getLogger();
+            NotBounties.getInstance().getLogger().log(Level.WARNING, "Bounty name cannot be null", e);
+            Arrays.asList(e.getStackTrace()).forEach(m -> logger.warning(m.toString()));
+            return;
+        }
         this.name = name;
     }
 

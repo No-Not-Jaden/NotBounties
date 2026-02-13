@@ -34,6 +34,8 @@ public class SaveManager {
 
     private static Plugin plugin;
 
+    private static boolean saveLock = false;
+
     private static Map<String, Long> databaseSyncTimes = new HashMap<>();
 
     public static void loadSyncTime(AsyncDatabaseWrapper database) {
@@ -45,28 +47,40 @@ public class SaveManager {
     private SaveManager(){}
 
     public static void save(Plugin plugin) throws IOException {
+        if (saveLock) {
+            NotBounties.debugMessage("Save already in progress, skipping...", false);
+            return;
+        }
+        saveLock = true;
         NotBounties.debugMessage("Saving...", false);
 
-        File dataDirectory = new File(plugin.getDataFolder() + File.separator + "data");
-        if (dataDirectory.mkdir())
-            NotBounties.debugMessage("Created new data directory", false);
+        try {
+            File dataDirectory = new File(plugin.getDataFolder() + File.separator + "data");
+            if (dataDirectory.mkdir())
+                NotBounties.debugMessage("Created new data directory", false);
 
-        if (!NotBounties.getInstance().isEnabled()) {
-            // sync databases if the plugin is disabling
-            for (AsyncDatabaseWrapper database : DataManager.getDatabases()) {
-                if (database.isConnected()) {
-                    DataManager.getAndSyncDatabase(database.getDatabase());
+            if (!NotBounties.getInstance().isEnabled()) {
+                // sync databases if the plugin is disabling
+                for (AsyncDatabaseWrapper database : DataManager.getDatabases()) {
+                    if (database.isConnected()) {
+                        DataManager.getAndSyncDatabase(database.getDatabase());
+                    }
                 }
+                saveUnsentProxyMessages(dataDirectory);
             }
-            saveUnsentProxyMessages(dataDirectory);
+
+            // the three amigos
+            saveBounties(dataDirectory);
+            saveStats(dataDirectory);
+            savePlayerData(dataDirectory);
+
+            BackupManager.saveBackups(dataDirectory, new File(plugin.getDataFolder() + File.separator + "backups"));
+            saveLock = false;
+        } catch (IOException e) {
+            saveLock = false;
+            throw e;
         }
 
-        // the three amigos
-        saveBounties(dataDirectory);
-        saveStats(dataDirectory);
-        savePlayerData(dataDirectory);
-
-        BackupManager.saveBackups(dataDirectory, new File(plugin.getDataFolder() + File.separator + "backups"));
     }
 
     /**
