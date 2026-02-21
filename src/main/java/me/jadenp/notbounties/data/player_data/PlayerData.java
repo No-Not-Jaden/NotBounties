@@ -10,6 +10,8 @@ import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.ui.gui.GUI;
+import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.jetbrains.annotations.NotNull;
@@ -113,6 +115,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     private long lastSeen = 0;
     private long lastClaim = 0;
     private UUID serverID = null;
+    private Map<String, Integer> GUISortType = new HashMap<>();
 
     public PlayerData() {
         broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
@@ -128,6 +131,27 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
         if (playerName != null && uuid != null) {
             LoggedPlayers.logPlayer(playerName, uuid);
         }
+    }
+
+    public void setGUISortType(String guiName, int sortType) {
+        this.GUISortType.put(guiName, sortType);
+    }
+
+    /**
+     * Get the sort type of GUI for this player.
+     * @param guiName The type of the GUI from the config.
+     * @return The sort type of the GUI. -1 if the GUI is not found.
+     */
+    public int getGUISortType(String guiName) {
+        if (guiName == null || guiName.isEmpty()) return -1;
+        if (GUISortType.containsKey(guiName)) {
+            return GUISortType.get(guiName);
+        }
+        GUIOptions guiOptions = GUI.getGUI(guiName);
+        if (guiOptions != null) {
+            return guiOptions.getSortType();
+        }
+        return -1;
     }
 
     public void setServerID(UUID serverID) {

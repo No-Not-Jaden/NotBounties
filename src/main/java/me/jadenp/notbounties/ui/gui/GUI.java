@@ -4,6 +4,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
@@ -34,7 +35,9 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -207,9 +210,11 @@ public class GUI implements Listener {
 
         boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
         Set<UUID> onlinePlayers = NotBounties.getNetworkPlayers().keySet();
+        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+        int sortType = playerData.getGUISortType(name);
         switch (name) {
             case "bounty-gui":
-                List<Bounty> sortedList = BountyManager.getAllBounties(gui.getSortType());
+                List<Bounty> sortedList = BountyManager.getAllBounties(sortType);
                 for (int i = 0; i < sortedList.size(); i++) {
                     Bounty bounty = sortedList.get(i);
                     double bountyAmount = Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
@@ -350,14 +355,14 @@ public class GUI implements Listener {
             case "leaderboard":
                 Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard board ? board : Leaderboard.ALL;
                 int rankIndex = 0;
-                for (Map.Entry<UUID, Double> entry : leaderboard.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
+                for (Map.Entry<UUID, Double> entry : leaderboard.getSortedList(0, gui.getPlayerSlots().size(), sortType).entrySet()) {
                     displayItems.add(new PlayerItem(entry.getKey(), entry.getValue(), leaderboard, rankIndex++, System.currentTimeMillis(), new ArrayList<>()));
                 }
                 break;
             case "set-bounty":
                 NotBounties.debugMessage("Viewing Online players: " + online + "  Online: " + onlinePlayers, false);
                     Set<UUID> addedPlayers = new HashSet<>();
-                    for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
+                    for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), sortType).entrySet()) {
                         if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                             // skip if offline or vanished
                             continue;
@@ -397,7 +402,7 @@ public class GUI implements Listener {
                 break;
             case "bounty-hunt-player":
                 Set<UUID> addedBountyPlayers = new HashSet<>();
-                for (Map.Entry<UUID, Double> entry : Leaderboard.CURRENT.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
+                for (Map.Entry<UUID, Double> entry : Leaderboard.CURRENT.getSortedList(0, gui.getPlayerSlots().size(), sortType).entrySet()) {
                     if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                         // skip if offline or vanished
                         continue;
@@ -443,7 +448,7 @@ public class GUI implements Listener {
                     displayItems.add(new WhitelistedPlayerItem(uuid, Leaderboard.IMMUNITY.getStat(uuid), Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), additionalLore, "&a"));
                     playersAdded.add(uuid);
                 }
-                for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), gui.getSortType()).entrySet()) {
+                for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), sortType).entrySet()) {
                     if (!playersAdded.contains(entry.getKey())) {
                         if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                             // skip if offline or vanished
@@ -959,6 +964,41 @@ public class GUI implements Listener {
                 ActionCommands.executeCommands((Player) event.getWhoClicked(), customItem.getCommands());
                 lastPageSwitch.put(event.getWhoClicked().getUniqueId(), System.currentTimeMillis());
             }
+    }
+
+    /**
+     * Gets the logical name of the active sort type for the player.
+     * @param uuid Player to check
+     * @return Sort type of the GUI, or "default" if no GUI is open.
+     */
+    public static String getActiveSortType(UUID uuid) {
+        if (playerInfo.containsKey(uuid)) {
+            PlayerGUInfo info = playerInfo.get(uuid);
+            return parseSortType(info.guiType(),DataManager.getPlayerData(uuid).getGUISortType(info.guiType()));
+        }
+        return LanguageOptions.getMessage("sort-type.player.-1");
+    }
+
+    /**
+     * Parse a sort type into its logical name set in the language.yml file.
+     * @param guiType GUI type to parse.
+     * @param sortType Sort type to parse.
+     * @return The logical name of the sort type or "default" if one doesn't exist.
+     */
+    public static String parseSortType(@NotNull String guiType, int sortType) {
+        if (guiType.equalsIgnoreCase("bounty-gui")) {
+            if (LanguageOptions.isMessage("sort-type.bounty." + sortType)) {
+                return LanguageOptions.getMessage("sort-type.bounty." + sortType);
+            } else {
+                return LanguageOptions.getMessage("sort-type.player.-1");
+            }
+        } else {
+            if (LanguageOptions.isMessage("sort-type.player." + sortType)) {
+                return LanguageOptions.getMessage("sort-type.player." + sortType);
+            } else {
+                return LanguageOptions.getMessage("sort-type.player.-1");
+            }
+        }
     }
 
 }

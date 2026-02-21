@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui.gui;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.ui.Head;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -121,7 +122,7 @@ public class CustomItem {
             System.arraycopy(replacements, 0, newReplacements, 0, replacements.length);
             replacements = newReplacements;
         }
-        ItemStack itemStack = headID != null && material == Material.PLAYER_HEAD ? Head.createPlayerSkull(headID) : new ItemStack(material, amount);
+        ItemStack itemStack = headID != null && material == Material.PLAYER_HEAD ? Head.createPlayerSkull(LanguageOptions.parse(headID, player)) : new ItemStack(material, amount);
         if (itemStack == null)
             return null;
         ItemMeta meta = itemStack.getItemMeta();

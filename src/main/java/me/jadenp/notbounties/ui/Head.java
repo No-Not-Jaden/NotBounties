@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.integrations.external_api.HeadDataBaseClass;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -23,7 +24,13 @@ public class Head {
     public static ItemStack createPlayerSkull(String data){
 
         ItemStack item = null;
-        if (usingBase64(data)){
+        if (LoggedPlayers.isLogged(data) && LoggedPlayers.getPlayer(data) != null) {
+            UUID uuid = LoggedPlayers.getPlayer(data);
+            // loads skin async if not loaded
+            SkinManager.isSkinLoaded(uuid);
+            // will return missing skin if not loaded yet
+            return createPlayerSkull(uuid, SkinManager.getSkin(uuid).url());
+        } else if (usingBase64(data)){
             item = new ItemStack(Material.PLAYER_HEAD);
             if (NotBounties.getServerVersion() >= 18) {
                 SkullMeta meta = (SkullMeta) item.getItemMeta();
@@ -81,10 +88,10 @@ public class Head {
 
     private static boolean usingBase64(String str){
         try {
-            Integer.parseInt(str);
-            return false;
-        } catch (NumberFormatException e) {
+            Base64.getDecoder().decode(str);
             return true;
+        } catch (NumberFormatException e) {
+            return false;
         }
     }
 }

@@ -303,8 +303,12 @@ public class SaveManager {
             reader.beginArray();
             BountyTypeAdapter adapter = new BountyTypeAdapter();
             while (reader.hasNext()) {
-                DataManager.getLocalData().addBounty(adapter.read(reader));
+                Bounty bounty = adapter.read(reader);
+                if (bounty != null) {
+                    DataManager.getLocalData().addBounty(bounty);
+                }
             }
+
             reader.endArray();
         }
     }

@@ -70,7 +70,14 @@ public class BountyManager {
                 title += " " + (page + 1);
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "               " + ChatColor.RESET + " " + title + " " + ChatColor.GRAY + ChatColor.STRIKETHROUGH + "               ");
-        int sortType = guiOptions != null ? guiOptions.getSortType() : 2;
+        int sortType;
+        if (guiOptions == null) {
+            sortType = 2;
+        } else if (sender instanceof Player player) {
+            sortType = DataManager.getPlayerData(player.getUniqueId()).getGUISortType("bounty-gui");
+        } else {
+            sortType = guiOptions.getSortType();
+        }
         List<Bounty> sortedList = getAllBounties(sortType);
         for (int i = page * BOUNTY_LIST_LENGTH; i < (page * BOUNTY_LIST_LENGTH) + BOUNTY_LIST_LENGTH; i++) {
             if (sortedList.size() > i) {

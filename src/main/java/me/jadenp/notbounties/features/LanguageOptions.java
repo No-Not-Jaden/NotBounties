@@ -115,6 +115,10 @@ public class LanguageOptions {
         return "&cInvalid Message! There may be YAML errors in the language.yml file, or this is a bug!";
     }
 
+    public static boolean isMessage(String key) {
+        return messages.containsKey(key) || listMessages.containsKey(key);
+    }
+
     public static List<String> getListMessage(String key) {
         if (listMessages.containsKey(key))
             return listMessages.get(key);
@@ -358,6 +362,9 @@ public class LanguageOptions {
     }
 
     public static String parse(String str, OfflinePlayer receiver) {
+        if (receiver != null) {
+            str = str.replace("{sort_type}", GUI.getActiveSortType(receiver.getUniqueId()));
+        }
         if (str.contains("{time}")) {
             String timeString = formatTime(System.currentTimeMillis(), LocalTime.TimeFormat.PLAYER, receiver.getPlayer());
             str = str.replace("{time}", (timeString));
@@ -372,6 +379,7 @@ public class LanguageOptions {
                 .replace("{permanent_cost}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(ImmunityManager.getPermanentCost()) + NumberFormatting.getCurrencySuffix()))
                 .replace("{scaling_ratio}", (NumberFormatting.formatNumber(ImmunityManager.getScalingRatio())))
                 .replace("{time_immunity}", (formatTime((long) (ImmunityManager.getTime() * 1000L), LocalTime.TimeFormat.RELATIVE)));
+
 
         if (receiver != null) {
             Bounty bounty = BountyManager.getBounty(receiver.getUniqueId());
@@ -403,12 +411,19 @@ public class LanguageOptions {
             mode = whitelist.isBlacklist() ? "false" : "true";
             str = str.replace("{mode_raw}", mode);
             String notification = playerData.getBroadcastSettings().toString();
-            str = str.replace("{notification}", notification);
-            str = str.replace("{immunity}", NumberFormatting.formatNumber(ImmunityManager.getImmunity(receiver.getUniqueId())));
+            str = str.replace("{notification}", notification)
+                    .replace("{immunity}", NumberFormatting.formatNumber(ImmunityManager.getImmunity(receiver.getUniqueId())));
+
+            // {sort_type_(gui)} turns into the name of the sort type in the GUI
+            while (str.contains("{sort_type_") && str.substring(str.indexOf("{sort_type_")).contains("}")) {
+                String stringValue = str.substring(str.indexOf("{sort_type_") + 11, str.indexOf("{sort_type_") + str.substring(str.indexOf("{sort_type_")).indexOf("}"));
+                str = str.replace("{sort_type_" + stringValue + "}", GUI.parseSortType(stringValue, DataManager.getPlayerData(receiver.getUniqueId()).getGUISortType(stringValue)));
+            }
+
             // {whitelist2} turns into the name of the second player in the receiver's whitelist
             while (str.contains("{whitelist") && str.substring(str.indexOf("{whitelist")).contains("}")) {
                 int num;
-                String stringValue = str.substring(str.indexOf("{whitelist") + 10, str.indexOf("{whitelist") + str.substring(str.indexOf("{whitelist")).indexOf(">}"));
+                String stringValue = str.substring(str.indexOf("{whitelist") + 10, str.indexOf("{whitelist") + str.substring(str.indexOf("{whitelist")).indexOf("}"));
                 try {
                     num = Integer.parseInt(stringValue);
                 } catch (NumberFormatException e) {
@@ -425,7 +440,8 @@ public class LanguageOptions {
             // parsing for GUI
             if (receiver.isOnline() && GUI.playerInfo.containsKey(receiver.getUniqueId())) {
                 PlayerGUInfo info = GUI.playerInfo.get(receiver.getUniqueId());
-                str = str.replace("{page}", info.page() + "").replace("{page_max}", info.maxPage() + "");
+                str = str.replace("{page}", info.page() + "")
+                        .replace("{page_max}", info.maxPage() + "");
 
                 // check for {player<x>}
                 while (str.contains("{player") && str.substring(str.indexOf("{player")).contains("}")) {

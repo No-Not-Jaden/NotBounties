@@ -19,6 +19,10 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
             jsonWriter.nullValue();
             return;
         }
+        if (playerData.getPlayerName() == null) {
+            // uninitialized player
+            return;
+        }
         jsonWriter.beginObject();
         jsonWriter.name("uuid").value(playerData.getUuid().toString());
         jsonWriter.name("playerName").value(playerData.getPlayerName());

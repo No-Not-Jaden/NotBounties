@@ -51,6 +51,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
@@ -241,6 +242,7 @@ public final class NotBounties extends JavaPlugin {
         }, 120, 40);
         // auto save bounties & do some ram cleaning
         if (ConfigOptions.getAutoSaveInterval() > 0) {
+            Plugin plugin = this;
             getServerImplementation().async().runAtFixedRate(() -> {
                 if (paused)
                     return;
@@ -249,11 +251,19 @@ public final class NotBounties extends JavaPlugin {
                 RemovePersistentEntitiesEvent.checkRemovedEntities();
 
                 try {
-                    SaveManager.save(this);
-                } catch (IOException e) {
-                    getLogger().severe("Error autosaving saving data!");
-                    getLogger().severe(e.toString());
+                    SafeSaver.saveWithTimeout(() -> {
+                        try {
+                            SaveManager.save(plugin);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }, 10_000); // 10s timeout
+                } catch (TimeoutException te) {
+                    plugin.getLogger().warning("Save timed out after 10s; will retry later.");
+                } catch (Exception e) {
+                    plugin.getLogger().severe("Save failed: " + e.getMessage());
                 }
+
             }, ConfigOptions.getAutoSaveInterval() * 60 * 20L + 69, ConfigOptions.getAutoSaveInterval() * 60 * 20L);
         }
 

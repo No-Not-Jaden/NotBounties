@@ -59,6 +59,7 @@ public class BountyExpansion extends PlaceholderExpansion {
      * <p>%notbounties_challenge_[x/time]%</p>
      * <p>%notbounties_current_page%</p>
      * <p>%notbounties_total_pages%</p>
+     * <p>%notbounties_sort(_gui)%</p>
      * @Depricated <p>%notbounties_bounties_claimed%</p>
      * <p>%notbounties_bounties_set%</p>
      * <p>%notbounties_bounties_received%</p>
@@ -108,6 +109,13 @@ public class BountyExpansion extends PlaceholderExpansion {
                 return NumberFormatting.getValue(bounty.getTotalDisplayBounty());
             }
             return "0";
+        }
+        if (params.startsWith("sort")){
+            if (params.equalsIgnoreCase("sort")) {
+                return LanguageOptions.parse(GUI.getActiveSortType(player.getUniqueId()), player);
+            }
+            String guiName = params.substring(5);
+            return LanguageOptions.parse(GUI.parseSortType(guiName, DataManager.getPlayerData(player.getUniqueId()).getGUISortType(guiName)), player);
         }
         if (params.startsWith("challenge")) {
             if (params.length() < 11)

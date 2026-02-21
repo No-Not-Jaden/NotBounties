@@ -127,6 +127,7 @@ permissions:
       - notbounties.challenges
       - notbounties.stats
       - notbounties.claim
+      - notbounties.sort
   notbounties.immunity.murder:
     default: false
     description: Immune to murder auto-bounties.
@@ -148,6 +149,9 @@ permissions:
   notbounties.hunt.participate:
     default: true
     description: Join or leave a bounty hunt.
+  notbounties.sort:
+    default: true
+    description: Sort guis.
 libraries:
   - com.mysql:mysql-connector-j:9.4.0
   - io.lettuce:lettuce-core:7.2.1.RELEASE

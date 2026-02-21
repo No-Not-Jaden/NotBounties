@@ -164,13 +164,13 @@ public class Events implements Listener {
     }
 
     public static void login(Player player) {
+        LoggedPlayers.login(player);
+        DataManager.login(player);
         BountyHunt.login(player);
         TimedBounties.login(player);
         ImmunityManager.login(player);
         BountyExpire.login(player);
         ChallengeManager.login(player);
-        DataManager.login(player);
-        LoggedPlayers.login(player);
 
         NotBounties.getServerImplementation().entity(player).runDelayed(() -> {
             // make sure they are online still

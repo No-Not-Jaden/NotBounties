@@ -7,6 +7,8 @@ unknown-number: '&cUnknown number!'
 unknown-player: '&cCould not find the player &4{receiver}&c!'
 unknown-command: '&dUse &9/bounty help &dfor a list of commands.'
 unknown-material: '&cUnknown material: &7{material}'
+unknown-gui: '&cUnknown GUI: &7{gui}'
+invalid-range: '&cInvalid range. Valid range: &7{range}'
 bounty-success: '&aBounty placed on &e{receiver}&a for &e{amount}&a! Total Bounty: &e{bounty}'
 bounty-receiver: '&4{player} &cset a bounty on you for &4{amount}&c! Total Bounty: &4{bounty}'
 bounty-broadcast: '&e{player}&6 has placed a bounty of &f{amount}&6 on &e{receiver}&6! Total Bounty: &f{bounty}'
@@ -192,6 +194,20 @@ permission-immunity-bounty: '&cYou are immune to all bounties due to a permissio
 permission-immunity-random: '&cYou are immune to random bounties due to a permission.'
 permission-immunity-murder: '&cYou are immune to murder bounties due to a permission.'
 permission-immunity-timed: '&cYou are immune to timed bounties due to a permission.'
+sort-change: '&eYour sort type for &f{gui} &ehas been changed to &f{sort_type}&e.'
+# These are the text that replaces the {sort_type}/{sort_type_(gui)} placeholder in this file and for the %notbounties_sort_(gui)% placeholder
+sort-type:
+  bounty:
+    0: 'Newest'
+    1: 'Oldest'
+    2: 'Highest'
+    3: 'Lowest'
+  player:
+    -1: 'Default' # When an invalid sort type is used
+    1: 'Highest'
+    2: 'Lowest'
+    3: 'Alphabetically'
+    4: 'Reverse Alphabetically'
 # These are some stat messages.
 # Long is sent when players are viewing their own stats with a command
 # Short is sent when using a placeholder that ends in _full. This is useful in player-item lore

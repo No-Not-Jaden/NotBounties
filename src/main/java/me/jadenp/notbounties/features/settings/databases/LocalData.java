@@ -5,8 +5,10 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.data.PlayerStat;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
@@ -119,6 +121,20 @@ public class LocalData extends NotBountiesDatabase {
                 prevBounty.addBounty(setter);
             }
             sortActiveBounties();
+        }
+        // replace uuid with name if possible
+        if (prevBounty.getName() == null) {
+            String playerName = DataManager.getPlayerData(prevBounty.getUUID()).getPlayerName();
+            if (playerName != null) {
+                prevBounty.setDisplayName(playerName);
+            }
+        } else {
+            try {
+                UUID nameUUID = UUID.fromString(prevBounty.getName());
+                prevBounty.setDisplayName(LoggedPlayers.getPlayerName(nameUUID));
+            } catch (IllegalArgumentException ignored) {
+                // name is not a UUID (good)
+            }
         }
         // add bounty to online bounties
         if (onlineBounties.containsKey(prevBounty.getUUID())) {

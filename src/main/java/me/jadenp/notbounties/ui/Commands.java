@@ -15,6 +15,7 @@ import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.ui.gui.GUI;
@@ -44,10 +45,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static me.jadenp.notbounties.ui.gui.GUI.openGUI;
-import static me.jadenp.notbounties.ui.gui.GUI.reopenBountiesGUI;
-
 import static me.jadenp.notbounties.features.settings.money.NumberFormatting.*;
+import static me.jadenp.notbounties.ui.gui.GUI.*;
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
@@ -143,6 +142,68 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 }
                 LanguageOptions.sendHelpMessage(sender, page);
+            } else if (args[0].equalsIgnoreCase("sort") && (adminPermission || sender.hasPermission("notbounties.sort"))) {
+                // /bounty sort (gui-type) #
+                // sort type is 0-3 for bounty-gui and 1-4 for the rest
+                if (args.length > 2) {
+                    GUIOptions guiOptions = getGUI(args[1].toLowerCase());
+                    if (guiOptions == null) {
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-gui").replace("{gui}", args[1]), parser));
+                        return false;
+                    }
+                    boolean indexFrom0 = args[1].equalsIgnoreCase("bounty-gui");
+                    UUID uuid;
+                    if (args.length > 3 && adminPermission) {
+                        uuid = LoggedPlayers.getPlayer(args[3]);
+                        if (uuid == null) {
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[3], parser));
+                            return false;
+                        }
+                    } else if (sender instanceof Player player) {
+                        uuid = player.getUniqueId();
+                    } else {
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        return false;
+                    }
+                    Player player = Bukkit.getPlayer(uuid);
+                    if (args[2].equalsIgnoreCase("toggle")) {
+                        PlayerData playerData = DataManager.getPlayerData(uuid);
+                        int newSortType = playerData.getGUISortType(args[1].toLowerCase()) + 1;
+                        if (indexFrom0) {
+                            if (newSortType > 3) {
+                                newSortType = 0;
+                            }
+                        } else {
+                            if (newSortType > 4) {
+                                newSortType = 1;
+                            }
+                        }
+                        if (player != null) {
+                            player.sendMessage(parse(getPrefix() + getMessage("sort-change").replace("{gui}", args[1]).replace("{sort_type}", String.valueOf(newSortType)), player));
+                        }
+                        playerData.setGUISortType(args[1].toLowerCase(), newSortType);
+                        return true;
+                    }
+                    int sortType;
+                    try {
+                        sortType = Integer.parseInt(args[2]);
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
+                        return false;
+                    }
+                    if (sortType < 0 || sortType > 4) {
+                        sender.sendMessage(parse(getPrefix() + getMessage("invalid-range").replace("{range}", "1-4"), parser));
+                        return false;
+                    }
+                    if (player != null) {
+                        player.sendMessage(parse(getPrefix() + getMessage("sort-change").replace("{gui}", args[1]).replace("{sort_type}", String.valueOf(sortType)), player));
+                    }
+                    DataManager.getPlayerData(uuid).setGUISortType(args[1].toLowerCase(), sortType);
+                    return true;
+                } else {
+                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                    return false;
+                }
             } else if (args[0].equalsIgnoreCase("hunt") && BountyHunt.isEnabled()) {
                 if (adminPermission || sender.hasPermission("notbounties.hunt")) {
                     return BountyHunt.executeHuntCommand(sender, args, silent, adminPermission, parser);
