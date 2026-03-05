@@ -212,8 +212,11 @@ public class LoggedPlayers {
         webRequestPlayerName(uuid, playerData);
         OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         String name = player.getName();
-        if (name != null)
+        if (name != null) {
+            playerData.setPlayerName(name);
+            logPlayer(name, uuid);
             return name;
+        }
         return uuid.toString();
     }
 
