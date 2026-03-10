@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.features.settings.integrations;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.settings.ResourceConfiguration;
 import me.jadenp.notbounties.features.settings.integrations.external_api.*;
 import me.jadenp.notbounties.features.settings.integrations.external_api.worldguard.WorldGuardClass;
@@ -61,6 +62,10 @@ public class Integrations extends ResourceConfiguration {
         geyserEnabled = Bukkit.getPluginManager().isPluginEnabled("Geyser-Spigot");
         headDataBaseEnabled = Bukkit.getPluginManager().isPluginEnabled("HeadDataBase");
         worldGuardEnabled = Bukkit.getPluginManager().isPluginEnabled("WorldGuard");
+        if (worldGuardEnabled && WorldGuardClass.isFailedStartup()) {
+            worldGuardEnabled = false;
+            NotBounties.getInstance().getLogger().warning("To use the WorldGuard hook, you must restart the server.");
+        }
         packetEventsEnabled = Bukkit.getPluginManager().isPluginEnabled("packetevents");
         luckPermsEnabled = Bukkit.getPluginManager().isPluginEnabled("LuckPerms");
     }

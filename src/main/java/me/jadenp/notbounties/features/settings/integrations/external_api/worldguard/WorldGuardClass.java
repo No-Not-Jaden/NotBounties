@@ -227,6 +227,10 @@ public class WorldGuardClass {
         return value;
     }
 
+    public static boolean isFailedStartup() {
+        return failedStartup;
+    }
+
     public static StateFlag getBountyEntry() {
         return bountyEntry;
     }
