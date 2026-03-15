@@ -2,6 +2,7 @@ package me.jadenp.notbounties.ui.gui;
 
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -17,6 +18,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -171,13 +173,13 @@ public class GUIClicks {
             case POSTER -> {
                 if (BountyMap.isGiveOwn() || player.hasPermission("notbounties.spawnposter")) {
                     player.closeInventory();
-                    Bukkit.getServer().dispatchCommand(player, ConfigOptions.getPluginBountyCommands().get(0) + " poster " + LoggedPlayers.getPlayerName(bounty.getUUID()));
+                    ActionCommands.executeCommands(player, Collections.singletonList(ConfigOptions.getPluginBountyCommands().get(0) + " poster " + bounty.getName()));
                 }
             }
             case TRACKER -> {
                 if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || player.hasPermission(NotBounties.getAdminPermission()) || player.hasPermission("notbounties.spawntracker") || player.hasPermission("notbounties.writeemptytracker")) && player.hasPermission("notbounties.tracker")) {
                     player.closeInventory();
-                    Bukkit.getServer().dispatchCommand(player, ConfigOptions.getPluginBountyCommands().get(0) + " tracker " + LoggedPlayers.getPlayerName(bounty.getUUID()));
+                    ActionCommands.executeCommands(player, Collections.singletonList(ConfigOptions.getPluginBountyCommands().get(0) + " tracker " + bounty.getName()));
                 }
             }
             case VIEW -> GUI.openGUI(player, "view-bounty", 1, bounty.getUUID());

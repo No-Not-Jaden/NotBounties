@@ -5,7 +5,6 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
-import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.data.PlayerStat;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -336,6 +335,8 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public void updatePlayerData(PlayerData playerData) {
+        if (playerData.getPlayerName() == null)
+            return;
         playerDataMap.put(playerData.getUuid(), playerData);
     }
 
@@ -382,13 +383,13 @@ public class LocalData extends NotBountiesDatabase {
     }
 
     @Override
-    public ConfigurationSection readConfig() {
+    public synchronized ConfigurationSection readConfig() {
         // no configuration for local data.
         return null;
     }
 
     @Override
-    public void shutdown() {
+    public synchronized void shutdown() {
         // no shutdown operations
     }
 

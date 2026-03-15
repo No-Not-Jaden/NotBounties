@@ -394,9 +394,9 @@ public class LanguageOptions {
                         .replace("{receiver}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"))
                         .replace("{viewer}", getMessage("player-prefix") + receiver.getName() + getMessage("player-suffix"));
             } else {
-                str = str.replace("{player}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-prefix"))
-                        .replace("{receiver}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"))
-                        .replace("{viewer}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver.getUniqueId()) + getMessage("player-suffix"));
+                str = str.replace("{player}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver) + getMessage("player-prefix"))
+                        .replace("{receiver}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver) + getMessage("player-suffix"))
+                        .replace("{viewer}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver) + getMessage("player-suffix"));
             }
             if (str.contains("{balance}"))
                 str = str.replace("{balance}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.getCurrencySuffix()));
@@ -531,7 +531,7 @@ public class LanguageOptions {
             if (player.getName() != null) {
                 replacement = player.getName();
             } else {
-                replacement = LoggedPlayers.getPlayerName(player.getUniqueId());
+                replacement = LoggedPlayers.getPlayerName(player);
             }
             replacement = getMessage("player-prefix") + replacement + getMessage("player-suffix");
             if (ConfigOptions.getIntegrations().isPapiEnabled())

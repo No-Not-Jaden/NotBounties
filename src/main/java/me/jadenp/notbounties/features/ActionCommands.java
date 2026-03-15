@@ -223,7 +223,7 @@ public class ActionCommands {
                             assert meta != null;
                             OfflinePlayer p = meta.getOwningPlayer();
                             if (p != null) {
-                                replacement = LoggedPlayers.getPlayerName(p.getUniqueId());
+                                replacement = LoggedPlayers.getPlayerName(p);
                             } else {
                                 if (!info.guiType().isEmpty()) {
                                     GUIOptions guiOptions = GUI.getGUI(info.guiType());

@@ -391,6 +391,9 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
 
     @Override
     public void updatePlayerData(PlayerData playerData) {
+        if (playerData.getPlayerName() == null) {
+            return;
+        }
         if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
             NotBounties.getServerImplementation().async().runNow(() -> {
                 if (isPermDatabase() || DataManager.isPermDatabaseConnected())

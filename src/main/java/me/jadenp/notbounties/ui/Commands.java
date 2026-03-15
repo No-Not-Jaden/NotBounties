@@ -2351,17 +2351,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (sender.hasPermission("notbounties.hunt.participate") && sender instanceof Player player) {
                         if (args[1].equalsIgnoreCase("leave")) {
                             for (BountyHunt bountyHunt : BountyHunt.getParticipatingHunts(player.getUniqueId())) {
-                                tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer().getUniqueId()));
+                                tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer()));
                             }
                         } else if (args[1].equalsIgnoreCase("list")) {
                             for (BountyHunt bountyHunt : BountyHunt.getHunts()) {
-                                tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer().getUniqueId()));
+                                tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer()));
                             }
                         } else if (args[1].equalsIgnoreCase("join")) {
                             Set<UUID> participatingHunts = BountyHunt.getParticipatingHunts(player.getUniqueId()).stream().map(bountyHunt -> bountyHunt.getHuntedPlayer().getUniqueId()).collect(Collectors.toSet());
                             for (BountyHunt bountyHunt : BountyHunt.getHunts()) {
                                 if (bountyHunt.getHuntedPlayer().getUniqueId() != player.getUniqueId() && !participatingHunts.contains(bountyHunt.getHuntedPlayer().getUniqueId())) {
-                                    tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer().getUniqueId()));
+                                    tab.add(LoggedPlayers.getPlayerName(bountyHunt.getHuntedPlayer()));
                                 }
                             }
                         }

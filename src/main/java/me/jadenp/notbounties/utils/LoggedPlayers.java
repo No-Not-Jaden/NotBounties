@@ -23,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
@@ -48,7 +49,7 @@ public class LoggedPlayers {
             while (configuration.getString(i + ".name") != null) {
                 String name = Objects.requireNonNull(configuration.getString( i + ".name"));
                 UUID uuid = UUID.fromString(Objects.requireNonNull(configuration.getString(i + ".uuid")));
-                logPlayer(name, uuid);
+                DataManager.getPlayerData(uuid).setPlayerName(name);
                 i++;
             }
         } else {
@@ -57,7 +58,7 @@ public class LoggedPlayers {
                 String name = Objects.requireNonNull(configuration.getString(key));
                 try {
                     UUID uuid = UUID.fromString(key);
-                    logPlayer(name, uuid);
+                    DataManager.getPlayerData(uuid).setPlayerName(name);
                 } catch (IllegalArgumentException e) {
                     Bukkit.getLogger().warning("Key in logged-players is not a UUID: " + key);
                 }
@@ -125,8 +126,10 @@ public class LoggedPlayers {
      */
     public static @Nullable UUID getPlayer(@NotNull String name) {
         Player player = Bukkit.getPlayer(name);
-        if (player != null)
+        if (player != null) {
+            DataManager.getPlayerData(player.getUniqueId()).setPlayerName(player.getName());
             return player.getUniqueId();
+        }
         if (playerIDs.containsKey(name.toLowerCase(Locale.ROOT)))
             return playerIDs.get(name.toLowerCase(Locale.ROOT));
         try {
@@ -201,6 +204,17 @@ public class LoggedPlayers {
             return null;
         Collections.sort(viableNames);
         return playerIDs.get(viableNames.get(0));
+    }
+
+    public static @NotNull String getPlayerName(@NotNull OfflinePlayer player) {
+        if (player.isOnline() && player.getName() != null) {
+            if (!isLogged(player.getName())) {
+                logPlayer(player.getName(), player.getUniqueId());
+                DataManager.getPlayerData(player.getUniqueId()).setPlayerName(player.getName());
+            }
+            return player.getName();
+        }
+        return getPlayerName(player.getUniqueId());
     }
 
     public static @NotNull String getPlayerName(@NotNull UUID uuid) {

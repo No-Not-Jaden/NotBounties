@@ -300,7 +300,7 @@ public class BountyHunt {
             List<BountyHunt> participatingHunts = getParticipatingHunts(player.getUniqueId());
             if (participatingHunts.size() == 1) {
                 participatingHunts.get(0).removeParticipatingPlayer(player);
-                sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), LoggedPlayers.getPlayerName(participatingHunts.get(0).getHuntedPlayer().getUniqueId()), parser));
+                sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), LoggedPlayers.getPlayerName(participatingHunts.get(0).getHuntedPlayer()), parser));
                 return true;
             }
             return failUnknownCommand(sender, silent, parser, "help.hunt-participate");
@@ -317,11 +317,11 @@ public class BountyHunt {
         }
 
         if (!hunt.isParticipating(player.getUniqueId())) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("not-in-hunt"), LoggedPlayers.getPlayerName(hunt.getHuntedPlayer().getUniqueId()), parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("not-in-hunt"), LoggedPlayers.getPlayerName(hunt.getHuntedPlayer()), parser));
         }
 
         hunt.removeParticipatingPlayer(player);
-        sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), LoggedPlayers.getPlayerName(hunt.getHuntedPlayer().getUniqueId()), parser));
+        sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), LoggedPlayers.getPlayerName(hunt.getHuntedPlayer()), parser));
         return true;
     }
 
@@ -329,7 +329,7 @@ public class BountyHunt {
         if (args.length == 2) {
             // List all hunts
             sender.sendMessage(parse(getPrefix() + getMessage("list-hunts"), parser));
-            hunts.forEach(hunt -> sender.sendMessage(ChatColor.RED + LoggedPlayers.getPlayerName(hunt.getHuntedPlayer().getUniqueId())));
+            hunts.forEach(hunt -> sender.sendMessage(ChatColor.RED + LoggedPlayers.getPlayerName(hunt.getHuntedPlayer())));
             sender.sendMessage("");
             return true;
         }
@@ -345,7 +345,7 @@ public class BountyHunt {
         }
 
         sender.sendMessage(parse(getPrefix() + getMessage("list-hunt-players"), LoggedPlayers.getPlayerName(uuid), parser));
-        hunt.getParticipatingPlayers().forEach(player -> sender.sendMessage(ChatColor.YELLOW + LoggedPlayers.getPlayerName(player.getUniqueId())));
+        hunt.getParticipatingPlayers().forEach(player -> sender.sendMessage(ChatColor.YELLOW + LoggedPlayers.getPlayerName(player)));
         sender.sendMessage("");
         return true;
     }

@@ -38,7 +38,7 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
     public Bounty(Player setter, OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist, UUID serverID){
         // save player
         this.uuid = receiver.getUniqueId();
-        name = LoggedPlayers.getPlayerName(receiver.getUniqueId());
+        name = LoggedPlayers.getPlayerName(receiver);
         // add to the total bounty
         setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
         this.serverID = serverID;
@@ -51,7 +51,7 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
     public Bounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist, UUID serverID){
         // save player
         this.uuid = receiver.getUniqueId();
-        name = LoggedPlayers.getPlayerName(receiver.getUniqueId());
+        name = LoggedPlayers.getPlayerName(receiver);
         // add to the total bounty
         setters.add(new Setter(ConfigOptions.getAutoBounties().getConsoleBountyName(), DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
         this.serverID = serverID;
@@ -121,6 +121,12 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
     }
 
     public String getName() {
+        try {
+            UUID.fromString(name);
+            setDisplayName(LoggedPlayers.getPlayerName(uuid));
+        } catch (IllegalArgumentException ignored) {
+            // name is not a uuid
+        }
         return name;
     }
 

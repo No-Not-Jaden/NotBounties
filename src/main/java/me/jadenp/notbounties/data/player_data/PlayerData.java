@@ -14,7 +14,6 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -116,7 +115,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     private long lastSeen = 0;
     private long lastClaim = 0;
     private UUID serverID = null;
-    private Map<String, Integer> GUISortType = new HashMap<>();
+    private final Map<String, Integer> guiSortType = new HashMap<>();
 
     public PlayerData() {
         broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
@@ -135,7 +134,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     }
 
     public void setGUISortType(String guiName, int sortType) {
-        this.GUISortType.put(guiName, sortType);
+        this.guiSortType.put(guiName, sortType);
     }
 
     /**
@@ -145,8 +144,8 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
      */
     public int getGUISortType(String guiName) {
         if (guiName == null || guiName.isEmpty()) return -1;
-        if (GUISortType.containsKey(guiName)) {
-            return GUISortType.get(guiName);
+        if (guiSortType.containsKey(guiName)) {
+            return guiSortType.get(guiName);
         }
         GUIOptions guiOptions = GUI.getGUI(guiName);
         if (guiOptions != null) {

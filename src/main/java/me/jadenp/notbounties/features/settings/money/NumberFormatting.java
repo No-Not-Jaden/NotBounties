@@ -35,6 +35,7 @@ import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 
@@ -520,13 +521,14 @@ public class NumberFormatting {
      * @param commands Commands to be executed.
      */
     private static void runCurrencyCommands(Player p, double amount, List<String> commands) {
-            for (String command : commands) {
-                if (command.isEmpty())
-                    continue;
-                command = command.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount))).replace("{amount_formatted}", currencyPrefix + formatNumber(amount) + currencySuffix);
-                ActionCommands.executeCommands(p, Collections.singletonList(LanguageOptions.parse(command, p)));
-                //Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
-            }
+        commands = commands.stream()
+                .filter(s -> !s.isEmpty())
+                .map(s -> LanguageOptions.parse(s
+                        .replace("{player}", p.getName())
+                        .replace("{amount}", getValue(amount))
+                        .replace("{amount_formatted}", currencyPrefix + formatNumber(amount) + currencySuffix), p))
+                .toList();
+        ActionCommands.executeCommands(p, commands);
     }
 
 
@@ -553,12 +555,7 @@ public class NumberFormatting {
         if (currency.size() > 1) {
             if (addSingleCurrency == CurrencyAddType.BIMODAL) {
                 // just do remove commands
-                for (String removeCommand : removeCommands) {
-                    if (removeCommand.isEmpty())
-                        continue;
-                    String command = removeCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
-                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
-                }
+                runCurrencyCommands(p, amount, removeCommands);
                 if (!currency.get(1).contains("%")) {
                     removeItem(p, Material.valueOf(currency.get(1)), (long) amount, customModelDatas.get(1));
                     removedItems.put(Material.valueOf(currency.get(1)), (long) amount);
@@ -580,8 +577,8 @@ public class NumberFormatting {
             }
             for (int i = 0; i < Math.min(balancedRemove.length-1, modifiedRemoveCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedRemoveCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(balancedRemove[i])));
-                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+                    String command = LanguageOptions.parse(modifiedRemoveCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(balancedRemove[i]))), p);
+                    ActionCommands.executeCommands(p, Collections.singletonList(command));
                 } else {
                     removeItem(p, Material.valueOf(currency.get(i)), (long) (balancedRemove[i]), customModelDatas.get(i));
                     removedItems.put(Material.valueOf(currency.get(i)), (long) (balancedRemove[i]));
@@ -595,17 +592,12 @@ public class NumberFormatting {
             for (int i = balancedRemove.length-1; i < modifiedRemoveCommands.size(); i++) {
                 if (modifiedRemoveCommands.get(i).isEmpty())
                     continue;
-                String command = modifiedRemoveCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+                String command = LanguageOptions.parse(modifiedRemoveCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount))), p);
+                ActionCommands.executeCommands(p, Collections.singletonList(command));
             }
         } else {
             // just do remove commands
-            for (String removeCommand : removeCommands) {
-                if (removeCommand.isEmpty())
-                    continue;
-                String command = removeCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
-            }
+            runCurrencyCommands(p, amount, removeCommands);
             if (!currency.get(0).contains("%")) {
                 removeItem(p, Material.valueOf(currency.get(0)), (long) amount, customModelDatas.get(0));
                 removedItems.put(Material.valueOf(currency.get(0)), (long) amount);
@@ -901,81 +893,27 @@ public class NumberFormatting {
             }
             for (int i = 0; i < Math.min(balancedAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(balancedAdd[i])));
-                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+                    String command = LanguageOptions.parse(modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(balancedAdd[i]))), p);
+                    ActionCommands.executeCommands(p, Collections.singletonList(command));
                 } else {
-                    ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
-                    if (!customModelDatas.get(i).equals("-1")) {
-                        ItemMeta meta = item.getItemMeta();
-                        if (meta != null) {
-                            if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(i).contains(":")) {
-                                meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(i)));
-                            } else {
-                                meta.setCustomModelData(Integer.parseInt(customModelDatas.get(i)));
-                            }
-                            item.setItemMeta(meta);
-                        }
-                    }
-                    givePlayer(p, item, (long) balancedAdd[i]);
+                    givePlayer(p, getCurrencyItem(i), (long) balancedAdd[i]);
                 }
             }
             // do the rest of the add commands
             for (int i = balancedAdd.length; i < modifiedAddCommands.size(); i++) {
                 if (modifiedAddCommands.get(i).isEmpty())
                     continue;
-                String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+                String command = LanguageOptions.parse(modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount))), p);
+                ActionCommands.executeCommands(p, Collections.singletonList(command));
             }
         } else if (addSingleCurrency == CurrencyAddType.FIRST) {
             // remove other currency commands
             IntStream.range(1, currency.size()).forEach(modifiedAddCommands::remove);
             // just do add commands
-            for (String addCommand : modifiedAddCommands) {
-                if (addCommand.isEmpty())
-                    continue;
-                String command = addCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount / Floats.toArray(currencyValues.values())[0])));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
-            }
-            // give item if using
-            if (!currency.get(0).contains("%")) {
-                ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
-                if (!customModelDatas.get(0).equals("-1")) {
-                    ItemMeta meta = item.getItemMeta();
-                    if (meta != null) {
-                        if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(0).contains(":")) {
-                            meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(0)));
-                        } else {
-                            meta.setCustomModelData(Integer.parseInt(customModelDatas.get(0)));
-                        }
-                        item.setItemMeta(meta);
-                    }
-                }
-                givePlayer(p, item, (long) (amount / Floats.toArray(currencyValues.values())[0]));
-            }
+            runFirstCurrencyAdd(p, amount, modifiedAddCommands);
         } else if (addSingleCurrency == CurrencyAddType.BIMODAL) {
             // do all the add commands with the first currency
-            for (String addCommand : addCommands) {
-                if (addCommand.isEmpty())
-                    continue;
-                String command = addCommand.replace("{player}", (p.getName())).replace("{amount}", (getValue(amount / Floats.toArray(currencyValues.values())[0])));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
-            }
-            // give item if using
-            if (!currency.get(0).contains("%")) {
-                ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
-                if (!customModelDatas.get(0).equals("-1")) {
-                    ItemMeta meta = item.getItemMeta();
-                    if (meta != null) {
-                        if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(0).contains(":")) {
-                            meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(0)));
-                        } else {
-                            meta.setCustomModelData(Integer.parseInt(customModelDatas.get(0)));
-                        }
-                        item.setItemMeta(meta);
-                    }
-                }
-                givePlayer(p, item, (long) (amount / Floats.toArray(currencyValues.values())[0]));
-            }
+            runFirstCurrencyAdd(p, amount, addCommands);
         } else {
             // descending
             float[] currencyWeightsCopy = Floats.toArray(currencyWeights);
@@ -989,33 +927,58 @@ public class NumberFormatting {
             }
             for (int i = 0; i < Math.min(descendingAdd.length, modifiedAddCommands.size()); i++) {
                 if (currency.get(i).contains("%")) {
-                    String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(descendingAdd[i])));
+                    String command = LanguageOptions.parse(modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(descendingAdd[i]))), p);
                     NotBounties.debugMessage("Executing command for " + currency.get(i) + ": '" + command + "'", false);
-                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+                    ActionCommands.executeCommands(p, Collections.singletonList(command));
                 } else {
-                    ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
-                    if (!customModelDatas.get(i).equals("-1")) {
-                        ItemMeta meta = item.getItemMeta();
-                        if (meta != null) {
-                            if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(i).contains(":")) {
-                                meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(i)));
-                            } else {
-                                meta.setCustomModelData(Integer.parseInt(customModelDatas.get(i)));
-                            }
-                            item.setItemMeta(meta);
-                        }
-                    }
                     NotBounties.debugMessage("Giving item: " + currency.get(i) + " to " + p.getName() + ". Amount: " + (long) descendingAdd[i], false);
-                    givePlayer(p, item, (long) descendingAdd[i]);
+                    givePlayer(p, getCurrencyItem(i), (long) descendingAdd[i]);
                 }
             }
             // do the rest of the add commands
             for (int i = descendingAdd.length; i < modifiedAddCommands.size(); i++) {
                 if (modifiedAddCommands.get(i).isEmpty())
                     continue;
-                String command = modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount)));
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), LanguageOptions.parse(command, p));
+                String command = LanguageOptions.parse(modifiedAddCommands.get(i).replace("{player}", (p.getName())).replace("{amount}", (getValue(amount))), p);
+                ActionCommands.executeCommands(p, Collections.singletonList(command));
             }
+        }
+    }
+
+    private static ItemStack getCurrencyItem(int i) {
+        ItemStack item = new ItemStack(Material.valueOf(currency.get(i)));
+        if (!customModelDatas.get(i).equals("-1")) {
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(i).contains(":")) {
+                    meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(i)));
+                } else {
+                    meta.setCustomModelData(Integer.parseInt(customModelDatas.get(i)));
+                }
+                item.setItemMeta(meta);
+            }
+        }
+        return item;
+    }
+
+    private static void runFirstCurrencyAdd(Player p, double amount, List<String> addCommands) {
+        List<String> modifiedAddCommands = addCommands.stream().map(s -> LanguageOptions.parse(s.replace("{player}", p.getName()).replace("{amount}", (getValue(amount / Floats.toArray(currencyValues.values())[0]))), p)).collect(Collectors.toList());
+        ActionCommands.executeCommands(p, modifiedAddCommands);
+        // give item if using
+        if (!currency.get(0).contains("%")) {
+            ItemStack item = new ItemStack(Material.valueOf(currency.get(0)));
+            if (!customModelDatas.get(0).equals("-1")) {
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null) {
+                    if (NotBounties.isAboveVersion(21, 3) && customModelDatas.get(0).contains(":")) {
+                        meta.setItemModel(CustomItem.getItemModel(customModelDatas.get(0)));
+                    } else {
+                        meta.setCustomModelData(Integer.parseInt(customModelDatas.get(0)));
+                    }
+                    item.setItemMeta(meta);
+                }
+            }
+            givePlayer(p, item, (long) (amount / Floats.toArray(currencyValues.values())[0]));
         }
     }
 
