@@ -223,6 +223,11 @@ public final class NotBounties extends JavaPlugin {
             if (players.size() == 1 && ProxyDatabase.isEnabled() && ProxyDatabase.isDatabaseSynchronization() && ProxyMessaging.hasConnectedBefore()) {
                 DataManager.syncPlayerData(players.iterator().next().getUniqueId(), null);
             }
+            for (Player player : players) {
+                if (LoggedPlayers.isMissing(player.getUniqueId())) {
+                    DataManager.getPlayerData(player.getUniqueId()).setPlayerName(player.getName());
+                }
+            }
 
         }, 3611, 3600);
 
