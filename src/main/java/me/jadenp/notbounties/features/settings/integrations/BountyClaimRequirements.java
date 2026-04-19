@@ -294,4 +294,8 @@ public class BountyClaimRequirements {
     public static boolean isSimpleClansEnabled() {
         return simpleClansEnabled;
     }
+
+    public static boolean isKonquestEnabled() {
+        return konquestEnabled;
+    }
 }

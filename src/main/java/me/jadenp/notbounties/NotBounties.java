@@ -549,6 +549,8 @@ public final class NotBounties extends JavaPlugin {
         if (integrations.isDuelsEnabled()) hooks.add("Duels");
         if (integrations.isPacketEventsEnabled()) hooks.add("PacketEvents");
         if (integrations.isLuckPermsEnabled()) hooks.add("LuckPerms");
+        if (integrations.isEconomyShopGUIEnabled()) hooks.add("EconomyShopGUI");
+        if (BountyClaimRequirements.isKonquestEnabled()) hooks.add("Konquest");
 
         return hooks;
     }

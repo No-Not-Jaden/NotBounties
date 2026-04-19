@@ -10,6 +10,9 @@ minimum-broadcast: 5
 # The default broadcast setting for players who join the server for the first time.
 # This can be EXTENDED (player head in text), SHORT (1-line message), or DISABLE
 default-broadcast-setting: EXTENDED
+# Whether the bounty broadcast should be sent to the receiver of the bounty.
+# They will already be getting the bounty-receiver message.
+broadcast-to-receiver: false
 # percent extra they have to pay to set a bounty - uses a DECIMAL
 # ex: bounty-tax = 0.25, a bounty set for 100 would cost 125 to be placed
 # use this if players are setting too many bounties

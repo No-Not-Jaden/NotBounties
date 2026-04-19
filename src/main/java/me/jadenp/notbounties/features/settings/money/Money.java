@@ -13,6 +13,7 @@ public class Money extends ResourceConfiguration {
     private double maxBounty;
     private double minBroadcast;
     private PlayerData.BroadcastSettings defaultBroadcastSetting;
+    private boolean broadcastToReceiver;
     private double bountyTax;
     private double deathTax;
     private final RedeemRewardLater redeemRewardLater = new RedeemRewardLater();
@@ -26,6 +27,7 @@ public class Money extends ResourceConfiguration {
         minBounty = config.getDouble("minimum-bounty");
         maxBounty = config.getDouble("maximum-bounty");
         minBroadcast = config.getDouble("minimum-broadcast");
+        broadcastToReceiver = config.getBoolean("broadcast-to-receiver");
         bountyTax = config.getDouble("bounty-tax");
         deathTax = config.getDouble("death-tax");
         buyOwn = config.getBoolean("buy-own-bounties.enabled");
@@ -82,5 +84,9 @@ public class Money extends ResourceConfiguration {
 
     public PlayerData.BroadcastSettings getDefaultBroadcastSetting() {
         return defaultBroadcastSetting;
+    }
+
+    public boolean isBroadcastToReceiver() {
+        return broadcastToReceiver;
     }
 }
