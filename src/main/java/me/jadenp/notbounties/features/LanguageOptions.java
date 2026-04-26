@@ -448,7 +448,7 @@ public class LanguageOptions {
                     try {
                         int slot = Integer.parseInt(slotString);
                         if (info.displayItems().size() > slot-1 && info.displayItems().get(slot-1) instanceof PlayerItem playerItem) {
-                            replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
+                            replacement = playerItem.getName();
                         }
                     } catch (NumberFormatException e) {
                         Bukkit.getLogger().warning("Error getting player in command: \n" + str);

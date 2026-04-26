@@ -19,6 +19,8 @@ import java.util.UUID;
 
 public class Head {
 
+    private static long headID = 1;
+
     private Head(){}
 
     public static ItemStack createPlayerSkull(String data){
@@ -53,8 +55,7 @@ public class Head {
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         if (NotBounties.getServerVersion() >= 18) {
-            PlayerProfile profile = Bukkit.createPlayerProfile(uuid); // should be same as the one in the head
-            //PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID());
+            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, LoggedPlayers.getPlayerName(uuid)); // should be same as the one in the head
             PlayerTextures textures = profile.getTextures();
             textures.setSkin(textureURL);
             profile.setTextures(textures);
@@ -76,7 +77,7 @@ public class Head {
 
             urlString = urlString.substring(before.length(), urlString.length() - after.length());
             URL url = new URL(urlString);
-            PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID(), "");
+            PlayerProfile profile = Bukkit.createPlayerProfile(new UUID(13, headID++), "");
             PlayerTextures textures = profile.getTextures();
             textures.setSkin(url);
             profile.setTextures(textures);

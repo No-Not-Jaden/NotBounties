@@ -287,7 +287,7 @@ public class GUI implements Listener {
                                 latestSet = currentSetter.getTimeCreated();
                             if (i == setters.size() - 1 || !currentSetter.getUuid().equals(setters.get(i + 1).getUuid())) {
                                 // at the end of the list, or next setter is different
-                                displayItems.add(new PlayerItem(currentSetter.getUuid(), concurrentDisplay, Leaderboard.CURRENT, settersAdded++, latestSet, combinedLore)); // add player head item
+                                displayItems.add(new PlayerItem(currentSetter.getName(), currentSetter.getUuid(), concurrentDisplay, Leaderboard.CURRENT, settersAdded++, latestSet, combinedLore)); // add player head item
                                 // add items for everything added
                                 if (concurrentAmount != 0) {
                                     // add currency
@@ -397,7 +397,7 @@ public class GUI implements Listener {
                                     // skip if they are immune
                                     continue;
                                 }
-                                displayItems.add(new PlayerItem(entry.getKey(), 0, Leaderboard.IMMUNITY, addedPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
+                                displayItems.add(new PlayerItem(entry.getValue(), entry.getKey(), 0, Leaderboard.IMMUNITY, addedPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
                                 addedPlayers.add(entry.getKey());
                             }
                         }
@@ -437,7 +437,7 @@ public class GUI implements Listener {
                                 // skip if they are immune
                                 continue;
                             }
-                            displayItems.add(new PlayerItem(entry.getKey(), 0, Leaderboard.CURRENT, addedBountyPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
+                            displayItems.add(new PlayerItem(entry.getValue(), entry.getKey(), 0, Leaderboard.CURRENT, addedBountyPlayers.size(), System.currentTimeMillis(), new ArrayList<>()));
                             addedBountyPlayers.add(entry.getKey());
                         }
                     }
@@ -470,7 +470,7 @@ public class GUI implements Listener {
                             continue;
                         }
 
-                        displayItems.add(new PlayerItem(entry.getKey(), 0, Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), new ArrayList<>()));
+                        displayItems.add(new PlayerItem(entry.getValue(), entry.getKey(), 0, Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), new ArrayList<>()));
                         playersAdded.add(entry.getKey());
                     }
                 }
@@ -480,14 +480,14 @@ public class GUI implements Listener {
                 if (data.length > 0 && data[0] instanceof String string) {
                     displayItems.add(new PlayerItem(UUID.fromString(string), page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
                 } else {
-                    displayItems.add(new PlayerItem(player.getUniqueId(), page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
+                    displayItems.add(new PlayerItem(player.getName(), player.getUniqueId(), page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
                 }
                 break;
             case "bounty-hunt-time":
                 if (data.length > 0 && data[0] instanceof UUID uuid) {
                     displayItems.add(new PlayerItem(uuid, page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
                 } else {
-                    displayItems.add(new PlayerItem(player.getUniqueId(), page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
+                    displayItems.add(new PlayerItem(player.getName(), player.getUniqueId(), page, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
                 }
                 break;
             case "bounty-item-select":
@@ -831,8 +831,15 @@ public class GUI implements Listener {
             int pageAddition = guiType.equals("select-price") || guiType.equals("confirm-bounty") || guiType.equals("bounty-hunt-time") ? 0 : (int) ((info.page() - 1) * gui.getPlayerSlots().size());
             if (gui.getPlayerSlots().contains(event.getRawSlot()) && (event.getCurrentItem() != null && gui.getPlayerSlots().indexOf(event.getRawSlot()) + pageAddition < info.displayItems().size() && event.getCurrentItem().getType() == Material.PLAYER_HEAD)) {
                 DisplayItem displayItem = info.displayItems().get(gui.getPlayerSlots().indexOf(event.getRawSlot()) + pageAddition);
-                UUID playerUUID = displayItem instanceof PlayerItem playerItem ? playerItem.getUuid() : event.getWhoClicked().getUniqueId();
-                String playerName = LoggedPlayers.getPlayerName(playerUUID);
+                UUID playerUUID;
+                String playerName;
+                if (displayItem instanceof PlayerItem playerItem) {
+                    playerUUID = playerItem.getUuid();
+                    playerName = playerItem.getName();
+                } else {
+                    playerUUID = event.getWhoClicked().getUniqueId();
+                    playerName = LoggedPlayers.getPlayerName(playerUUID);
+                }
                 switch (guiType) {
                     case "bounty-gui":
                         // do click actions

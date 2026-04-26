@@ -68,7 +68,7 @@ public class LoggedPlayers {
                     if (playerIDs.containsKey(entry.getPlayerName().toLowerCase())) {
                         UUID duplicateUUID = playerIDs.get(entry.getPlayerName().toLowerCase());
                         Bukkit.getLogger().warning("Duplicate player name found \"" + entry.getPlayerName() + "\" for "  + duplicateUUID + " and " + entry.getUuid() + ".");
-                        Bukkit.getLogger().warning("Replacing with UUID until the player login.");
+                        Bukkit.getLogger().warning("Replacing with UUID until the player logs in again.");
                         duplicateUUIDs.add(duplicateUUID);
                         playerIDs.remove(entry.getPlayerName().toLowerCase());
                         playerIDs.put(duplicateUUID.toString(), duplicateUUID);
@@ -98,10 +98,9 @@ public class LoggedPlayers {
     }
 
     public static Map<UUID, String> getLoggedPlayers() {
-        Map<UUID, String> reversedPlayerIDs = new HashMap<>(playerIDs.size());
-        for (Map.Entry<String, UUID> entry : playerIDs.entrySet()) {
-            reversedPlayerIDs.put(entry.getValue(), entry.getKey());
-        }
+
+        Map<UUID, String> reversedPlayerIDs = new HashMap<>();
+        DataManager.getAllPlayerData().stream().filter(playerData -> playerData.getPlayerName() != null).forEach(playerData -> reversedPlayerIDs.put(playerData.getUuid(), playerData.getPlayerName()));
         return reversedPlayerIDs;
     }
 
@@ -206,6 +205,8 @@ public class LoggedPlayers {
     }
 
     public static @NotNull String getPlayerName(@NotNull UUID uuid) {
+        // I don't think this function is an issue. Every uuid that is returned should not be tied to a player.
+        // If that is the case, then the problem lies in functions calling this one using bad UUIDs.
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
             return ConfigOptions.getAutoBounties().getConsoleBountyName();
         PlayerData playerData = DataManager.getPlayerData(uuid);

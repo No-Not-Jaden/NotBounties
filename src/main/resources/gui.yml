@@ -304,9 +304,7 @@ bounty-gui:
   size: 54
   # name of the gui
   # you can use {page} and {page_max} separately from the add-page option
-  gui-name: '&d&lBounties &9&lPage'
-  # this will add the page number at the end of the gui name
-  add-page: true
+  gui-name: '&d&lBounties &9&lPage {page}'
   # this will remove items with actions of [next] or [back] if there is no next page or previous page
   remove-page-items: true
   # which slots heads will appear in
@@ -360,7 +358,6 @@ leaderboard:
   # {leaderboard} will be replaced with the raw leaderboard name (good for commands)
   # {leaderboard_name} will be replaced with the name from the language.yml file under bounty-stats.(leaderboard).name
   gui-name: '&d&lBounties &9&lTop: &7{leaderboard_name}'
-  add-page: false
   remove-page-items: true
   player-slots:
     - '11'
@@ -386,7 +383,6 @@ set-bounty:
   sort-type: 3
   size: 54
   gui-name: '&d&lSelect &9&lPlayer &7[{page}/{page_max}]'
-  add-page: false
   remove-page-items: true
   player-slots:
     - '0-44'
@@ -417,7 +413,6 @@ set-whitelist:
   sort-type: 3
   size: 54
   gui-name: '&d&lSelect &7&lWhitelisted &9&lPlayers'
-  add-page: false
   remove-page-items: true
   player-slots:
     - '0-44'
@@ -450,8 +445,7 @@ set-whitelist:
 select-price:
   sort-type: 1
   size: 54
-  gui-name: '&d&lSelect &9&lBounty Value:&f'
-  add-page: true
+  gui-name: '&d&lSelect &9&lBounty Value:&f {page}'
   remove-page-items: false
   player-slots:
     - '13'
@@ -495,7 +489,6 @@ select-price:
 bounty-item-select:
   size: 54
   gui-name: '&d&lSelect &9&lBounty Items &7[{page}/{page_max}]'
-  add-page: false
   remove-page-items: true
   # the first player slot is where the player's head will go
   # the rest of the player slots are where the user can place items

@@ -48,7 +48,7 @@ public class OpenBedrockGUI extends CancelableTask{
                 if (displayItem instanceof PlayerItem playerItem && !SkinManager.isSkinLoaded(playerItem.getUuid())) {
                     // check if max requests hit
                     if (maxRequests <= 0) {
-                        NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(playerItem.getUuid()), false);
+                        NotBounties.debugMessage("Timed out loading skin for " + playerItem.getName(), false);
                     } else {
                         if (loaded) {
                             maxRequests--;

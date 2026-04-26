@@ -96,6 +96,10 @@ public class PlayerItem implements DisplayItem, AmountItem{
         return uuid;
     }
 
+    public String getName() {
+        return name;
+    }
+
     @Override
     public double getAmount() {
         return amount;

@@ -222,14 +222,14 @@ public class ActionCommands {
                             SkullMeta meta = (SkullMeta) item.getItemMeta();
                             assert meta != null;
                             OfflinePlayer p = meta.getOwningPlayer();
-                            if (p != null) {
+                            if (p != null && !LoggedPlayers.isMissing(p.getUniqueId())) {
                                 replacement = LoggedPlayers.getPlayerName(p);
                             } else {
                                 if (!info.guiType().isEmpty()) {
                                     GUIOptions guiOptions = GUI.getGUI(info.guiType());
                                     if (guiOptions != null) {
                                         if (guiOptions.getPlayerSlots().contains(slot) && info.displayItems().get(guiOptions.getPlayerSlots().indexOf(slot)) instanceof PlayerItem playerItem) {
-                                            replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
+                                            replacement = playerItem.getName();
                                         }
                                     } else {
                                         plugin.getLogger().warning("Invalid player for slot " + slot);
@@ -261,7 +261,7 @@ public class ActionCommands {
                 try {
                     int slot = Integer.parseInt(slotString);
                     if (info.displayItems().size() > slot - 1 && info.displayItems().get(slot - 1) instanceof PlayerItem playerItem) {
-                        replacement = LoggedPlayers.getPlayerName(playerItem.getUuid());
+                        replacement = playerItem.getName();
                     }
                 } catch (NumberFormatException e) {
                     plugin.getLogger().warning("Error getting player in command: \n" + command);
