@@ -107,8 +107,7 @@ public class BountyManager {
         broadcastTask.setTaskImplementation(NotBounties.getServerImplementation().async().runAtFixedRate(broadcastTask,1,4));
 
         ActionCommands.executeBountySet(receiver.getUniqueId(), setter, bounty);
-        if (ImmunityManager.getBountyCooldown() > 0)
-            DataManager.getPlayerData(setter.getUniqueId()).setBountyCooldown(System.currentTimeMillis());
+        DataManager.getPlayerData(setter.getUniqueId()).setBountyCooldown(System.currentTimeMillis());
     }
 
     private static void registerBounty(OfflinePlayer receiver, double displayAmount, Bounty bounty) {
