@@ -35,6 +35,7 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
         jsonWriter.name("lastSeen").value(playerData.getLastSeen());
         jsonWriter.name("lastClaim").value(playerData.getLastClaim());
         jsonWriter.name("serverID").value(playerData.getServerID().toString());
+        jsonWriter.name("trackerExempt").value(playerData.isTrackingExempt());
         jsonWriter.endObject();
     }
 
@@ -96,6 +97,7 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
                 case "lastSeen" -> playerData.setLastSeen(jsonReader.nextLong());
                 case "lastClaim" -> playerData.setLastClaim(jsonReader.nextLong());
                 case "serverID" -> playerData.setServerID(UUID.fromString(jsonReader.nextString()));
+                case "trackerExempt" -> playerData.setTrackingExempt(jsonReader.nextBoolean());
                 default -> // unexpected name
                         jsonReader.skipValue();
             }

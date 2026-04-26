@@ -109,13 +109,14 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     private TimeZone timeZone = null;
     private BroadcastSettings broadcastSettings;
     private final List<OnlineRefund> refund = new LinkedList<>();
-    private long bountyCooldown = 0;
+    private long bountyCooldown = 0; // Time in ms when they set a bounty last
     private Whitelist whitelist;
     private boolean newPlayer = true;
     private long lastSeen = 0;
     private long lastClaim = 0;
     private UUID serverID = null;
     private final Map<String, Integer> guiSortType = new HashMap<>();
+    private boolean trackingExempt = false;
 
     public PlayerData() {
         broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
@@ -152,6 +153,14 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
             return guiOptions.getSortType();
         }
         return -1;
+    }
+
+    public void setTrackingExempt(boolean trackingExempt) {
+        this.trackingExempt = trackingExempt;
+    }
+
+    public boolean isTrackingExempt() {
+        return trackingExempt;
     }
 
     public void setServerID(UUID serverID) {

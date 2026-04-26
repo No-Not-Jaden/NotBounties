@@ -567,6 +567,11 @@ public class GUI implements Listener {
             }
         }
 
+        if (!player.hasPermission("notbounties.gui") && !player.hasPermission("notbounties.gui." + name)) {
+            player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("no-permission"), player));
+            return;
+        }
+
         // check if previously in a GUI
         if (playerInfo.containsKey(player.getUniqueId())) {
             String title = CompatabilityUtils.getTitle(player);

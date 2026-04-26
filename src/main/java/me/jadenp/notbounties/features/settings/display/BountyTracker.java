@@ -66,6 +66,9 @@ public class BountyTracker implements Listener {
     private static boolean resetRemovedTrackers;
     private static double minBounty;
     private static int alert;
+    private static boolean trackingExemptEnabled;
+    private static boolean trackingExemptAllowBountySetting;
+    private static long trackingExemptDelayAfterSet;
 
     private static long lastInventorySearch = 0;
     private static BiMap<Integer, UUID> trackedBounties = HashBiMap.create();
@@ -85,6 +88,9 @@ public class BountyTracker implements Listener {
         craftTracker = configuration.getBoolean("craft-tracker");
         minBounty = configuration.getDouble("minimum-bounty");
         alert = configuration.getInt("alert");
+        trackingExemptEnabled = configuration.getBoolean("tracking-exempt.enabled");
+        trackingExemptAllowBountySetting = configuration.getBoolean("tracking-exempt.allow-bounty-setting");
+        trackingExemptDelayAfterSet = configuration.getLong("tracking-exempt.delay-after-set");
 
         // tracker action bar settings
         TABShowAlways = configuration.getBoolean("action-bar.show-always");
@@ -371,12 +377,11 @@ public class BountyTracker implements Listener {
                 World world = player.getWorld();
                 compassMeta.setLodestone(new Location(world, world.getSpawnLocation().getX(), 0, world.getSpawnLocation().getZ()));
             }
-            if (!DataManager.GLOBAL_SERVER_ID.equals(uuid)) // not an empty tracker
-                if (trackerActionBar && (TABShowAlways || force)) {
-                    String message = LanguageOptions.parse(getMessage("tracker-no-permission"), player);
-                    TextComponent textComponent = getTextComponent(message);
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, textComponent);
-                }
+            if (!DataManager.GLOBAL_SERVER_ID.equals(uuid) && trackerActionBar && (TABShowAlways || force)) {
+                String message = LanguageOptions.parse(getMessage("tracker-no-permission"), player);
+                TextComponent textComponent = getTextComponent(message);
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, textComponent);
+            }
 
             if (previousLocation == null || !Objects.equals(previousLocation.getWorld(), Objects.requireNonNull(compassMeta.getLodestone()).getWorld())) {
                 // only update if location has changed worlds
@@ -385,11 +390,14 @@ public class BountyTracker implements Listener {
             }
             return;
         }
-        if (!hasBounty(uuid))
-            // no bounty
-            return;
+
         Player trackedPlayer = Bukkit.getPlayer(uuid);
-        if (trackedPlayer != null && (NotBounties.getServerVersion() >= 17 && player.canSee(Objects.requireNonNull(trackedPlayer))) && !isVanished(trackedPlayer)) {
+        boolean immuneToTracking = trackedPlayer != null && (trackedPlayer.hasPermission("notbounties.immunity.tracked")
+                || (trackingExemptEnabled && DataManager.getPlayerData(uuid).isTrackingExempt()));
+        if (trackedPlayer != null
+                && (NotBounties.getServerVersion() >= 17 && player.canSee(Objects.requireNonNull(trackedPlayer)))
+                && !isVanished(trackedPlayer)
+                && !immuneToTracking) {
             // can track player
             if (!compassMeta.hasLodestone() || compassMeta.getLodestone() == null) {
                 compassMeta.setLodestone(trackedPlayer.getLocation().getBlock().getLocation());
@@ -439,7 +447,11 @@ public class BountyTracker implements Listener {
         } else {
             // player offline -
             if (trackerActionBar && (TABShowAlways || force)) {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, getTextComponent(LanguageOptions.parse(getMessage("tracker-offline"), player)));
+                if (immuneToTracking) {
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, getTextComponent(LanguageOptions.parse(getMessage("tracker-immune"), trackedPlayer, player)));
+                } else {
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, getTextComponent(LanguageOptions.parse(getMessage("tracker-offline"), player)));
+                }
             }
             if (Bukkit.getWorlds().size() > 1) {
                 for (World world : Bukkit.getWorlds()) {
@@ -698,4 +710,15 @@ public class BountyTracker implements Listener {
         }, 40);
     }
 
+    public static boolean isTrackingExemptEnabled() {
+        return trackingExemptEnabled;
+    }
+
+    public static boolean isTrackingExemptAllowBountySetting() {
+        return trackingExemptAllowBountySetting;
+    }
+
+    public static long getTrackingExemptDelayAfterSet() {
+        return trackingExemptDelayAfterSet;
+    }
 }

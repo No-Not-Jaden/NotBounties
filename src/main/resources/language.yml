@@ -74,6 +74,11 @@ empty-tracker-lore:
   - '&7head to track a bounty.'
   - ''
 tracker-offline: "&7*offline*"
+tracker-immune: '&c{player} is immune to tracking!'
+tracker-exempt-cooldown: '&cYou just set a bounty! You must wait {time} to become exempt from tracking.'
+tracker-exempt-bounty: '&cYou cannot set a bounty while exempt from tracking.'
+tracker-exempt-enable: '&aYou are now exempt from tracking.'
+tracker-exempt-disable: '&eYou are no longer exempt from tracking.'
 tracker-no-permission: "&cNo Permission."
 tracker-give: '&eYou have given &6{receiver}&e a compass that tracks &6{player}&e.' #
 tracker-receive: '&eYou have been given a bounty tracker for &6{player}&e.'

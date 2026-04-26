@@ -59,14 +59,13 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
 /**
  * Go through wiki for outdated materials
  * Update front page
- * Separate messages sent to the proxy if they are too big. (Velocity version too)
  * Team bounties
- * Bungee support.
  * Better SQL and Redis config with connection string and address options to replace others.
  * Redo vouchers with persistent data, give items, & reward delay
  * Redis Pub Sub messages for player data storage. - proxy messaging too
  * database message table with server IDs
  * Redo database system with large datasets in mind
+ * store playtime of player when the bounty is set to reward based on time survived
  * Async GUI and data requests
  * fast database option to use directly instead of an update interval
  * Multiple proxy databases

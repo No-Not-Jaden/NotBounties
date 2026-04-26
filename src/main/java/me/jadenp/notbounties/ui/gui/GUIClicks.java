@@ -5,13 +5,11 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
-import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -28,27 +26,27 @@ public class GUIClicks {
     enum ClickAction {
         POSTER, TRACKER, VIEW, REMOVE, EDIT, NONE
     }
-    private static ClickAction playerRight;
-    private static ClickAction playerLeft;
-    private static ClickAction playerMiddle;
-    private static ClickAction playerBedrock;
-    private static ClickAction playerDrop;
-    private static ClickAction adminRight;
-    private static ClickAction adminLeft;
-    private static ClickAction adminMiddle;
-    private static ClickAction adminBedrock;
-    private static ClickAction adminDrop;
+    private static String playerRight;
+    private static String playerLeft;
+    private static String playerMiddle;
+    private static String playerBedrock;
+    private static String playerDrop;
+    private static String adminRight;
+    private static String adminLeft;
+    private static String adminMiddle;
+    private static String adminBedrock;
+    private static String adminDrop;
     public static void loadConfiguration(ConfigurationSection configuration) {
-        playerRight = getClickActionOrNone(configuration.getString("right"));
-        playerLeft = getClickActionOrNone(configuration.getString("left"));
-        playerMiddle = getClickActionOrNone(configuration.getString("middle"));
-        playerBedrock = getClickActionOrNone(configuration.getString("bedrock"));
-        playerDrop = getClickActionOrNone(configuration.getString("drop"));
-        adminRight = getClickActionOrNone(configuration.getString("admin.right"));
-        adminLeft = getClickActionOrNone(configuration.getString("admin.left"));
-        adminMiddle = getClickActionOrNone(configuration.getString("admin.middle"));
-        adminBedrock = getClickActionOrNone(configuration.getString("admin.bedrock"));
-        adminDrop = getClickActionOrNone(configuration.getString("admin.drop"));
+        playerRight = configuration.getString("right");
+        playerLeft = configuration.getString("left");
+        playerMiddle = configuration.getString("middle");
+        playerBedrock = configuration.getString("bedrock");
+        playerDrop = configuration.getString("drop");
+        adminRight = configuration.getString("admin.right");
+        adminLeft = configuration.getString("admin.left");
+        adminMiddle = configuration.getString("admin.middle");
+        adminBedrock = configuration.getString("admin.bedrock");
+        adminDrop = configuration.getString("admin.drop");
     }
 
     private static ClickAction getClickActionOrNone(@Nullable String action) {
@@ -82,8 +80,8 @@ public class GUIClicks {
 
     private static boolean usingActions(ClickAction clickAction, boolean buyBack, boolean admin) {
         if (admin)
-            return adminRight == clickAction || adminLeft == clickAction || adminMiddle == clickAction || adminDrop == clickAction;
-        return playerRight == clickAction || (playerLeft == clickAction && !buyBack) || playerMiddle == clickAction || playerDrop == clickAction;
+            return getClickActionOrNone(adminRight) == clickAction || getClickActionOrNone(adminLeft) == clickAction || getClickActionOrNone(adminMiddle) == clickAction || getClickActionOrNone(adminDrop) == clickAction;
+        return getClickActionOrNone(playerRight) == clickAction || (getClickActionOrNone(playerLeft) == clickAction && !buyBack) || getClickActionOrNone(playerMiddle) == clickAction || getClickActionOrNone(playerDrop) == clickAction;
     }
 
     /**
@@ -108,7 +106,7 @@ public class GUIClicks {
                     runAction(player, bounty, adminLeft);
                 } else {
                     if (player.getUniqueId().equals(bounty.getUUID()) && ConfigOptions.getMoney().isBuyOwn() && player.hasPermission("notbounties.buyown")) {
-                        runAction(player, bounty, ClickAction.REMOVE); // buy back
+                        runAction(player, bounty, "REMOVE"); // buy back
                     } else {
                         runAction(player, bounty, playerLeft);
                     }
@@ -142,8 +140,8 @@ public class GUIClicks {
         }
     }
 
-    private static void runAction(Player player, Bounty bounty, ClickAction clickAction) {
-        switch (clickAction) {
+    private static void runAction(Player player, Bounty bounty, String clickAction) {
+        switch (getClickActionOrNone(clickAction)) {
             case EDIT -> {
                 if (player.hasPermission(NotBounties.getAdminPermission())) {
                     player.closeInventory();
@@ -173,18 +171,21 @@ public class GUIClicks {
             case POSTER -> {
                 if (BountyMap.isGiveOwn() || player.hasPermission("notbounties.spawnposter")) {
                     player.closeInventory();
-                    ActionCommands.executeCommands(player, Collections.singletonList(ConfigOptions.getPluginBountyCommands().get(0) + " poster " + bounty.getName()));
+                    ConfigOptions.runGUIPluginCommand(player, "poster " + bounty.getName());
                 }
             }
             case TRACKER -> {
                 if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || player.hasPermission(NotBounties.getAdminPermission()) || player.hasPermission("notbounties.spawntracker") || player.hasPermission("notbounties.writeemptytracker")) && player.hasPermission("notbounties.tracker")) {
                     player.closeInventory();
-                    ActionCommands.executeCommands(player, Collections.singletonList(ConfigOptions.getPluginBountyCommands().get(0) + " tracker " + bounty.getName()));
+                    ConfigOptions.runGUIPluginCommand(player, "tracker " + bounty.getName());
                 }
             }
             case VIEW -> GUI.openGUI(player, "view-bounty", 1, bounty.getUUID());
             case NONE -> {
-                // no action
+                // run command
+                if (clickAction != null && !clickAction.isEmpty() && !clickAction.equalsIgnoreCase("none")) {
+                    ActionCommands.executeCommands(player, Collections.singletonList(clickAction));
+                }
             }
         }
     }

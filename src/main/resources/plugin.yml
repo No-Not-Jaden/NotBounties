@@ -67,6 +67,10 @@ permissions:
   notbounties.tracker:
     default: true
     description: Use a bounty tracker.
+    children: [notbounties.tracker.exempt]
+  notbounties.tracker.exempt:
+    default: true
+    description: Exempt yourself from bounty tracking.
   # These tracker and poster perms override the settings in display.yml
   notbounties.spawntracker:
     default: false
@@ -132,6 +136,7 @@ permissions:
       - notbounties.sort
       - notbounties.crafttracker
       - notbounties.craftposter
+      - notbounties.gui
   notbounties.immunity.murder:
     default: false
     description: Immune to murder auto-bounties.
@@ -141,6 +146,9 @@ permissions:
   notbounties.immunity.timed:
     default: false
     description: Immune to timed auto-bounties.
+  notbounties.immunity.tracked:
+    default: false
+    description: Immune to being tracked with a bounty tracker.
   notbounties.hunt:
     default: true
     description: Allow players to use the bounty hunt feature.
@@ -156,6 +164,9 @@ permissions:
   notbounties.sort:
     default: true
     description: Sort guis.
+  notbounties.gui:
+    default: true
+    description: Open a GUI.
 libraries:
   - com.mysql:mysql-connector-j:9.4.0
   - io.lettuce:lettuce-core:7.2.1.RELEASE

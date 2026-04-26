@@ -50,6 +50,8 @@ import static me.jadenp.notbounties.ui.gui.GUI.*;
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
+// This is a very old file with lots of spaghetti code. You have been warned
+
 public class Commands implements CommandExecutor, TabCompleter {
 
     private static final Map<UUID, Long> giveOwnCooldown = new HashMap<>();
@@ -1579,6 +1581,32 @@ public class Commands implements CommandExecutor, TabCompleter {
                 // give a tracker that points toward a certain player with a bounty
                 if (BountyTracker.isEnabled())
                     // admins can do everything -                         Give own or write empty settings with the tracker perm
+                { // <TODO> Refractor this
+                    if (BountyTracker.isTrackingExemptEnabled() && sender instanceof Player player && args.length > 1 && args[1].equalsIgnoreCase("exempt") && (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.tracker.exempt"))) {
+                        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+                        long sinceLastSet = System.currentTimeMillis() - playerData.getBountyCooldown();
+                        if (sinceLastSet < BountyTracker.getTrackingExemptDelayAfterSet() * 1000) {
+                            // set bounty too recently
+                            if (!silent)
+                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-exempt-cooldown"), BountyTracker.getTrackingExemptDelayAfterSet() * 1000L - sinceLastSet, LocalTime.TimeFormat.RELATIVE, parser));
+                            return false;
+                        }
+                        boolean enable;
+                        if (args.length > 2) {
+                            enable = args[2].equalsIgnoreCase("true") || args[2].equalsIgnoreCase("on") || args[2].equalsIgnoreCase("1") || args[2].equalsIgnoreCase("enable");
+                        } else {
+                            enable = !playerData.isTrackingExempt();
+                        }
+                        playerData.setTrackingExempt(enable);
+                        if (!silent) {
+                            if (enable) {
+                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-exempt-enable"), parser));
+                            } else {
+                                sender.sendMessage(parse(getPrefix() + getMessage("tracker-exempt-disable"), parser));
+                            }
+                        }
+                        return true;
+                    }
                     if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawntracker") || sender.hasPermission("notbounties.writeemptytracker") || ((BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers()) && (adminPermission || sender.hasPermission("notbounties.tracker")))) {
                         if (!(adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) && sender instanceof Player player) {
                             if (giveOwnCooldown.containsKey(parser.getUniqueId()) && giveOwnCooldown.get(player.getUniqueId()) > System.currentTimeMillis()) {
@@ -1711,6 +1739,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                             sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
                         return false;
                     }
+                }
                 return true;
             } else {
                 if (adminPermission || sender.hasPermission("notbounties.set")) {
@@ -1737,6 +1766,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                             return false;
                         }
                     }
+                    if (BountyTracker.isTrackingExemptEnabled() && !BountyTracker.isTrackingExemptAllowBountySetting() && sender instanceof Player player2 && DataManager.getPlayerData(player2.getUniqueId()).isTrackingExempt()) {
+                        if (!silent)
+                            sender.sendMessage(parse(getPrefix() + getMessage("tracker-exempt-bounty"), parser));
+                        return false;
+                    }
+
                     if (!ConfigOptions.isSelfSetting() && sender instanceof Player p && p.getUniqueId().equals(playerUUID)) {
                         // own bounty
                         if (!silent)
@@ -2275,6 +2310,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                     if (sender.hasPermission(NotBounties.getAdminPermission()))
                         tab.add("empty");
+                } else if (args[0].equalsIgnoreCase("tracker") && BountyTracker.isEnabled() && BountyTracker.isTrackingExemptEnabled() && (sender.hasPermission("notbounties.tracker.exempt") || sender.hasPermission(NotBounties.getAdminPermission()))) {
+                    tab.add("exempt");
                 } else if (args[0].equalsIgnoreCase("set") && sender.hasPermission("notbounties.set")) {
                     tab.add("offline");
                 } else if (args[0].equalsIgnoreCase("whitelist") && sender.hasPermission("notbounties.whitelist") && Whitelist.isEnabled()) {
@@ -2384,6 +2421,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if ((sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.buyimmunity")) && (ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.SCALING || ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.TIME))
                         tab.add("--confirm");
                 } else if (args[0].equalsIgnoreCase("tracker") && BountyTracker.isEnabled()) {
+                    if (args[1].equalsIgnoreCase("exempt") && BountyTracker.isTrackingExemptEnabled() && (sender.hasPermission("notbounties.tracker.exempt") || sender.hasPermission(NotBounties.getAdminPermission()))) {
+                        tab.add("enable");
+                        tab.add("disable");
+                    }
                     for (Map.Entry<UUID, String> entry : NotBounties.getNetworkPlayers().entrySet()) {
                         if (entry.getValue().length() < 25)
                             tab.add(entry.getValue());

@@ -118,6 +118,13 @@ bounty-tracker:
   # how many blocks away until the tracked player gets a message about being tracked
   # 0 to disable, -1 to send a message from any distance
   alert: 500
+  # Allow players to exempt themselves from being tracked with /bounty tracker exempt (required notbounties.tracker.exempt)
+  tracking-exempt:
+    enabled: false
+    # If you are exempt, you cannot set bounties
+    allow-bounty-setting: false
+    # The time in seconds that the player must wait to use the exempt command after setting a bounty
+    delay-after-set: 86400
   # information to show when a player is holding a tracker
   # with everything enabled it would look something like:
   # Not_Jaden - 25m - 13x 63y 20z - world
