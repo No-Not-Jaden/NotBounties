@@ -41,8 +41,8 @@ public class SkinManager {
             .maximumSize(100)
             .expireAfterWrite(1, TimeUnit.HOURS)
             .build();
-    private static final long MOJANG_API_LIMIT_MS = 10 * 60 * 1000L;
-    private static final long MOJANG_API_LIMIT_COUNT = 500;
+    private static final long MOJANG_API_LIMIT_MS = 2 * 60 * 1000L;
+    private static final long MOJANG_API_LIMIT_COUNT = 200;
     private static long lastLimitCheck = System.currentTimeMillis();
     private static long refreshInterval = 86400000; // 24 hours in ms
     private static final Map<UUID, Long> skinLoadTime = new ConcurrentHashMap<>();
@@ -51,6 +51,7 @@ public class SkinManager {
     private static BufferedImage missingSkinIso;
     private static PlayerSkin missingSkin = new PlayerSkin(null, null, true);
     private static final IsometricRenderer isoRenderer = new IsometricRenderer();
+    private static final Set<UUID> pendingRequests = ConcurrentHashMap.newKeySet();
 
     public static void loadConfiguration(ConfigurationSection config) {
         refreshInterval = config.getLong("refresh-interval", 86400L) * 1000L;
@@ -65,8 +66,8 @@ public class SkinManager {
         }
     }
 
-    private static final List<Long> rateLimit = new ArrayList<>(); // 200 requests / min
-    private static final List<UUID> queuedRequests = new ArrayList<>();
+    private static final List<Long> rateLimit = Collections.synchronizedList(new LinkedList<>()); // 200 requests / min
+    private static final List<UUID> queuedRequests = Collections.synchronizedList(new LinkedList<>());
 
     private SkinManager(){}
 
@@ -93,6 +94,7 @@ public class SkinManager {
     public static void saveSkin(UUID uuid, PlayerSkin playerSkin) {
         savedSkins.put(uuid, playerSkin);
         skinLoadTime.put(uuid, System.currentTimeMillis());
+        pendingRequests.remove(uuid);
         NotBounties.debugMessage("Saved player skin -> " + uuid + " as " + playerSkin.url(), false);
         synchronized (updateListeners) {
             updateListeners.forEach(listener -> listener.onSkinUpdate(uuid));
@@ -124,12 +126,11 @@ public class SkinManager {
             // check if skin has expired
             if (refreshInterval > 0 && !uuid.equals(DataManager.GLOBAL_SERVER_ID)) {
                 long loadTime = skinLoadTime.getOrDefault(uuid, 0L);
-                if (System.currentTimeMillis() - loadTime > refreshInterval) {
-                    // skin has expired
-                    if (isSafeToRequest()) {
-                        saveSkin(uuid);
-                    }
+                if (System.currentTimeMillis() - loadTime > refreshInterval
+                        && isSafeToRequest()) {
+                    saveSkin(uuid);
                 }
+
             }
             return true;
         }
@@ -156,16 +157,21 @@ public class SkinManager {
     private static void saveSkin(UUID uuid) {
 
         skinLoadTime.put(uuid, System.currentTimeMillis());
-        NotBounties.debugMessage("Attempting to save skin for: " + uuid, false);
         requestSkin(uuid, true);
     }
 
     public static void requestSkin(UUID uuid, boolean firstAttempt) {
-        if (isSafeToRequest()) {
-            SkinResponseHandler.webRequestSkin(uuid, firstAttempt);
-        } else {
-            NotBounties.debugMessage("Too many requests to save skins! Delaying some... ", false);
-            requestLater(uuid);
+        if (!pendingRequests.contains(uuid)) {
+            if (firstAttempt) {
+                NotBounties.debugMessage("Attempting to save skin for: " + uuid, false);
+            }
+            pendingRequests.add(uuid);
+            if (isSafeToRequest()) {
+                SkinResponseHandler.webRequestSkin(uuid, firstAttempt);
+            } else {
+                NotBounties.debugMessage("Too many requests to save skins! Delaying some... ", false);
+                requestLater(uuid);
+            }
         }
     }
 
@@ -175,12 +181,11 @@ public class SkinManager {
 
     protected static int getRecentRequestCount() {
         if (System.currentTimeMillis() - lastLimitCheck < 5000) {
-            List<Long> rateLimitCopy = new ArrayList<>(rateLimit);
             lastLimitCheck = System.currentTimeMillis();
             long minKeepTime = lastLimitCheck - MOJANG_API_LIMIT_MS;
-            NotBounties.getServerImplementation().global().run(() -> rateLimit.removeIf(l -> l < minKeepTime));
-            rateLimitCopy.removeIf(l -> l < minKeepTime);
-            return rateLimitCopy.size();
+            synchronized (rateLimit) {
+                rateLimit.removeIf(l -> l < minKeepTime);
+            }
         }
         return rateLimit.size();
     }
@@ -189,24 +194,26 @@ public class SkinManager {
      * Call this function when a 429 response code is returned from a request.
      * This means the internal rate limiting has failed, which is likely due to another plugin requesting from the api,
      * or the rate limit has changed.
-     * This function automatically fills the rate limit with entries that expire in a minute.
+     * This function automatically fills the rate limit.
      */
     protected static void failRateLimit() {
-        NotBounties.getServerImplementation().global().run(() -> {
-            long fillSize = MOJANG_API_LIMIT_COUNT + 20;
-            final long entryTime = System.currentTimeMillis() - MOJANG_API_LIMIT_MS + 60000L; // expires in 60 seconds
-            if (rateLimit.size() < fillSize) {
+        long fillSize = MOJANG_API_LIMIT_COUNT;
+        final long entryTime = System.currentTimeMillis(); // expires in 60 seconds
+        if (rateLimit.size() < fillSize) {
+            synchronized (rateLimit) {
                 for (int i = 0; i < fillSize - rateLimit.size(); i++) {
                     rateLimit.add(entryTime);
                 }
             }
-        });
+        }
     }
 
     public static void removeOldData() {
         long currentTime = System.currentTimeMillis();
         long minKeepTime = currentTime - MOJANG_API_LIMIT_MS;
-        rateLimit.removeIf(l -> l < minKeepTime); // remove times more than 1 minute ago
+        synchronized (rateLimit) {
+            rateLimit.removeIf(l -> l < minKeepTime); // remove times more than 1 minute ago
+        }
         SkinResponseHandler.checkSleep();
     }
 
@@ -220,25 +227,33 @@ public class SkinManager {
     protected static void requestLater(UUID uuid) {
         if (queuedRequests.isEmpty() && !rateLimit.isEmpty()) {
             queuedRequests.add(uuid);
-            long nextRequestTime = (10000 + MOJANG_API_LIMIT_MS - (System.currentTimeMillis() - rateLimit.get(0))) / 50; // 10 seconds after the first item in the rate limit expires. (expires after 60 seconds)
-            NotBounties.getServerImplementation().async().runDelayed(() -> {
-                List<UUID> requests = new ArrayList<>(queuedRequests);
+            long nextRequestTime = Math.max((10000 + MOJANG_API_LIMIT_MS - (System.currentTimeMillis() - rateLimit.get(0))) / 50, 1000L); // 10 seconds after the first item in the rate limit expires. (expires after 60 seconds)
+            List<UUID> requests;
+            synchronized (queuedRequests) {
+                requests = new ArrayList<>(queuedRequests);
                 queuedRequests.clear();
-                for (UUID currentUUID : requests)
-                    isSkinLoaded(currentUUID);
-            }, nextRequestTime);
+            }
+            if (NotBounties.getInstance().isEnabled()) {
+                NotBounties.getServerImplementation().async().runDelayed(() -> {
+                    for (UUID currentUUID : requests) {
+                        pendingRequests.remove(currentUUID);
+                        isSkinLoaded(currentUUID);
+                    }
+                }, nextRequestTime);
+            }
         } else {
             queuedRequests.add(uuid);
         }
     }
 
     public static void incrementMojangRate() {
-        NotBounties.getServerImplementation().global().run(() -> rateLimit.add(System.currentTimeMillis()));
+        rateLimit.add(System.currentTimeMillis());
     }
 
     public static void failRequest(@NotNull UUID uuid) {
         skinLoadTime.put(uuid, System.currentTimeMillis());
         savedSkins.computeIfAbsent(uuid, k -> missingSkin);
+        pendingRequests.remove(uuid);
     }
 
     public static boolean isMissingSkin(PlayerSkin playerSkin) {
@@ -369,7 +384,7 @@ class SkinResponseHandler {
     }
 
     private static void createClient() {
-        if (client != null)
+        if (client != null || !NotBounties.getInstance().isEnabled())
             return;
         NotBounties.debugMessage("Creating new skin request client.", false);
         client = NotBounties.getServerImplementation().async().runAtFixedRate(() -> {
@@ -396,6 +411,17 @@ class SkinResponseHandler {
             }
             setLastRequest();
         }, 1, 3);
+    }
+
+    private static void failRateLimit(UUID uuid) {
+        SkinManager.failRateLimit();
+        SkinManager.requestLater(uuid);
+        while (!requestQueue.isEmpty()) {
+            SkinRequestType skinRequestType = requestQueue.poll();
+            if (skinRequestType != null) {
+                SkinManager.requestLater(skinRequestType.uuid());
+            }
+        }
     }
 
     private static @Nullable PlayerSkin requestPlayerSkin(SkinRequestType skinRequestType, CloseableHttpClient httpClient) throws IOException {
@@ -478,8 +504,7 @@ class SkinResponseHandler {
                 return new PlayerSkin(SkinManager.getTextureURL(value), id, false);
             } else if (statusLine.getStatusCode() == 429) {
                 // hit rate limit
-                SkinManager.failRateLimit();
-                SkinManager.requestLater(requestUUID);
+                failRateLimit(requestUUID);
                 throw new IOException("Exceeding Mojang rate limit with: " + requestUUID + "\n Recorded rate: " + SkinManager.getRecentRequestCount());
             } else {
                 if (tryNamed) {
@@ -507,8 +532,7 @@ class SkinResponseHandler {
             NotBounties.debugMessage(request + "->" + statusLine, false);
             if (statusLine.getStatusCode() == 429) {
                 // hit rate limit
-                SkinManager.failRateLimit();
-                SkinManager.requestLater(uuid);
+                failRateLimit(uuid);
                 throw new IOException("Exceeding Mojang rate limit with: " + playerName + "\n Recorded rate: " + SkinManager.getRecentRequestCount());
             }
             if (statusLine.getStatusCode() != 200 || response.getEntity() == null) {

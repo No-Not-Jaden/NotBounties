@@ -11,6 +11,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -50,21 +51,24 @@ public class Head {
         return item;
     }
 
-    public static @NotNull ItemStack createPlayerSkull(UUID uuid, URL textureURL) {
+    public static @NotNull ItemStack createPlayerSkull(UUID uuid, @Nullable URL textureURL) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         if (NotBounties.getServerVersion() >= 18) {
-            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, LoggedPlayers.getPlayerName(uuid)); // should be same as the one in the head
-            PlayerTextures textures = profile.getTextures();
-            textures.setSkin(textureURL);
-            profile.setTextures(textures);
+            PlayerProfile profile = Bukkit.createPlayerProfile(uuid);
+            if (textureURL != null) {
+                PlayerTextures textures = profile.getTextures();
+                textures.setSkin(textureURL);
+                profile.setTextures(textures);
+            }
             meta.setOwnerProfile(profile);
             head.setItemMeta(meta);
             return head;
         } else {
-                byte[] encodedData = Base64.getEncoder().encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", textureURL).getBytes());
-                return Bukkit.getUnsafe().modifyItemStack(head, "{display:{Name:\"{\\\"text\\\":\\\"Head\\\"}\"},SkullOwner:{Id:[" + "I;1201296705,1414024019,-1385893868,1321399054" + "],Properties:{textures:[{Value:\"" + new String(encodedData) + "\"}]}}}");
+            if (textureURL == null) return head;
+            byte[] encodedData = Base64.getEncoder().encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", textureURL).getBytes());
+            return Bukkit.getUnsafe().modifyItemStack(head, "{display:{Name:\"{\\\"text\\\":\\\"Head\\\"}\"},SkullOwner:{Id:[" + "I;1201296705,1414024019,-1385893868,1321399054" + "],Properties:{textures:[{Value:\"" + new String(encodedData) + "\"}]}}}");
         }
     }
 
@@ -77,7 +81,7 @@ public class Head {
 
             urlString = urlString.substring(before.length(), urlString.length() - after.length());
             URL url = new URL(urlString);
-            PlayerProfile profile = Bukkit.createPlayerProfile(new UUID(13, headID++), "");
+            PlayerProfile profile = Bukkit.createPlayerProfile(new UUID(13, headID++));
             PlayerTextures textures = profile.getTextures();
             textures.setSkin(url);
             profile.setTextures(textures);

@@ -33,7 +33,8 @@ public class HeadFetcher {
         ItemStack head = savedHeads.getIfPresent(uuid);
         if (head != null)
             return head.clone();
-        head = new ItemStack(Material.PLAYER_HEAD);
+        return Head.createPlayerSkull(uuid, SkinManager.getSkin(uuid).url());
+        /*head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         try {
@@ -42,6 +43,8 @@ public class HeadFetcher {
             if (NotBounties.getServerVersion() >= 18) {
                 try {
                     PlayerProfile profile = Bukkit.createPlayerProfile(uuid, LoggedPlayers.getPlayerName(uuid));
+                    // set skin first
+
                     meta.setOwnerProfile(profile);
                 } catch (IllegalArgumentException ignored) {
                     // The name of the profile is longer than 16 characters
@@ -50,6 +53,6 @@ public class HeadFetcher {
             }
         }
         head.setItemMeta(meta);
-        return head;
+        return head;*/
     }
 }

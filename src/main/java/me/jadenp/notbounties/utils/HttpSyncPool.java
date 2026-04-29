@@ -16,15 +16,23 @@ import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.util.TimeValue;
+import org.bukkit.Bukkit;
+import org.bukkit.profile.PlayerProfile;
 
+import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
+import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 public final class HttpSyncPool implements Closeable {
     private final org.apache.hc.client5.http.impl.classic.CloseableHttpClient client;
+    private static final Map<String, PlayerProfile> playerProfilesByData = new ConcurrentHashMap<>();
     /**
      * Bounded pool so we don't overwhelm the server or our JVM with too many runnables.
      */
@@ -68,11 +76,31 @@ public final class HttpSyncPool implements Closeable {
                     try {
                         return client.execute(request, handler);
                     } catch (Exception e) {
+                        limiter.pauseFor(Duration.ofSeconds(2));
                         throw new CompletionException(e);
                     }
                 }, exec)
                 // 3) Safety timeout for the whole operation
                 .orTimeout(7, TimeUnit.SECONDS);
+    }
+
+    public @Nullable PlayerProfile getPlayerProfile(String key, UUID uuid, @Nullable String name) {
+        if (playerProfilesByData.containsKey(key)) {
+            return playerProfilesByData.get(key);
+        }
+        return limiter.tryExecuteOrDefer(() -> {
+            PlayerProfile profile;
+            if (name == null) {
+                profile = Bukkit.createPlayerProfile(uuid);
+            } else {
+                profile = Bukkit.createPlayerProfile(uuid, name);
+            }
+            playerProfilesByData.put(key, profile);
+            return profile;
+        },
+                playerProfilesByData.get(key),
+                exec
+        );
     }
 
     @Override
@@ -94,6 +122,7 @@ public final class HttpSyncPool implements Closeable {
         private final ScheduledExecutorService scheduler;
         private final AtomicInteger tokens = new AtomicInteger(0);
         private final ConcurrentLinkedQueue<CompletableFuture<Void>> waiters = new ConcurrentLinkedQueue<>();
+        private final AtomicLong pausedUntilNanos = new AtomicLong(0);
 
         /**
          * @param rps   permits per second (e.g., 5.0)
@@ -115,7 +144,18 @@ public final class HttpSyncPool implements Closeable {
             scheduler.scheduleAtFixedRate(this::refillAndDrain, tickNanos, tickNanos, TimeUnit.NANOSECONDS);
         }
 
+        public void pauseFor(Duration duration) {
+            long until = System.nanoTime() + duration.toNanos();
+            pausedUntilNanos.updateAndGet(prev -> Math.max(prev, until));
+        }
+
         public CompletableFuture<Void> acquireAsync() {
+            long now = System.nanoTime();
+            if (now < pausedUntilNanos.get()) {
+                CompletableFuture<Void> fut = new CompletableFuture<>();
+                waiters.add(fut);
+                return fut;
+            }
             // Fast path: consume a token immediately if available
             while (true) {
                 int available = tokens.get();
@@ -134,13 +174,50 @@ public final class HttpSyncPool implements Closeable {
             }
         }
 
+        public <T> T tryExecuteOrDefer(
+                Supplier<T> task,
+                T fallback,
+                Executor executor
+        ) {
+            CompletableFuture<Void> permit = acquireAsync();
+
+            // If we can run immediately, do it synchronously
+            if (permit.isDone() && !permit.isCompletedExceptionally()) {
+                try {
+                    return task.get();
+                } catch (Exception e) {
+                    throw e instanceof RuntimeException
+                            ? (RuntimeException) e
+                            : new RuntimeException(e);
+                }
+            }
+
+            // Otherwise: schedule it for later
+            permit.thenRunAsync(() -> {
+                try {
+                    task.get();
+                } catch (Exception ignored) {
+                    // swallow or log if you want
+                }
+            }, executor);
+
+            return fallback;
+        }
+
         private void refillAndDrain() {
+
             // Refill one token per tick up to burst
             int current;
             do {
                 current = tokens.get();
                 if (current >= burst) break;
             } while (!tokens.compareAndSet(current, current + 1));
+
+            long now = System.nanoTime();
+            // If paused, do NOT serve waiters
+            if (now < pausedUntilNanos.get()) {
+                return;
+            }
 
             // Serve queued waiters as long as tokens remain
             while (true) {
@@ -171,6 +248,9 @@ public final class HttpSyncPool implements Closeable {
     static class ResponseHandler implements HttpClientResponseHandler<String> {
         @Override
         public String handleResponse(ClassicHttpResponse classicHttpResponse) throws HttpException, IOException {
+            if (classicHttpResponse.getCode() != 200) {
+                throw new IOException("Bad Response Code: " + classicHttpResponse.getCode());
+            }
             HttpEntity entity = classicHttpResponse.getEntity();
             if (entity != null) { // return it as a String
                 String result = EntityUtils.toString(entity);

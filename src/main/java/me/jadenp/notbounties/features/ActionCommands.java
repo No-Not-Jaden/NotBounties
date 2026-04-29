@@ -219,25 +219,17 @@ public class ActionCommands {
                     ItemStack item = CompatabilityUtils.getTopInventory(player).getContents()[slot];
                     if (item != null) {
                         if (item.getType() == Material.PLAYER_HEAD) {
-                            SkullMeta meta = (SkullMeta) item.getItemMeta();
-                            assert meta != null;
-                            OfflinePlayer p = meta.getOwningPlayer();
-                            if (p != null && !LoggedPlayers.isMissing(p.getUniqueId())) {
-                                replacement = LoggedPlayers.getPlayerName(p);
-                            } else {
-                                if (!info.guiType().isEmpty()) {
-                                    GUIOptions guiOptions = GUI.getGUI(info.guiType());
-                                    if (guiOptions != null) {
-                                        if (guiOptions.getPlayerSlots().contains(slot) && info.displayItems().get(guiOptions.getPlayerSlots().indexOf(slot)) instanceof PlayerItem playerItem) {
-                                            replacement = playerItem.getName();
-                                        }
-                                    } else {
-                                        plugin.getLogger().warning("Invalid player for slot " + slot);
+                            if (info != null && !info.guiType().isEmpty()) {
+                                GUIOptions guiOptions = GUI.getGUI(info.guiType());
+                                if (guiOptions != null) {
+                                    if (guiOptions.getPlayerSlots().contains(slot) && info.displayItems().get(guiOptions.getPlayerSlots().indexOf(slot)) instanceof PlayerItem playerItem) {
+                                        replacement = playerItem.getName();
                                     }
                                 } else {
                                     plugin.getLogger().warning("Invalid player for slot " + slot);
                                 }
-
+                            } else {
+                                plugin.getLogger().warning("Invalid player for slot " + slot);
                             }
                         }
                         if (replacement.isEmpty()) {

@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.profile.PlayerProfile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -239,6 +240,11 @@ public class LoggedPlayers {
                         return null;
                     });
         }
+    }
+
+    public static @Nullable PlayerProfile getPlayerProfile(String key, UUID uuid, @Nullable String name) {
+        loadHttpPool();
+        return httpPool.getPlayerProfile(key, uuid, name);
     }
 
     public static void shutdown() {
