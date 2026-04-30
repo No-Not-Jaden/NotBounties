@@ -66,6 +66,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * database message table with server IDs
  * Redo database system with large datasets in mind
  * store playtime of player when the bounty is set to reward based on time survived
+ * DB table to store tags for each bounty, ex: bounty team, or bounty region
  * Async GUI and data requests
  * fast database option to use directly instead of an update interval
  * Multiple proxy databases
