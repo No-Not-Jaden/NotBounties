@@ -55,7 +55,7 @@ public class LoadPlaytimeTask extends CancelableTask{
             // if the time decreased, old players don't need to be checked again
             if (increase || playerData.isNewPlayer()) {
                 playersChecked++;
-                OfflinePlayer p = Bukkit.getOfflinePlayer(uuid);
+                OfflinePlayer p = Bukkit.getOfflinePlayer(uuid); // TODO: Store playtime in playerdata instead, and modify bountyExpire's methods to track that way
                 boolean isNew = ((double) p.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20) < ImmunityManager.getNewPlayerImmunity();
                 playerData.setNewPlayer(isNew);
             }

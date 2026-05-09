@@ -5,7 +5,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
-import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
@@ -18,15 +17,15 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.text.DateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class LocalTime {
     public enum TimeFormat {
@@ -36,46 +35,48 @@ public class LocalTime {
     private static int account;
     private static String license = null;
     private static long lastException = 0;
-    private static final String SECRET_FILE = "secret.yml";
     private static final long ERROR_TIMEOUT_MS = 18 * 60 * 60 * 1000L;
+    private static boolean autoTimezone;
+    private static int defaultDateTimeStyle;
+    private static TimeZone defaultPlayerTimeZone;
+    private static String durationFormat;
+
+    public static void loadConfiguration(ConfigurationSection config) {
+        autoTimezone = config.getBoolean("auto-timezone");
+        // Default player time formatting style
+        String styleStr = config.getString("default-format-style", "DEFAULT").toUpperCase(Locale.ROOT);
+        switch (styleStr) {
+            case "FULL" -> defaultDateTimeStyle = DateFormat.FULL;
+            case "LONG" -> defaultDateTimeStyle = DateFormat.LONG;
+            case "MEDIUM" -> defaultDateTimeStyle = DateFormat.MEDIUM;
+            case "SHORT" -> defaultDateTimeStyle = DateFormat.SHORT;
+            default -> defaultDateTimeStyle = DateFormat.DEFAULT;
+        }
+
+        // Default player timezone when none recorded
+        String tzStr = config.getString("time.default-timezone", "SERVER");
+        if (tzStr.equalsIgnoreCase("SERVER") || tzStr.isEmpty()) {
+            defaultPlayerTimeZone = TimeZone.getDefault();
+        } else {
+            defaultPlayerTimeZone = TimeZone.getTimeZone(tzStr);
+        }
+        durationFormat = config.getString("duration-format", "[{d}d] [{h}h] [{m}m] [{s}s]");
+
+        account = config.getInt("geoip2.account");
+        license = config.getString("geoip2.license");
+    }
 
     public static void addTimeZone(UUID uuid, String timeZone) {
         savedTimeZones.put(uuid, TimeZone.getTimeZone(timeZone));
     }
 
-    public static void readAuthentication() throws IOException {
-        // checks if secret file is present
-        File secretFile = new File(NotBounties.getInstance().getDataFolder() + File.separator + SECRET_FILE);
-        if (!secretFile.exists()) {
-            NotBounties.getInstance().saveResource(SECRET_FILE, false);
-            NotBounties.debugMessage("Created Secret File!", false);
-        }
-        YamlConfiguration configuration;
-        if (secretFile.exists()) {
-            configuration = YamlConfiguration.loadConfiguration(secretFile);
-        } else if (NotBounties.getInstance().getResource(SECRET_FILE) != null) {
-            configuration = YamlConfiguration.loadConfiguration(new InputStreamReader(Objects.requireNonNull(NotBounties.getInstance().getResource(SECRET_FILE))));
-        } else {
-            throw new IOException("No Secret File Found!");
-        }
-
-        // load account id and license key from secret file
-        account = configuration.getInt("geoip2.account");
-        license = configuration.getString("geoip2.license");
-    }
-
     private static String formatTime(long time, Player player) {
-        if (!ConfigOptions.isAutoTimezone())
+        if (!autoTimezone)
             return formatTime(time);
+
         if (lastException + ERROR_TIMEOUT_MS > System.currentTimeMillis() || ProxyMessaging.hasConnectedBefore())
             return formatTime(time, player.getLocale());
-        if (license == null) {
-            try {
-                readAuthentication();
-            } catch (IOException e) {
-                NotBounties.debugMessage(e.getMessage(), false);
-            }
-        }
+
         if (savedTimeZones.containsKey(player.getUniqueId()))
             return formatTime(time, savedTimeZones.get(player.getUniqueId()));
 
@@ -121,43 +122,90 @@ public class LocalTime {
     }
 
     private static String formatTime(long time, TimeZone timeZone) {
-        int style = ConfigOptions.getDefaultDateTimeStyle();
-        DateFormat dateFormat = DateFormat.getDateTimeInstance(style, style, NumberFormatting.getLocale());
+        DateFormat dateFormat = DateFormat.getDateTimeInstance(defaultDateTimeStyle, defaultDateTimeStyle, NumberFormatting.getLocale());
         dateFormat.setTimeZone(timeZone);
         return dateFormat.format(time) + " " + timeZone.getDisplayName(false, TimeZone.SHORT);
     }
 
     private static String formatTime(long time, String localeString) {
         Locale locale = Locale.forLanguageTag(localeString);
-        int style = ConfigOptions.getDefaultDateTimeStyle();
-        DateFormat dateFormat = DateFormat.getDateTimeInstance(style, style, locale);
-        dateFormat.setTimeZone(ConfigOptions.getDefaultPlayerTimeZone());
+        DateFormat dateFormat = DateFormat.getDateTimeInstance(defaultDateTimeStyle, defaultDateTimeStyle, locale);
+        dateFormat.setTimeZone(defaultPlayerTimeZone);
         return dateFormat.format(time) + " " + dateFormat.getTimeZone().getDisplayName(false, TimeZone.SHORT);
     }
 
     private static String formatTime(long time) {
-        int style = ConfigOptions.getDefaultDateTimeStyle();
-        DateFormat dateFormat = DateFormat.getDateTimeInstance(style, style, NumberFormatting.getLocale());
-        dateFormat.setTimeZone(ConfigOptions.getDefaultPlayerTimeZone());
+        DateFormat dateFormat = DateFormat.getDateTimeInstance(defaultDateTimeStyle, defaultDateTimeStyle, NumberFormatting.getLocale());
+        dateFormat.setTimeZone(defaultPlayerTimeZone);
         return dateFormat.format(time) + " " + dateFormat.getTimeZone().getDisplayName(false, TimeZone.SHORT);
     }
 
-    private static String formatRelativeTime(long ms) {
-        long days = (long) (ms / (8.64 * Math.pow(10,7)));
-        ms = (long) (ms % (8.64 * Math.pow(10,7)));
-        long hours = ms / 3600000L;
-        ms = ms % 3600000L;
-        long minutes = ms / 60000L;
-        ms = ms % 60000L;
-        long seconds = ms / 1000L;
-        String time = "";
-        if (days > 0) time += days + "d ";
-        if (hours > 0) time += hours + "h ";
-        if (minutes > 0) time += minutes + "m ";
-        if (seconds > 0) time += seconds + "s";
-        if (time.isEmpty())
-            return "0s";
-        return time;
+    /**
+     Tokens:
+     {dd} {d}
+     {hh} {h}
+     {mm} {m}
+     {ss} {s}
+
+     Optional sections:
+     [ ... ]
+     A section is only included if at least one token inside is non-zero.
+     */
+    public static String formatDuration(long millis, String format) {
+        long totalSeconds = millis / 1000;
+
+        long days = totalSeconds / 86400;
+        totalSeconds %= 86400;
+
+        long hours = totalSeconds / 3600;
+        totalSeconds %= 3600;
+
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
+
+        // Handle optional sections
+        Pattern sectionPattern = Pattern.compile("\\[(.*?)]");
+        Matcher sectionMatcher = sectionPattern.matcher(format);
+
+        StringBuilder sectionBuffer = new StringBuilder();
+
+        while (sectionMatcher.find()) {
+            String section = sectionMatcher.group(1);
+
+            boolean include =
+                    (section.contains("{d") && days > 0) ||
+                            (section.contains("{h") && hours > 0) ||
+                            (section.contains("{m") && minutes > 0) ||
+                            (section.contains("{s") && seconds > 0);
+
+            sectionMatcher.appendReplacement(
+                    sectionBuffer,
+                    include ? Matcher.quoteReplacement(section) : ""
+            );
+        }
+
+        sectionMatcher.appendTail(sectionBuffer);
+
+        String result = sectionBuffer.toString();
+
+        // Replace tokens
+        result = result
+                .replace("{dd}", String.format("%02d", days))
+                .replace("{d}", String.valueOf(days))
+
+                .replace("{hh}", String.format("%02d", hours))
+                .replace("{h}", String.valueOf(hours))
+
+                .replace("{mm}", String.format("%02d", minutes))
+                .replace("{m}", String.valueOf(minutes))
+
+                .replace("{ss}", String.format("%02d", seconds))
+                .replace("{s}", String.valueOf(seconds));
+
+        // Cleanup whitespace
+        result = result.trim().replaceAll("\\s+", " ");
+
+        return totalSeconds == 0 ? "0s" : result;
     }
 
     public static String formatTime(long time, TimeFormat format, Player... players) {
@@ -168,7 +216,7 @@ public class LocalTime {
                 yield formatTime(time);
             }
             case SERVER -> formatTime(time);
-            case RELATIVE -> formatRelativeTime(time);
+            case RELATIVE -> formatDuration(time, durationFormat);
         };
     }
 

@@ -78,6 +78,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * Do sorting of stats asynchronously before displaying for the player.
  * EconomyShopGUI hook
  * bounty hunt end admin command
+ * last seen placeholder
  */
 public final class NotBounties extends JavaPlugin {
 

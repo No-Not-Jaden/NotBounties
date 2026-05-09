@@ -40,8 +40,6 @@ steal-bounties: false
 # BEFORE, REGULAR, or AFTER can be used
 # do not change this unless you know what you are doing
 claim-order: REGULAR
-# automatically display times in the timezone of each player
-auto-timezone: true
 # time display settings
 time:
   # Style options: FULL, LONG, MEDIUM, SHORT, DEFAULT
@@ -50,6 +48,25 @@ time:
   # Timezone ID for when a player's timezone isn't recorded yet. Use SERVER to use the server's timezone
   # Examples: UTC, America/New_York, Europe/London, Asia/Tokyo
   default-timezone: SERVER
+  # Format used when displaying a time duration to the player.
+  # Tokens:
+  # {dd} {d}
+  # {hh} {h}
+  # {mm} {m}
+  # {ss} {s}
+  #
+  # Optional sections:
+  # [ ... ]
+  # A section is only included if at least one token inside is non-zero.
+  duration-format: '[{d}d] [{h}h] [{m}m] [{s}s]'
+  # Automatically display times in the timezone of each player.
+  # Must setup geoip2 below
+  auto-timezone: true
+  # API used to get a player's timezone. You can create an account through MaxMind and get a free license
+  # https://www.maxmind.com/en/create-account
+  geoip2:
+    account: 123456
+    license: 'secret'
 # reduce the number of players that are stored when using the GUI
 # the {page_max} placeholder may not be accurate if this is true
 reduce-page-calculations: true

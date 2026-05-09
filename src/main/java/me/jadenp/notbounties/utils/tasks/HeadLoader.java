@@ -11,7 +11,6 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.LoggedPlayers;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -99,7 +98,7 @@ public class HeadLoader extends CancelableTask{
                 i = 0;
                 for (QueuedHead queuedHead : heads) {
                     if (fetchedHeads[i] == null) {
-                        NotBounties.debugMessage("[NotBountiesDebug] Timed out loading skin for " + LoggedPlayers.getPlayerName(queuedHead.uuid()), true);
+                        NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(queuedHead.uuid()), true);
                     }
                     i++;
                 }

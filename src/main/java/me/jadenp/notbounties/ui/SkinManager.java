@@ -45,6 +45,9 @@ public class SkinManager {
     private static final long MOJANG_API_LIMIT_COUNT = 200;
     private static long lastLimitCheck = System.currentTimeMillis();
     private static long refreshInterval = 86400000; // 24 hours in ms
+    /**
+     * Time when the skin was loaded. Used for refreshing skins after the refreshInterval
+     */
     private static final Map<UUID, Long> skinLoadTime = new ConcurrentHashMap<>();
     private static final List<SkinUpdateListener> updateListeners = Collections.synchronizedList(new ArrayList<>());
     private static BufferedImage missingSkinFace;
@@ -76,6 +79,7 @@ public class SkinManager {
     }
 
     public static void refreshSkinRequests() {
+        pendingRequests.clear();
         try {
             savedSkins.entrySet().removeIf(pair -> isMissingSkin(pair.getValue()) && !pair.getKey().equals(DataManager.GLOBAL_SERVER_ID)); // remove any skins that are set to missing
         } catch (ConcurrentModificationException ignored) {
