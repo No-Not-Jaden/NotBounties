@@ -150,8 +150,8 @@ public class ActionCommands {
         String killerName = killer != null ? killer.getName() : "";
 
         command = command.replace("{viewer}", playerName)
-                .replace("{player}", playerName)
-                .replace("{killer}", (killerName))
+                .replace("{player}", playerName).replace("{player_displayname}", LoggedPlayers.getDisplayName(player))
+                .replace("{killer}", (killerName)).replace("{killer_displayname}", LoggedPlayers.getDisplayName(killer))
                 .replace("{amount}", (NumberFormatting.getValue(totalBounty)))
                 .replace("{bounty}", (NumberFormatting.formatNumber(totalBounty)))
                 .replace("{bounty_currency}", (NumberFormatting.formatNumber(bountyCurrency)))

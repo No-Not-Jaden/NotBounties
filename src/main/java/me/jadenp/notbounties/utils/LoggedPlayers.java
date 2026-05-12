@@ -4,6 +4,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
+import me.jadenp.notbounties.features.settings.integrations.external_api.CMIClass;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -183,6 +184,16 @@ public class LoggedPlayers {
     }
 
     private static UUID getClosestPlayer(String playerName) {
+        if (ConfigOptions.getIntegrations().isEssentialsEnabled()) {
+            UUID uuid = ConfigOptions.getIntegrations().getEssentialsXClass().getUUID(playerName);
+            if (uuid != null)
+                return uuid;
+        }
+        if (ConfigOptions.getIntegrations().isCMIEnabled()) {
+            UUID uuid = CMIClass.getUUID(playerName);
+            if (uuid != null)
+                return uuid;
+        }
         List<String> viableNames = new ArrayList<>();
         for (Map.Entry<String, UUID> entry : playerIDs.entrySet()) {
             if (entry.getKey().toLowerCase().startsWith(playerName.toLowerCase()))
@@ -252,6 +263,41 @@ public class LoggedPlayers {
             httpPool.close();
             httpPool = null;
         }
+    }
+
+    public static String getDisplayName(OfflinePlayer p) {
+        if (p == null)
+            return "";
+        String name = getAPIDisplayName(p.getUniqueId());
+        if (name != null)
+            return name;
+        if (p.isOnline()) {
+            return Objects.requireNonNull(p.getPlayer()).getDisplayName();
+        }
+        return getPlayerName(p.getUniqueId());
+    }
+
+    private static @Nullable String getAPIDisplayName(@NotNull UUID uuid) {
+        if (ConfigOptions.getIntegrations().isEssentialsEnabled()) {
+            String name = ConfigOptions.getIntegrations().getEssentialsXClass().getNick(uuid);
+            if (name != null)
+                return name;
+        }
+        if (ConfigOptions.getIntegrations().isCMIEnabled()) {
+            String name = CMIClass.getNick(uuid);
+            if (name != null)
+                return name;
+        }
+        return null;
+    }
+
+    public static String getDisplayName(UUID uuid) {
+        if (uuid == null)
+            return "";
+        String name = getAPIDisplayName(uuid);
+        if (name != null)
+            return name;
+        return getPlayerName(uuid);
     }
 }
 

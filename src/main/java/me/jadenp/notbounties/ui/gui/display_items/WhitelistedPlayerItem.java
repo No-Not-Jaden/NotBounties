@@ -34,7 +34,8 @@ public class WhitelistedPlayerItem extends PlayerItem{
 
     @Override
     public String parseText(String text, Player player) {
-        text = text.replace("{player}", playerPrefix + LoggedPlayers.getPlayerName(super.getUuid()));
+        text = text.replace("{player}", playerPrefix + LoggedPlayers.getPlayerName(super.getUuid()))
+                .replace("{player_displayname}", playerPrefix + LoggedPlayers.getDisplayName(super.getUuid()));
         return super.parseText(text, player);
     }
 

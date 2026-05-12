@@ -10,6 +10,7 @@ import me.jadenp.notbounties.features.settings.integrations.external_api.Economy
 import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.ItemValue;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.tasks.MultipleItemGive;
 import me.jadenp.notbounties.utils.tasks.SingleItemGive;
 import me.jadenp.notbounties.features.settings.integrations.external_api.EssentialsXClass;
@@ -83,15 +84,11 @@ public class NumberFormatting {
         AUTO, ESSENTIALS, FILE, ECONOMY_SHOP_GUI, DISABLE
     }
     private static ItemValueMode bountyItemsUseItemValues = ItemValueMode.AUTO;
-    private static boolean essentialsEnabled = false;
-    private static EssentialsXClass essentialsXClass;
     private static Plugin plugin;
 
     public static void loadConfiguration(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting, Plugin plugin) {
+        ConfigOptions.getIntegrations().loadEssentialsX();
         NumberFormatting.plugin = plugin;
-        essentialsEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Essentials");
-        if (essentialsEnabled)
-            essentialsXClass = new EssentialsXClass();
         vaultEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
         overrideVault = currencyOptions.getBoolean("override-vault");
         try {
@@ -297,7 +294,7 @@ public class NumberFormatting {
         if (selectedMode == ItemValueMode.AUTO) {
             if (ConfigOptions.getIntegrations().isEconomyShopGUIEnabled())
                 bountyItemsUseItemValues = ItemValueMode.ECONOMY_SHOP_GUI;
-            else if (essentialsEnabled)
+            else if (ConfigOptions.getIntegrations().isEssentialsEnabled())
                 bountyItemsUseItemValues = ItemValueMode.ESSENTIALS;
             else
                 bountyItemsUseItemValues = ItemValueMode.FILE;
@@ -402,7 +399,7 @@ public class NumberFormatting {
                 return (defaultItemValue + getEnchantmentValue(item)) * item.getAmount();
             }
             case ESSENTIALS -> {
-                BigDecimal price = essentialsXClass.getItemValue(item);
+                BigDecimal price = ConfigOptions.getIntegrations().getEssentialsXClass().getItemValue(item);
                 if (price == null) {
                     if (defaultItemValue == 0)
                         throw new ExcludedItemException(item.getType().toString());
@@ -548,6 +545,7 @@ public class NumberFormatting {
                 .filter(s -> !s.isEmpty())
                 .map(s -> LanguageOptions.parse(s
                         .replace("{player}", p.getName())
+                        .replace("{player_display}", LoggedPlayers.getDisplayName(p))
                         .replace("{amount}", getValue(amount))
                         .replace("{amount_formatted}", currencyPrefix + formatNumber(amount) + currencySuffix), p))
                 .toList();

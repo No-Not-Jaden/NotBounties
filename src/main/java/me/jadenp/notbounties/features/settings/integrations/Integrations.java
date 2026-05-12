@@ -25,6 +25,9 @@ public class Integrations extends ResourceConfiguration {
     private boolean packetEventsEnabled;
     private boolean luckPermsEnabled;
     private boolean economyShopGUIEnabled;
+    private boolean essentialsEnabled = false;
+    private EssentialsXClass essentialsXClass = null;
+    private boolean CMIEnabled = false;
 
     public static void onLoad(Plugin plugin) {
         // register api flags
@@ -35,6 +38,8 @@ public class Integrations extends ResourceConfiguration {
     @Override
     protected void loadConfiguration(YamlConfiguration config) {
         BountyClaimRequirements.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("teams")));
+
+        CMIEnabled = Bukkit.getPluginManager().isPluginEnabled("CMI");
 
         mmoLibEnabled = Bukkit.getPluginManager().isPluginEnabled("MythicLib");
         if (mmoLibEnabled)
@@ -140,5 +145,23 @@ public class Integrations extends ResourceConfiguration {
 
     public boolean isEconomyShopGUIEnabled() {
         return economyShopGUIEnabled;
+    }
+
+    public void loadEssentialsX() {
+        essentialsEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Essentials");
+        if (essentialsEnabled)
+            essentialsXClass = new EssentialsXClass();
+    }
+
+    public boolean isEssentialsEnabled() {
+        return essentialsEnabled;
+    }
+
+    public EssentialsXClass getEssentialsXClass() {
+        return essentialsXClass;
+    }
+
+    public boolean isCMIEnabled() {
+        return CMIEnabled;
     }
 }

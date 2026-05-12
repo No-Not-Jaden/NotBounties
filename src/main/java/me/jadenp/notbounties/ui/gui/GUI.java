@@ -655,7 +655,9 @@ public class GUI implements Listener {
                 amount = Whitelist.isShowWhitelistedBounties() ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(viewer);
             }
             String playerName = LoggedPlayers.getPlayerName(uuid);
-            title = title.replace("{player}", playerName).replace("{amount}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(amount) + NumberFormatting.getCurrencySuffix());
+            title = title.replace("{player}", playerName)
+                    .replace("{amount}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(amount) + NumberFormatting.getCurrencySuffix())
+                    .replace("{player_displayname}", LoggedPlayers.getDisplayName(uuid));
         } else {
             for (DisplayItem displayItem : displayItems) {
                 if (displayItem instanceof PlayerItem playerItem) {

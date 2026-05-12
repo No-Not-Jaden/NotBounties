@@ -8,6 +8,7 @@ import me.jadenp.notbounties.features.challenges.ChallengeType;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
+import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.gui.CompatabilityUtils;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.*;
@@ -324,11 +325,21 @@ public class BountyMap implements Listener {
             return;
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
-        if (meta.getOwningPlayer() == null) {
-            NotBounties.debugMessage("Player head in crafting matrix has a null owner!", false);
+        UUID trackedPlayer = null;
+        if (meta.getPersistentDataContainer().has(Head.UUID_KEY)) {
+            try {
+                trackedPlayer = UUID.fromString(Objects.requireNonNull(meta.getPersistentDataContainer().get(Head.UUID_KEY, PersistentDataType.STRING)));
+            } catch (IllegalArgumentException ignored) {
+                NotBounties.debugMessage("Player head in crafting matrix has invalid uuid data!", false);
+            }
+        }
+        if (trackedPlayer == null && meta.getOwnerProfile() != null) {
+            trackedPlayer = meta.getOwnerProfile().getUniqueId();
+        }
+        if (trackedPlayer == null) {
+            NotBounties.debugMessage("Could not get player from head in crafting matrix.", false);
             return;
         }
-        UUID trackedPlayer = meta.getOwningPlayer().getUniqueId();
         if (LoggedPlayers.isMissing(trackedPlayer)) {
             if (meta.getOwnerProfile() != null && meta.getOwnerProfile().getUniqueId() != null && !LoggedPlayers.isMissing(meta.getOwnerProfile().getUniqueId())) {
                 trackedPlayer = meta.getOwnerProfile().getUniqueId();

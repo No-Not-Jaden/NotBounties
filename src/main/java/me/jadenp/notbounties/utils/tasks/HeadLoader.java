@@ -16,8 +16,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class HeadLoader extends CancelableTask{
     private int maxRequests = 100;
@@ -26,6 +25,16 @@ public class HeadLoader extends CancelableTask{
     private final PlayerGUInfo guInfo;
     private final Player player;
     private final Cache<UUID, ItemStack> savedHeads;
+    private final HeadStatus[] headLoadingStatus;
+    private boolean runningCheck = false;
+
+    private enum HeadStatus {
+        UNLOADED,
+        SKIN_LOADED,
+        HEAD_CACHED,
+        READY_TO_APPLY,
+        COMPLETED
+    }
 
     public HeadLoader(Player player, PlayerGUInfo guInfo, List<QueuedHead> heads, Cache<UUID, ItemStack> savedHeads) {
         super();
@@ -34,82 +43,100 @@ public class HeadLoader extends CancelableTask{
         this.guInfo = guInfo;
         this.heads = heads;
         this.savedHeads = savedHeads;
+        HeadStatus[] tempHeadLoadingStatus = new HeadStatus[heads.size()];
+        Arrays.fill(tempHeadLoadingStatus, HeadStatus.UNLOADED);
+        headLoadingStatus = tempHeadLoadingStatus;
     }
 
     @Override
     public void run() {
-        boolean[] headsToUpdate = new boolean[heads.size()];
-        int i = 0;
-        for (QueuedHead queuedHead : heads) {
-            if (fetchedHeads[i] == null) {
-                ItemStack cachedHead = savedHeads.getIfPresent(queuedHead.uuid());
-                if (cachedHead != null) {
-                    fetchedHeads[i] = copyItemText(queuedHead.itemStack(), cachedHead.clone());
-                    headsToUpdate[i] = true;
-                } else {
-                    if (SkinManager.isSkinLoaded(queuedHead.uuid())) {
-                        PlayerSkin playerSkin = SkinManager.getSkin(queuedHead.uuid());
-                        ItemStack head = copyItemText(queuedHead.itemStack(), Head.createPlayerSkull(queuedHead.uuid(), playerSkin.url()));
-                        fetchedHeads[i] = head;
-                        if (!SkinManager.isMissingSkin(playerSkin)) {
-                            // do not update head if the skin is missing.
-                            headsToUpdate[i] = true;
-                            savedHeads.put(queuedHead.uuid(), head.clone());
-                        }
-                    }
-                }
-            }
-            i++;
-        }
+        if (runningCheck)
+            return;
+        runningCheck = true;
+        checkUnloadedHeads();
 
-        // update inventory
         NotBounties.getServerImplementation().entity(player).run(() -> {
-            if (player.isOnline() && GUI.playerInfo.containsKey(player.getUniqueId())) {
-                PlayerGUInfo currentInfo = GUI.playerInfo.get(player.getUniqueId());
-                if (!currentInfo.guiType().equals(guInfo.guiType()) || currentInfo.page() != guInfo.page() || !currentInfo.title().equals(guInfo.title())) {
-                    // no longer in same GUI
-                    maxRequests = 0;
-                    return;
-                }
-                GUIOptions guiOptions = GUI.getGUI(guInfo.guiType());
-                if (guiOptions == null || CompatabilityUtils.getType(player) != guiOptions.getInventoryType()) {
-                    // invalid guiOptions
-                    maxRequests = 0;
-                    return;
-                }
-                Inventory inventory = CompatabilityUtils.getTopInventory(player);
-                ItemStack[] contents = inventory.getContents();
-                for (int j = 0; j < Math.min(guiOptions.getPlayerSlots().size(), fetchedHeads.length); j++) {
-                    QueuedHead head = heads.get(j);
-                    if (!headsToUpdate[j] || !guiOptions.getPlayerSlots().contains(head.slot()))
-                        continue;
-                    contents[head.slot()] = fetchedHeads[j];
-                }
-                inventory.setContents(contents);
-            } else {
-                maxRequests = 0;
-                NotBounties.debugMessage("Player exited GUI while loading player heads.", false);
+            fetchReadyHeads();
+            if (!updateInventory()) {
+                cancelWithDebug();
+                return;
             }
+
+            if (allCompleted()) {
+                cancel();
+                return;
+            }
+
+            // check if max requests hit
+            if (--maxRequests <= 0) {
+                cancelWithDebug();
+            }
+
+            runningCheck = false;
         });
-        // check if max requests hit
-        if (maxRequests <= 0) {
-            this.cancel();
-            if (NotBounties.isDebug()) {
-                i = 0;
-                for (QueuedHead queuedHead : heads) {
-                    if (fetchedHeads[i] == null) {
-                        NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(queuedHead.uuid()), true);
+    }
+
+    private boolean allCompleted() {
+        for (HeadStatus loadingStatus : headLoadingStatus) {
+            if (loadingStatus != HeadStatus.COMPLETED)
+                return false;
+        }
+        return true;
+    }
+
+    private void cancelWithDebug() {
+        this.cancel();
+        if (NotBounties.isDebug()) {
+            int i = 0;
+            for (QueuedHead queuedHead : heads) {
+                if (headLoadingStatus[i] != HeadStatus.COMPLETED) {
+                    NotBounties.debugMessage("Timed out loading skin for " + LoggedPlayers.getPlayerName(queuedHead.uuid()) + " Status: " + headLoadingStatus[i], true);
+                }
+                i++;
+            }
+        }
+    }
+
+    private void checkUnloadedHeads() {
+        for (int i = 0; i < heads.size(); i++) {
+            if (headLoadingStatus[i] != HeadStatus.UNLOADED)
+                continue;
+            QueuedHead queuedHead = heads.get(i);
+            ItemStack cachedHead = savedHeads.getIfPresent(queuedHead.uuid());
+            if (cachedHead != null) {
+                fetchedHeads[i] = cachedHead;
+                headLoadingStatus[i] = HeadStatus.HEAD_CACHED;
+            } else {
+                if (SkinManager.isSkinLoaded(queuedHead.uuid())) {
+                    PlayerSkin playerSkin = SkinManager.getSkin(queuedHead.uuid());
+                    if (!SkinManager.isMissingSkin(playerSkin)) {
+                        // do not update head if the skin is missing.
+                        headLoadingStatus[i] = HeadStatus.SKIN_LOADED;
+                    } else {
+                        NotBounties.debugMessage("(Loading Head) Missing skin for " + LoggedPlayers.getPlayerName(queuedHead.uuid()), false);
+                        fetchedHeads[i] = queuedHead.itemStack();
+                        headLoadingStatus[i] = HeadStatus.COMPLETED;
                     }
-                    i++;
                 }
             }
         }
-        maxRequests--;
-        // check if all heads are loaded
-        for (ItemStack itemStack : fetchedHeads)
-            if (itemStack == null)
-                return;
-        this.cancel();
+    }
+
+    private void fetchReadyHeads() {
+        for (int i = 0; i < fetchedHeads.length; i++) {
+            HeadStatus status = headLoadingStatus[i];
+            QueuedHead head = heads.get(i);
+            if (status == HeadStatus.SKIN_LOADED) {
+                PlayerSkin playerSkin = SkinManager.getSkin(head.uuid());
+                ItemStack newHead = copyItemText(head.itemStack(), Head.createPlayerSkull(head.uuid(), playerSkin.url()));
+                fetchedHeads[i] = newHead;
+                savedHeads.put(head.uuid(), newHead.clone());
+                headLoadingStatus[i] = HeadStatus.READY_TO_APPLY;
+            } else if (status == HeadStatus.HEAD_CACHED) {
+                fetchedHeads[i] = copyItemText(head.itemStack(), fetchedHeads[i].clone());
+                headLoadingStatus[i] = HeadStatus.READY_TO_APPLY;
+            }
+        }
     }
 
     private ItemStack copyItemText(ItemStack from, ItemStack to) {
@@ -118,11 +145,10 @@ public class HeadLoader extends CancelableTask{
         if (fromMeta == null || toMeta == null)
             return to;
 
-        if (NotBounties.isAboveVersion(21, 3)) {
-            if (fromMeta.hasItemModel()) {
-                toMeta.setItemModel(fromMeta.getItemModel());
-            }
+        if (NotBounties.isAboveVersion(21, 3) && fromMeta.hasItemModel()) {
+            toMeta.setItemModel(fromMeta.getItemModel());
         }
+
         if (fromMeta.hasCustomModelData()) {
             toMeta.setCustomModelData(fromMeta.getCustomModelData());
         }
@@ -132,5 +158,43 @@ public class HeadLoader extends CancelableTask{
             toMeta.setLore(fromMeta.getLore());
         to.setItemMeta(toMeta);
         return to;
+    }
+
+    /**
+     * Updates the inventory of the player with the fetched heads.
+     * @return True if the inventory was accessed.
+     */
+    private boolean updateInventory() {
+        if (player.isOnline() && GUI.playerInfo.containsKey(player.getUniqueId())) {
+            PlayerGUInfo currentInfo = GUI.playerInfo.get(player.getUniqueId());
+            if (!currentInfo.guiType().equals(guInfo.guiType()) || currentInfo.page() != guInfo.page() || !currentInfo.title().equals(guInfo.title())) {
+                // no longer in same GUI
+                return false;
+            }
+            GUIOptions guiOptions = GUI.getGUI(guInfo.guiType());
+            if (guiOptions == null || CompatabilityUtils.getType(player) != guiOptions.getInventoryType()) {
+                // invalid guiOptions
+                return false;
+            }
+            Inventory inventory = CompatabilityUtils.getTopInventory(player);
+            ItemStack[] contents = inventory.getContents();
+            for (int j = 0; j < fetchedHeads.length; j++) {
+                QueuedHead head = heads.get(j);
+                HeadStatus status = headLoadingStatus[j];
+                int slot = head.slot();
+                if (status != HeadStatus.READY_TO_APPLY
+                        || !guiOptions.getPlayerSlots().contains(slot)
+                        || slot < 0
+                        || slot >= contents.length)
+                    continue;
+                contents[head.slot()] = fetchedHeads[j];
+                headLoadingStatus[j] = HeadStatus.COMPLETED;
+            }
+            inventory.setContents(contents);
+        } else {
+            maxRequests = 0;
+            NotBounties.debugMessage("Player exited GUI while loading player heads.", false);
+        }
+        return true;
     }
 }

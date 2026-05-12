@@ -6,6 +6,7 @@ import me.jadenp.notbounties.features.settings.integrations.external_api.HeadDat
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
@@ -15,12 +16,16 @@ import org.jetbrains.annotations.Nullable;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.UUID;
 
 public class Head {
 
     private static long headID = 1;
+
+    public static final NamespacedKey UUID_KEY = new org.bukkit.NamespacedKey(NotBounties.getInstance(), "uuid");
 
     private Head(){}
 
@@ -51,18 +56,50 @@ public class Head {
         return item;
     }
 
+    private static UUID hashToV5(UUID input) {
+        try {
+            MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+
+            // Hash the raw UUID bytes
+            ByteBuffer bb = ByteBuffer.allocate(16);
+            bb.putLong(input.getMostSignificantBits());
+            bb.putLong(input.getLeastSignificantBits());
+
+            byte[] hash = sha1.digest(bb.array());
+
+            // Take first 16 bytes
+            hash[6] &= 0x0f;
+            hash[6] |= 0x50; // version 5
+
+            hash[8] &= 0x3f;
+            hash[8] |= 0x80; // IETF variant
+
+            ByteBuffer out = ByteBuffer.wrap(hash);
+
+            long msb = out.getLong();
+            long lsb = out.getLong();
+
+            return new UUID(msb, lsb);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
     public static @NotNull ItemStack createPlayerSkull(UUID uuid, @Nullable URL textureURL) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         if (NotBounties.getServerVersion() >= 18) {
-            PlayerProfile profile = Bukkit.createPlayerProfile(uuid);
+            PlayerProfile profile = Bukkit.createPlayerProfile(uuid); // could use hashToV5(uuid)
             if (textureURL != null) {
                 PlayerTextures textures = profile.getTextures();
                 textures.setSkin(textureURL);
                 profile.setTextures(textures);
             }
             meta.setOwnerProfile(profile);
+            meta.getPersistentDataContainer().set(UUID_KEY, org.bukkit.persistence.PersistentDataType.STRING, uuid.toString());
             head.setItemMeta(meta);
             return head;
         } else {
@@ -71,7 +108,6 @@ public class Head {
             return Bukkit.getUnsafe().modifyItemStack(head, "{display:{Name:\"{\\\"text\\\":\\\"Head\\\"}\"},SkullOwner:{Id:[" + "I;1201296705,1414024019,-1385893868,1321399054" + "],Properties:{textures:[{Value:\"" + new String(encodedData) + "\"}]}}}");
         }
     }
-
 
     public static PlayerProfile createProfile(String base64){
         try {

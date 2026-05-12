@@ -78,6 +78,10 @@ public class SkinManager {
         return missingSkin;
     }
 
+    public static void clearPendingRequest(UUID uuid) {
+        pendingRequests.remove(uuid);
+    }
+
     public static void refreshSkinRequests() {
         pendingRequests.clear();
         try {
@@ -184,7 +188,7 @@ public class SkinManager {
     }
 
     protected static int getRecentRequestCount() {
-        if (System.currentTimeMillis() - lastLimitCheck < 5000) {
+        if (System.currentTimeMillis() - lastLimitCheck > 5000) {
             lastLimitCheck = System.currentTimeMillis();
             long minKeepTime = lastLimitCheck - MOJANG_API_LIMIT_MS;
             synchronized (rateLimit) {
@@ -229,16 +233,23 @@ public class SkinManager {
     }
 
     protected static void requestLater(UUID uuid) {
-        if (queuedRequests.isEmpty() && !rateLimit.isEmpty()) {
+        if (queuedRequests.isEmpty()) {
             queuedRequests.add(uuid);
-            long nextRequestTime = Math.max((10000 + MOJANG_API_LIMIT_MS - (System.currentTimeMillis() - rateLimit.get(0))) / 50, 1000L); // 10 seconds after the first item in the rate limit expires. (expires after 60 seconds)
-            List<UUID> requests;
-            synchronized (queuedRequests) {
-                requests = new ArrayList<>(queuedRequests);
-                queuedRequests.clear();
+            long nextRequestTime;
+            if (rateLimit.isEmpty()) {
+                nextRequestTime = 1000L;
+            } else {
+                // 10 seconds after the first item in the rate limit expires. (expires after 60 seconds)
+                // minimum of 1 second in the future
+                nextRequestTime = Math.max((10000 + MOJANG_API_LIMIT_MS - (System.currentTimeMillis() - rateLimit.get(0))) / 50, 1000L);
             }
             if (NotBounties.getInstance().isEnabled()) {
                 NotBounties.getServerImplementation().async().runDelayed(() -> {
+                    List<UUID> requests;
+                    synchronized (queuedRequests) {
+                        requests = new ArrayList<>(queuedRequests);
+                        queuedRequests.clear();
+                    }
                     for (UUID currentUUID : requests) {
                         pendingRequests.remove(currentUUID);
                         isSkinLoaded(currentUUID);

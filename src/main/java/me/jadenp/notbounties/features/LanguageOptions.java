@@ -398,6 +398,9 @@ public class LanguageOptions {
                         .replace("{receiver}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver) + getMessage("player-suffix"))
                         .replace("{viewer}", getMessage("player-prefix") + LoggedPlayers.getPlayerName(receiver) + getMessage("player-suffix"));
             }
+            str = str.replace("{player_displayname}", getMessage("player-prefix") + LoggedPlayers.getDisplayName(receiver) + getMessage("player-suffix"))
+                    .replace("{receiver_displayname}", getMessage("player-prefix") + LoggedPlayers.getDisplayName(receiver) + getMessage("player-suffix"))
+                    .replace("{viewer_displayname}", getMessage("player-prefix") + LoggedPlayers.getDisplayName(receiver) + getMessage("player-suffix"));
             if (str.contains("{balance}"))
                 str = str.replace("{balance}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(NumberFormatting.getBalance(receiver)) + NumberFormatting.getCurrencySuffix()));
             PlayerData playerData = DataManager.getPlayerData(receiver.getUniqueId());
@@ -405,7 +408,7 @@ public class LanguageOptions {
             str = str.replace("{whitelist}", (whitelist.toString()));
             String mode = whitelist.isBlacklist() ? "Blacklist" : "Whitelist";
             str = str.replace("{mode}", mode);
-            mode = whitelist.isBlacklist() ? "false" : "true";
+            mode = Boolean.toString(!whitelist.isBlacklist());
             str = str.replace("{mode_raw}", mode);
             String notification = playerData.getBroadcastSettings().toString();
             str = str.replace("{notification}", notification)
@@ -536,7 +539,7 @@ public class LanguageOptions {
             replacement = getMessage("player-prefix") + replacement + getMessage("player-suffix");
             if (ConfigOptions.getIntegrations().isPapiEnabled())
                 replacement = new PlaceholderAPIClass().parse(player, replacement);
-            str = str.replace("{player}", replacement);
+            str = str.replace("{player}", replacement).replace("{player_displayname}", LoggedPlayers.getDisplayName(player));
         }
         return str;
     }

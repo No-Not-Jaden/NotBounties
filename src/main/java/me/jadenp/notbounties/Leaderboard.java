@@ -221,7 +221,7 @@ public enum Leaderboard {
     public static String parseBountyTopString(int rank, @NotNull String playerName, double amount, boolean useCurrency, OfflinePlayer player){
         String text = getMessage("bounty-top");
         text = text.replace("{rank}", rank + "");
-        text = text.replace("{player}", playerName);
+        text = text.replace("{player}", playerName).replace("{player_displayname}", LoggedPlayers.getDisplayName(player));
         if (useCurrency)
             text = text.replace("{amount}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(amount) + NumberFormatting.getCurrencySuffix()));
         else

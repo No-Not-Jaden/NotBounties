@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>dev_1.22.35.11</version>
+    <version>dev_1.22.35.23</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -376,6 +376,13 @@
             <groupId>com.github.Gypopo</groupId>
             <artifactId>EconomyShopGUI-API</artifactId>
             <version>1.9.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- https://www.zrips.net/cmi/api/ -->
+        <dependency>
+            <groupId>com.github.Zrips</groupId>
+            <artifactId>CMI-API</artifactId>
+            <version>9.8.6.4</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

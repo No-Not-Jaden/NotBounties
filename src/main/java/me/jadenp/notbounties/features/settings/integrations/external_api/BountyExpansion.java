@@ -73,7 +73,6 @@ public class BountyExpansion extends PlaceholderExpansion {
 
     @Override
     public String onRequest(OfflinePlayer player, String params){
-        UUID uuid = player.getUniqueId();
         if (params.equalsIgnoreCase("current_page")) {
             if (GUI.playerInfo.containsKey(player.getUniqueId())) {
                 return GUI.playerInfo.get(player.getUniqueId()).page() + "";
@@ -87,7 +86,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             return "";
         }
         if (params.equalsIgnoreCase("timed_bounty")) {
-            if (BountyManager.hasBounty(uuid) && TimedBounties.isMaxed(Objects.requireNonNull(BountyManager.getBounty(uuid)).getTotalDisplayBounty()))
+            if (BountyManager.hasBounty(player.getUniqueId()) && TimedBounties.isMaxed(Objects.requireNonNull(BountyManager.getBounty(player.getUniqueId())).getTotalDisplayBounty()))
                 // maxed out, cant get any higher
                 return "";
             long next = TimedBounties.getUntilNextBounty(player.getUniqueId());
@@ -96,13 +95,13 @@ public class BountyExpansion extends PlaceholderExpansion {
             return LocalTime.formatTime(next, LocalTime.TimeFormat.RELATIVE);
         }
         if (params.equalsIgnoreCase("wanted")) {
-            Bounty bounty = BountyManager.getBounty(uuid);
+            Bounty bounty = BountyManager.getBounty(player.getUniqueId());
             if (bounty == null)
                 return "";
             return WantedTags.getWantedDisplayText(player);
         }
         if (params.startsWith("bounty")){
-            Bounty bounty = BountyManager.getBounty(uuid);
+            Bounty bounty = BountyManager.getBounty(player.getUniqueId());
             if (bounty != null){
                 if (params.endsWith("_rank")) {
                     return DataManager.getLocalData().getBountyRank(bounty.getTotalDisplayBounty()) + "";
@@ -112,7 +111,7 @@ public class BountyExpansion extends PlaceholderExpansion {
                 if (params.endsWith("_name"))
                     return bounty.getName();
                 if (params.endsWith("_displayname"))
-                    return getDisplayName(player);
+                    return LoggedPlayers.getDisplayName(player);
                 return NumberFormatting.getValue(bounty.getTotalDisplayBounty());
             }
             return "0";
@@ -164,27 +163,27 @@ public class BountyExpansion extends PlaceholderExpansion {
         }
 
         if (params.equalsIgnoreCase("bounties_claimed")){
-            return String.valueOf(Leaderboard.KILLS.getStat(uuid));
+            return String.valueOf(Leaderboard.KILLS.getStat(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("bounties_set")){
-            return String.valueOf(Leaderboard.SET.getStat(uuid));
+            return String.valueOf(Leaderboard.SET.getStat(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("bounties_received")){
-            return String.valueOf(Leaderboard.DEATHS.getStat(uuid));
+            return String.valueOf(Leaderboard.DEATHS.getStat(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("immunity_spent")){
-            return String.valueOf(Leaderboard.IMMUNITY.getStat(uuid));
+            return String.valueOf(Leaderboard.IMMUNITY.getStat(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("all_time_bounty")){
-            return String.valueOf(Leaderboard.ALL.getStat(uuid));
+            return String.valueOf(Leaderboard.ALL.getStat(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("currency_gained")){
-            return String.valueOf(Leaderboard.CLAIMED.getStat(uuid));
+            return String.valueOf(Leaderboard.CLAIMED.getStat(player.getUniqueId()));
         }
 
         if (params.equalsIgnoreCase("notification")) {
@@ -262,7 +261,7 @@ public class BountyExpansion extends PlaceholderExpansion {
                 return NumberFormatting.getValue(leaderboard.getStat(uuid1));
             if (ending == 4) return name;
             if (ending == 5) return NumberFormatting.formatNumber(leaderboard.getRank(uuid1));
-            if (ending == 6) return getDisplayName(p);
+            if (ending == 6) return LoggedPlayers.getDisplayName(p);
             return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
         }
 
@@ -279,7 +278,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (ending == 4)
                 return LoggedPlayers.getPlayerName(player.getUniqueId());
             if (ending == 5) return NumberFormatting.formatNumber(leaderboard.getRank(player.getUniqueId()));
-            if (ending == 6) return getDisplayName(player);
+            if (ending == 6) return LoggedPlayers.getDisplayName(player);
             return NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId()));
         } catch (IllegalArgumentException ignored){
             // not a valid leaderboard
@@ -288,10 +287,4 @@ public class BountyExpansion extends PlaceholderExpansion {
         return null;
     }
 
-    private String getDisplayName(OfflinePlayer p) {
-        if (p.isOnline()) {
-            return Objects.requireNonNull(p.getPlayer()).getDisplayName();
-        }
-        return LoggedPlayers.getPlayerName(p.getUniqueId());
-    }
 }

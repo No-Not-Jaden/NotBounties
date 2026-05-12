@@ -502,10 +502,14 @@ public final class NotBounties extends JavaPlugin {
         TextComponent github = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(230, 237, 243))
                 + "Github + Wiki: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://github.com/No-Not-Jaden/NotBounties");
         github.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/No-Not-Jaden/NotBounties"));
+        String enable = NotBounties.isDebug() ? "disable" : "enable";
+        TextComponent debugMsg = new TextComponent(ChatColor.YELLOW + "(Tip) " + ChatColor.GOLD + "Run " + ChatColor.GRAY + "/" + ConfigOptions.getPluginBountyCommands().get(0) + " debug " + enable + ChatColor.GOLD + " to " + enable + " debug messages in console.");
+        debugMsg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " debug " + enable));
+        debugMsg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().get(0) + " debug " + enable)));
         sender.spigot().sendMessage(discord);
         sender.spigot().sendMessage(spigot);
         sender.spigot().sendMessage(github);
-        sender.sendMessage("");
+        sender.spigot().sendMessage(debugMsg);
     }
 
     private static @NotNull TextComponent getUpdateNotificationInfo() {
@@ -552,6 +556,8 @@ public final class NotBounties extends JavaPlugin {
         if (integrations.isLuckPermsEnabled()) hooks.add("LuckPerms");
         if (integrations.isEconomyShopGUIEnabled()) hooks.add("EconomyShopGUI");
         if (BountyClaimRequirements.isKonquestEnabled()) hooks.add("Konquest");
+        if (integrations.isEssentialsEnabled()) hooks.add("EssentialsX");
+        if (integrations.isCMIEnabled()) hooks.add("CMI");
 
         return hooks;
     }

@@ -47,9 +47,9 @@ public class SkinsRestorerClass {
                 NotBounties.getServerImplementation().global().runDelayed(() -> firstConnect = false, 5 * 20L);
             }
             if (!firstConnect && lastHookError < System.currentTimeMillis() && !(ProxyMessaging.hasConnectedBefore() && ProxyDatabase.areSkinRequestsEnabled())) {
-                    Bukkit.getLogger().warning("[NotBounties] Failed at hooking into SkinsRestorer, will try again on next call.");
-                    lastHookError = System.currentTimeMillis() + 60000 * 5;
-                }
+                NotBounties.getInstance().getLogger().warning("Failed at hooking into SkinsRestorer, will try again on next call.");
+                lastHookError = System.currentTimeMillis() + 60000 * 5;
+            }
             return false;
         }
     }
@@ -90,9 +90,6 @@ public class SkinsRestorerClass {
                         connected = true;
                     }
                     mapIterator.remove();
-                } else {
-                    // map should be in ascending order, so all the following values will be too large
-                    break;
                 }
             }
             // schedule next runnable if more are in the map
@@ -123,7 +120,7 @@ public class SkinsRestorerClass {
         try {
             Optional<SkinProperty> skinProperty = playerStorage.getSkinForPlayer(uuid, name);
             if (skinProperty.isEmpty()) {
-                NotBounties.debugMessage("[NotBountiesDebug] Skin property not present from SkinsRestorer for " + name + ".", true);
+                NotBounties.debugMessage("Skin property not present from SkinsRestorer for " + name + ".", true);
                 requestSkinManually(uuid);
                 return;
             }
@@ -133,13 +130,14 @@ public class SkinsRestorerClass {
         } catch (MalformedURLException | DataRequestException | URISyntaxException | NullPointerException e) {
             // these could come from SkinsRestorer being on proxy mode, SkinsRestorer not having the skins, SkinsRestorer not setup correctly
             // afaik, this is the correct way to retrieve skins from SkinsRestorer, and any error is a problem with the SkinsRestorer plugin
-            NotBounties.debugMessage("[NotBountiesDebug] Error getting skin from SkinsRestorer.", true);
+            NotBounties.debugMessage("Error getting skin from SkinsRestorer.", true);
             NotBounties.debugMessage(e.toString(), true);
             requestSkinManually(uuid);
         }
     }
 
     private static void requestSkinManually(UUID uuid) {
+        SkinManager.clearPendingRequest(uuid);
         SkinManager.requestSkin(uuid, false);
     }
 
