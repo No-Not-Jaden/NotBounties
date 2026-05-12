@@ -20,7 +20,6 @@ public class EssentialsXClass {
     }
 
     public @Nullable String getNick(UUID uuid) {
-        Bukkit.getLogger().info(essentials.getUser(uuid).getNick());
         User user = essentials.getUser(uuid);
         if (user != null) {
             return user.getNick();
