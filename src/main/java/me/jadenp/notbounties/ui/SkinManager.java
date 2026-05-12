@@ -78,10 +78,6 @@ public class SkinManager {
         return missingSkin;
     }
 
-    public static void clearPendingRequest(UUID uuid) {
-        pendingRequests.remove(uuid);
-    }
-
     public static void refreshSkinRequests() {
         pendingRequests.clear();
         try {
@@ -169,7 +165,7 @@ public class SkinManager {
     }
 
     public static void requestSkin(UUID uuid, boolean firstAttempt) {
-        if (!pendingRequests.contains(uuid)) {
+        if (!pendingRequests.contains(uuid) || !firstAttempt) {
             if (firstAttempt) {
                 NotBounties.debugMessage("Attempting to save skin for: " + uuid, false);
             }

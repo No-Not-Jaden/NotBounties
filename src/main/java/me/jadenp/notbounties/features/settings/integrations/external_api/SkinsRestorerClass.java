@@ -137,7 +137,6 @@ public class SkinsRestorerClass {
     }
 
     private static void requestSkinManually(UUID uuid) {
-        SkinManager.clearPendingRequest(uuid);
         SkinManager.requestSkin(uuid, false);
     }
 
