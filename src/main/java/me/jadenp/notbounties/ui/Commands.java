@@ -15,6 +15,7 @@ import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -144,13 +145,37 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                 }
                 LanguageOptions.sendHelpMessage(sender, page);
+            } else if (args[0].equalsIgnoreCase("item") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) && sender instanceof Player player) {
+                if (args.length > 1) {
+                    CustomItem item = GUI.getCustomItems().get(args[1]);
+                    if (item != null) {
+                        player.getInventory().addItem(item.getFormattedItem(player, null, "bounty-gui"));
+                        if (!silent) {
+                            player.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "You have been given the custom item.", parser));
+                            player.sendMessage(parse(getPrefix() + ChatColor.YELLOW + "Use " + ChatColor.GREEN + "/data get entity @s SelectedItem " + ChatColor.YELLOW + "while holding the item to view its components.", parser));
+                        }
+                        return true;
+                    } else {
+                        // unknown item
+                        if (!silent)
+                            player.sendMessage(parse(getPrefix() + ChatColor.RED + "Unknown custom item \"" + args[1] + "\". (case-sensitive)", parser));
+                        return false;
+                    }
+                } else {
+                    // usage
+                    if (!silent) {
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        return false;
+                    }
+                }
             } else if (args[0].equalsIgnoreCase("sort") && (adminPermission || sender.hasPermission("notbounties.sort"))) {
                 // /bounty sort (gui-type) #
                 // sort type is 0-3 for bounty-gui and 1-4 for the rest
                 if (args.length > 2) {
                     GUIOptions guiOptions = getGUI(args[1].toLowerCase());
                     if (guiOptions == null) {
-                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-gui").replace("{gui}", args[1]), parser));
+                        if (!silent)
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-gui").replace("{gui}", args[1]), parser));
                         return false;
                     }
                     boolean indexFrom0 = args[1].equalsIgnoreCase("bounty-gui");
@@ -158,13 +183,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (args.length > 3 && adminPermission) {
                         uuid = LoggedPlayers.getPlayer(args[3]);
                         if (uuid == null) {
-                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[3], parser));
+                            if (!silent)
+                                sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), args[3], parser));
                             return false;
                         }
                     } else if (sender instanceof Player player) {
                         uuid = player.getUniqueId();
                     } else {
-                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                        if (!silent)
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                         return false;
                     }
                     Player player = Bukkit.getPlayer(uuid);
@@ -190,20 +217,23 @@ public class Commands implements CommandExecutor, TabCompleter {
                     try {
                         sortType = Integer.parseInt(args[2]);
                     } catch (NumberFormatException e) {
-                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
+                        if (!silent)
+                            sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
                         return false;
                     }
                     if (sortType < 0 || sortType > 4) {
-                        sender.sendMessage(parse(getPrefix() + getMessage("invalid-range").replace("{range}", "1-4"), parser));
+                        if (!silent)
+                            sender.sendMessage(parse(getPrefix() + getMessage("invalid-range").replace("{range}", "1-4"), parser));
                         return false;
                     }
-                    if (player != null) {
+                    if (player != null && !silent)
                         player.sendMessage(parse(getPrefix() + getMessage("sort-change").replace("{gui}", args[1]).replace("{sort_type}", String.valueOf(sortType)), player));
-                    }
+
                     DataManager.getPlayerData(uuid).setGUISortType(args[1].toLowerCase(), sortType);
                     return true;
                 } else {
-                    sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                    if (!silent)
+                        sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
                     return false;
                 }
             } else if (args[0].equalsIgnoreCase("hunt") && BountyHunt.isEnabled()) {
@@ -2225,6 +2255,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("debug");
                     tab.add("board");
                     tab.add("skin");
+                    tab.add("item");
                     if (NotBounties.isPaused()) {
                         tab.add("unpause");
                     } else {
@@ -2300,6 +2331,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("set");
                     tab.add("immunity");
                     tab.add("current");
+                } else if (args[0].equalsIgnoreCase("item") && sender.hasPermission(NotBounties.getAdminPermission())) {
+                        tab.addAll(getCustomItems().keySet());
                 } else if (args[0].equalsIgnoreCase("tracker") && BountyTracker.isEnabled()
                         && (sender.hasPermission(NotBounties.getAdminPermission())
                             || sender.hasPermission("notbounties.spawntracker")

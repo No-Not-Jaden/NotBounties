@@ -5,6 +5,7 @@ import com.google.common.collect.Multimap;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.ui.Head;
+import me.jadenp.notbounties.ui.gui.display_items.CurrencyItem;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -16,9 +17,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -27,7 +30,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.parse;
 public class CustomItem {
     private final Material material;
     private final int amount;
-    private final int customModelData;
+    private final List<Float> customModelData;
     private final String itemModel;
     private final String name;
     private final List<String> lore;
@@ -39,7 +42,7 @@ public class CustomItem {
     private final Color color;
 
     public CustomItem(ConfigurationSection configurationSection){
-        Material material = Material.STONE;
+        Material tempMaterial = Material.STONE;
         String mat = configurationSection.getString("material");
         if (mat != null) {
             if (mat.contains(" ") && mat.substring(0, mat.indexOf(" ")).equalsIgnoreCase("PLAYER_HEAD")) {
@@ -49,18 +52,24 @@ public class CustomItem {
 
             }
                 try {
-                    material = Material.valueOf(mat.toUpperCase(Locale.ROOT));
+                    tempMaterial = Material.valueOf(mat.toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException e) {
                     Bukkit.getLogger().warning("Unknown material \"" + mat + "\" in " + configurationSection.getName());
                 }
         }
-        this.material = material;
+        this.material = tempMaterial;
         amount = configurationSection.isInt("amount") ? configurationSection.getInt("amount") : 1;
 
         name = configurationSection.getString("name");
-        if (configurationSection.isInt("custom-model-data"))
-            customModelData = configurationSection.getInt("custom-model-data");
-        else customModelData = -1;
+        if (configurationSection.isInt("custom-model-data")) {
+            customModelData = Collections.singletonList((float) configurationSection.getInt("custom-model-data"));
+        } else if (configurationSection.isDouble("custom-model-data")) {
+            customModelData = Collections.singletonList((float) configurationSection.getDouble("custom-model-data"));
+        } else if (configurationSection.isList("custom-model-data")) {
+            customModelData = configurationSection.getFloatList("custom-model-data");
+        } else {
+            customModelData = Collections.emptyList();
+        }
         if (configurationSection.isString("item-model"))
             itemModel = configurationSection.getString("item-model");
         else itemModel = null;
@@ -76,7 +85,7 @@ public class CustomItem {
     public CustomItem() {
         material = Material.STONE;
         amount = 1;
-        customModelData = -1;
+        customModelData = Collections.emptyList();
         itemModel = null;
         name = null;
         lore = new ArrayList<>();
@@ -87,7 +96,7 @@ public class CustomItem {
         color = null;
     }
 
-    public CustomItem(Material material, int amount, int customModelData, String itemModel, String name, List<String> lore, boolean enchanted, boolean hideNBT, boolean hideTooltip, List<String> commands, Color color) {
+    public CustomItem(Material material, int amount, List<Float> customModelData, String itemModel, String name, List<String> lore, boolean enchanted, boolean hideNBT, boolean hideTooltip, List<String> commands, Color color) {
 
         this.material = material;
         this.amount = amount;
@@ -139,10 +148,7 @@ public class CustomItem {
             newLore.replaceAll(s -> parseReplacements(s, player, finalReplacements, guiType));
             meta.setLore(newLore);
         }
-        if (customModelData != -1)
-            meta.setCustomModelData(customModelData);
-        if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
-            meta.setItemModel(CustomItem.getItemModel(itemModel));
+        GUI.setCustomModel(customModelData, itemModel, meta);
         if (enchanted) {
             if (NotBounties.isAboveVersion(20, 4)) {
                 if (!meta.hasEnchantmentGlintOverride())

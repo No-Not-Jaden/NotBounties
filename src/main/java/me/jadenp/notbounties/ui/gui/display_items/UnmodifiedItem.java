@@ -5,6 +5,7 @@ import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.CustomItem;
+import me.jadenp.notbounties.ui.gui.GUI;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -21,7 +22,7 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
     private final List<String> additionalLore;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData, String itemModel, String guiType) {
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, List<Float> customModelData, String itemModel, String guiType) {
         ItemStack item = itemStack.clone();
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
@@ -32,10 +33,7 @@ public class UnmodifiedItem implements DisplayItem, AmountItem{
         }
         previousLore.addAll(additionalLore);
         meta.setLore(previousLore.stream().map(string -> LanguageOptions.parse(string, Bukkit.getOfflinePlayer(owningPlayer))).toList());
-        if (customModelData != -1)
-            meta.setCustomModelData(customModelData);
-        if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
-            meta.setItemModel(CustomItem.getItemModel(itemModel));
+        GUI.setCustomModel(customModelData, itemModel, meta);
         item.setItemMeta(meta);
         return item;
     }

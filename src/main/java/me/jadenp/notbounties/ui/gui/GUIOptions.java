@@ -34,7 +34,7 @@ public class GUIOptions {
     private final String type;
     private final Map<Integer, CustomItem> pageReplacements = new HashMap<>();
     private final InventoryType inventoryType;
-    private final int customModelData;
+    private final List<Float> customModelData;
     private final String itemModel;
 
     public GUIOptions(ConfigurationSection settings) {
@@ -63,7 +63,15 @@ public class GUIOptions {
         removePageItems = settings.getBoolean("remove-page-items");
         headName = settings.isSet("head-name") ? settings.getString("head-name") : "{player}";
         headLore = settings.isSet("head-lore") ? settings.getStringList("head-lore") : new ArrayList<>();
-        customModelData = settings.isSet("custom-model-data") ? settings.getInt("custom-model-data") : -1;
+        if (settings.isInt("custom-model-data")) {
+            customModelData = Collections.singletonList((float) settings.getInt("custom-model-data"));
+        } else if (settings.isDouble("custom-model-data")) {
+            customModelData = Collections.singletonList((float) settings.getDouble("custom-model-data"));
+        } else if (settings.isList("custom-model-data")) {
+            customModelData = settings.getFloatList("custom-model-data");
+        } else {
+            customModelData = Collections.emptyList();
+        }
         itemModel = settings.isSet("item-model") ? settings.getString("item-model") : null;
         customItems = new CustomItem[size];
         if (settings.isConfigurationSection("layout"))

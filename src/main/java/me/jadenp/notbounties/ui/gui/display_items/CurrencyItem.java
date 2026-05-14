@@ -23,7 +23,7 @@ public class CurrencyItem implements DisplayItem, AmountItem{
     private final List<String> additionalLore;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData, String itemModel, String guiType) {
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, List<Float> customModelData, String itemModel, String guiType) {
         ItemStack item = GUI.getGeneralCurrencyItem().getFormattedItem(player, new String[] {"", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(amount) + NumberFormatting.getCurrencySuffix(), "", ""}, guiType);
         ItemMeta meta = item.getItemMeta();
         if (meta == null)
@@ -34,10 +34,7 @@ public class CurrencyItem implements DisplayItem, AmountItem{
         }
         previousLore.addAll(additionalLore);
         meta.setLore(previousLore.stream().map(string -> LanguageOptions.parse(string, amount, player)).toList());
-        if (customModelData != -1)
-            meta.setCustomModelData(customModelData);
-        if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
-            meta.setItemModel(CustomItem.getItemModel(itemModel));
+        GUI.setCustomModel(customModelData, itemModel, meta);
         item.setItemMeta(meta);
         return item;
     }

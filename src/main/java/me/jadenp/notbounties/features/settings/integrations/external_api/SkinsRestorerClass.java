@@ -31,6 +31,7 @@ public class SkinsRestorerClass {
     private static final long MIN_DELAY = 4000L;
     private static final long MAX_DELAY = 6000L;
 
+    // https://skinsrestorer.net/docs/development/api
     public SkinsRestorerClass() {
         connected = false;
         connect();

@@ -148,9 +148,12 @@ public class HeadLoader extends CancelableTask{
         if (NotBounties.isAboveVersion(21, 3) && fromMeta.hasItemModel()) {
             toMeta.setItemModel(fromMeta.getItemModel());
         }
-
-        if (fromMeta.hasCustomModelData()) {
-            toMeta.setCustomModelData(fromMeta.getCustomModelData());
+        if (NotBounties.isAboveVersion(21, 4)) {
+            toMeta.setCustomModelDataComponent(fromMeta.getCustomModelDataComponent());
+        } else {
+            if (fromMeta.hasCustomModelData()) {
+                toMeta.setCustomModelData(fromMeta.getCustomModelData());
+            }
         }
         if (fromMeta.hasDisplayName())
             toMeta.setDisplayName(fromMeta.getDisplayName());

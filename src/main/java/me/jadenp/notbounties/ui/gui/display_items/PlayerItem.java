@@ -5,6 +5,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.ui.HeadFetcher;
 import me.jadenp.notbounties.ui.gui.CustomItem;
+import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
@@ -34,7 +35,7 @@ public class PlayerItem implements DisplayItem, AmountItem{
     private final String name;
 
     @Override
-    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData, String itemModel, String guiType) {
+    public ItemStack getFormattedItem(Player player, String headName, List<String> lore, List<Float> customModelData, String itemModel, String guiType) {
         ItemStack item = HeadFetcher.getUnloadedHead(uuid);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         if (meta == null)
@@ -43,10 +44,7 @@ public class PlayerItem implements DisplayItem, AmountItem{
         lore = new ArrayList<>(lore); // create a copy so the original lore isn't edited
         lore.addAll(additionalLore);
         meta.setLore(lore.stream().map(string -> parseText(string, player)).toList());
-        if (customModelData != -1)
-            meta.setCustomModelData(customModelData);
-        if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
-            meta.setItemModel(CustomItem.getItemModel(itemModel));
+        GUI.setCustomModel(customModelData, itemModel, meta);
         item.setItemMeta(meta);
         return item;
     }

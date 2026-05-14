@@ -14,6 +14,6 @@ public interface DisplayItem {
      * @param lore lore of the item.
      * @return The formatted item.
      */
-    ItemStack getFormattedItem(Player player, String headName, List<String> lore, int customModelData, @Nullable String itemModel, String guiType);
+    ItemStack getFormattedItem(Player player, String headName, List<String> lore, List<Float> customModelData, @Nullable String itemModel, String guiType);
     String parseText(String text, Player player);
 }

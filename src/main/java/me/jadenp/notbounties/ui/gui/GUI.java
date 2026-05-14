@@ -35,6 +35,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -173,11 +174,25 @@ public class GUI implements Listener {
     }
 
     public static CustomItem getGeneralCurrencyItem() {
-        return customItems.computeIfAbsent(GENERAL_CURRENCY_ITEM_NAME, k -> new CustomItem(Material.SUNFLOWER, 1, -1, null, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>(), null));
+        return customItems.computeIfAbsent(GENERAL_CURRENCY_ITEM_NAME, k -> new CustomItem(Material.SUNFLOWER, 1, Collections.emptyList(), null, "{currency}", new ArrayList<>(), true, true, false, new ArrayList<>(), null));
     }
 
     public static Map<String, CustomItem> getCustomItems() {
         return customItems;
+    }
+
+    public static void setCustomModel(List<Float> customModelData, String itemModel, ItemMeta meta) {
+        if (!customModelData.isEmpty()) {
+            if (NotBounties.isAboveVersion(21, 4)) {
+                CustomModelDataComponent customModelDataComponent = meta.getCustomModelDataComponent();
+                customModelDataComponent.setFloats(customModelData);
+                meta.setCustomModelDataComponent(customModelDataComponent);
+            } else {
+                meta.setCustomModelData(customModelData.get(0).intValue());
+            }
+        }
+        if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
+            meta.setItemModel(CustomItem.getItemModel(itemModel));
     }
 
     public static void addGUI(GUIOptions gui, String name) {
