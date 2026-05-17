@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.data.player_data;
 
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
-import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.SerializeInventory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;

@@ -12,7 +12,6 @@ import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
-import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,7 +22,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
+public class PlayerData implements Comparable<PlayerData> {
 
     private static final Gson gson;
 
@@ -117,6 +116,7 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
     private UUID serverID = null;
     private final Map<String, Integer> guiSortType = new HashMap<>();
     private boolean trackingExempt = false;
+    boolean isOnline = false;
 
     public PlayerData() {
         broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
@@ -310,48 +310,12 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
         return uuid;
     }
 
-    @Override
-    public String getID() {
-        return uuid.toString();
+    public boolean isOnline() {
+        return isOnline;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T extends Inconsistent> T copy() {
-        PlayerData playerData = new PlayerData();
-        playerData.setUuid(uuid);
-        playerData.setPlayerName(playerName);
-        playerData.setGeneralImmunity(generalImmunity);
-        playerData.setTimedImmunity(timedImmunity);
-        playerData.setRandomImmunity(randomImmunity);
-        playerData.setMurderImmunity(murderImmunity);
-        playerData.setRefund(playerData.getRefund());
-        playerData.setNewPlayer(newPlayer);
-        playerData.setBountyCooldown(bountyCooldown);
-        playerData.setTimeZone(timeZone);
-        playerData.setBroadcastSettings(broadcastSettings);
-        playerData.setWhitelist(whitelist);
-        playerData.setLastSeen(lastSeen);
-        playerData.setLastClaim(lastClaim);
-        playerData.setServerID(serverID);
-        return (T) playerData;
-    }
-
-    @Override
-    public long getLatestUpdate() {
-        return getLastSeen();
-    }
-
-    @Override
-    public List<Inconsistent> getSubElements() {
-        return new ArrayList<>(refund);
-    }
-
-    @Override
-    public void setSubElements(List<Inconsistent> subElements) {
-        // convert to onlineRefunds
-        refund.clear();
-        refund.addAll(subElements.stream().filter(OnlineRefund.class::isInstance).map(OnlineRefund.class::cast).toList());
+    public void setOnline(boolean online) {
+        isOnline = online;
     }
 
     @Override

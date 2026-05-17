@@ -21,17 +21,23 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public enum Leaderboard {
     //(all/kills/claimed/deaths/set/immunity)
-    ALL(true),
-    KILLS(false),
-    CLAIMED(true),
-    DEATHS(false),
-    SET(false),
-    IMMUNITY(true),
-    CURRENT(true);
+    ALL(true, "b_all_time"),
+    KILLS(false, "b_claimed"),
+    CLAIMED(true, "b_claim_amt"),
+    DEATHS(false, "b_received"),
+    SET(false, "b_set"),
+    IMMUNITY(true, "immunity"),
+    CURRENT(true, "current");
 
     private final boolean money;
-    Leaderboard(boolean decimals){
+    private final String databaseName;
+    Leaderboard(boolean decimals, String databaseName){
         this.money = decimals;
+        this.databaseName = databaseName;
+    }
+
+    public String getDatabaseName() {
+        return databaseName;
     }
 
     public boolean isMoney() {

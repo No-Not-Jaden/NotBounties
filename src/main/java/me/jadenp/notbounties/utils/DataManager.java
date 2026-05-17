@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
+// TODO: manage 1 thread per database and close connection when inactive
 public class DataManager {
 
     private DataManager(){}
@@ -415,6 +416,9 @@ public class DataManager {
         return localData.getOnlinePlayers();
     }
 
+    public static List<ItemStack> loadItems(int itemId) {
+        // load items from the database and cache them
+    }
 
     public static double getStat(UUID uuid, Leaderboard leaderboard) {
         if (leaderboard == Leaderboard.CURRENT) {

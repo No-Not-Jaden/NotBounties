@@ -1,6 +1,6 @@
 package me.jadenp.notbounties.features.settings.databases;
 
-import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.PlayerStat;
@@ -14,14 +14,13 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
-import java.util.logging.Level;
 
 /**
  * Databases will be loaded first with the call of the constructor. Configuration should be loaded here
  * Later, databases will be called to connect.
  * Note: this class has a natural ordering that is inconsistent with equals.
  */
-public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatabase>{
+public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatabase> {
     private final String name;
     private final Plugin plugin;
     private int priority = 0;
@@ -29,17 +28,14 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     private long lastSyncAttempt = 0;
     private long lastSync = 0;
     protected boolean hasConnected = false;
-    private long nextReconnectAttempt;
-    private int reconnectAttempts;
 
-    protected static final IOException notConnectedException = new IOException("Database is not connected!");
+
+    protected static final String DISCONNECTED_MESSAGE = "Database has disconnected unexpectedly!";
+    protected static final DatabaseConnectionException notConnectedException = new DatabaseConnectionException("Database is not connected!");
 
     protected NotBountiesDatabase(Plugin plugin, String name) {
         this.name = name;
         this.plugin = plugin;
-
-        nextReconnectAttempt = System.currentTimeMillis();
-        reconnectAttempts = 0;
 
         readConfig();
     }
@@ -47,9 +43,6 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     protected NotBountiesDatabase() {
         this.name = "Pseudo";
         this.plugin = null;
-
-        nextReconnectAttempt = System.currentTimeMillis();
-        reconnectAttempts = 0;
     }
 
     /**
@@ -57,86 +50,82 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * @param uuid UUID of the player
      * @param stats The stats to add
      */
-    public abstract void addStats(UUID uuid, PlayerStat stats);
+    public abstract void addStats(UUID uuid, PlayerStat stats) throws DatabaseConnectionException;
 
     /**
      * Get stats of a player.
      * @param uuid UUID of the player
      * @return The stats of the player
-     * @throws IOException When the database isn't connected.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract @NotNull PlayerStat getStats(UUID uuid) throws IOException;
+    public abstract @NotNull PlayerStat getStats(UUID uuid) throws DatabaseConnectionException;
 
     /**
-     * Get all the stats in the database
-     * @return All recorded player stats
-     * @throws IOException When the database isn't connected.
+     * Get a range of stats in a database
+     * @return A map of recorded stats.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract Map<UUID, PlayerStat> getAllStats() throws IOException;
+    public abstract Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException;
 
     /**
      * Adds multiple stats to the database.
      * @apiNote This is used to synchronize multiple databases
      * @param playerStats Stats to be added to the database
      */
-    public abstract void addStats(Map<UUID, PlayerStat> playerStats);
+    public abstract void addStats(Map<UUID, PlayerStat> playerStats) throws DatabaseConnectionException;
 
     /**
      * Adds multiple bounties to the database
      * @apiNote This is used to synchronize multiple databases.
      * @param bounties Bounties to be added to the database.
      */
-    public abstract void addBounty(List<Bounty> bounties);
+    public abstract void addBounty(List<Bounty> bounties) throws DatabaseConnectionException;
 
     /**
      * Removes multiple bounties from the database.
      * @apiNote This is used to synchronize multiple databases.
      * @param bounties Bounties to be removed.
      */
-    public abstract void removeBounty(List<Bounty> bounties);
+    public abstract void removeBounty(List<Bounty> bounties) throws DatabaseConnectionException;
 
     /**
      * Add a bounty to the database
      * @param bounty Bounty to be added
      * @return A bounty that is the combination of all the bounties on the same person which includes the supplied bounty.
-     * @throws IOException When the database isn't connected.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract Bounty addBounty(@NotNull Bounty bounty) throws IOException;
+    public abstract Bounty addBounty(@NotNull Bounty bounty) throws DatabaseConnectionException;
 
     /**
      * Replaces a bounty in the database
      * @param uuid   UUID of the bounty to be replaced
      * @param bounty Replacement bounty. A null value will remove the bounty.
      */
-    public void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
-        try {
-            removeBounty(uuid);
-            if (bounty != null)
-                addBounty(bounty);
-        } catch (IOException ignored) {
-            // couldn't replace bounty because database isn't connected
-        }
+    public void replaceBounty(UUID uuid, @Nullable Bounty bounty) throws DatabaseConnectionException {
+        removeBounty(uuid);
+        if (bounty != null)
+            addBounty(bounty);
     }
 
     /**
      * Get a bounty from the database.
      * @param uuid UUID of the player the bounty is set on.
      * @return A stored bounty, or null if no bounty exists.
-     * @throws IOException When the database isn't connected.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract @Nullable Bounty getBounty(UUID uuid) throws IOException;
+    public abstract @Nullable Bounty getBounty(UUID uuid) throws DatabaseConnectionException;
 
     /**
      * Remove a player's bounty from the database.
      * @param uuid UUID of the player.
      */
-    public abstract void removeBounty(UUID uuid);
+    public abstract void removeBounty(UUID uuid) throws DatabaseConnectionException;
 
     /**
      * Remove a specific bounty from the database.
      * @param bounty Bounty to be removed.
      */
-    public abstract void removeBounty(Bounty bounty);
+    public abstract void removeBounty(Bounty bounty) throws DatabaseConnectionException;
 
     /**
      * Get all the bounties in the database
@@ -147,9 +136,9 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      *                 <p> 2  = Most expensive bounties first</p>
      *                 <p> 3  = Least expensive bounties first</p>
      * @return A list of all the bounties in the redis database
-     * @throws IOException When the database isn't connected.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract List<Bounty> getAllBounties(int sortType) throws IOException;
+    public abstract List<Bounty> getBounties(BountySortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException;
 
     /**
      * Get a configurable name for this database.
@@ -215,36 +204,36 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     /**
      * Get the players on servers connected to the database.
      * @return A Map of player's uuids and usernames.
-     * @throws IOException When the database isn't connected.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract Map<UUID, String> getOnlinePlayers() throws IOException;
+    public abstract Map<UUID, String> getOnlinePlayers() throws DatabaseConnectionException;
 
     /**
      * Update the player data for a player in the database.
      * @param playerData New player data information.
      */
-    public abstract void updatePlayerData(PlayerData playerData);
+    public abstract void updatePlayerData(PlayerData playerData) throws DatabaseConnectionException;
 
     /**
      * Get the player data for a player.
      * @param uuid UUID of the player.
      * @return The player data of the player.
-     * @throws IOException When the database isn't connected.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract PlayerData getPlayerData(@NotNull UUID uuid) throws IOException;
+    public abstract PlayerData getPlayerData(@NotNull UUID uuid) throws DatabaseConnectionException;
 
     /**
      * Add player data to the database. Existing player data with the same UUID will be overwritten.
      * @param playerDataMap Map of player data to add.
      */
-    public abstract void addPlayerData(List<PlayerData> playerDataMap);
+    public abstract void addPlayerData(List<PlayerData> playerDataMap) throws DatabaseConnectionException;
 
     /**
      * Get the player data in the database.
      * @return The player data in the database, sorted by UUID in ascending order.
-     * @throws IOException When the database isn't connected.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract List<PlayerData> getPlayerData() throws IOException;
+    public abstract List<PlayerData> getPlayerData() throws DatabaseConnectionException;
 
     /**
      * Get the priority of the database.
@@ -297,48 +286,26 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * Record that a player was notified.
      * @param uuid UUID of the player that was notified.
      */
-    public abstract void notifyBounty(UUID uuid);
+    public abstract void notifyBounty(UUID uuid) throws DatabaseConnectionException;
 
     /**
      * Record that a player logged in.
      * @param uuid UUID of the player that logged in.
      * @param playerName Username of the player that logged in.
      */
-    public abstract void login(UUID uuid, String playerName);
+    public abstract void login(UUID uuid, String playerName) throws DatabaseConnectionException;
 
     /**
      * Record a player that logged out.
      * @param uuid UUID of the player that logged out.
      */
-    public abstract void logout(UUID uuid);
+    public abstract void logout(UUID uuid) throws DatabaseConnectionException;
 
     /**
      * Check if the connected database is reliable and the data will persist.
      * @return True if the database is permanent.
      */
     public abstract boolean isPermDatabase();
-
-    protected synchronized boolean reconnect(Exception e) {
-        NotBounties.debugMessage(e.toString(), true);
-        Arrays.stream(e.getStackTrace()).forEach(stackTraceElement -> NotBounties.debugMessage(stackTraceElement.toString(), true));
-        if (System.currentTimeMillis() > nextReconnectAttempt) {
-            reconnectAttempts++;
-            disconnect();
-            if (reconnectAttempts >= 3) {
-                reconnectAttempts = 0;
-                nextReconnectAttempt = System.currentTimeMillis() + 5000L;
-            }
-            if (NotBounties.getInstance().isEnabled()) {
-                if (!connect(false)) {
-                    if (reconnectAttempts < 2)
-                        NotBounties.getServerImplementation().async().runDelayed(() -> connect(true), 20L);
-                    return false;
-                }
-                return true;
-            }
-        }
-        return false;
-    }
 
     /**
      * Check if the database should be synced.
@@ -369,6 +336,6 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         NotBountiesDatabase that = (NotBountiesDatabase) o;
-        return priority == that.priority && refreshInterval == that.refreshInterval && lastSync == that.lastSync && hasConnected == that.hasConnected && nextReconnectAttempt == that.nextReconnectAttempt && reconnectAttempts == that.reconnectAttempts && Objects.equals(name, that.name) && Objects.equals(plugin, that.plugin);
+        return priority == that.priority && refreshInterval == that.refreshInterval && lastSync == that.lastSync && hasConnected == that.hasConnected && Objects.equals(name, that.name) && Objects.equals(plugin, that.plugin);
     }
 }

@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.data.player_data;
 
 import me.jadenp.notbounties.features.LanguageOptions;
-import me.jadenp.notbounties.utils.Inconsistent;
 import org.bukkit.entity.Player;
 
 import java.util.Objects;

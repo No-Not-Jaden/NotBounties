@@ -349,6 +349,12 @@ public class SkinManager {
         }
     }
 
+    /**
+     * Decodes a base64 texture into json and extracts the texture url.
+     * Ex: The value of <a href="https://sessionserver.mojang.com/session/minecraft/profile/c4284151-77e5-4a85-9b81-dcd41b9aebd4">this skin</a>
+     * @param texture Base64 texture data
+     * @return The skin URL.
+     */
     public static URL getTextureURL(String texture) {
         try {
             String urlJson = new String(Base64.getDecoder().decode(texture));

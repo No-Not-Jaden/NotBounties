@@ -14,21 +14,21 @@ import java.util.UUID;
 
 public final class PlayerStat {
     private static final Gson gson;
-    private final long kills;
-    private final long set;
-    private final long deaths;
-    private final double all;
+    private final long bountiesClaimed;
+    private final long bountiesSet;
+    private final long bountiesReceived;
+    private final double bountyAllTime;
     private final double immunity;
-    private final double claimed;
+    private final double bountyClaimAmount;
     private UUID serverID;
 
-    public PlayerStat(long kills, long set, long deaths, double all, double immunity, double claimed, UUID serverID) {
-        this.kills = kills;
-        this.set = set;
-        this.deaths = deaths;
-        this.all = all;
+    public PlayerStat(long bountiesClaimed, long bountiesSet, long bountiesReceived, double bountyAllTime, double immunity, double bountyClaimAmount, UUID serverID) {
+        this.bountiesClaimed = bountiesClaimed;
+        this.bountiesSet = bountiesSet;
+        this.bountiesReceived = bountiesReceived;
+        this.bountyAllTime = bountyAllTime;
         this.immunity = immunity;
-        this.claimed = claimed;
+        this.bountyClaimAmount = bountyClaimAmount;
         this.serverID = serverID;
     }
 
@@ -38,8 +38,8 @@ public final class PlayerStat {
         gson = builder.create();
     }
 
-    public PlayerStat(long kills, long set, long deaths, double all, double immunity, double claimed) {
-        this(kills, set, deaths, all, immunity, claimed, DataManager.getDatabaseServerID(true));
+    public PlayerStat(long bountiesClaimed, long bountiesSet, long bountiesReceived, double bountyAllTime, double immunity, double bountyClaimAmount) {
+        this(bountiesClaimed, bountiesSet, bountiesReceived, bountyAllTime, immunity, bountyClaimAmount, DataManager.getDatabaseServerID(true));
     }
 
     public PlayerStat(PlayerStat playerStat) {
@@ -88,7 +88,7 @@ public final class PlayerStat {
      * @return The combination of the stats in this object, and the stats in the playerStat parameter.
      */
     public @NotNull PlayerStat combineStats(PlayerStat playerStat) {
-        return new PlayerStat(kills + playerStat.kills(), set + playerStat.set(), deaths + playerStat.deaths(), all + playerStat.all(), immunity + playerStat.immunity(), claimed + playerStat.claimed(), serverID);
+        return new PlayerStat(bountiesClaimed + playerStat.kills(), bountiesSet + playerStat.set(), bountiesReceived + playerStat.deaths(), bountyAllTime + playerStat.all(), immunity + playerStat.immunity(), bountyClaimAmount + playerStat.claimed(), serverID);
     }
 
     public JsonObject toJson() {
@@ -98,22 +98,22 @@ public final class PlayerStat {
     public double leaderboardType(Leaderboard leaderboard) {
         switch (leaderboard) {
             case KILLS -> {
-                return kills;
+                return bountiesClaimed;
             }
             case SET -> {
-                return set;
+                return bountiesSet;
             }
             case DEATHS -> {
-                return deaths;
+                return bountiesReceived;
             }
             case ALL -> {
-                return all;
+                return bountyAllTime;
             }
             case IMMUNITY -> {
                 return immunity;
             }
             case CLAIMED -> {
-                return claimed;
+                return bountyClaimAmount;
             }
             default -> {
                 return 0;
@@ -122,19 +122,19 @@ public final class PlayerStat {
     }
 
     public long kills() {
-        return kills;
+        return bountiesClaimed;
     }
 
     public long set() {
-        return set;
+        return bountiesSet;
     }
 
     public long deaths() {
-        return deaths;
+        return bountiesReceived;
     }
 
     public double all() {
-        return all;
+        return bountyAllTime;
     }
 
     public double immunity() {
@@ -142,7 +142,7 @@ public final class PlayerStat {
     }
 
     public double claimed() {
-        return claimed;
+        return bountyClaimAmount;
     }
 
     public UUID serverID() {
@@ -158,29 +158,29 @@ public final class PlayerStat {
         if (obj == this) return true;
         if (obj == null || obj.getClass() != this.getClass()) return false;
         var that = (PlayerStat) obj;
-        return this.kills == that.kills &&
-                this.set == that.set &&
-                this.deaths == that.deaths &&
-                Double.doubleToLongBits(this.all) == Double.doubleToLongBits(that.all) &&
+        return this.bountiesClaimed == that.bountiesClaimed &&
+                this.bountiesSet == that.bountiesSet &&
+                this.bountiesReceived == that.bountiesReceived &&
+                Double.doubleToLongBits(this.bountyAllTime) == Double.doubleToLongBits(that.bountyAllTime) &&
                 Double.doubleToLongBits(this.immunity) == Double.doubleToLongBits(that.immunity) &&
-                Double.doubleToLongBits(this.claimed) == Double.doubleToLongBits(that.claimed) &&
+                Double.doubleToLongBits(this.bountyClaimAmount) == Double.doubleToLongBits(that.bountyClaimAmount) &&
                 Objects.equals(this.serverID, that.serverID);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(kills, set, deaths, all, immunity, claimed, serverID);
+        return Objects.hash(bountiesClaimed, bountiesSet, bountiesReceived, bountyAllTime, immunity, bountyClaimAmount, serverID);
     }
 
     @Override
     public String toString() {
         return "PlayerStat[" +
-                "kills=" + kills + ", " +
-                "set=" + set + ", " +
-                "deaths=" + deaths + ", " +
-                "all=" + all + ", " +
+                "kills=" + bountiesClaimed + ", " +
+                "set=" + bountiesSet + ", " +
+                "deaths=" + bountiesReceived + ", " +
+                "all=" + bountyAllTime + ", " +
                 "immunity=" + immunity + ", " +
-                "claimed=" + claimed + ", " +
+                "claimed=" + bountyClaimAmount + ", " +
                 "serverID=" + serverID + ']';
     }
 

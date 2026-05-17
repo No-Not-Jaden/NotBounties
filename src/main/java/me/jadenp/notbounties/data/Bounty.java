@@ -18,13 +18,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class Bounty extends Inconsistent implements Comparable<Bounty> {
     private final UUID uuid;
-    private String name;
     private List<Setter> setters = Collections.synchronizedList(new LinkedList<>());
     private static final Gson gson;
     private UUID serverID; // id used to identify which server should save the value
@@ -38,7 +35,6 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
     public Bounty(Player setter, OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist, UUID serverID){
         // save player
         this.uuid = receiver.getUniqueId();
-        name = LoggedPlayers.getPlayerName(receiver);
         // add to the total bounty
         setters.add(new Setter(setter.getName(), setter.getUniqueId(), amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
         this.serverID = serverID;
@@ -51,7 +47,6 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
     public Bounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist, UUID serverID){
         // save player
         this.uuid = receiver.getUniqueId();
-        name = LoggedPlayers.getPlayerName(receiver);
         // add to the total bounty
         setters.add(new Setter(ConfigOptions.getAutoBounties().getConsoleBountyName(), DataManager.GLOBAL_SERVER_ID, amount, items, System.currentTimeMillis(), receiver.isOnline(), whitelist, BountyExpire.getTimePlayed(receiver.getUniqueId())));
         this.serverID = serverID;
@@ -63,7 +58,6 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
 
     public Bounty(Bounty bounty) {
         uuid = bounty.getUUID();
-        name = bounty.getName();
         for (Setter setter : bounty.getSetters()) {
             setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), new ArrayList<>(setter.getItems()), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount()));
         }
@@ -72,7 +66,6 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
 
     public Bounty(Bounty bounty, UUID claimer) {
         uuid = bounty.getUUID();
-        name = bounty.getName();
         for (Setter setter : bounty.getSetters()) {
             if (setter.canClaim(claimer))
                 setters.add(new Setter(setter.getName(), setter.getUuid(), setter.getAmount(), setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime()));
@@ -80,15 +73,14 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
         serverID = bounty.serverID;
     }
 
-    public Bounty(UUID uuid, List<Setter> setters, @NotNull String name, UUID serverID){
+    public Bounty(UUID uuid, List<Setter> setters, UUID serverID){
         this.uuid = uuid;
         this.setters = Collections.synchronizedList(setters);
-        this.name = name;
         this.serverID = serverID;
     }
 
-    public Bounty(UUID uuid, List<Setter> setters, @NotNull String name) {
-        this(uuid, setters, name, DataManager.getDatabaseServerID(true));
+    public Bounty(UUID uuid, List<Setter> setters) {
+        this(uuid, setters, DataManager.getDatabaseServerID(true));
     }
 
     public Bounty(String jsonString) {
@@ -103,33 +95,8 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
         return (JsonObject) gson.toJsonTree(this);
     }
 
-    /**
-     * Change the display name of the target
-     * The name is reset every time the target logs in
-     * @param name the new name of the target
-     */
-    public void setDisplayName(@NotNull String name) {
-        try {
-            Objects.requireNonNull(name, "Bounty name cannot be null");
-        } catch (NullPointerException e) {
-            Logger logger = NotBounties.getInstance().getLogger();
-            NotBounties.getInstance().getLogger().log(Level.WARNING, "Bounty name cannot be null", e);
-            Arrays.asList(e.getStackTrace()).forEach(m -> logger.warning(m.toString()));
-            return;
-        }
-        this.name = name;
-    }
-
     public String getName() {
-        try {
-            UUID.fromString(name);
-            String loggedName = LoggedPlayers.getPlayerName(uuid);
-            NotBounties.debugMessage("Detected a uuid as a player name for a bounty. UUID: " + name + " Logged name: " + loggedName, true);
-            setDisplayName(loggedName);
-        } catch (IllegalArgumentException ignored) {
-            // name is not a uuid
-        }
-        return name;
+        return LoggedPlayers.getPlayerName(uuid);
     }
 
     public UUID getUUID() {
@@ -291,7 +258,7 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
             if (setter.getUuid().equals(setterUUID))
                 matchingSetters.add(setter);
         }
-        return new Bounty(uuid, matchingSetters, name);
+        return new Bounty(uuid, matchingSetters);
     }
 
     public UUID getServerID() {
@@ -310,7 +277,6 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
     public String toString() {
         return "Bounty{" +
                 "uuid=" + uuid +
-                ", name='" + name + '\'' +
                 ", setters=" + setters +
                 ", serverID=" + serverID +
                 '}';

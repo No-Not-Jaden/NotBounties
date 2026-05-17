@@ -5,7 +5,6 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;

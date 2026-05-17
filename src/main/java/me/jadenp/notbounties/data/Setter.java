@@ -6,27 +6,26 @@ import com.google.gson.JsonObject;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
-public class Setter extends Inconsistent implements Comparable<Setter> {
-    private final String name;
+public class Setter implements Comparable<Setter> {
+    private Integer id;
     private final UUID uuid;
     private final double amount;
     private final double displayBounty;
-    private final List<ItemStack> items;
+    private Integer itemsId;
     private final long timeCreated;
     private boolean notified;
     private final Whitelist whitelist;
     private final long receiverPlaytime;
+    private final Set<String> tags = new TreeSet<>();
+    private List<ItemStack> items;
     private static final Gson gson;
     static {
         GsonBuilder builder = new GsonBuilder();
@@ -35,35 +34,18 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
         gson = builder.create();
     }
 
-    public Setter(String name, UUID uuid, double amount, List<ItemStack> items, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime){
-        double displayBounty1;
+    public Setter(Integer id, UUID uuid, double amount, @Nullable Integer itemsId, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime, double displayBounty, Set<String> tags){
 
-        this.name = name;
+        this.id = id;
         this.uuid = uuid;
         this.amount = amount;
-        this.items = items;
-        this.timeCreated = timeCreated;
-        this.notified = Objects.requireNonNullElse(notified, true);
-        this.whitelist = whitelist;
-        this.receiverPlaytime = receiverPlaytime;
-        try {
-            displayBounty1 = amount + NumberFormatting.getTotalValue(items);
-        } catch (ExcludedItemException e) {
-            displayBounty1 = amount;
-        }
-        displayBounty = displayBounty1;
-    }
-
-    public Setter(String name, UUID uuid, double amount, List<ItemStack> items, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime, double displayBounty){
-
-        this.name = name;
-        this.uuid = uuid;
-        this.amount = amount;
-        this.items = items;
+        this.itemsId = itemsId;
         this.timeCreated = timeCreated;
         this.notified = Objects.requireNonNullElse(notified, true);
         this.whitelist = new Whitelist(whitelist.getList(), whitelist.isBlacklist());
         this.receiverPlaytime = receiverPlaytime;
+        this.tags.addAll(tags);
+        // TODO: get items
         if (displayBounty == -1) {
             double displayBounty1;
             try {
@@ -84,6 +66,18 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
 
     public long getReceiverPlaytime(){
         return receiverPlaytime;
+    }
+
+    public Set<String> getTags() {
+        return Collections.unmodifiableSet(tags);
+    }
+
+    public boolean hasTag(String tag) {
+        return tags.contains(tag);
+    }
+
+    public void addTag(String tag) {
+        tags.add(tag); // TODO: Test if adding long tags will produce an error with the database
     }
 
     public boolean canClaim(Player player) {
@@ -122,19 +116,49 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
         return timeCreated;
     }
 
-    public String getName() {
-        return name;
-    }
-
     public double getAmount() {
         return amount;
     }
+
     public double getDisplayAmount() {
         return displayBounty;
     }
 
+    public void setItemsId(Integer itemsId) {
+        this.itemsId = itemsId;
+    }
+
+    /**
+     * Gets the items for this setter.
+     * Calling this may load them from the database.
+     * @return A list of items on this bounty.
+     */
     public List<ItemStack> getItems() {
+        if (items == null && itemsId != null) {
+            items = DataManager.loadItems(itemsId);
+        }
         return items;
+    }
+
+    /**
+     * Get the id of the owning items in the database.
+     * @return The id of the owning items, or null if the items aren't in the database.
+     */
+    public @Nullable Integer getItemsId() {
+        return itemsId;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    /**
+     * Check if the setter has items. If this is true, {@link #getItemsId()} will still return null if the items
+     * haven't been added to the database.
+     * @return True if this setter owns items.
+     */
+    public boolean hasItems() {
+        return itemsId != null || items != null;
     }
 
     public UUID getUuid() {
@@ -161,7 +185,6 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
     @Override
     public String toString() {
         return "Setter{" +
-                "name='" + name + '\'' +
                 ", uuid=" + uuid +
                 ", amount=" + amount +
                 ", displayBounty=" + displayBounty +
@@ -175,32 +198,14 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime);
+        return Objects.hash(id, uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime);
     }
 
-    @Override
-    public String getID() {
-        return uuid.toString() + ":" + timeCreated;
+    public Integer getID() {
+        return id;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T extends Inconsistent> T copy() {
-        return (T) new Setter(name, uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime, displayBounty);
-    }
-
-    @Override
     public long getLatestUpdate() {
         return getTimeCreated();
-    }
-
-    @Override
-    public List<Inconsistent> getSubElements() {
-        return List.of();
-    }
-
-    @Override
-    public void setSubElements(List<Inconsistent> subElements) {
-        // do nothing because a setter doesn't contain any important inconsistent sub elements
     }
 }

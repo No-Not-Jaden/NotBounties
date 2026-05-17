@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.isVanished;
 
+// TODO: Replace with caches
 public class LocalData extends NotBountiesDatabase {
     protected final List<Bounty> activeBounties;
     /**
