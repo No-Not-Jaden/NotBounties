@@ -263,6 +263,8 @@ help:
     - '&9/bounty check (player) <list> &8- &dChecks a bounty.'
     - '&9/bounty list &8- &dLists all bounties.'
     - '&9/bounty &8- &dOpens bounty GUI.'
+  sort:
+    - '&9/bounty sort (gui-type) <#> &8- &dChanges the sort type for the GUIs.'
   stats:
     - '&9/bounty top (all/kills/claimed/deaths/set/immunity) <list> &8- &dLists the top 10 players with the respective stats.'
     - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) &8- &dView your bounty stats.'
@@ -299,6 +301,8 @@ help:
     - '&9/bounty tracker (player) &8- &dGives you a compass that tracks a player with a bounty.'
   tracker-other:
     - '&9/bounty tracker (player) (receiver) &8- &dGives receiver a compass that tracks a player with a bounty.'
+  tracker-exempt:
+    - '&9/bounty tracker exempt &8- &dExempts you from being tracked.'
   challenges:
     - '&9/bounty challenges &8- &dOpens the challenges GUI.'
     - '&9/bounty challenges claim <challenge #> &8- &dClaim a challenge reward.'
@@ -323,8 +327,9 @@ help:
     - '&9/bounty board remove &8- &dRemoves a specific bounty board.'
     - '&9/bounty cleanEntities <radius> &8- &dRemoves persistent bounty entities.'
     - '&9/bounty hunt cancel (player) &8- &dCancel a bounty hunt on a player.'
+    - '&9/bounty item (custom-item) &8- &dGives yourself a custom GUI item.'
     - '&9/bounty reload &8- &dReloads the plugin.'
-    - '&9/bounty debug &8- &dShows plugin information and additional help.'
+    - '&9/bounty debug <enable/disable>&8- &dShows plugin information and additional help.'
     - '&9/bounty pause/unpause &8- &dPauses all bounty features except viewing.'
     - '&9/bountyadmin (player) <bounty command> &7- &dRuns a bounty command for a player.'
   immune:

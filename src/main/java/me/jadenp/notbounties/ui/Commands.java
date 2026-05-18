@@ -146,6 +146,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 LanguageOptions.sendHelpMessage(sender, page);
             } else if (args[0].equalsIgnoreCase("item") && (adminPermission || sender.hasPermission(NotBounties.getAdminPermission())) && sender instanceof Player player) {
+                // /bounty item (item)
                 if (args.length > 1) {
                     CustomItem item = GUI.getCustomItems().get(args[1]);
                     if (item != null) {
@@ -165,8 +166,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                     // usage
                     if (!silent) {
                         sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
-                        return false;
+                        LanguageOptions.sendHelpMessage(sender, getListMessage("help.admin"));
                     }
+                    return false;
                 }
             } else if (args[0].equalsIgnoreCase("sort") && (adminPermission || sender.hasPermission("notbounties.sort"))) {
                 // /bounty sort (gui-type) #
@@ -217,8 +219,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                     try {
                         sortType = Integer.parseInt(args[2]);
                     } catch (NumberFormatException e) {
-                        if (!silent)
+                        if (!silent) {
                             sender.sendMessage(parse(getPrefix() + getMessage("unknown-number"), parser));
+                            LanguageOptions.sendHelpMessage(sender, getListMessage("help.sort"));
+                        }
                         return false;
                     }
                     if (sortType < 0 || sortType > 4) {

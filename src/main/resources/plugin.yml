@@ -28,6 +28,7 @@ softdepend:
   - Konquest
   - EconomyShopGUI
   - EconomyShopGUI-Premium
+  - CMI
 commands:
   notbounties:
     description: Use all of the bounty commands.
