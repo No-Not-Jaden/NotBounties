@@ -352,9 +352,11 @@ public class LanguageOptions {
      * Will not add the player prefix or player suffix
      * Mainly for unknown player
      */
-    public static String parse(String str, String player, OfflinePlayer receiver) {
-        str = str.replace("{receiver}", (player));
-        str = str.replace("{player}", (player));
+    public static String parse(String str, UUID playerUUID, OfflinePlayer receiver) {
+        String player = LoggedPlayers.getPlayerName(receiver);
+        String playerDisplay = LoggedPlayers.getDisplayName(playerUUID);
+        str = str.replace("{receiver}", (player)).replace("{receiver_displayname}", (playerDisplay));
+        str = str.replace("{player}", (player)).replace("{player_displayname}", (playerDisplay));
         return parse(str, receiver);
     }
 
@@ -484,8 +486,10 @@ public class LanguageOptions {
         return parse(str, receiver);
     }
 
-    public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
-        str = str.replace("{player}", (player));
+    public static String parse(String str, UUID playerUUID, double amount, OfflinePlayer receiver) {
+        String player = LoggedPlayers.getPlayerName(playerUUID);
+        String playerDisplay = LoggedPlayers.getDisplayName(playerUUID);
+        str = str.replace("{player}", (player)).replace("{player_displayname}", (playerDisplay));
         return parse(str,amount,receiver);
     }
 
@@ -501,10 +505,10 @@ public class LanguageOptions {
      * This does not add the player prefix or suffix
      * Used for console name
      */
-    public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
+    public static String parse(String str, UUID playerUuid, double amount, double bounty, OfflinePlayer receiver) {
         str = str.replace("{bounty}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(bounty) + NumberFormatting.getCurrencySuffix()));
         str = str.replace("{bounty_plain}", NumberFormatting.formatNumber(bounty));
-        return parse(str, player, amount, receiver);
+        return parse(str, playerUuid, amount, receiver);
     }
 
     public static String parse(String str, double amount, double bounty, OfflinePlayer receiver) {

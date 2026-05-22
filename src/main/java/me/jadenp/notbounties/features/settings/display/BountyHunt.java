@@ -230,7 +230,7 @@ public class BountyHunt {
 
         // Handle single-argument command (start GUI for hunt)
         if (args.length == 1) {
-            if (!hasPermission(sender, adminPermission, "notbounties.hunt.start")) {
+            if (hasNoPermission(sender, adminPermission, "notbounties.hunt.start")) {
                 return failNoPermission(sender, silent, parser);
             }
             if (!(sender instanceof Player player)) {
@@ -241,13 +241,13 @@ public class BountyHunt {
         }
 
         // Check permission for all multi-argument commands
-        if (!hasPermission(sender, adminPermission, "notbounties.hunt.participate")) {
+        if (hasNoPermission(sender, adminPermission, "notbounties.hunt.participate")) {
             return failNoPermission(sender, silent, parser);
         }
 
         String subCommand = args[1].toLowerCase();
         if (subCommand.equalsIgnoreCase("cancel")) {
-            if (!hasPermission(sender, adminPermission, "notbounties.admin")) {
+            if (hasNoPermission(sender, adminPermission, "notbounties.admin")) {
                 return failNoPermission(sender, silent, parser);
             }
             if (args.length <= 2) {
@@ -259,10 +259,10 @@ public class BountyHunt {
             }
             BountyHunt hunt = getHunt(uuid);
             if (hunt == null) {
-                return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), LoggedPlayers.getPlayerName(uuid), parser));
+                return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), uuid, parser));
             }
             if (!hunt.isParticipating(parser.getUniqueId()))
-                sender.sendMessage(parse(getPrefix() + getMessage("hunt-end"), LoggedPlayers.getPlayerName(uuid), parser));
+                sender.sendMessage(parse(getPrefix() + getMessage("hunt-end"), uuid, parser));
             endHunt(uuid);
             return true;
         }
@@ -298,16 +298,16 @@ public class BountyHunt {
         }
 
         if (uuid.equals(player.getUniqueId())) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("own-hunt"), args[2], parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("own-hunt"), uuid, parser));
         }
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), LoggedPlayers.getPlayerName(uuid), parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), uuid, parser));
         }
 
         hunt.addParticipatingPlayer(player);
-        sender.sendMessage(parse(getPrefix() + getMessage("hunt-join"), LoggedPlayers.getPlayerName(uuid), parser));
+        sender.sendMessage(parse(getPrefix() + getMessage("hunt-join"), uuid, parser));
         return true;
     }
 
@@ -320,7 +320,7 @@ public class BountyHunt {
             List<BountyHunt> participatingHunts = getParticipatingHunts(player.getUniqueId());
             if (participatingHunts.size() == 1) {
                 participatingHunts.get(0).removeParticipatingPlayer(player);
-                sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), LoggedPlayers.getPlayerName(participatingHunts.get(0).getHuntedPlayer()), parser));
+                sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), participatingHunts.get(0).getHuntedPlayer(), parser));
                 return true;
             }
             return failUnknownCommand(sender, silent, parser, "help.hunt-participate");
@@ -333,15 +333,15 @@ public class BountyHunt {
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), LoggedPlayers.getPlayerName(uuid), parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), uuid, parser));
         }
 
         if (!hunt.isParticipating(player.getUniqueId())) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("not-in-hunt"), LoggedPlayers.getPlayerName(hunt.getHuntedPlayer()), parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("not-in-hunt"), hunt.getHuntedPlayer(), parser));
         }
 
         hunt.removeParticipatingPlayer(player);
-        sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), LoggedPlayers.getPlayerName(hunt.getHuntedPlayer()), parser));
+        sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), hunt.getHuntedPlayer(), parser));
         return true;
     }
 
@@ -361,10 +361,10 @@ public class BountyHunt {
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), LoggedPlayers.getPlayerName(uuid), parser));
+            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), uuid, parser));
         }
 
-        sender.sendMessage(parse(getPrefix() + getMessage("list-hunt-players"), LoggedPlayers.getPlayerName(uuid), parser));
+        sender.sendMessage(parse(getPrefix() + getMessage("list-hunt-players"), uuid, parser));
         hunt.getParticipatingPlayers().forEach(player -> sender.sendMessage(ChatColor.YELLOW + LoggedPlayers.getPlayerName(player)));
         sender.sendMessage("");
         return true;
@@ -375,7 +375,7 @@ public class BountyHunt {
             return failMessage(sender, silent, parse(getPrefix() + getMessage("max-hunts-active"), parser));
         }
 
-        if (!hasPermission(sender, adminPermission, "notbounties.hunt.start")) {
+        if (hasNoPermission(sender, adminPermission, "notbounties.hunt.start")) {
             return failNoPermission(sender, silent, parser);
         }
 
@@ -437,7 +437,7 @@ public class BountyHunt {
             if (hunt.getHuntedPlayer().getUniqueId().equals(uuid)) {
                 // already has a hunt
                 hunt.extendHunt(parser, time);
-                sender.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("extend-hunt").replace("{time}", LocalTime.formatTime(hunt.getEndTime() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), args[1], parser));
+                sender.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("extend-hunt").replace("{time}", LocalTime.formatTime(hunt.getEndTime() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), uuid, parser));
                 return true;
             }
         }
@@ -449,8 +449,8 @@ public class BountyHunt {
 // Helper Methods
 // =======================
 
-    private static boolean hasPermission(CommandSender sender, boolean adminPermission, String permission) {
-        return adminPermission || sender.hasPermission(permission);
+    private static boolean hasNoPermission(CommandSender sender, boolean adminPermission, String permission) {
+        return !adminPermission && !sender.hasPermission(permission);
     }
 
     private static boolean failUnknownCommand(CommandSender sender, boolean silent, Player parser, String helpMessageKey) {
@@ -477,7 +477,7 @@ public class BountyHunt {
 
     private static boolean failUnknownPlayer(CommandSender sender, boolean silent, String playerName, Player parser) {
         if (!silent) {
-            sender.sendMessage(parse(getPrefix() + getMessage("unknown-player"), playerName, parser));
+            sender.sendMessage(parse(getPrefix() + getMessage("unknown-player").replace("{player}", playerName), parser));
         }
         return false;
     }
@@ -542,8 +542,7 @@ public class BountyHunt {
     }
 
     public void extendHunt(@Nullable Player setter, long time) {
-        if (setter != null)
-            if (!isParticipating(setter.getUniqueId()))
+        if (setter != null && !isParticipating(setter.getUniqueId()))
                 addParticipatingPlayer(setter);
         this.endTime += time;
     }

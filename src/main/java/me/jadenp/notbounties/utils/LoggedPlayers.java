@@ -294,6 +294,8 @@ public class LoggedPlayers {
     public static String getDisplayName(UUID uuid) {
         if (uuid == null)
             return "";
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
+            return ConfigOptions.getAutoBounties().getConsoleBountyName();
         String name = getAPIDisplayName(uuid);
         if (name != null)
             return name;
