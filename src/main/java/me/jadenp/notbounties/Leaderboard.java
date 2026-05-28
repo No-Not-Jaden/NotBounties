@@ -2,6 +2,8 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
+import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -72,10 +74,19 @@ public enum Leaderboard {
         }
     }
 
-
+    /**
+     * Formats the stat for display. This will return the formatted numeric value with currency prefix/suffix if necessary.
+     * @param uuid UUID of the player.
+     * @return The player's formatted stat.
+     */
     public String getFormattedStat(UUID uuid){
         if (money) {
-            return NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(getStat(uuid)) + NumberFormatting.getCurrencySuffix();
+            double stat = getStat(uuid);
+            String amountString = NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(stat) + NumberFormatting.getCurrencySuffix();
+            if (this == Leaderboard.IMMUNITY && ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.TIME) {
+                amountString = amountString + ChatColor.WHITE + " (" + LocalTime.formatTime(ImmunityManager.currencyToTime(stat), LocalTime.TimeFormat.RELATIVE) + ")";
+            }
+            return amountString;
         }
         return NumberFormatting.formatNumber(getStat(uuid));
     }

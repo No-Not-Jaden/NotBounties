@@ -17,7 +17,7 @@ import me.jadenp.notbounties.features.settings.integrations.BountyClaimRequireme
 import me.jadenp.notbounties.features.settings.integrations.Integrations;
 import me.jadenp.notbounties.features.settings.integrations.LuckPermsClass;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
-import me.jadenp.notbounties.ui.Commands;
+import me.jadenp.notbounties.ui.commands.Commands;
 import me.jadenp.notbounties.ui.Events;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
@@ -65,7 +65,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * Redis Pub Sub messages for player data storage. - proxy messaging too
  * database message table with server IDs
  * Redo database system with large datasets in mind
- * store playtime of player when the bounty is set to reward based on time survived
+ * store playtime of player when the bounty is set to reward based on time survived, or increase the bounty
  * DB table to store tags for each bounty, ex: bounty team, or bounty region
  * add skin property to saved data
  * Async GUI and data requests

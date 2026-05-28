@@ -36,10 +36,10 @@ public class LocalTime {
     private static String license = null;
     private static long lastException = 0;
     private static final long ERROR_TIMEOUT_MS = 18 * 60 * 60 * 1000L;
-    private static boolean autoTimezone;
-    private static int defaultDateTimeStyle;
-    private static TimeZone defaultPlayerTimeZone;
-    private static String durationFormat;
+    private static boolean autoTimezone = true;
+    private static int defaultDateTimeStyle = DateFormat.DEFAULT;
+    private static TimeZone defaultPlayerTimeZone = TimeZone.getDefault();
+    private static String durationFormat = "[{d}d] [{h}h] [{m}m] [{s}s]";
 
     public static void loadConfiguration(ConfigurationSection config) {
         autoTimezone = config.getBoolean("auto-timezone");
@@ -60,7 +60,7 @@ public class LocalTime {
         } else {
             defaultPlayerTimeZone = TimeZone.getTimeZone(tzStr);
         }
-        durationFormat = config.getString("duration-format", "[{d}d] [{h}h] [{m}m] [{s}s]");
+        durationFormat = config.getString("duration-format", durationFormat);
 
         account = config.getInt("geoip2.account");
         license = config.getString("geoip2.license");
@@ -151,7 +151,7 @@ public class LocalTime {
      [ ... ]
      A section is only included if at least one token inside is non-zero.
      */
-    public static String formatDuration(long millis, String format) {
+    private static String formatDuration(long millis, String format) {
         long totalSeconds = millis / 1000;
 
         long days = totalSeconds / 86400;

@@ -19,6 +19,7 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.StatusLine;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.profile.PlayerProfile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,6 +46,7 @@ public class SkinManager {
     private static final long MOJANG_API_LIMIT_COUNT = 200;
     private static long lastLimitCheck = System.currentTimeMillis();
     private static long refreshInterval = 86400000; // 24 hours in ms
+    private static boolean useUnloadedPlayerProfile = true;
     /**
      * Time when the skin was loaded. Used for refreshing skins after the refreshInterval
      */
@@ -52,21 +54,17 @@ public class SkinManager {
     private static final List<SkinUpdateListener> updateListeners = Collections.synchronizedList(new ArrayList<>());
     private static BufferedImage missingSkinFace;
     private static BufferedImage missingSkinIso;
-    private static PlayerSkin missingSkin = new PlayerSkin(null, null, true);
+    private static PlayerSkin missingSkin = new PlayerSkin(null, true);
     private static final IsometricRenderer isoRenderer = new IsometricRenderer();
     private static final Set<UUID> pendingRequests = ConcurrentHashMap.newKeySet();
 
     public static void loadConfiguration(ConfigurationSection config) {
         refreshInterval = config.getLong("refresh-interval", 86400L) * 1000L;
-        try {
-            missingSkin = new PlayerSkin(new URI(Objects.requireNonNull(config.getString("missing-skin-url"))).toURL(), config.getString("missing-skin-id"), true);
-            savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin);
-            missingSkinFace = getPlayerFace(DataManager.GLOBAL_SERVER_ID);
-            missingSkinIso = getIsometricFace(DataManager.GLOBAL_SERVER_ID);
-
-        } catch (URISyntaxException | MalformedURLException e) {
-            NotBounties.getInstance().getLogger().warning("Failed to load missing skin texture.");
-        }
+        useUnloadedPlayerProfile = config.getBoolean("use-unloaded-player-profile", true);
+        missingSkin = new PlayerSkin(config.getString("missing-skin-id"), true);
+        savedSkins.put(DataManager.GLOBAL_SERVER_ID, missingSkin);
+        missingSkinFace = getPlayerFace(DataManager.GLOBAL_SERVER_ID);
+        missingSkinIso = getIsometricFace(DataManager.GLOBAL_SERVER_ID);
     }
 
     private static final List<Long> rateLimit = Collections.synchronizedList(new LinkedList<>()); // 200 requests / min
@@ -76,6 +74,10 @@ public class SkinManager {
 
     public static PlayerSkin getMissingSkin() {
         return missingSkin;
+    }
+
+    public static boolean isUseUnloadedPlayerProfile() {
+        return useUnloadedPlayerProfile;
     }
 
     public static void refreshSkinRequests() {
@@ -268,7 +270,7 @@ public class SkinManager {
     }
 
     public static boolean isMissingSkin(PlayerSkin playerSkin) {
-        return (Objects.equals(playerSkin.id(), missingSkin.id()) && playerSkin.url() == missingSkin.url()) || playerSkin.missing();
+        return (Objects.equals(playerSkin.id(), missingSkin.id()) && playerSkin.url().equals(missingSkin.url())) || playerSkin.missing();
     }
 
     /**
@@ -282,13 +284,13 @@ public class SkinManager {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && missingSkinFace != null)
             return missingSkinFace;
         try {
-            URL textureUrl = getSkin(uuid).url();
+            URL textureUrl = new URI(getSkin(uuid).url()).toURL();
 
             BufferedImage skin = ImageIO.read(textureUrl);
             BufferedImage head = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
 
             return copyHead(skin, head);
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             NotBounties.debugMessage("Error reading texture url for rendering player face.\n" + e, true);
 
         }
@@ -324,14 +326,14 @@ public class SkinManager {
         if (cachedHead != null)
             return cachedHead;
         try {
-            URL textureUrl = getSkin(uuid).url();
+            URL textureUrl = new URI(getSkin(uuid).url()).toURL();
 
             BufferedImage skin = ImageIO.read(textureUrl);
             BufferedImage head = isoRenderer.render(skin, 128, true);
             isometricHeadCache.put(uuid, head);
             return head;
 
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             NotBounties.debugMessage("Error reading texture url for rendering isometric head.\n" + e, true);
         }
         return null;
@@ -349,17 +351,15 @@ public class SkinManager {
         }
     }
 
-    public static URL getTextureURL(String texture) {
-        try {
-            String urlJson = new String(Base64.getDecoder().decode(texture));
-            JsonObject urlInput = new JsonParser().parse(urlJson).getAsJsonObject();
-            JsonElement skinURL = urlInput.get("textures").getAsJsonObject().get("SKIN").getAsJsonObject().get("url");
-            return new URI(skinURL.getAsString()).toURL();
-        } catch (IOException | URISyntaxException e) {
-            // too many requests
-            NotBounties.debugMessage("Error getting texture url: " + texture, true);
-            return null;
-        }
+    public static String getTextureURL(String texture) {
+        String urlJson = new String(Base64.getDecoder().decode(texture));
+        JsonObject urlInput = new JsonParser().parse(urlJson).getAsJsonObject();
+        JsonElement skinURL = urlInput.get("textures").getAsJsonObject().get("SKIN").getAsJsonObject().get("url");
+        return skinURL.getAsString();
+    }
+
+    public static String getTextureId(String url) {
+        return url.substring(url.lastIndexOf('/') + 1);
     }
 }
 
@@ -413,7 +413,7 @@ class SkinResponseHandler {
                     }
                     skinRequestType = requestQueue.poll();
                 }
-            } catch(IOException | IllegalStateException e){
+            } catch(IOException | IllegalStateException | RateLimitException e){
                 // skin request fail
                 if (uuid != null)
                     SkinManager.failRequest(uuid);
@@ -435,7 +435,7 @@ class SkinResponseHandler {
         }
     }
 
-    private static @Nullable PlayerSkin requestPlayerSkin(SkinRequestType skinRequestType, CloseableHttpClient httpClient) throws IOException {
+    private static @Nullable PlayerSkin requestPlayerSkin(SkinRequestType skinRequestType, CloseableHttpClient httpClient) throws IOException, RateLimitException {
         UUID uuid = skinRequestType.uuid();
         switch (skinRequestType.skinType()) {
             case JAVA -> {
@@ -445,7 +445,16 @@ class SkinResponseHandler {
                 return saveGeyserSkin(httpClient, NotBounties.getXuid(uuid));
             }
             case USERNAME -> {
-                return saveNamedSkin(httpClient, uuid);
+                try {
+                    return saveNamedSkin(httpClient, uuid);
+                } catch (IOException e) {
+                    if (SkinManager.isUseUnloadedPlayerProfile()) {
+                        // return default skin
+                        return DefaultSkinHelper.get(uuid);
+                    } else {
+                        throw e;
+                    }
+                }
             }
             case SKINSRESTORER -> ConfigOptions.getIntegrations().getSkinsRestorerClass().saveSkin(uuid);
         }
@@ -487,9 +496,10 @@ class SkinResponseHandler {
                     throw new IOException("Missing value or texture_id from bedrock skin response. (" + text + ")");
                 }
                 String value = input.get("value").getAsString();
+                String textureID = SkinManager.getTextureId(SkinManager.getTextureURL(value));
                 String id = input.get("texture_id").getAsString();
 
-                return new PlayerSkin(SkinManager.getTextureURL(value), id, false);
+                return new PlayerSkin(textureID, false);
             } else {
                 throw new IOException("Couldn't get a skin from this xuid.");
             }
@@ -497,7 +507,7 @@ class SkinResponseHandler {
         });
     }
 
-    private static PlayerSkin saveJavaSkin(CloseableHttpClient httpClient, UUID requestUUID, boolean tryNamed) throws IOException {
+    private static PlayerSkin saveJavaSkin(CloseableHttpClient httpClient, UUID requestUUID, boolean tryNamed) throws IOException, RateLimitException {
         SkinManager.incrementMojangRate();
 
         final HttpGet request = new HttpGet("https://sessionserver.mojang.com/session/minecraft/profile/" + requestUUID);
@@ -510,13 +520,14 @@ class SkinResponseHandler {
                 JsonObject input = new JsonParser().parse(text).getAsJsonObject();
                 JsonObject textureProperty = input.get("properties").getAsJsonArray().get(0).getAsJsonObject();
                 String value = textureProperty.get("value").getAsString();
-                String id = input.get("id").getAsString();
+                String textureID = SkinManager.getTextureId(SkinManager.getTextureURL(value));
+                String id = input.get("id").getAsString(); // this is the player's uuid
 
-                return new PlayerSkin(SkinManager.getTextureURL(value), id, false);
+                return new PlayerSkin(textureID, false);
             } else if (statusLine.getStatusCode() == 429) {
                 // hit rate limit
                 failRateLimit(requestUUID);
-                throw new IOException("Exceeding Mojang rate limit with: " + requestUUID + "\n Recorded rate: " + SkinManager.getRecentRequestCount());
+                throw new RateLimitException("Exceeding Mojang rate limit with: " + requestUUID + "\n Recorded rate: " + SkinManager.getRecentRequestCount());
             } else {
                 if (tryNamed) {
                     NotBounties.debugMessage("Saving named skin", false);
@@ -528,7 +539,7 @@ class SkinResponseHandler {
     }
 
 
-    private static PlayerSkin saveNamedSkin(CloseableHttpClient httpClient, UUID uuid) throws IOException {
+    private static PlayerSkin saveNamedSkin(CloseableHttpClient httpClient, UUID uuid) throws IOException, RateLimitException {
         SkinManager.incrementMojangRate();
         String playerName = LoggedPlayers.getPlayerName(uuid);
         if (playerName.length() > 24) {
@@ -544,7 +555,7 @@ class SkinResponseHandler {
             if (statusLine.getStatusCode() == 429) {
                 // hit rate limit
                 failRateLimit(uuid);
-                throw new IOException("Exceeding Mojang rate limit with: " + playerName + "\n Recorded rate: " + SkinManager.getRecentRequestCount());
+                throw new RateLimitException("Exceeding Mojang rate limit with: " + playerName + "\n Recorded rate: " + SkinManager.getRecentRequestCount());
             }
             if (statusLine.getStatusCode() != 200 || response.getEntity() == null) {
                 throw new IOException("Failed to get skin for " + playerName + ": Null contents");

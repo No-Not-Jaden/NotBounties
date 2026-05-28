@@ -2,14 +2,15 @@
 # Display bounties more on your server.
 
 skins:
-  # The url used to fetch the skin. You can obtain a url with: /bounty skin (player name/uuid)
-  missing-skin-url: 'https://textures.minecraft.net/texture/b6e0dfed46c33023110e295b177c623fd36b39e4137aeb7241777064af7a0b57'
-  # The texture ID here is used for Discord webhooks or Bedrock player heads if configured to use a texture ID.
-  # You can copy the end of the texture url, or use a UUID
+  # The ID used to fetch the skin. You can obtain one with: /bounty skin (player name/uuid)
+  # You can also look for a head here https://minecraft-heads.com/
+  # The ID is the last part of the texture URL https://textures.minecraft.net/texture/<ID>
   missing-skin-id: '46ba63344f49dd1c4f5488e926bf3d9e2b29916a6c50d610bb40a5273dc8c82'
   # The amount of time in seconds before skins are refreshed.
   # Set to 0 to disable skin refreshing.
   refresh-interval: 86400
+  # Whether to use a player's profile for unloaded skins in the GUI, or the missing skin URL.
+  use-unloaded-player-profile: true
 
 # wanted posters of bounty
 bounty-posters:

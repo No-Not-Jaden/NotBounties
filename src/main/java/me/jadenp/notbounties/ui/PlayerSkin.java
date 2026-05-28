@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.ui;
 
-import java.net.URL;
-
-public record PlayerSkin(URL url, String id, boolean missing) {
+public record PlayerSkin(String id, boolean missing) {
+    public String url() {
+        return "https://textures.minecraft.net/texture/" + id;
+    }
 }

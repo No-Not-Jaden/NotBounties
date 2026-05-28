@@ -3,7 +3,6 @@ package me.jadenp.notbounties.features.settings.display.map;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import me.jadenp.notbounties.NotBounties;
-import org.bukkit.Bukkit;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapPalette;
 import org.jetbrains.annotations.NotNull;

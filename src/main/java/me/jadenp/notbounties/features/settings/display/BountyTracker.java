@@ -560,19 +560,17 @@ public class BountyTracker implements Listener {
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
-        if (!tracker || NotBounties.isPaused())
+        if (!tracker || NotBounties.isPaused() || !craftTracker)
             return;
-        if (!craftTracker) {
-            boolean hasPerm = false;
-            for (HumanEntity humanEntity : event.getViewers()) {
-                if (humanEntity.hasPermission("notbounties.crafttracker")){
-                    hasPerm = true;
-                    break;
-                }
+        boolean hasPerm = false;
+        for (HumanEntity humanEntity : event.getViewers()) {
+            if (humanEntity.hasPermission("notbounties.tracker.craft")){
+                hasPerm = true;
+                break;
             }
-            if (!hasPerm)
-                return;
         }
+        if (!hasPerm)
+            return;
         ItemStack[] matrix = event.getInventory().getMatrix();
         boolean hasEmptyTracker = false;
         ItemStack head = null;
@@ -632,7 +630,7 @@ public class BountyTracker implements Listener {
     // complete tracker crafting
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!tracker || (!craftTracker && !event.getWhoClicked().hasPermission("notbounties.crafttracker")) || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused())
+        if (!tracker || !craftTracker || !event.getWhoClicked().hasPermission("notbounties.tracker.craft") || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused())
             return;
         UUID trackedPlayer = getTrackedPlayer(inventory.getResult());
         if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer))
@@ -703,7 +701,7 @@ public class BountyTracker implements Listener {
     // wash trackers
     @EventHandler
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        if (!tracker || (!washTrackers && !event.getPlayer().hasPermission("notbounties.washtracker")) || NotBounties.isPaused())
+        if (!tracker || !washTrackers || !event.getPlayer().hasPermission("notbounties.tracker.wash") || NotBounties.isPaused())
             return;
         UUID trackedPlayer = getTrackedPlayer(event.getItemDrop().getItemStack());
         if (trackedPlayer == null || DataManager.GLOBAL_SERVER_ID.equals(trackedPlayer) || isHuntTracker(event.getItemDrop().getItemStack()))

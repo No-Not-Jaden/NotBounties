@@ -98,6 +98,7 @@ public class ImmunityManager {
      */
     private static Map<UUID, Long> immunityTimeTracker = new HashMap<>();
     private static final Set<UUID> onlinePlayers = new CopyOnWriteArraySet<>();
+    private static final Random random = new Random();
 
     /**
      * Load the immunity configuration.
@@ -238,18 +239,23 @@ public class ImmunityManager {
 
     }
 
+    public static long currencyToTime(double currency) {
+        return (long) (currency * time * 1000L);
+    }
 
     public static void addImmunity(UUID uuid, double amount) {
         DataManager.changeStat(uuid, Leaderboard.IMMUNITY, amount);
-        if (immunityType == ImmunityType.TIME)
+        if (immunityType == ImmunityType.TIME) {
             if (immunityTimeTracker.containsKey(uuid)) {
                 immunityTimeTracker.replace(uuid, (long) (immunityTimeTracker.get(uuid) + amount * time * 1000L));
             } else {
-                if (onlinePlayers.contains(uuid) || !timeOfflineTracking)
+                if (onlinePlayers.contains(uuid) || !timeOfflineTracking) {
                     immunityTimeTracker.put(uuid, (long) (amount * time * 1000L + System.currentTimeMillis()));
-                else
+                } else {
                     immunityTimeTracker.put(uuid, (long) (amount * time * 1000L));
+                }
             }
+        }
     }
 
     public static void setImmunity(UUID uuid, double amount) {
@@ -388,7 +394,6 @@ public class ImmunityManager {
     public static void checkOnlinePermissionImmunity() {
         Collection<? extends Player> players = Bukkit.getOnlinePlayers();
         NotBounties.getServerImplementation().async().runNow(() -> {
-            Random random = new Random();
             for (Player player : players)
                 if (random.nextInt(players.size()) < 50)
                     checkPermissionImmunity(player);

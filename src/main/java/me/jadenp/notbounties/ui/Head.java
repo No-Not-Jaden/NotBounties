@@ -15,9 +15,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -87,7 +90,7 @@ public class Head {
     }
 
 
-    public static @NotNull ItemStack createPlayerSkull(UUID uuid, @Nullable URL textureURL) {
+    public static @NotNull ItemStack createPlayerSkull(UUID uuid, @Nullable String textureURL) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
@@ -95,8 +98,13 @@ public class Head {
             PlayerProfile profile = Bukkit.createPlayerProfile(uuid); // could use hashToV5(uuid)
             if (textureURL != null) {
                 PlayerTextures textures = profile.getTextures();
-                textures.setSkin(textureURL);
-                profile.setTextures(textures);
+                try {
+                    textures.setSkin(new URI(textureURL).toURL());
+                    profile.setTextures(textures);
+                } catch (URISyntaxException | MalformedURLException e) {
+                    NotBounties.debugMessage("Error setting textures for " + uuid + " url: " + textureURL, true);
+                    Arrays.stream(e.getStackTrace()).forEach(m -> NotBounties.debugMessage(m.toString(), true));
+                }
             }
             meta.setOwnerProfile(profile);
             meta.getPersistentDataContainer().set(UUID_KEY, org.bukkit.persistence.PersistentDataType.STRING, uuid.toString());

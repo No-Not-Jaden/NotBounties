@@ -232,7 +232,7 @@ public class ProxyMessaging implements PluginMessageListener {
             UUID uuid = UUID.fromString(msgIn.readUTF());
             String id = msgIn.readUTF();
             String url = msgIn.readUTF();
-            SkinManager.saveSkin(uuid, new PlayerSkin(new URI(url).toURL(), id, false));
+            SkinManager.saveSkin(uuid, new PlayerSkin(SkinManager.getTextureId(url), false));
         }
     }
 

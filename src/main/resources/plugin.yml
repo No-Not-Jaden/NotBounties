@@ -32,15 +32,20 @@ softdepend:
 commands:
   notbounties:
     description: Use all of the bounty commands.
+    permission: notbounties.player
   notbountiesadmin:
-    description: Open the GUI for other people.
+    description: Run bounty commands for other people.
+    permission: notbounties.admin
     aliases:
       - bountyadmin
 permissions:
   notbounties.admin:
     default: op
     description: Remove or edit bounties.
-    children: [notbounties.cleanEntities]
+    children:
+      - notbounties.cleanEntities
+      - notbounties.spawntracker
+      - notbounties.spawnposter
   notbounties.cleanentities:
     default: op
     description: Use the command /bounty cleanEntities (radius)
@@ -68,37 +73,49 @@ permissions:
   notbounties.tracker:
     default: true
     description: Use a bounty tracker.
-    children: [notbounties.tracker.exempt]
+    children:
+      - notbounties.tracker.exempt
+      - notbounties.tracker.writeempty
+      - notbounties.tracker.wash
+      - notbounties.tracker.craft
   notbounties.tracker.exempt:
     default: true
     description: Exempt yourself from bounty tracking.
   # These tracker and poster perms override the settings in display.yml
   notbounties.spawntracker:
-    default: false
+    default: op
     description: Spawn in a bounty tracker.
-  notbounties.writeemptytracker:
-    default: false
+  notbounties.tracker.writeempty:
+    default: true
     description: Write a bounty into an empty tracker.
-  notbounties.washtracker:
-    default: false
+  notbounties.tracker.wash:
+    default: true
     description: Wash a bounty tracker.
-  notbounties.crafttracker:
-    default: false
+  notbounties.tracker.craft:
+    default: true
     description: Craft a bounty tracker.
-  notbounties.postertracking:
-    default: false
+  notbounties.poster:
+    default: true
+    description: Use a bounty poster.
+    children:
+      - notbounties.poster.tracking
+      - notbounties.poster.wash
+      - notbounties.poster.craft
+      - notbounties.poster.write
+  notbounties.poster.tracking:
+    default: true
     description: Click on a poster with an empty tracker to track it.
   notbounties.spawnposter:
-    default: false
+    default: op
     description: Spawn in a bounty poster.
-  notbounties.washposter:
-    default: false
+  notbounties.poster.wash:
+    default: true
     description: Wash a bounty poster.
-  notbounties.craftposter:
-    default: false
+  notbounties.poster.craft:
+    default: true
     description: Craft a bounty poster.
-  notbounties.writeposter:
-    default: false
+  notbounties.poster.write:
+    default: true
     description: Write a bounty poster to an empty map.
   notbounties.whitelist:
     default: true
@@ -135,9 +152,9 @@ permissions:
       - notbounties.stats
       - notbounties.claim
       - notbounties.sort
-      - notbounties.crafttracker
-      - notbounties.craftposter
+      - notbounties.poster
       - notbounties.gui
+      - notbounties.hunt
   notbounties.immunity.murder:
     default: false
     description: Immune to murder auto-bounties.

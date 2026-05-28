@@ -285,19 +285,17 @@ public class BountyMap implements Listener {
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
-        if (NotBounties.isPaused() || !enabled)
+        if (NotBounties.isPaused() || !enabled || !craftPoster)
             return;
-        if (!craftPoster) {
-            boolean hasPerm = false;
-            for (HumanEntity humanEntity : event.getViewers()) {
-                if (humanEntity.hasPermission("notbounties.craftposter")){
-                    hasPerm = true;
-                    break;
-                }
+        boolean hasPerm = false;
+        for (HumanEntity humanEntity : event.getViewers()) {
+            if (humanEntity.hasPermission("notbounties.poster.craft")){
+                hasPerm = true;
+                break;
             }
-            if (!hasPerm)
-                return;
         }
+        if (!hasPerm)
+            return;
         ItemStack[] matrix = event.getInventory().getMatrix();
         boolean hasMap = false;
         ItemStack head = null;
@@ -353,7 +351,7 @@ public class BountyMap implements Listener {
     // complete tracker crafting
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if ((!craftPoster && !event.getWhoClicked().hasPermission("notbounties.craftposter")) || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused() || !enabled)
+        if ((!craftPoster || !event.getWhoClicked().hasPermission("notbounties.poster.craft")) || !(event.getInventory() instanceof CraftingInventory inventory) || NotBounties.isPaused() || !enabled)
             return;
         if (inventory.getResult() == null || !isPoster(inventory.getResult()))
             return;
@@ -422,7 +420,7 @@ public class BountyMap implements Listener {
     // wash trackers
     @EventHandler
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        if ((!washPoster && !event.getPlayer().hasPermission("notbounties.washposter")) || !enabled || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused())
+        if ((!washPoster || !event.getPlayer().hasPermission("notbounties.poster.wash")) || !enabled || !isPoster(event.getItemDrop().getItemStack()) || NotBounties.isPaused())
             return;
 
         NotBounties.getServerImplementation().entity(event.getItemDrop()).runDelayed(() -> {

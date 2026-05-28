@@ -9,7 +9,7 @@ import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
-import me.jadenp.notbounties.ui.Commands;
+import me.jadenp.notbounties.ui.commands.Commands;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;

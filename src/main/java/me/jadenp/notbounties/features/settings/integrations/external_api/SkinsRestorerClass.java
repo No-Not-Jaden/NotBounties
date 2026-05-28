@@ -15,9 +15,6 @@ import net.skinsrestorer.api.property.SkinProperty;
 import net.skinsrestorer.api.storage.PlayerStorage;
 import org.bukkit.Bukkit;
 
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -126,9 +123,9 @@ public class SkinsRestorerClass {
                 return;
             }
             String skinUrl = PropertyUtils.getSkinTextureUrl(skinProperty.get());
-            String identifier = PropertyUtils.getSkinProfileData(skinProperty.get()).getProfileId();
-            SkinManager.saveSkin(uuid, new PlayerSkin(new URI(skinUrl).toURL(), identifier, false));
-        } catch (MalformedURLException | DataRequestException | URISyntaxException | NullPointerException e) {
+            //String identifier = PropertyUtils.getSkinProfileData(skinProperty.get()).getProfileId();
+            SkinManager.saveSkin(uuid, new PlayerSkin(SkinManager.getTextureId(skinUrl), false));
+        } catch (DataRequestException| NullPointerException e) {
             // these could come from SkinsRestorer being on proxy mode, SkinsRestorer not having the skins, SkinsRestorer not setup correctly
             // afaik, this is the correct way to retrieve skins from SkinsRestorer, and any error is a problem with the SkinsRestorer plugin
             NotBounties.debugMessage("Error getting skin from SkinsRestorer.", true);

@@ -210,7 +210,7 @@ public class LanguageOptions {
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
     }
 
-    private static void sendBuyImmunityHelp(CommandSender sender) {
+    public static void sendBuyImmunityHelp(CommandSender sender) {
         if (sender.hasPermission("notbounties.buyimmunity") && ImmunityManager.getImmunityType() != ImmunityManager.ImmunityType.DISABLE) {
             switch (ImmunityManager.getImmunityType()) {
                 case PERMANENT:
@@ -221,6 +221,9 @@ public class LanguageOptions {
                     break;
                 case TIME:
                     sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
+                    break;
+                default:
+                    // do nothing
                     break;
             }
         }

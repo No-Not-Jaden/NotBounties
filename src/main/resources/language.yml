@@ -322,6 +322,7 @@ help:
     - '&9/bounty edit (player) from (setter) (amount) &8- &dEdits a specific bounty put on a player.'
     - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) edit (change) &8- &dEdits a player''s stat value.'
     - '&9/bounty stat (all/kills/claimed/deaths/set/immunity) (player) setValue (new value) &8- &dSets a player''s stat value.'
+    - '&9/bounty immunity give (player) (amount) &8- &dGives a player immunity worth an amount of currency.'
     - '&9/bounty board <rank> &8- &dCreates a board for current bounties.'
     - '&9/bounty board clear &8- &dRemoves every bounty board.'
     - '&9/bounty board remove &8- &dRemoves a specific bounty board.'
