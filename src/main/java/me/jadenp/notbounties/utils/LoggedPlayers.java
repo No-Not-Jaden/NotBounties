@@ -14,17 +14,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class LoggedPlayers {
 
     private LoggedPlayers(){}
 
+    record CacheEntry(String value, long loadedAt) {}
+
     /**
      * Name (lowercase), UUID
      */
     private static final Map<String, UUID> playerIDs = new HashMap<>();
     private static final Set<UUID> requestingNames = new HashSet<>();
+    private static final Map<UUID, CacheEntry> cachedNicknames = new ConcurrentHashMap<>();
+    private static final long CACHE_REFRESH_TIME = TimeUnit.MINUTES.toMillis(10);
 
     private static HttpSyncPool httpPool;
 
@@ -265,16 +271,43 @@ public class LoggedPlayers {
         }
     }
 
+    public static void loadAllDisplayNames() {
+        for (PlayerData playerData : DataManager.getAllPlayerData()) {
+            if (playerData.getPlayerName() != null) {
+                getDisplayName(playerData.getUuid());
+            }
+        }
+    }
+
     public static String getDisplayName(OfflinePlayer p) {
         if (p == null)
             return "";
-        String name = getAPIDisplayName(p.getUniqueId());
-        if (name != null)
-            return name;
         if (p.isOnline()) {
-            return Objects.requireNonNull(p.getPlayer()).getDisplayName();
+            String name = Objects.requireNonNull(p.getPlayer()).getDisplayName();
+            cachedNicknames.put(p.getUniqueId(), new CacheEntry(name, System.currentTimeMillis()));
+            return name;
         }
-        return getPlayerName(p.getUniqueId());
+        return getDisplayName(p.getUniqueId());
+    }
+
+    public static String getDisplayName(UUID uuid) {
+        if (uuid == null)
+            return "";
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
+            return ConfigOptions.getAutoBounties().getConsoleBountyName();
+        if (cachedNicknames.containsKey(uuid)) {
+            CacheEntry entry = cachedNicknames.get(uuid);
+            if (System.currentTimeMillis() - entry.loadedAt() > CACHE_REFRESH_TIME) {
+                // refresh name so it isn't loaded more than once
+                cachedNicknames.put(uuid, new CacheEntry(entry.value(), System.currentTimeMillis()));
+                loadAPIDisplayNameAsync(uuid);
+            }
+            return entry.value();
+        }
+        String name = getPlayerName(uuid);
+        cachedNicknames.put(uuid, new CacheEntry(name, System.currentTimeMillis()));
+        loadAPIDisplayNameAsync(uuid);
+        return name;
     }
 
     private static @Nullable String getAPIDisplayName(@NotNull UUID uuid) {
@@ -291,15 +324,19 @@ public class LoggedPlayers {
         return null;
     }
 
-    public static String getDisplayName(UUID uuid) {
-        if (uuid == null)
-            return "";
-        if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
-            return ConfigOptions.getAutoBounties().getConsoleBountyName();
-        String name = getAPIDisplayName(uuid);
-        if (name != null)
-            return name;
-        return getPlayerName(uuid);
+    private static void loadAPIDisplayNameAsync(UUID uuid) {
+        NotBounties.getServerImplementation().async().runNow(() -> {
+            String name2 = getAPIDisplayName(uuid);
+            if (name2 != null) {
+                cachedNicknames.put(uuid, new CacheEntry(name2, System.currentTimeMillis()));
+            } else {
+                if (ConfigOptions.getIntegrations().isEssentialsEnabled() || ConfigOptions.getIntegrations().isCMIEnabled()){
+                    NotBounties.debugMessage("Failed to get API display name for " + uuid + ".", true);
+                    cachedNicknames.remove(uuid);
+                }
+            }
+
+        });
     }
 }
 

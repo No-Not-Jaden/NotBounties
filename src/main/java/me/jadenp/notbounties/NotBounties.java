@@ -179,6 +179,7 @@ public final class NotBounties extends JavaPlugin {
             }
 
             ImmunityManager.loadPlayerData();
+            LoggedPlayers.loadAllDisplayNames();
         } catch (IOException e) {
             getLogger().severe("[NotBounties] Failed to read player data!");
             getLogger().severe(e.toString());
