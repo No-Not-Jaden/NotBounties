@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils;
 
+import me.jadenp.notbounties.bounty_events.DropRewardHead;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
@@ -370,9 +371,9 @@ public class BountyManager {
         }
         NotBounties.debugMessage("Bounty to be claimed: " + bounty.getTotalDisplayBounty(killer), false);
 
-        BountyClaimEvent event1 = new BountyClaimEvent(killer, new Bounty(bounty));
-        Bukkit.getPluginManager().callEvent(event1);
-        if (event1.isCancelled()) {
+        BountyClaimEvent bountyClaimEvent = new BountyClaimEvent(killer, new Bounty(bounty));
+        Bukkit.getPluginManager().callEvent(bountyClaimEvent);
+        if (bountyClaimEvent.isCancelled()) {
             NotBounties.debugMessage("The bounty event got canceled by an external plugin.", false);
             return;
         }
@@ -397,8 +398,9 @@ public class BountyManager {
 
         // hand out reward heads
         RewardHead rewardHead = new RewardHead(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer), LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-reward-head"), player));
+        DropRewardHead dropRewardHead = bountyClaimEvent.getDropRewardHead();
         if (bounty.getTotalDisplayBounty(killer) >= RewardHead.getMinimumBounty()) {
-            if (RewardHead.isRewardSetters()) {
+            if (dropRewardHead.isDropSettersHead()) {
                 // reward head for setters
                 Set<UUID> givenHead = new HashSet<>(); // record whose head has been given out
                 givenHead.add(DataManager.GLOBAL_SERVER_ID); // console id added so a head isn't attempted to be given to it
@@ -427,10 +429,10 @@ public class BountyManager {
                     }
                 }
             }
-            if (RewardHead.isRewardKiller()) {
+            if (dropRewardHead.isDropKillerHead()) {
                 // reward head for killer
                 if (droppedHead != null)
-                    // if a head was dropped for killing a player, remove it to be replaced with a custom head
+                    // if a head was dropped for killing a player (any-kill), remove it to be replaced with a custom head
                     droppedHead.remove();
 
                 rewardHead.giveRefund(killer);
