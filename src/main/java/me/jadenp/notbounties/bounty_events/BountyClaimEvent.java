@@ -2,7 +2,6 @@ package me.jadenp.notbounties.bounty_events;
 
 
 import me.jadenp.notbounties.data.Bounty;
-import me.jadenp.notbounties.data.player_data.RewardHead;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -15,7 +14,7 @@ public class BountyClaimEvent extends Event implements Cancellable {
     private final Bounty bounty;
     private boolean canceled = false;
     private static final HandlerList HANDLERS_LIST = new HandlerList();
-    private DropRewardHead dropRewardHead = new DropRewardHead();
+    private final DropRewardHead dropRewardHead = new DropRewardHead();
 
     public BountyClaimEvent(Player killer, Bounty bounty) {
 
@@ -33,9 +32,6 @@ public class BountyClaimEvent extends Event implements Cancellable {
 
     public Player getKiller() {
         return killer;
-    }
-    public static HandlerList getHandlerList() {
-        return HANDLERS_LIST;
     }
 
     @Override
