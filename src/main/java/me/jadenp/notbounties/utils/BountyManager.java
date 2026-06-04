@@ -359,7 +359,7 @@ public class BountyManager {
         }
 
         // check if it is a npc
-        if (!ConfigOptions.isNpcClaim() && killer.hasMetadata("NPC")) {
+        if (!ConfigOptions.isNpcClaim() && BountyManager.isNPC(killer)) {
             NotBounties.debugMessage("This is an NPC, which bounty claiming is disabled for in the config.", false);
             return;
         }
@@ -633,6 +633,10 @@ public class BountyManager {
             List<ItemStack> rewardItems = getManualEconomy() == ManualEconomy.AUTOMATIC ? bounty.getTotalItemBounty(uuid) : Collections.emptyList();
             refundPlayer(uuid, rewardAmount, rewardItems, null);
         }
+    }
+
+    public static boolean isNPC(Player player) {
+        return player.hasMetadata("NPC") || player.getScoreboardTags().contains("CITIZENS_NPC");
     }
 
 }

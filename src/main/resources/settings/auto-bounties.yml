@@ -43,6 +43,8 @@ murder-bounty:
   # Cancel a trickle bounty if the murder bounty is greater, or cancel a murder bounty if the trickle bounty is greater.
   # exclude-claiming must be set to false for this to work.
   exclusive-murder-or-trickle: false
+  # Allow NPCs to increase a player's bounty.
+  allow-npc: false
   # Commands to be run when a bounty is added for murder.
   commands: []
 

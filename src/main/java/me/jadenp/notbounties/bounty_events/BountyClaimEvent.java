@@ -47,6 +47,10 @@ public class BountyClaimEvent extends Event implements Cancellable {
     @NotNull
     @Override
     public HandlerList getHandlers() {
+        return getHandlerList();
+    }
+
+    public static HandlerList getHandlerList() {
         return HANDLERS_LIST;
     }
 }
