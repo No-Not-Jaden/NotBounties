@@ -204,6 +204,9 @@ public class GUI implements Listener {
             return customGuis.get(guiName);
         Bukkit.getLogger().warning("[NotBounties] Invalid GUI requested: \"" + guiName + "\"");
         Bukkit.getLogger().warning("[NotBounties] Ensure that you have this GUI configured in the plugins/NotBounties/gui.yml file.");
+        if (NotBounties.isDebug()) {
+            Arrays.stream(Thread.currentThread().getStackTrace()).forEach(stackTraceElement -> NotBounties.debugMessage(stackTraceElement.toString(), true));
+        }
         return null;
     }
 

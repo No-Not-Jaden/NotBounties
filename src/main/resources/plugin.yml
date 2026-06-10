@@ -139,6 +139,7 @@ permissions:
     description: Claim a bounty.
   notbounties.player:
     description: All the basic player permissions.
+    default: true
     children:
       - notbounties.set
       - notbounties.view

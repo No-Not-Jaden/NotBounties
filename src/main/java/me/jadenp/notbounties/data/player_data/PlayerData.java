@@ -12,6 +12,9 @@ import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
+import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
+import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUIOptions;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.Inconsistent;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.jetbrains.annotations.NotNull;
@@ -147,6 +150,12 @@ public class PlayerData extends Inconsistent implements Comparable<PlayerData> {
         if (guiName == null || guiName.isEmpty()) return -1;
         if (guiSortType.containsKey(guiName)) {
             return guiSortType.get(guiName);
+        }
+        if (NotBounties.isBedrockPlayer(uuid)) {
+            BedrockGUIOptions guiOptions = BedrockGUI.getGUI(guiName);
+            if (guiOptions != null) {
+                return guiOptions.getSortType();
+            }
         }
         GUIOptions guiOptions = GUI.getGUI(guiName);
         if (guiOptions != null) {
