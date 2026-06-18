@@ -169,20 +169,20 @@ public class BountyManager {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
             return;
         items = new ArrayList<>(items); // make the arraylist modifiable
-        Player player = Bukkit.getPlayer(uuid);
+        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
         boolean refund = false;
         // refund amount
         if (amount > 0) {
             if (NumberFormatting.isVaultEnabled() && !NumberFormatting.isOverrideVault()) {
                 if (!NumberFormatting.getVaultClass().deposit(player, amount)) {
-                    Bukkit.getLogger().warning("[NotBounties] Error depositing currency with vault! Will retry when player joins next.");
+                    Bukkit.getLogger().warning("[NotBounties] Error depositing currency with vault for " + LoggedPlayers.getPlayerName(uuid) + "! Will retry when player joins next.");
                     addRefund(uuid, amount, reason);
                     refund = true;
                 }
             } else {
-                if (player != null && NotBounties.getInstance().isEnabled()) {
+                if (player.isOnline() && NotBounties.getInstance().isEnabled()) {
                     if (NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL)
-                        NumberFormatting.doAddCommands(player, amount);
+                        NumberFormatting.doAddCommands(player.getPlayer(), amount);
                 } else {
                     addRefund(uuid, amount, reason);
                     refund = true;

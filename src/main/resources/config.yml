@@ -6,9 +6,15 @@
 # make old bounties expire after a while
 bounty-expire:
   # how many real days until bounties expire | -1 to disable
-  # the lowest this can go is around 0.00346 (5 minutes). Expired bounties are checked every 5 minutes.
-  # check auto-bounties for their expiry time
+  # Expired bounties are checked every 5 minutes (0.00346 days).
+  # You can also use a string like '1d' or '10m' to set the time.
+  # check settings/auto-bounties.yml for their expiry time
   time: -1
+  # Whether the expiry time is proportional to the bounty amount. For every currency unit, the time option will be added to the expiration.
+  # For example, if the bounty is worth 1,000 currency units, and the time is 10 minutes, the bounty will expire in 10*1,000 = 10,000 minutes ~ 7 days.
+  proportional: false
+  # Whether new bounties reset the expiry time.
+  extend-expiration: false
   # track the player while they are offline
   offline-tracking: true
   # give the bounty amount to the receiver if it expires. false means that the setter gets the refund.

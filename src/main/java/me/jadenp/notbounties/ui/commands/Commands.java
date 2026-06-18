@@ -432,6 +432,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (args.length == 1) {
                     NotBounties.getInstance().sendDebug(sender);
                 } else {
+                    UUID uuid = LoggedPlayers.getPlayer(args[1]);
+                    if (uuid != null) {
+                        sender.sendMessage(DataManager.getPlayerData(uuid).toString());
+                        Bounty bounty = BountyManager.getBounty(uuid);
+                        if (bounty != null) {
+                            sender.sendMessage(bounty.toString());
+                        }
+                        return true;
+                    }
                     boolean newValue;
                     newValue = args[1].equalsIgnoreCase("enable");
                     if (newValue != NotBounties.isDebug()) {

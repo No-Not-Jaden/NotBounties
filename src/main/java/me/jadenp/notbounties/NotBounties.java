@@ -287,9 +287,6 @@ public final class NotBounties extends JavaPlugin {
         }
 
 
-        // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration
-        getServerImplementation().async().runAtFixedRate(BountyExpire::removeExpiredBounties, 5 * 60 * 20L + 2007, 5 * 60 * 20L);
-
 
         // wanted text
         getServerImplementation().global().runAtFixedRate(new Runnable() {
