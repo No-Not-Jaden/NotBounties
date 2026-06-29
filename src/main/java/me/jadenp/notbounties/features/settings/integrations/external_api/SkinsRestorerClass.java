@@ -52,6 +52,9 @@ public class SkinsRestorerClass {
         }
     }
 
+    public boolean isConnected() {
+        return connected;
+    }
 
     private void addDelayedSkinCheck(UUID uuid) {
         NotBounties.getServerImplementation().global().run(() -> {

@@ -538,7 +538,13 @@ public final class NotBounties extends JavaPlugin {
         if (integrations.isPapiEnabled()) hooks.add("PlaceholderAPI");
         if (integrations.isHeadDataBaseEnabled()) hooks.add("HeadDataBase");
         if (integrations.isLiteBansEnabled()) hooks.add("LiteBans");
-        if (integrations.isSkinsRestorerEnabled()) hooks.add("SkinsRestorer");
+        if (integrations.isSkinsRestorerEnabled()) {
+            if (integrations.getSkinsRestorerClass().isConnected()) {
+                hooks.add("SkinsRestorer");
+            } else {
+                hooks.add(ChatColor.RED + "SkinsRestorer");
+            }
+        }
         if (BountyClaimRequirements.isBetterTeamsEnabled()) hooks.add("BetterTeams");
         if (BountyClaimRequirements.isTownyAdvancedEnabled()) hooks.add("TownyAdvanced");
         if (integrations.isFloodgateEnabled()) hooks.add("Floodgate");
@@ -557,6 +563,9 @@ public final class NotBounties extends JavaPlugin {
         if (BountyClaimRequirements.isKonquestEnabled()) hooks.add("Konquest");
         if (integrations.isEssentialsEnabled()) hooks.add("EssentialsX");
         if (integrations.isCMIEnabled()) hooks.add("CMI");
+        if (BountyClaimRequirements.isSimpleClaimSystemEnabled()) hooks.add("SimpleClaimSystem");
+
+        hooks.sort(String::compareTo);
 
         return hooks;
     }

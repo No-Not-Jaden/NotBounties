@@ -19,13 +19,13 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.StatusLine;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.profile.PlayerProfile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -149,7 +149,7 @@ public class SkinManager {
      * @param uuid UUID of a player
      * @return The player's skin information, or the information of a question mark skin if the skin isn't loaded.
      */
-    public static PlayerSkin getSkin(UUID uuid) {
+    public static @NotNull PlayerSkin getSkin(UUID uuid) {
         if (!savedSkins.containsKey(uuid))
             return missingSkin;
         return savedSkins.get(uuid);
@@ -278,23 +278,47 @@ public class SkinManager {
      * @param uuid UUID of the player to get the face for.
      * @return A 8x8 face for the player include their mask.
      */
-    public static BufferedImage getPlayerFace(UUID uuid) {
+    public static @Nullable BufferedImage getPlayerFace(UUID uuid) {
         if (!isSkinLoaded(uuid))
             return null;
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && missingSkinFace != null)
             return missingSkinFace;
+        BufferedImage skin = getBufferedImageFromUrl(getSkin(uuid).url());
+        if (skin == null)
+            return null;
+        BufferedImage head = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
+
+        return copyHead(skin, head);
+    }
+
+    /**
+     * Reads a buffered image from a web url.
+     * @param urlString The url to read from.
+     * @return The buffered image read from the url, or null if there was an error reading the url.
+     */
+    private static @Nullable BufferedImage getBufferedImageFromUrl(String urlString) {
+        HttpURLConnection connection = null;
         try {
-            URL textureUrl = new URI(getSkin(uuid).url()).toURL();
+            // Convert String to URI then to URL
+            URL url = URI.create(urlString).toURL();
 
-            BufferedImage skin = ImageIO.read(textureUrl);
-            BufferedImage head = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
+            // Open Connection
+            connection = (HttpURLConnection) url.openConnection();
 
-            return copyHead(skin, head);
-        } catch (IOException | URISyntaxException e) {
-            NotBounties.debugMessage("Error reading texture url for rendering player face.\n" + e, true);
-
+            // Connect and fetch stream
+            connection.connect();
+            try (InputStream in = connection.getInputStream()) {
+                return ImageIO.read(in);
+            }
+        } catch (IOException e) {
+            NotBounties.debugMessage("Error reading texture url for rendering player face." + urlString + "\n" + e.getMessage(), true);
+            Arrays.stream(e.getStackTrace()).forEach(s -> NotBounties.debugMessage(s.toString(), true));
+            return null;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
-        return null;
     }
 
     /**
@@ -325,18 +349,13 @@ public class SkinManager {
         BufferedImage cachedHead = isometricHeadCache.getIfPresent(uuid);
         if (cachedHead != null)
             return cachedHead;
-        try {
-            URL textureUrl = new URI(getSkin(uuid).url()).toURL();
+        BufferedImage skin = getBufferedImageFromUrl(getSkin(uuid).url());
+        if (skin == null)
+            return null;
+        BufferedImage head = isoRenderer.render(skin, 128, true);
+        isometricHeadCache.put(uuid, head);
+        return head;
 
-            BufferedImage skin = ImageIO.read(textureUrl);
-            BufferedImage head = isoRenderer.render(skin, 128, true);
-            isometricHeadCache.put(uuid, head);
-            return head;
-
-        } catch (IOException | URISyntaxException e) {
-            NotBounties.debugMessage("Error reading texture url for rendering isometric head.\n" + e, true);
-        }
-        return null;
     }
 
     private static void copySquare(BufferedImage from, BufferedImage to, int x, int y) {

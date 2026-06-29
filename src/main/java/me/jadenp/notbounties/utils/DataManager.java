@@ -572,10 +572,10 @@ public class DataManager {
      * @param uuid UUID of the player to remove
      */
     public static void deleteBounty(UUID uuid) {
+        localData.removeBounty(uuid);
         for (AsyncDatabaseWrapper database : databases) {
             database.removeBounty(uuid);
         }
-        localData.removeBounty(uuid);
         ActionCommands.executeBountyRemove(uuid);
     }
 
@@ -598,9 +598,9 @@ public class DataManager {
         for (AsyncDatabaseWrapper database : databases) {
             if (database.isConnected()) {
                 try {
+                    Bounty localBounty = localData.getBounty(uuid);
                     Bounty bounty = database.getBounty(uuid);
                     // compare inconsistency and update both databases
-                    Bounty localBounty = localData.getBounty(uuid);
                     // check if the bounties are different
                     if ((bounty != null && !bounty.equals(localBounty)) || (localBounty != null && !localBounty.equals(bounty))) {
                         // update data storage
@@ -676,10 +676,10 @@ public class DataManager {
                 bounty.getSetters().add(new Setter(lastSetter.getName(), setterUUID, lastSetter.getAmount() + change, lastSetter.getItems(), lastSetter.getTimeCreated(), lastSetter.isNotified(), lastSetter.getWhitelist(), lastSetter.getReceiverPlaytime(), lastSetter.getDisplayAmount() + change));
             }
         }
+        localData.replaceBounty(bounty.getUUID(), bounty);
         for (AsyncDatabaseWrapper database : databases) {
             database.replaceBounty(bounty.getUUID(), bounty);
         }
-        localData.replaceBounty(bounty.getUUID(), bounty);
         return bounty;
     }
 
@@ -698,10 +698,10 @@ public class DataManager {
                 }
             }
             if (addedAmount > 0) {
+                localData.notifyBounty(player.getUniqueId());
                 for (AsyncDatabaseWrapper database : databases) {
                     database.notifyBounty(player.getUniqueId());
                 }
-                localData.notifyBounty(player.getUniqueId());
                 BigBounty.setBounty(player, bounty, addedAmount);
             }
 
@@ -712,15 +712,15 @@ public class DataManager {
     }
 
     public static void login(@NotNull Player player) {
+        localData.login(player.getUniqueId(), player.getName());
         for (AsyncDatabaseWrapper database : databases)
             database.login(player.getUniqueId(), player.getName());
-        localData.login(player.getUniqueId(), player.getName());
     }
 
     public static void logout(@NotNull Player player) {
+        localData.logout(player.getUniqueId());
         for (AsyncDatabaseWrapper database : databases)
             database.logout(player.getUniqueId());
-        localData.logout(player.getUniqueId());
     }
 
     public static PlayerData getPlayerData(@NotNull UUID uuid) {
@@ -934,19 +934,18 @@ public class DataManager {
                 // the individual amounts were not modified, so these setters can just be removed from the databases
                 Bounty removedBounty = new Bounty(bounty.getUUID(), setters, bounty.getName(), bounty.getServerID());
                 // setters that remain were unmodified.
+                localData.removeBounty(removedBounty);
                 for (AsyncDatabaseWrapper database : databases)
                     database.removeBounty(removedBounty);
-                localData.removeBounty(removedBounty);
             } else {
                 // Setters that remain had their amounts modified from their original values.
                 // The bounty has to be replaced with the new setter amounts.
+                localData.replaceBounty(bounty.getUUID(), bountyCopy);
                 for (AsyncDatabaseWrapper database : databases)
                     database.replaceBounty(bounty.getUUID(), bountyCopy);
-                localData.replaceBounty(bounty.getUUID(), bountyCopy);
             }
-
+            ActionCommands.executeBountyRemove(bounty.getUUID());
         }
-        ActionCommands.executeBountyRemove(bounty.getUUID());
     }
 
     /**
@@ -956,10 +955,11 @@ public class DataManager {
     public static Bounty insertBounty(@Nullable Player setter, @NotNull OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
         Bounty newBounty = setter == null ? new Bounty(receiver, amount, items, whitelist) : new Bounty(setter, receiver, amount, items, whitelist);
 
+        Bounty bounty = localData.addBounty(newBounty);
         for (AsyncDatabaseWrapper database : databases) {
             database.addBounty(newBounty);
         }
-        return localData.addBounty(newBounty);
+        return bounty;
 
 
     }
@@ -969,10 +969,10 @@ public class DataManager {
      * @param bounty Bounty to be added
      */
     public static void addBounty(Bounty bounty) {
+        localData.addBounty(bounty);
         for (AsyncDatabaseWrapper database : databases) {
             database.addBounty(bounty);
         }
-        localData.addBounty(bounty);
     }
 
     public static boolean isPermDatabaseConnected() {

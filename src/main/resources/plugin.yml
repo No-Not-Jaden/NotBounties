@@ -29,6 +29,7 @@ softdepend:
   - EconomyShopGUI
   - EconomyShopGUI-Premium
   - CMI
+  - SimpleClaimSystem
 commands:
   notbounties:
     description: Use all of the bounty commands.

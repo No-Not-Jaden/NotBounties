@@ -84,6 +84,10 @@ teams:
     clan: false
     # claim if allied
     ally: false
+  # <===> SimpleClaimSystem <===>
+  simple-claim-system:
+    # claim if either player is a member in the other's claim
+    member: false
   # <===> Konquest <===>
   konquest:
     # claim if in the same kingdom
