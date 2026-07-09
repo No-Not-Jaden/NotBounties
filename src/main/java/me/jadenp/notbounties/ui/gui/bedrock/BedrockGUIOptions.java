@@ -21,7 +21,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.geysermc.cumulus.component.impl.DropdownComponentImpl;
-import org.geysermc.cumulus.form.ModalForm;
 import org.geysermc.cumulus.form.SimpleForm;
 import org.geysermc.cumulus.form.util.FormBuilder;
 import org.geysermc.cumulus.response.CustomFormResponse;
@@ -31,7 +30,6 @@ import org.geysermc.cumulus.util.FormImage;
 import org.geysermc.cumulus.util.impl.FormImageImpl;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.ui.gui.GUIOptions.getPageType;
 
@@ -81,9 +79,9 @@ public class BedrockGUIOptions {
         sortType = settings.isSet("sort-type") ? settings.getInt("sort-type") : 1;
         removePageItems = settings.getBoolean("remove-page-items");
         enabled = !settings.isSet("enabled") || settings.getBoolean("enabled");
-        maxPlayers = settings.isSet("max-players") ? settings.getInt("max-players") : 9999;
-        playerText = settings.isSet("player-text") ? settings.getString("player-text") : null;
-        playerImage = settings.isSet("player-image") ? settings.getString("player-image") : null;
+        maxPlayers = settings.getInt("max-players", 9999);
+        playerText = settings.getString("player-text", null);
+        playerImage = settings.getString("player-image", null);
         formCompletionCommands = settings.isSet("completion-commands") ? settings.getStringList("completion-commands") : new ArrayList<>();
         playerButtonCommands = settings.isSet("player-button-commands") ? settings.getStringList("player-button-commands") : new ArrayList<>();
         GUIType overrideType = null;
@@ -160,11 +158,16 @@ public class BedrockGUIOptions {
             // set default amount for GUIComponent
             double amount = 0;
             if (displayItem instanceof PlayerItem playerItem) {
-                // get image url for player
-                String imageURL = LanguageOptions.parseImageURL(playerImage, playerItem.getUuid(), SkinManager.isSkinLoaded(playerItem.getUuid()));
+                if (playerImage != null) {
+                    // get image url for player
+                    String imageURL = LanguageOptions.parseImageURL(playerImage, playerItem.getUuid(), SkinManager.isSkinLoaded(playerItem.getUuid()));
 
-                // add button to the component
-                builder.button(parsedPlayerText, new FormImageImpl(FormImage.Type.URL, imageURL));
+                    // add button to the component
+                    builder.button(parsedPlayerText, new FormImageImpl(FormImage.Type.URL, imageURL));
+                } else {
+                    builder.button(parsedPlayerText);
+                }
+
                 p = Bukkit.getOfflinePlayer(playerItem.getUuid());
             } else {
                 builder.button(parsedPlayerText);

@@ -58,6 +58,11 @@ public class RedisConnection extends NotBountiesDatabase implements TempDatabase
     }
 
     @Override
+    public void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting) {
+
+    }
+
+    @Override
     protected ConfigurationSection readConfig() {
         ConfigurationSection configuration = super.readConfig();
         if (configuration == null)

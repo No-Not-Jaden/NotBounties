@@ -44,17 +44,17 @@ public class BroadcastTask extends CancelableTask {
         if (!SkinManager.isSkinLoaded(receiver.getUniqueId()))
             return;
         this.cancel();
-        final String setterName = setter == null ? ConfigOptions.getAutoBounties().getConsoleBountyName() : setter.getName();
+        final UUID setterUUID = setter == null ? DataManager.GLOBAL_SERVER_ID : setter.getUniqueId();
         String receiverMsg = getMessage("bounty-receiver");
         if (!receiverMsg.isBlank())
-            receiverMsg = parse(getPrefix() + receiverMsg, setterName, displayAmount, totalBounty, receiver);
+            receiverMsg = parse(getPrefix() + receiverMsg, setterUUID, displayAmount, totalBounty, receiver);
         String setterMsg = getMessage("bounty-success");
         if (!setterMsg.isBlank())
             setterMsg = parse(getPrefix() + setterMsg, displayAmount, totalBounty, receiver);
         String shortMessage = getMessage("bounty-broadcast");
         if (!shortMessage.isBlank())
-            shortMessage = parse(getPrefix() + shortMessage, setterName, displayAmount, totalBounty, receiver);
-        String[] extendedMessage = getExtendedBroadcast(setterName, receiver, displayAmount, totalBounty);
+            shortMessage = parse(getPrefix() + shortMessage, setterUUID, displayAmount, totalBounty, receiver);
+        String[] extendedMessage = getExtendedBroadcast(setterUUID, receiver, displayAmount, totalBounty);
 
         sendFormattedMessages(receiverMsg, setterMsg, shortMessage, extendedMessage);
 
@@ -155,13 +155,13 @@ public class BroadcastTask extends CancelableTask {
 
     /**
      * Get the extended message for a bounty broadcast
-     * @param setterName Name of the setter.
+     * @param setterUUID UUID of the setter.
      * @param receiver Player that got a bounty set on them.
      * @param displayAmount The amount of the recently added bounty
      * @param totalBounty The total bounty amount.
      * @return An array of messages for the extended broadcast, or null if no message should be sent.
      */
-    private static @Nullable String[] getExtendedBroadcast(String setterName, @NotNull OfflinePlayer receiver, double displayAmount, double totalBounty) {
+    private static @Nullable String[] getExtendedBroadcast(UUID setterUUID, @NotNull OfflinePlayer receiver, double displayAmount, double totalBounty) {
         if (!SkinManager.isSkinLoaded(receiver.getUniqueId())) {
             NotBounties.debugMessage("Tried to get extended broadcast for " + receiver.getName() + " but they do not have a skin.", true);
             return null;
@@ -183,7 +183,7 @@ public class BroadcastTask extends CancelableTask {
                 builder.append(net.md_5.bungee.api.ChatColor.of(color)).append('█');
             }
             if (extendedText.size() > y)
-                builder.append(" ").append(parse(extendedText.get(y), setterName, displayAmount, totalBounty, receiver));
+                builder.append(" ").append(parse(extendedText.get(y), setterUUID, displayAmount, totalBounty, receiver));
             message[y] = builder.toString();
         }
 

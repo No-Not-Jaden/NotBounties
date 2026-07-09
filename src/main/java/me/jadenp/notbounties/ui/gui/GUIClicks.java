@@ -70,7 +70,7 @@ public class GUIClicks {
             getListMessage("buy-back-lore").stream().map(bbLore -> parse(bbLore, buyBackPrice, player)).forEach(lore::add);
         if ((BountyMap.isGiveOwn() || player.hasPermission("notbounties.spawnposter")) && usingActions(ClickAction.POSTER, buyBack, admin))
             getListMessage("give-poster-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
-        if ((BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || admin || player.hasPermission("notbounties.spawntracker") || player.hasPermission("notbounties.writeemptytracker")) && player.hasPermission("notbounties.tracker")) && usingActions(ClickAction.TRACKER, buyBack, admin))
+        if ((BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || admin || player.hasPermission("notbounties.spawntracker") || player.hasPermission("notbounties.tracker.writeempty")) && player.hasPermission("notbounties.tracker")) && usingActions(ClickAction.TRACKER, buyBack, admin))
             getListMessage("give-tracker-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
         if (usingActions(ClickAction.VIEW, buyBack, admin))
             getListMessage("view-bounty-lore").stream().map(str -> parse(str, player)).forEach(lore::add);
@@ -175,7 +175,7 @@ public class GUIClicks {
                 }
             }
             case TRACKER -> {
-                if (BountyTracker.isEnabled() && (BountyTracker.isGiveOwnTracker() || BountyTracker.isWriteEmptyTrackers() || player.hasPermission(NotBounties.getAdminPermission()) || player.hasPermission("notbounties.spawntracker") || player.hasPermission("notbounties.writeemptytracker")) && player.hasPermission("notbounties.tracker")) {
+                if (BountyTracker.isEnabled() && (player.hasPermission(NotBounties.getAdminPermission()) || player.hasPermission("notbounties.tracker"))) {
                     player.closeInventory();
                     ConfigOptions.runGUIPluginCommand(player, "tracker " + bounty.getName());
                 }

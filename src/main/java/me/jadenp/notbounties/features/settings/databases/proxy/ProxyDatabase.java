@@ -48,6 +48,11 @@ public class ProxyDatabase extends NotBountiesDatabase {
         super(plugin, name);
     }
 
+    @Override
+    public void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting) {
+
+    }
+
     public static void setDatabaseOnlinePlayers(Map<UUID, String> databaseOnlinePlayers) {
         ProxyDatabase.databaseOnlinePlayers = databaseOnlinePlayers;
     }

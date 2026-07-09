@@ -60,7 +60,11 @@ public class RemovePersistentEntitiesEvent implements Listener {
     }
 
     public static void cleanChunks(List<Location> locations) {
-        locations.forEach(RemovePersistentEntitiesEvent::cleanChunk);
+        for (Location location : locations) {
+            if (location.getWorld() != null)
+                // world may be null if it is deleted
+                cleanChunk(location);
+        }
     }
 
     public static void cleanChunk(Chunk chunk) {

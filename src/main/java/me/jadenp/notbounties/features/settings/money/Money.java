@@ -86,6 +86,10 @@ public class Money extends ResourceConfiguration {
         return defaultBroadcastSetting;
     }
 
+    public void setDefaultBroadcastSetting(PlayerData.BroadcastSettings defaultBroadcastSetting) {
+        this.defaultBroadcastSetting = defaultBroadcastSetting;
+    }
+
     public boolean isBroadcastToReceiver() {
         return broadcastToReceiver;
     }

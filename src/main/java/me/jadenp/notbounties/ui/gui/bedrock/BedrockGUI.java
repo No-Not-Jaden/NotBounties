@@ -88,6 +88,10 @@ public class BedrockGUI {
         GUI.playerInfo.put(player.getUniqueId(), new PlayerGUInfo(page, maxPage, guiName, data, displayItems, title));
     }
 
+    public static BedrockGUIOptions getGUI(String guiName) {
+        return customGuis.get(guiName);
+    }
+
     public static boolean isGUIEnabled(String guiName) {
         if (!customGuis.containsKey(guiName))
             return false;

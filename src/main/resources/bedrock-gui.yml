@@ -307,6 +307,7 @@ set-bounty:
   gui-name: '&d&lSelect &9&lPlayer'
   add-page: true
   remove-page-items: true
+  player-image: 'https://mc-heads.net/head/{texture}.png'
   player-text: '&e&l{player}&8 <=> &0Immunity: &8{amount}'
   # these commands are activated when a player button is clicked
   player-button-commands:

@@ -124,6 +124,15 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     }
 
 
+    @Override
+    public void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting) {
+        if (NotBounties.getInstance().isEnabled()) {
+            NotBounties.getServerImplementation().async().runNow(() -> database.setAllBroadcastSetting(broadcastSetting));
+        } else {
+            database.setAllBroadcastSetting(broadcastSetting);
+        }
+    }
+
     /**
      * Adds stats to the statChanges queue
      * @param uuid UUID of the player that the changes are for

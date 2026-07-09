@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.features.settings.auto_bounties;
 
 import me.jadenp.notbounties.features.ActionCommands;
+import me.jadenp.notbounties.features.BountyExpire;
 import me.jadenp.notbounties.features.settings.ResourceConfiguration;
 import me.jadenp.notbounties.utils.BanChecker;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -12,7 +13,7 @@ import java.util.stream.Collectors;
 public class AutoBounties extends ResourceConfiguration {
 
     private String consoleBountyName;
-    private double expireTime;
+    private long expireTimeMillis;
     private boolean overrideImmunity;
     private Set<String> blockedBountyCommands;
 
@@ -44,7 +45,8 @@ public class AutoBounties extends ResourceConfiguration {
         BanChecker.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("ban-checking")));
 
         consoleBountyName = config.getString("console-bounty-name");
-        expireTime = config.getDouble("expire-time");
+        Object configExpireTime = config.get("expire-time");
+        expireTimeMillis = BountyExpire.parseDurationToMillis(configExpireTime);
         overrideImmunity = config.getBoolean("override-immunity");
         blockedBountyCommands = config.getStringList("blocked-bounty-commands").stream().collect(Collectors.toUnmodifiableSet());
     }
@@ -59,8 +61,8 @@ public class AutoBounties extends ResourceConfiguration {
         return "settings/auto-bounties.yml";
     }
 
-    public double getExpireTime() {
-        return expireTime;
+    public long getExpireTimeMillis() {
+        return expireTimeMillis;
     }
 
     /**

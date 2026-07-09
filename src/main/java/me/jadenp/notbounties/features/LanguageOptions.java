@@ -158,6 +158,9 @@ public class LanguageOptions {
         if (sender.hasPermission("notbounties.view")) {
             sendHelpMessage(sender, getListMessage("help.view"));
         }
+        if (sender.hasPermission("notbounties.sort")) {
+            sendHelpMessage(sender, getListMessage("help.sort"));
+        }
         if (sender.hasPermission("notbounties.stats")) {
             sendHelpMessage(sender, getListMessage("help.stats"));
         }
@@ -173,19 +176,7 @@ public class LanguageOptions {
         if (sender.hasPermission("notbounties.buyown") && ConfigOptions.getMoney().isBuyOwn()) {
             sendHelpMessage(sender, getListMessage("help.buy-own"));
         }
-        if (sender.hasPermission("notbounties.buyimmunity") && ImmunityManager.getImmunityType() != ImmunityManager.ImmunityType.DISABLE) {
-            switch (ImmunityManager.getImmunityType()) {
-                case PERMANENT:
-                    sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
-                    break;
-                case SCALING:
-                    sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
-                    break;
-                case TIME:
-                    sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
-                    break;
-            }
-        }
+        sendBuyImmunityHelp(sender);
         if (sender.hasPermission("notbounties.removeimmunity")) {
             sendHelpMessage(sender, getListMessage("help.remove-immunity"));
         }
@@ -197,12 +188,7 @@ public class LanguageOptions {
             if (sender.hasPermission(NotBounties.getAdminPermission()))
                 sendHelpMessage(sender, getListMessage("help.poster-other"));
         }
-        if (BountyTracker.isEnabled())
-            if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawntracker") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
-                sendHelpMessage(sender, getListMessage("help.tracker-own"));
-                if (sender.hasPermission(NotBounties.getAdminPermission()))
-                    sendHelpMessage(sender, getListMessage("help.tracker-other"));
-            }
+        sendTrackerHelp(sender);
         if (sender.hasPermission("notbounties.challenges") && ChallengeManager.isEnabled()) {
             sendHelpMessage(sender, getListMessage("help.challenges"));
         }
@@ -222,6 +208,38 @@ public class LanguageOptions {
             sendHelpMessage(sender, getListMessage("help.immune"));
         }
         sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                 ");
+    }
+
+    public static void sendBuyImmunityHelp(CommandSender sender) {
+        if (sender.hasPermission("notbounties.buyimmunity") && ImmunityManager.getImmunityType() != ImmunityManager.ImmunityType.DISABLE) {
+            switch (ImmunityManager.getImmunityType()) {
+                case PERMANENT:
+                    sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
+                    break;
+                case SCALING:
+                    sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
+                    break;
+                case TIME:
+                    sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
+                    break;
+                default:
+                    // do nothing
+                    break;
+            }
+        }
+    }
+
+    private static void sendTrackerHelp(CommandSender sender) {
+        if (BountyTracker.isEnabled()) {
+            if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawntracker") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
+                sendHelpMessage(sender, getListMessage("help.tracker-own"));
+                if (sender.hasPermission(NotBounties.getAdminPermission()))
+                    sendHelpMessage(sender, getListMessage("help.tracker-other"));
+            }
+            if (sender.hasPermission("notbounties.tracker.exempt") || sender.hasPermission(NotBounties.getAdminPermission())) {
+                sendHelpMessage(sender, getListMessage("help.tracker-exempt"));
+            }
+        }
     }
 
     public static void sendHelpMessage(CommandSender sender, int page) {
@@ -244,6 +262,9 @@ public class LanguageOptions {
             case 2:
                 // view
                 sendHelpMessage(sender, getListMessage("help.view"));
+                if (sender.hasPermission("notbounties.sort")) {
+                    sendHelpMessage(sender, getListMessage("help.sort"));
+                }
                 break;
             case 3:
                 // stats
@@ -264,19 +285,7 @@ public class LanguageOptions {
                 if (sender.hasPermission("notbounties.buyown") && ConfigOptions.getMoney().isBuyOwn()) {
                     sendHelpMessage(sender, getListMessage("help.buy-own"));
                 }
-                if (sender.hasPermission("notbounties.buyimmunity") && ImmunityManager.getImmunityType() != ImmunityManager.ImmunityType.DISABLE) {
-                    switch (ImmunityManager.getImmunityType()) {
-                        case PERMANENT:
-                            sendHelpMessage(sender, getListMessage("help.buy-immunity.permanent"));
-                            break;
-                        case SCALING:
-                            sendHelpMessage(sender, getListMessage("help.buy-immunity.scaling"));
-                            break;
-                        case TIME:
-                            sendHelpMessage(sender, getListMessage("help.buy-immunity.time"));
-                            break;
-                    }
-                }
+                sendBuyImmunityHelp(sender);
                 break;
             case 7:
                 // remove
@@ -292,12 +301,7 @@ public class LanguageOptions {
                     if (sender.hasPermission(NotBounties.getAdminPermission()))
                         sendHelpMessage(sender, getListMessage("help.poster-other"));
                 }
-                if (BountyTracker.isEnabled())
-                    if (sender.hasPermission(NotBounties.getAdminPermission()) || sender.hasPermission("notbounties.spawntracker") || (BountyTracker.isGiveOwnTracker() && sender.hasPermission("notbounties.tracker"))) {
-                        sendHelpMessage(sender, getListMessage("help.tracker-own"));
-                        if (sender.hasPermission(NotBounties.getAdminPermission()))
-                            sendHelpMessage(sender, getListMessage("help.tracker-other"));
-                    }
+                sendTrackerHelp(sender);
                 break;
             case 9:
                 // challenges
@@ -351,9 +355,11 @@ public class LanguageOptions {
      * Will not add the player prefix or player suffix
      * Mainly for unknown player
      */
-    public static String parse(String str, String player, OfflinePlayer receiver) {
-        str = str.replace("{receiver}", (player));
-        str = str.replace("{player}", (player));
+    public static String parse(String str, UUID playerUUID, OfflinePlayer receiver) {
+        String player = LoggedPlayers.getPlayerName(receiver);
+        String playerDisplay = LoggedPlayers.getDisplayName(playerUUID);
+        str = str.replace("{receiver}", (player)).replace("{receiver_displayname}", (playerDisplay));
+        str = str.replace("{player}", (player)).replace("{player_displayname}", (playerDisplay));
         return parse(str, receiver);
     }
 
@@ -483,8 +489,10 @@ public class LanguageOptions {
         return parse(str, receiver);
     }
 
-    public static String parse(String str, String player, double amount, OfflinePlayer receiver) {
-        str = str.replace("{player}", (player));
+    public static String parse(String str, UUID playerUUID, double amount, OfflinePlayer receiver) {
+        String player = LoggedPlayers.getPlayerName(playerUUID);
+        String playerDisplay = LoggedPlayers.getDisplayName(playerUUID);
+        str = str.replace("{player}", (player)).replace("{player_displayname}", (playerDisplay));
         return parse(str,amount,receiver);
     }
 
@@ -500,10 +508,10 @@ public class LanguageOptions {
      * This does not add the player prefix or suffix
      * Used for console name
      */
-    public static String parse(String str, String player, double amount, double bounty, OfflinePlayer receiver) {
+    public static String parse(String str, UUID playerUuid, double amount, double bounty, OfflinePlayer receiver) {
         str = str.replace("{bounty}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(bounty) + NumberFormatting.getCurrencySuffix()));
         str = str.replace("{bounty_plain}", NumberFormatting.formatNumber(bounty));
-        return parse(str, player, amount, receiver);
+        return parse(str, playerUuid, amount, receiver);
     }
 
     public static String parse(String str, double amount, double bounty, OfflinePlayer receiver) {

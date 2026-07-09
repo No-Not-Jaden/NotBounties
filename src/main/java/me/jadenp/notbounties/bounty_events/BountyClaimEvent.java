@@ -9,15 +9,21 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 public class BountyClaimEvent extends Event implements Cancellable {
+
     private final Player killer;
     private final Bounty bounty;
     private boolean canceled = false;
     private static final HandlerList HANDLERS_LIST = new HandlerList();
+    private final DropRewardHead dropRewardHead = new DropRewardHead();
 
     public BountyClaimEvent(Player killer, Bounty bounty) {
 
         this.killer = killer;
         this.bounty = bounty;
+    }
+
+    public DropRewardHead getDropRewardHead() {
+        return dropRewardHead;
     }
 
     public Bounty getBounty() {
@@ -26,9 +32,6 @@ public class BountyClaimEvent extends Event implements Cancellable {
 
     public Player getKiller() {
         return killer;
-    }
-    public static HandlerList getHandlerList() {
-        return HANDLERS_LIST;
     }
 
     @Override
@@ -44,6 +47,10 @@ public class BountyClaimEvent extends Event implements Cancellable {
     @NotNull
     @Override
     public HandlerList getHandlers() {
+        return getHandlerList();
+    }
+
+    public static HandlerList getHandlerList() {
         return HANDLERS_LIST;
     }
 }

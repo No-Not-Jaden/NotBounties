@@ -5,6 +5,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.features.BountyExpire;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -49,6 +50,8 @@ public class BountyExpansion extends PlaceholderExpansion {
      * Add "_value" to the end of leaderboard to get the raw value
      * Add "_name" to the end of top placeholder to get the name of the player in that position
      * Add "_displayname" to the end of top placeholder to get the display name of the player in that position
+     * Add "_min_expire" to the end of top placeholder to get the lowest expire time of the bounty in that position
+     * Add "_max_expire" to the end of top placeholder to get the highest expire time of the bounty in that position
      * <p>%notbounties_bounty%</p>
      * <p>%notbounties_bounty_rank%</p>
      * <p>%notbounties_total%</p>
@@ -112,6 +115,10 @@ public class BountyExpansion extends PlaceholderExpansion {
                     return bounty.getName();
                 if (params.endsWith("_displayname"))
                     return LoggedPlayers.getDisplayName(player);
+                if (params.endsWith("_min_expire"))
+                    return LocalTime.formatTime(BountyExpire.getLowestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE);
+                if (params.endsWith("_max_expire"))
+                    return LocalTime.formatTime(BountyExpire.getHighestExpireTime(bounty), LocalTime.TimeFormat.RELATIVE);
                 return NumberFormatting.getValue(bounty.getTotalDisplayBounty());
             }
             return "0";
@@ -220,6 +227,16 @@ public class BountyExpansion extends PlaceholderExpansion {
             ending = 6;
             params = params.substring(0,params.lastIndexOf("_"));
         }
+        if (params.endsWith("_min_expire")) {
+            ending = 7;
+            params = params.substring(0,params.lastIndexOf("_"));
+            params = params.substring(0,params.lastIndexOf("_"));
+        }
+        if (params.endsWith("_max_expire")) {
+            ending = 8;
+            params = params.substring(0,params.lastIndexOf("_"));
+            params = params.substring(0,params.lastIndexOf("_"));
+        }
         if (params.startsWith("top_")) {
             params = params.substring(4);
             int rank;
@@ -262,6 +279,8 @@ public class BountyExpansion extends PlaceholderExpansion {
             if (ending == 4) return name;
             if (ending == 5) return NumberFormatting.formatNumber(leaderboard.getRank(uuid1));
             if (ending == 6) return LoggedPlayers.getDisplayName(p);
+            if (ending == 7) return LocalTime.formatTime(BountyExpire.getLowestExpireTime(BountyManager.getBounty(uuid1)), LocalTime.TimeFormat.RELATIVE);
+            if (ending == 8) return LocalTime.formatTime(BountyExpire.getHighestExpireTime(BountyManager.getBounty(uuid1)), LocalTime.TimeFormat.RELATIVE);
             return Leaderboard.parseBountyTopString(rank, name, amount, useCurrency, p);
         }
 

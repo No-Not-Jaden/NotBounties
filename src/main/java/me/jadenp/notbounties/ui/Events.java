@@ -90,11 +90,14 @@ public class Events implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        if (NotBounties.isPaused())
+        if (NotBounties.isPaused()) {
+            NotBounties.debugMessage("Plugin is paused. Ignoring death.", false);
             return;
+        }
         if (event.getEntity() instanceof Player player) {
             if (event.getEntity().getKiller() == null) {
                 // natural death
+                NotBounties.debugMessage("Natural death for " + player.getName(), false);
                 Bounty currentBounty = BountyManager.getBounty(player.getUniqueId());
                 if (currentBounty != null) {
                     Bounty lostBounty = TrickleBounties.getLostBounty(currentBounty);
@@ -203,10 +206,11 @@ public class Events implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        if (NotBounties.isPaused())
-            return;
-
         NotBounties.debugMessage("Player logged in: " +  event.getPlayer().getName(), false);
+        if (NotBounties.isPaused()) {
+            NotBounties.debugMessage("Plugin is paused. Ignoring login.", false);
+            return;
+        }
         login(event.getPlayer());
 
         Bounty bounty = getBounty(event.getPlayer().getUniqueId());

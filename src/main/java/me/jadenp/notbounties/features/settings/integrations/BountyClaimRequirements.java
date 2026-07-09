@@ -76,6 +76,12 @@ public class BountyClaimRequirements {
     private static boolean simpleClansAlly;
 
     /**
+     * SimpleClaimSystem
+     */
+    private static boolean simpleClaimSystemEnabled;
+    private static boolean simpleClaimSystemMember;
+
+    /**
      * Konquest
      */
     private static boolean konquestEnabled;
@@ -96,6 +102,7 @@ public class BountyClaimRequirements {
         factionsEnabled = Bukkit.getPluginManager().isPluginEnabled("Factions");
         superiorSkyblockEnabled = Bukkit.getPluginManager().isPluginEnabled("SuperiorSkyblock2");
         simpleClansEnabled = Bukkit.getPluginManager().isPluginEnabled("SimpleClans");
+        simpleClaimSystemEnabled = Bukkit.getPluginManager().isPluginEnabled("SimpleClaimSystem");
         konquestEnabled = Bukkit.getPluginManager().isPluginEnabled("Konquest");
 
         kingdomsXNation = configuration.getBoolean("kingdoms-x.nation");
@@ -125,6 +132,7 @@ public class BountyClaimRequirements {
         superiorSkyblockIslandMember = configuration.getBoolean("superior-skyblock-2.island-member");
         simpleClansClan = configuration.getBoolean("simple-clans.clan");
         simpleClansAlly = configuration.getBoolean("simple-clans.ally");
+        simpleClaimSystemMember = configuration.getBoolean("simple-claim-system.member");
         konquestKingdom = configuration.getBoolean("konquest.kingdom");
         konquestKingdomAllies = configuration.getBoolean("konquest.ally");
         minRespawnDistance = configuration.getInt("min-respawn-distance");
@@ -263,7 +271,11 @@ public class BountyClaimRequirements {
             NotBounties.debugMessage("Bounty claim canceled due to an active bounty hunt.", false);
             return false;
         }
-
+        // check if players are members in the same SimpleClaimSystem claim
+        if (simpleClaimSystemEnabled && !simpleClaimSystemMember && SimpleClaimSystemClass.isClaimShared(player, killer)) {
+            NotBounties.debugMessage("Bounty claim canceled due to a SimpleClaimSystem claim.", false);
+            return false;
+        }
         return true;
     }
 
@@ -297,5 +309,9 @@ public class BountyClaimRequirements {
 
     public static boolean isKonquestEnabled() {
         return konquestEnabled;
+    }
+
+    public static boolean isSimpleClaimSystemEnabled() {
+        return simpleClaimSystemEnabled;
     }
 }

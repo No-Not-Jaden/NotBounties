@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 
 public class SimpleClansClass {
 
+    private SimpleClansClass() {}
+
     private static SimpleClans api = null;
 
     private static SimpleClans getAPI() {

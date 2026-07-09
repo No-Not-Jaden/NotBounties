@@ -17,7 +17,7 @@ import me.jadenp.notbounties.features.settings.integrations.BountyClaimRequireme
 import me.jadenp.notbounties.features.settings.integrations.Integrations;
 import me.jadenp.notbounties.features.settings.integrations.LuckPermsClass;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
-import me.jadenp.notbounties.ui.Commands;
+import me.jadenp.notbounties.ui.commands.Commands;
 import me.jadenp.notbounties.ui.Events;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
@@ -65,7 +65,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * Redis Pub Sub messages for player data storage. - proxy messaging too
  * database message table with server IDs
  * Redo database system with large datasets in mind
- * store playtime of player when the bounty is set to reward based on time survived
+ * store playtime of player when the bounty is set to reward based on time survived, or increase the bounty
  * DB table to store tags for each bounty, ex: bounty team, or bounty region
  * add skin property to saved data
  * Async GUI and data requests
@@ -179,6 +179,7 @@ public final class NotBounties extends JavaPlugin {
             }
 
             ImmunityManager.loadPlayerData();
+            LoggedPlayers.loadAllDisplayNames();
         } catch (IOException e) {
             getLogger().severe("[NotBounties] Failed to read player data!");
             getLogger().severe(e.toString());
@@ -285,9 +286,6 @@ public final class NotBounties extends JavaPlugin {
             }, ConfigOptions.getAutoSaveInterval() * 60 * 20L + 69, ConfigOptions.getAutoSaveInterval() * 60 * 20L);
         }
 
-
-        // this needs to be in a 5-minute interval cuz that's the lowest time specified in the config for expiration
-        getServerImplementation().async().runAtFixedRate(BountyExpire::removeExpiredBounties, 5 * 60 * 20L + 2007, 5 * 60 * 20L);
 
 
         // wanted text
@@ -478,7 +476,8 @@ public final class NotBounties extends JavaPlugin {
                 + ChatColor.YELLOW + " Latest Plugin Version: " + ChatColor.WHITE + getLatestVersion()
                 + ChatColor.YELLOW + " Server Version: " + ChatColor.WHITE + getServer().getVersion()
                 + ChatColor.YELLOW + " Debug Mode: " + ChatColor.WHITE + debug
-                + ChatColor.YELLOW + " Online Mode: " + ChatColor.WHITE + Bukkit.getOnlineMode());
+                + ChatColor.YELLOW + " Online Mode: " + ChatColor.WHITE + Bukkit.getOnlineMode()
+                + ChatColor.YELLOW + " Plugin Paused: " + ChatColor.WHITE + NotBounties.isPaused());
 
         TextComponent updateNotification = getUpdateNotificationInfo();
         sender.spigot().sendMessage(updateNotification);
@@ -540,7 +539,13 @@ public final class NotBounties extends JavaPlugin {
         if (integrations.isPapiEnabled()) hooks.add("PlaceholderAPI");
         if (integrations.isHeadDataBaseEnabled()) hooks.add("HeadDataBase");
         if (integrations.isLiteBansEnabled()) hooks.add("LiteBans");
-        if (integrations.isSkinsRestorerEnabled()) hooks.add("SkinsRestorer");
+        if (integrations.isSkinsRestorerEnabled()) {
+            if (integrations.getSkinsRestorerClass().isConnected()) {
+                hooks.add("SkinsRestorer");
+            } else {
+                hooks.add(ChatColor.RED + "SkinsRestorer");
+            }
+        }
         if (BountyClaimRequirements.isBetterTeamsEnabled()) hooks.add("BetterTeams");
         if (BountyClaimRequirements.isTownyAdvancedEnabled()) hooks.add("TownyAdvanced");
         if (integrations.isFloodgateEnabled()) hooks.add("Floodgate");
@@ -559,6 +564,9 @@ public final class NotBounties extends JavaPlugin {
         if (BountyClaimRequirements.isKonquestEnabled()) hooks.add("Konquest");
         if (integrations.isEssentialsEnabled()) hooks.add("EssentialsX");
         if (integrations.isCMIEnabled()) hooks.add("CMI");
+        if (BountyClaimRequirements.isSimpleClaimSystemEnabled()) hooks.add("SimpleClaimSystem");
+
+        hooks.sort(String::compareTo);
 
         return hooks;
     }

@@ -10,6 +10,7 @@ import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.data.PlayerStat;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.data.Whitelist;
 import org.bukkit.Bukkit;
@@ -37,6 +38,11 @@ public class MySQL extends NotBountiesDatabase {
 
     public MySQL(Plugin plugin, String name){
         super(plugin, name);
+    }
+
+    @Override
+    public void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting) {
+
     }
 
     @Override
@@ -957,7 +963,13 @@ public class MySQL extends NotBountiesDatabase {
     }
 
     private void readPlayerDataResult(ResultSet rs, PlayerData playerData) throws SQLException {
-        playerData.setPlayerName(rs.getString("name"));
+        String name = rs.getString("name");
+        if (name != null) {
+            playerData.setPlayerName(name);
+        } else {
+            playerData.setPlayerName(LoggedPlayers.getPlayerName(playerData.getUuid()));
+            NotBounties.debugMessage("SQL Playerdata has null name for " + playerData.getUuid(), true);
+        }
         immunityFromByte(playerData, rs.getByte("immunity"));
         playerData.setLastClaim(rs.getLong("lastclaim"));
         playerData.setBroadcastSettings(PlayerData.BroadcastSettings.values()[rs.getByte("broadcastsetting")]);

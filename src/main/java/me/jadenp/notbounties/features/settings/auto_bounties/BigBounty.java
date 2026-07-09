@@ -36,7 +36,7 @@ public class BigBounty {
         }
     }
 
-    public static void setBounty(Player receiver, Bounty newBounty, double amountAdded) {
+    public static void setBounty(Player receiver, @NotNull Bounty newBounty, double amountAdded) {
         switch (trigger) {
             case SET:
                 if (newBounty.getTotalDisplayBounty() >= threshold)

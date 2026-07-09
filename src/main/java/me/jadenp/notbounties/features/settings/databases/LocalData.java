@@ -38,6 +38,13 @@ public class LocalData extends NotBountiesDatabase {
         playerDataMap = Collections.synchronizedMap(new HashMap<>());
     }
 
+    @Override
+    public void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting) {
+        for (PlayerData playerData : playerDataMap.values()) {
+            playerData.setBroadcastSettings(broadcastSetting);
+        }
+    }
+
     protected LocalData(List<Bounty> activeBounties, Map<UUID, PlayerStat> playerStats, Map<UUID, PlayerData> playerDataMap) {
         super(null, "LocalData");
         this.activeBounties = activeBounties;

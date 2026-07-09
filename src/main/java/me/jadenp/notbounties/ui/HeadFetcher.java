@@ -2,8 +2,6 @@ package me.jadenp.notbounties.ui;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -33,26 +31,10 @@ public class HeadFetcher {
         ItemStack head = savedHeads.getIfPresent(uuid);
         if (head != null)
             return head.clone();
-        return Head.createPlayerSkull(uuid, SkinManager.getSkin(uuid).url());
-        /*head = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) head.getItemMeta();
-        assert meta != null;
-        try {
-            meta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
-        } catch (NullPointerException e) {
-            if (NotBounties.getServerVersion() >= 18) {
-                try {
-                    PlayerProfile profile = Bukkit.createPlayerProfile(uuid, LoggedPlayers.getPlayerName(uuid));
-                    // set skin first
-
-                    meta.setOwnerProfile(profile);
-                } catch (IllegalArgumentException ignored) {
-                    // The name of the profile is longer than 16 characters
-                    NotBounties.debugMessage("Could not get an unloaded head for: " + LoggedPlayers.getPlayerName(uuid), true);
-                }
-            }
+        if (SkinManager.isUseUnloadedPlayerProfile()) {
+            return Head.createPlayerSkull(uuid, DefaultSkinHelper.get(uuid).url());
         }
-        head.setItemMeta(meta);
-        return head;*/
+
+        return Head.createPlayerSkull(uuid, SkinManager.getSkin(uuid).url());
     }
 }
