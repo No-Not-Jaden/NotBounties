@@ -5,8 +5,9 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
-public class AmountRefund extends OnlineRefund {
+public class AmountRefund extends OnlineRefund<Double> {
 
     private final double amount;
 
@@ -15,14 +16,19 @@ public class AmountRefund extends OnlineRefund {
         this.amount = amount;
     }
 
-    public AmountRefund(double amount, long timeCreated, String reason) {
-        super(reason, timeCreated);
+    public AmountRefund(int id, double amount, long timeCreated, String reason) {
+        super(id, reason, timeCreated);
         this.amount = amount;
     }
 
     @Override
-    public Double getRefund() {
-        return amount;
+    public Optional<Double> getRefund() {
+        return Optional.of(amount);
+    }
+
+    @Override
+    public Double getRefundAsync() {
+        // TODO: implementation
     }
 
     @Override
@@ -49,24 +55,4 @@ public class AmountRefund extends OnlineRefund {
         return Objects.hash(super.hashCode(), amount);
     }
 
-    @Override
-    public String getID() {
-        return amount + ":" + timeCreated;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T extends Inconsistent> T copy() {
-        return (T) new AmountRefund(amount, timeCreated, reason);
-    }
-
-    @Override
-    public List<Inconsistent> getSubElements() {
-        return List.of();
-    }
-
-    @Override
-    public void setSubElements(List<Inconsistent> subElements) {
-        // no sub elements - all local variables are final
-    }
 }

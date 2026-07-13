@@ -10,6 +10,8 @@ import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.ui.PlayerSkin;
+import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.GUIOptions;
 import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
@@ -25,7 +27,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class PlayerData implements Comparable<PlayerData> {
+public class PlayerData implements Comparable<PlayerData>, Cloneable {
 
     private static final Gson gson;
 
@@ -34,11 +36,10 @@ public class PlayerData implements Comparable<PlayerData> {
         builder.registerTypeAdapter(PlayerData.class, new PlayerDataAdapter());
         builder.registerTypeAdapter(ItemRefund.class, new ItemRefundTypeAdapter());
         builder.registerTypeAdapter(AmountRefund.class, new AmountRefundTypeAdapter());
-        builder.registerTypeAdapter(RewardHead.class, new RewardHeadTypeAdapter());
         gson = builder.create();
     }
 
-    public static <T extends OnlineRefund> T readRefund(JsonReader reader, Class<T> clazz) throws IOException {
+    public static <T extends OnlineRefund<?>> T readRefund(JsonReader reader, Class<T> clazz) throws IOException {
         if (reader == null || clazz == null) {
             throw new IllegalArgumentException("Reader and clazz must not be null");
         }
@@ -53,7 +54,7 @@ public class PlayerData implements Comparable<PlayerData> {
         return adapter.read(reader);
     }
 
-    public static void writeRefund(JsonWriter writer, OnlineRefund onlineRefund) throws IOException {
+    public static void writeRefund(JsonWriter writer, OnlineRefund<?> onlineRefund) throws IOException {
         if (writer == null || onlineRefund == null) {
             throw new IllegalArgumentException("Writer and refund must not be null");
         }
@@ -66,7 +67,7 @@ public class PlayerData implements Comparable<PlayerData> {
         }
 
         //noinspection unchecked
-        ((TypeAdapter<OnlineRefund>) adapter).write(writer, onlineRefund);
+        ((TypeAdapter<OnlineRefund<?>>) adapter).write(writer, onlineRefund);
     }
 
     public static PlayerData fromJson(String jsonString) {
@@ -98,6 +99,21 @@ public class PlayerData implements Comparable<PlayerData> {
         return Objects.hash(uuid, playerName, generalImmunity, murderImmunity, randomImmunity, timedImmunity, timeZone, broadcastSettings, refund, bountyCooldown, whitelist, newPlayer, lastSeen, lastClaim);
     }
 
+    @Override
+    public PlayerData clone() {
+        try {
+            PlayerData clone = (PlayerData) super.clone();
+            // TODO: copy mutable state here, so the clone can't change the internals of the original
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
+    }
+
+    public void setAll(PlayerData playerData) {
+        // TODO: reverse of clone()
+    }
+
     public enum BroadcastSettings {
         EXTENDED, SHORT, DISABLE
     }
@@ -110,16 +126,18 @@ public class PlayerData implements Comparable<PlayerData> {
     private boolean timedImmunity = false;
     private TimeZone timeZone = null;
     private BroadcastSettings broadcastSettings;
-    private final List<OnlineRefund> refund = new LinkedList<>();
+    private final List<OnlineRefund<?>> refund = new LinkedList<>();
     private long bountyCooldown = 0; // Time in ms when they set a bounty last
     private Whitelist whitelist;
     private boolean newPlayer = true;
     private long lastSeen = 0;
     private long lastClaim = 0;
-    private UUID serverID = null;
+    private UUID serverID = null; // ID used for which server the data is on
+    private UUID onlineServerID = DataManager.GLOBAL_SERVER_ID; // ID used for which server the player is on
     private final Map<String, Integer> guiSortType = new HashMap<>();
     private boolean trackingExempt = false;
-    boolean isOnline = false;
+    private long playTime = 0;
+    private PlayerSkin skin = SkinManager.getMissingSkin();
 
     public PlayerData() {
         broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
@@ -135,6 +153,22 @@ public class PlayerData implements Comparable<PlayerData> {
         if (playerName != null && uuid != null) {
             LoggedPlayers.logPlayer(playerName, uuid);
         }
+    }
+
+    public long getPlayTime() {
+        return playTime;
+    }
+
+    public void setPlayTime(long playTime) {
+        this.playTime = playTime;
+    }
+
+    public PlayerSkin getSkin() {
+        return skin;
+    }
+
+    public void setSkin(PlayerSkin skin) {
+        this.skin = skin;
     }
 
     public void setGUISortType(String guiName, int sortType) {
@@ -255,11 +289,11 @@ public class PlayerData implements Comparable<PlayerData> {
         return timeZone;
     }
 
-    public List<OnlineRefund> getRefund() {
+    public List<OnlineRefund<?>> getRefund() {
         return refund;
     }
 
-    public void addRefund(OnlineRefund onlineRefund) {
+    public void addRefund(OnlineRefund<?> onlineRefund) {
         refund.add(onlineRefund);
     }
 
@@ -267,7 +301,7 @@ public class PlayerData implements Comparable<PlayerData> {
         refund.clear();
     }
 
-    public void setRefund(List<OnlineRefund> onlineRefund) {
+    public void setRefund(List<OnlineRefund<?>> onlineRefund) {
         refund.clear();
         refund.addAll(onlineRefund);
     }
@@ -319,12 +353,12 @@ public class PlayerData implements Comparable<PlayerData> {
         return uuid;
     }
 
-    public boolean isOnline() {
-        return isOnline;
+    public UUID getOnlineServerID() {
+        return onlineServerID;
     }
 
-    public void setOnline(boolean online) {
-        isOnline = online;
+    public void setOnlineServerID(UUID onlineServerID) {
+        this.onlineServerID = onlineServerID;
     }
 
     @Override

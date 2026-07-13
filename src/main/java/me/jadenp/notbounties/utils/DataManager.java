@@ -1,77 +1,67 @@
 package me.jadenp.notbounties.utils;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.data.player_data.*;
 import me.jadenp.notbounties.features.ActionCommands;
-import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
-import me.jadenp.notbounties.features.settings.databases.LocalData;
-import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
-import me.jadenp.notbounties.features.settings.databases.TempDatabase;
+import me.jadenp.notbounties.features.settings.databases.*;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyDatabase;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.features.settings.databases.redis.RedisConnection;
 import me.jadenp.notbounties.features.settings.databases.sql.MySQL;
+import me.jadenp.notbounties.features.settings.databases.sql.SQLDatabase;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
-import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
-import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
-import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
-import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
-import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
-import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.features.settings.integrations.external_api.MMOLibClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
-import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 
+import static java.lang.Math.max;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 // TODO: manage 1 thread per database and close connection when inactive
+
+/**
+ * Manage the stored data.
+ */
 public class DataManager {
 
     private DataManager(){}
 
     private static final List<AsyncDatabaseWrapper> databases = new ArrayList<>();
 
-    private static LocalData localData; // locally stored bounties and stats
     private static UUID databaseServerID = null;
     public static final long CONNECTION_REMEMBRANCE_MS = (long) 2.592e+8; // how long before databases stop storing changes if no connection was made (3 days)
     public static final UUID GLOBAL_SERVER_ID = new UUID(0,0);
     public static final long MIN_DATABASE_SYNC_INTERVAL_MS = 1000; // for reading the priority database for getting local data on save
     private static long lastPriorityDatabaseSync = 0;
     private static TaskImplementation<Void> autoReconnectTask = null;
+    private static long maxLocalCacheSize;
 
     private static Plugin plugin;
 
     public static void loadData(Plugin plugin) throws IOException {
         DataManager.plugin = plugin;
         localData = new LocalData();
-        loadOldData();
         // load modern data
         SaveManager.read(plugin);
-
     }
 
 
@@ -107,18 +97,21 @@ public class DataManager {
     public static void loadDatabaseConfig(ConfigurationSection configuration, Plugin plugin) {
         if (autoReconnectTask != null)
             autoReconnectTask.cancel();
-        if (configuration.isSet("auto-connect-interval")) {
-            long autoConnectInterval = configuration.getLong("auto-connect-interval");
-            if (autoConnectInterval > 0) {
-                autoReconnectTask = NotBounties.getServerImplementation().async().runAtFixedRate(DataManager::tryDatabaseConnections, 120, autoConnectInterval * 20);
-            }
+        long autoConnectInterval = configuration.getLong("auto-connect-interval", 0);
+        if (autoConnectInterval > 0) {
+            autoReconnectTask = NotBounties.getServerImplementation().async().runAtFixedRate(DataManager::tryDatabaseConnections, 120, autoConnectInterval * 20);
         }
+
+        maxLocalCacheSize = Math.max(configuration.getLong("max-local-cache-size", 200), 10);
+        if (databases.isEmpty())
+            databases.add(new AsyncDatabaseWrapper(new FallbackWrapper(new LocalData(plugin, maxLocalCacheSize))));
+
         for (String databaseName : configuration.getKeys(false)) {
-            if (databaseName.equals("auto-connect-interval"))
+            if (!configuration.isConfigurationSection(databaseName))
                 continue;
             boolean newDatabase = true;
             for (AsyncDatabaseWrapper database : databases) {
-                if (database.getName().equals(databaseName)) {
+                if (database.getConfigurationName().equals(databaseName)) {
                     database.reloadConfig();
                     newDatabase = false;
                     break;
@@ -132,7 +125,23 @@ public class DataManager {
                 }
             }
         }
+        if (databases.isEmpty())
+            return;
         Collections.sort(databases);
+        // set fallback order
+        for (int i = 0; i < databases.size(); i++) {
+            FallbackWrapper fallbackWrapper = databases.get(i).getDatabase(FallbackWrapper.class);
+            if (fallbackWrapper != null) {
+                if (i == databases.size() - 1) {
+                    // the lowest priority database does not have a fallback
+                    fallbackWrapper.setFallbackDB(null);
+                } else {
+                    fallbackWrapper.setFallbackDB(databases.get(i+1));
+                }
+            }
+
+        }
+
         tryDatabaseConnections();
 
     }
@@ -145,18 +154,16 @@ public class DataManager {
      * @throws IllegalArgumentException If the database type specified is not defined.
      */
     private static void loadNewDatabaseConfig(ConfigurationSection configuration, String databaseName) throws IllegalArgumentException {
-        String type = configuration.isSet(databaseName + ".type") ? configuration.getString(databaseName + ".type") : "You need to set your database type for: " + databaseName;
-        assert type != null; // isSet() assures that type != null
+        String type = configuration.getString(databaseName + ".type","You need to set your database type for: " + databaseName);
         NotBountiesDatabase database;
         try {
             switch (type.toUpperCase()) {
-                case "SQL" -> database = new MySQL(NotBounties.getInstance(), databaseName);
-                case "REDIS" -> database = new RedisConnection(NotBounties.getInstance(), databaseName);
+                case "SQL","REDIS" -> database = new SQLDatabase(NotBounties.getInstance(), databaseName);
                 case "PROXY" -> database = new ProxyDatabase(NotBounties.getInstance(), databaseName);
                 default -> throw new IllegalArgumentException("Unknown database type for " + databaseName + ": " + type);
 
             }
-            AsyncDatabaseWrapper asyncDatabaseWrapper = new AsyncDatabaseWrapper(database);
+            AsyncDatabaseWrapper asyncDatabaseWrapper = new AsyncDatabaseWrapper(new FallbackWrapper(new ReconnectWrapper(database)));
             SaveManager.loadSyncTime(asyncDatabaseWrapper);
             asyncDatabaseWrapper.reloadConfig();
             databases.add(asyncDatabaseWrapper);
@@ -165,228 +172,6 @@ public class DataManager {
             // This will be thrown if unable to use Spigot's library loader
             NotBounties.debugMessage("One or more dependencies could not be downloaded to use the database: " + databaseName + " (" + type + ")", true);
         }
-    }
-
-    /**
-     * Loads bounties from the bounties.yml file.
-     * To be removed 1/8/2026
-     */
-    @Deprecated(since = "1.22.0", forRemoval = true)
-    private static void loadOldData() {
-        File bounties = new File(NotBounties.getInstance().getDataFolder() + File.separator + "bounties.yml");
-        if (!bounties.exists())
-            return;
-        List<Bounty> bountyList = new ArrayList<>();
-        Map<UUID, PlayerStat> stats = new HashMap<>();
-        // create bounties file if one doesn't exist
-        try {
-                // get existing bounties file
-                YamlConfiguration configuration = YamlConfiguration.loadConfiguration(bounties);
-                if (configuration.isSet("server-id"))
-                    databaseServerID = UUID.fromString(Objects.requireNonNull(configuration.getString("server-id")));
-                else
-                    databaseServerID = UUID.randomUUID();
-                // add all previously logged on players to a map
-                if (configuration.isConfigurationSection("logged-players"))
-                    LoggedPlayers.readOldConfiguration(Objects.requireNonNull(configuration.getConfigurationSection("logged-players")));
-                Map<UUID, Boolean[]> immunityMap = new HashMap<>();
-                if (configuration.isSet("immune-permissions")) {
-                    for (String str :configuration.getStringList("immune-permissions")) {
-                        UUID uuid = UUID.fromString(str);
-                        if (immunityMap.containsKey(uuid))
-                            immunityMap.get(uuid)[0] = true;
-                        else
-                            immunityMap.put(uuid, new Boolean[]{true, false, false, false});
-                    }
-                }
-            if (configuration.isSet("immunity-murder")) {
-                for (String str :configuration.getStringList("immunity-murder")) {
-                    UUID uuid = UUID.fromString(str);
-                    if (immunityMap.containsKey(uuid))
-                        immunityMap.get(uuid)[1] = true;
-                    else
-                        immunityMap.put(uuid, new Boolean[]{false, true, false, false});
-                }
-            }
-            if (configuration.isSet("immunity-random")) {
-                for (String str :configuration.getStringList("immunity-random")) {
-                    UUID uuid = UUID.fromString(str);
-                    if (immunityMap.containsKey(uuid))
-                        immunityMap.get(uuid)[2] = true;
-                    else
-                        immunityMap.put(uuid, new Boolean[]{false, false, true, false});
-                }
-            }
-            if (configuration.isSet("immunity-timed")) {
-                for (String str :configuration.getStringList("immunity-timed")) {
-                    UUID uuid = UUID.fromString(str);
-                    if (immunityMap.containsKey(uuid))
-                        immunityMap.get(uuid)[3] = true;
-                    else
-                        immunityMap.put(uuid, new Boolean[]{false, false, false, true});
-                }
-            }
-            for (Map.Entry<UUID, Boolean[]> entry : immunityMap.entrySet()) {
-                PlayerData playerData = localData.getPlayerData(entry.getKey());
-                playerData.setGeneralImmunity(entry.getValue()[0]);
-                playerData.setMurderImmunity(entry.getValue()[1]);
-                playerData.setRandomImmunity(entry.getValue()[2]);
-                playerData.setTimedImmunity(entry.getValue()[3]);
-            }
-                // go through bounties in file
-                int i = 0;
-                while (configuration.getString("bounties." + i + ".uuid") != null) {
-                    List<Setter> setters = new ArrayList<>();
-                    int l = 0;
-                    while (configuration.getString("bounties." + i + "." + l + ".uuid") != null) {
-                        List<String> whitelistUUIDs = new ArrayList<>();
-                        if (configuration.isSet("bounties." + i + "." + l + ".whitelist"))
-                            whitelistUUIDs = configuration.getStringList("bounties." + i + "." + l + ".whitelist");
-                        boolean blacklist = configuration.isSet("bounties." + i + "." + l + ".blacklist") && configuration.getBoolean("bounties." + i + "." + l + ".blacklist");
-
-                        SortedSet<UUID> convertedUUIDs = new TreeSet<>();
-                        for (String uuid : whitelistUUIDs)
-                            convertedUUIDs.add(UUID.fromString(uuid));
-                        // check for old CONSOLE UUID
-                        UUID setterUUID = Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")).equalsIgnoreCase("CONSOLE") ? new UUID(0, 0) : UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + "." + l + ".uuid")));
-                        // check for no playtime
-                        long playTime = configuration.isSet("bounties." + i + "." + l + ".playtime") ? configuration.getLong("bounties." + i + "." + l + ".playtime") : 0;
-                        ArrayList<ItemStack> items = configuration.isString("bounties." + i + "." + l + ".items") ? new ArrayList<>(List.of(SerializeInventory.itemStackArrayFromBase64(configuration.getString("bounties." + i + "." + l + ".items")))) : new ArrayList<>();
-                        Setter setter = new Setter(configuration.getString("bounties." + i + "." + l + ".name"), setterUUID, configuration.getDouble("bounties." + i + "." + l + ".amount"), items, configuration.getLong("bounties." + i + "." + l + ".time-created"), configuration.getBoolean("bounties." + i + "." + l + ".notified"), new Whitelist(convertedUUIDs, blacklist), playTime);
-                        setters.add(setter);
-                        l++;
-                    }
-                    if (!setters.isEmpty()) {
-                        bountyList.add(new Bounty(UUID.fromString(Objects.requireNonNull(configuration.getString("bounties." + i + ".uuid"))), setters, configuration.getString("bounties." + i + ".name")));
-                    }
-                    i++;
-                }
-                // new version vvv
-                Map<UUID, Long> timedBounties = new HashMap<>();
-                if (configuration.isConfigurationSection("data"))
-                    for (String uuidString : Objects.requireNonNull(configuration.getConfigurationSection("data")).getKeys(false)) {
-                        UUID uuid = UUID.fromString(uuidString);
-                        PlayerData playerData = localData.getPlayerData(uuid);
-                        // old data protection
-                        if (uuidString.length() < 10 || uuid.equals(DataManager.GLOBAL_SERVER_ID))
-                            continue;
-                        Double[] stat = new Double[]{0.0,0.0,0.0,0.0,0.0,0.0};
-                        if (configuration.isSet("data." + uuid + ".kills"))
-                            stat[0] = (double) configuration.getLong("data." + uuid + ".kills");
-                        if (configuration.isSet("data." + uuid + ".set"))
-                            stat[1] = (double) configuration.getLong("data." + uuid + ".set");
-                        if (configuration.isSet("data." + uuid + ".deaths"))
-                            stat[2] = (double) configuration.getLong("data." + uuid + ".deaths");
-                        if (configuration.isSet("data." + uuid + ".all-time"))
-                            stat[3] = configuration.getDouble("data." + uuid + ".all-time");
-                        if (configuration.isSet("data." + uuid + ".immunity"))
-                            stat[4] = configuration.getDouble("data." + uuid + ".immunity");
-                        if (configuration.isSet("data." + uuid + ".all-claimed"))
-                            stat[5] = configuration.getDouble("data." + uuid + ".all-claimed");
-                        stats.put(uuid, new PlayerStat(stat[0].longValue(), stat[1].longValue(), stat[2].longValue(), stat[3], stat[4], stat[5], databaseServerID));
-                        if (configuration.isSet("data." + uuid + ".next-bounty"))
-                            timedBounties.put(uuid, configuration.getLong("data." + uuid + ".next-bounty"));
-                        if (Whitelist.isVariableWhitelist() && configuration.isSet("data." + uuid + ".whitelist"))
-                            try {
-                                localData.getPlayerData(uuid).setWhitelist(new Whitelist(new TreeSet<>(configuration.getStringList("data." + uuid + ".whitelist").stream().map(UUID::fromString).toList()), configuration.getBoolean("data." + uuid + ".blacklist")));
-                            } catch (IllegalArgumentException e) {
-                                plugin.getLogger().warning("Failed to get whitelisted uuids from: " + uuid + "\nThis list will be overwritten in 5 minutes");
-                            }
-                        if (configuration.isSet("data." + uuid + ".refund"))
-                            playerData.addRefund(new AmountRefund(configuration.getDouble("data." + uuid + ".refund"), null));
-                        if (configuration.isSet("data." + uuid + ".refund-items"))
-                            try {
-                                playerData.addRefund(new ItemRefund(Arrays.asList(SerializeInventory.itemStackArrayFromBase64(configuration.getString("data." + uuid + ".refund-items"))), null));
-                            } catch (IOException e) {
-                                plugin.getLogger().warning("Unable to load item refund for player using this encoded data: " + configuration.getString("data." + uuid + ".refund-items"));
-                                plugin.getLogger().warning(e.toString());
-                            }
-                        if (configuration.isSet("data." + uuid + ".time-zone"))
-                            LocalTime.addTimeZone(uuid, configuration.getString("data." + uuid + ".time-zone"));
-                        if (ImmunityManager.getBountyCooldown() > 0 && configuration.isSet("data." + uuid + ".last-set"))
-                            playerData.setBountyCooldown(configuration.getLong("data." + uuid + ".last-set"));
-                    }
-                if (!timedBounties.isEmpty())
-                    TimedBounties.setNextBounties(timedBounties);
-                if (configuration.isSet("disable-broadcast"))
-                    configuration.getStringList("disable-broadcast").forEach(s -> localData.getPlayerData(UUID.fromString(s)).setBroadcastSettings(PlayerData.BroadcastSettings.DISABLE));
-
-                i = 0;
-                while (configuration.getString("head-rewards." + i + ".setter") != null) {
-                    try {
-                        PlayerData playerData = localData.getPlayerData(UUID.fromString(Objects.requireNonNull(configuration.getString("head-rewards." + i + ".setter"))));
-                        for (String str : configuration.getStringList("head-rewards." + i + ".uuid")) {
-                            playerData.addRefund(RewardHead.decodeRewardHead(str));
-                        }
-                    } catch (IllegalArgumentException | NullPointerException e) {
-                        plugin.getLogger().warning("Invalid UUID for head reward #" + i);
-                    }
-                    i++;
-                }
-                BiMap<Integer, UUID> trackedBounties = HashBiMap.create();
-                i = 0;
-                while (configuration.getString("tracked-bounties." + i + ".uuid") != null) {
-                    try {
-                        UUID uuid = UUID.fromString(Objects.requireNonNull(configuration.getString("tracked-bounties." + i + ".uuid")));
-                        trackedBounties.put(configuration.getInt("tracked-bounties." + i + ".number"), uuid);
-                    } catch (IllegalArgumentException e) {
-                        plugin.getLogger().warning("Could not convert tracked string to uuid: " + configuration.getString("tracked-bounties." + i + ".uuid"));
-                    }
-                    i++;
-                }
-                BountyTracker.setTrackedBounties(trackedBounties);
-
-                if (configuration.isSet("next-random-bounty"))
-                    RandomBounties.setNextRandomBounty(configuration.getLong("next-random-bounty"));
-                if (!RandomBounties.isEnabled()) {
-                    RandomBounties.setNextRandomBounty(0);
-                } else if (RandomBounties.getNextRandomBounty() == 0) {
-                    RandomBounties.setNextRandomBounty();
-                }
-                if (configuration.isConfigurationSection("bounty-boards"))
-                    for (String str : Objects.requireNonNull(configuration.getConfigurationSection("bounty-boards")).getKeys(false)) {
-                        Location location;
-                        if (configuration.isLocation("bounty-boards." + str + ".location"))
-                            location = configuration.getLocation("bounty-boards." + str + ".location");
-                        else
-                            location = deserializeLocation(Objects.requireNonNull(configuration.getConfigurationSection("bounty-boards." + str + ".location")));
-                        if (location == null)
-                            continue;
-                        BountyBoard.addBountyBoard(new BountyBoard(location, BlockFace.valueOf(configuration.getString("bounty-boards." + str + ".direction")), configuration.getInt("bounty-boards." + str + ".rank")));
-                    }
-                if (configuration.isSet("next-challenge-change")) {
-                    ChallengeManager.setNextChallengeChange(configuration.getLong("next-challenge-change"));
-                } else {
-                    ChallengeManager.setNextChallengeChange(1);
-                }
-                if (configuration.isBoolean("paused"))
-                    NotBounties.setPaused(configuration.getBoolean("paused"));
-                // load database sync times
-                if (configuration.isConfigurationSection("database-sync-times")) {
-                    for (String key : Objects.requireNonNull(configuration.getConfigurationSection("database-sync-times")).getKeys(false)) {
-                        for (NotBountiesDatabase database : databases) {
-                            if (database.getName().equals(key)) {
-                                database.setLastSync(configuration.getLong("database-sync-times." + key));
-                            }
-                        }
-                    }
-                }
-                if (configuration.isList("wanted-tags")) {
-                    List<Location> locations = stringListToLocationList(configuration.getStringList("wanted-tags"));
-                    NotBounties.getServerImplementation().global().runDelayed(task -> {
-                        RemovePersistentEntitiesEvent.cleanChunks(locations);
-                    }, 100);
-                }
-
-                // delete old file
-                java.nio.file.Files.delete(bounties.toPath());
-
-        } catch (IOException e) {
-            plugin.getLogger().severe("Error loading saved data!");
-            plugin.getLogger().severe(e.toString());
-        }
-        localData.addBounty(bountyList);
-        localData.addStats(stats);
     }
 
     /**
@@ -416,8 +201,17 @@ public class DataManager {
         return localData.getOnlinePlayers();
     }
 
-    public static List<ItemStack> loadItems(int itemId) {
+    public static List<ItemStack> loadRefundItems(int refundId) {
         // load items from the database and cache them
+    }
+
+    public static List<ItemStack> loadBountyItems(int bountyId) {
+        // TODO: find method to check if data is loaded in higher prio databases
+        for (AsyncDatabaseWrapper database : databases) {
+            if (database.isConnected())
+                return database.getBountyItems(bountyId);
+        }
+        return localData.getBountyItems(bountyId);
     }
 
     public static double getStat(UUID uuid, Leaderboard leaderboard) {
@@ -727,7 +521,7 @@ public class DataManager {
             database.logout(player.getUniqueId());
     }
 
-    public static PlayerData getPlayerData(@NotNull UUID uuid) {
+    public static @NotNull PlayerData getPlayerData(@NotNull UUID uuid) {
         return localData.getPlayerData(uuid);
     }
 
@@ -1317,10 +1111,10 @@ public class DataManager {
             PlayerData playerData2 = playerDataMap2.get(playerData1.getID());
             if (playerData2 != null) {
                 // sync times - not lastSeen because that is used to sync other options later
-                long lastClaim = Math.max(playerData1.getLastClaim(), playerData2.getLastClaim());
+                long lastClaim = max(playerData1.getLastClaim(), playerData2.getLastClaim());
                 playerData1.setLastClaim(lastClaim);
                 playerData2.setLastClaim(lastClaim);
-                long bountyCooldown = Math.max(playerData1.getBountyCooldown(), playerData2.getBountyCooldown());
+                long bountyCooldown = max(playerData1.getBountyCooldown(), playerData2.getBountyCooldown());
                 playerData1.setBountyCooldown(bountyCooldown);
                 playerData2.setBountyCooldown(bountyCooldown);
                 if (playerData1.getPlayerName() == null && playerData2.getPlayerName() != null) {

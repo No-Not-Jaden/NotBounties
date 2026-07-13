@@ -435,7 +435,7 @@ public class BountyManager {
         NotBounties.debugMessage("Claim messages sent to all players.", false);
 
         // hand out reward heads
-        RewardHead rewardHead = new RewardHead(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer), LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-reward-head"), player));
+        ItemRefund rewardHead = new ItemRefund(Collections.singletonList(RewardHead.getItem(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer))), LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-reward-head"), player));
         DropRewardHead dropRewardHead = bountyClaimEvent.getDropRewardHead();
         if (bounty.getTotalDisplayBounty(killer) >= RewardHead.getMinimumBounty()) {
             if (dropRewardHead.isDropSettersHead()) {

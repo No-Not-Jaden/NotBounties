@@ -1,18 +1,17 @@
 package me.jadenp.notbounties.features.settings.databases;
 
+import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.PlayerStat;
+import me.jadenp.notbounties.data.player_data.OnlineRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
-import org.bukkit.Bukkit;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.sql.SQLSyntaxErrorException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Attempt to reconnect to the database when disconnected.
@@ -35,9 +34,9 @@ public class ReconnectWrapper extends NotBountiesDatabase {
 
     private synchronized boolean reconnect(Exception e) {
         if (e instanceof SQLSyntaxErrorException) {
-            Bukkit.getLogger().warning("[NotBounties] SQL Syntax Error! Please report this to Not_Jaden.");
-            Bukkit.getLogger().warning(e::toString);
-            Arrays.stream(e.getStackTrace()).forEach(stackTraceElement -> Bukkit.getLogger().warning(stackTraceElement::toString));
+            logger.warning("SQL Syntax Error! Please report this to Not_Jaden.");
+            logger.warning(e::toString);
+            Arrays.stream(e.getStackTrace()).forEach(stackTraceElement -> logger.warning(stackTraceElement::toString));
             return false;
         }
 
@@ -63,10 +62,15 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     public ReconnectWrapper(NotBountiesDatabase database) {
-        super();
+        super(database, "Reconnect");
         nextReconnectAttempt = System.currentTimeMillis();
         reconnectAttempts = 0;
         this.database = database;
+    }
+
+    @Override
+    public @Nullable NotBountiesDatabase getWrappedDatabase() {
+        return database;
     }
 
     private <T> T execute(DatabaseOperation<T> operation) throws DatabaseConnectionException {
@@ -99,20 +103,23 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
-    public void addStats(UUID uuid, PlayerStat stats) throws DatabaseConnectionException {
+    public void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting) {
+        executeVoid(() -> database.setAllBroadcastSetting(broadcastSetting));
+    }
 
+    @Override
+    public void addStats(UUID uuid, PlayerStat stats) throws DatabaseConnectionException {
         executeVoid(() -> database.addStats(uuid, stats));
     }
 
     @Override
     public @NotNull PlayerStat getStats(UUID uuid) throws DatabaseConnectionException {
-
         return execute(() -> database.getStats(uuid));
     }
 
     @Override
-    public Map<UUID, PlayerStat> getAllStats() throws DatabaseConnectionException {
-        return execute(database::getAllStats);
+    public Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException {
+        return execute(() -> database.getStats(sortStat, sortType, lastUUID, lastVal, limit));
     }
 
     @Override
@@ -151,8 +158,18 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
-    public List<Bounty> getAllBounties(int sortType) throws DatabaseConnectionException {
-        return execute(() -> database.getAllBounties(sortType));
+    public List<Bounty> getBounties(BountySortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException {
+        return execute(() -> database.getBounties(sortType,  lastUUID, lastVal, limit));
+    }
+
+    @Override
+    public List<ItemStack> getBountyItems(int bountyId) throws DatabaseConnectionException {
+        return execute(() -> database.getBountyItems(bountyId));
+    }
+
+    @Override
+    public List<ItemStack> getRefundItems(int refundId) throws DatabaseConnectionException {
+        return execute(() -> getRefundItems(refundId));
     }
 
     @Override
@@ -191,8 +208,8 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
-    public List<PlayerData> getPlayerData() throws DatabaseConnectionException {
-        return execute(() -> database.getPlayerData());
+    public List<PlayerData> getPlayerData(PlayerSortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException {
+        return execute(() ->  database.getPlayerData(sortType, lastUUID, lastVal, limit));
     }
 
     @Override
@@ -211,7 +228,19 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
-    public boolean isPermDatabase() {
-        return database.isPermDatabase();
+    public List<OnlineRefund<?>> getAndRemoveRefunds(UUID uuid) throws DatabaseConnectionException {
+        return execute(() -> database.getAndRemoveRefunds(uuid));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof ReconnectWrapper that)) return false;
+        if (!super.equals(o)) return false;
+        return nextReconnectAttempt == that.nextReconnectAttempt && reconnectAttempts == that.reconnectAttempts && Objects.equals(database, that.database);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), nextReconnectAttempt, reconnectAttempts, database);
     }
 }

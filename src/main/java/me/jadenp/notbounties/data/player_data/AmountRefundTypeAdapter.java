@@ -16,7 +16,7 @@ public class AmountRefundTypeAdapter extends TypeAdapter<AmountRefund> {
         }
         jsonWriter.beginObject();
         jsonWriter.name("amount").value(amountRefund.getRefund());
-        jsonWriter.name("time").value(amountRefund.getLatestUpdate());
+        jsonWriter.name("time").value(amountRefund.getTimeCreated());
         if (amountRefund.getReason() != null)
             jsonWriter.name("reason").value(amountRefund.getReason());
         jsonWriter.endObject();

@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS player (
     uuid BINARY(16) NOT NULL,
     name VARCHAR(16) NOT NULL UNIQUE,
-    online BOOLEAN NOT NULL DEFAULT FALSE,
+    server_id BINARY(16) NOT NULL DEFAULT 0,
     immunity_types TINYINT NOT NULL DEFAULT 0,
     broadcast_setting TINYINT NOT NULL DEFAULT 0,
     last_claim BIGINT NOT NULL DEFAULT 0,
@@ -28,22 +28,29 @@ CREATE TABLE IF NOT EXISTS stat (
 
 CREATE TABLE IF NOT EXISTS tag (
     bounty_id INT NOT NULL,
-    tag_value VARCHAR(32) NOT NULL,
+    tag_value VARCHAR(256) NOT NULL,
     PRIMARY KEY (bounty_id, tag_value),
     FOREIGN KEY (bounty_id) REFERENCES bounty(bounty_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS item (
-    item_id INT NOT NULL AUTO_INCREMENT,
-    item_list BLOB,
-    PRIMARY KEY (item_id)
+CREATE TABLE IF NOT EXISTS bounty_item (
+    bounty_id INT NOT NULL,
+    item_list BLOB NOT NULL,
+    PRIMARY KEY (bounty_id),
+    FOREIGN KEY (bounty_id) REFERENCES bounty(bounty_id) ON DELETE CASCADE,
+);
+
+CREATE TABLE IF NOT EXISTS refund_item (
+    refund_id INT NOT NULL,
+    item_list BLOB NOT NULL,
+    PRIMARY KEY (refund_id),
+    FOREIGN KEY (refund_id) REFERENCES refund(refund_id) ON DELETE CASCADE,
 );
 
 CREATE TABLE IF NOT EXISTS refund (
     refund_id INT NOT NULL AUTO_INCREMENT,
-    uuid BINARY(16),
-    time BIGINT,
-    item_id INT,
+    uuid BINARY(16) NOT NULL,
+    refund_time BIGINT NOT NULL,
     refund_amount DOUBLE,
     reason VARCHAR(256),
     PRIMARY KEY (refund_id),
@@ -55,7 +62,6 @@ CREATE TABLE IF NOT EXISTS bounty (
     bounty_id INT NOT NULL AUTO_INCREMENT,
     setter BINARY(16) NOT NULL,
     receiver BINARY(16) NOT NULL,
-    item_id INT,
     amount DOUBLE NOT NULL,
     display DOUBLE NOT NULL,
     notified BOOLEAN NOT NULL DEFAULT FALSE,
@@ -69,16 +75,16 @@ CREATE TABLE IF NOT EXISTS bounty (
 );
 
 CREATE TABLE IF NOT EXISTS whitelist (
-    owner BINARY(16),
-    uuid BINARY(16),
+    owner BINARY(16) NOT NULL,
+    uuid BINARY(16) NOT NULL,
     PRIMARY KEY (owner, player),
     FOREIGN KEY (owner) REFERENCES player(uuid) ON DELETE CASCADE,
     FOREIGN KEY (uuid) REFERENCES player(uuid) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS bounty_whitelist (
-    bounty_id INT,
-    uuid BINARY(16),
+    bounty_id INT NOT NULL,
+    uuid BINARY(16) NOT NULL,
     PRIMARY KEY (bounty_id, player),
     FOREIGN KEY (bounty_id) REFERENCES bounty(bounty_id) ON DELETE CASCADE,
     FOREIGN KEY (uuid) REFERENCES player(uuid) ON DELETE CASCADE
@@ -91,4 +97,4 @@ CREATE TABLE IF NOT EXISTS message (
     destination BINARY(16) NOT NULL,
     PRIMARY KEY (message_id)
 );
--- TODO: ADD INDEXES (pages)
+-- TODO: ADD INDEXES (pages) (

@@ -19,7 +19,6 @@ public class Setter implements Comparable<Setter> {
     private final UUID uuid;
     private final double amount;
     private final double displayBounty;
-    private Integer itemsId;
     private final long timeCreated;
     private boolean notified;
     private final Whitelist whitelist;
@@ -27,6 +26,7 @@ public class Setter implements Comparable<Setter> {
     private final Set<String> tags = new TreeSet<>();
     private List<ItemStack> items;
     private static final Gson gson;
+    private final boolean hasItems;
     static {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(Bounty.class, new BountyTypeAdapter());
@@ -34,18 +34,48 @@ public class Setter implements Comparable<Setter> {
         gson = builder.create();
     }
 
-    public Setter(Integer id, UUID uuid, double amount, @Nullable Integer itemsId, long timeCreated, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime, double displayBounty, Set<String> tags){
+    public Setter(Integer id, UUID uuid, double amount, long timeCreated, boolean hasItems, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime, double displayBounty, Set<String> tags){
 
         this.id = id;
         this.uuid = uuid;
         this.amount = amount;
-        this.itemsId = itemsId;
         this.timeCreated = timeCreated;
         this.notified = Objects.requireNonNullElse(notified, true);
         this.whitelist = new Whitelist(whitelist.getList(), whitelist.isBlacklist());
         this.receiverPlaytime = receiverPlaytime;
         this.tags.addAll(tags);
-        // TODO: get items
+        this.hasItems = hasItems;
+        if (displayBounty == -1) {
+            if (hasItems) {
+                items = getItems();
+            } else {
+                items = Collections.emptyList();
+            }
+            double displayBounty1;
+            try {
+                displayBounty1 = amount + NumberFormatting.getTotalValue(items);
+            } catch (ExcludedItemException e) {
+                displayBounty1 = amount;
+            }
+            this.displayBounty = displayBounty1;
+        } else {
+            this.displayBounty = displayBounty;
+        }
+
+    }
+
+    public Setter(Integer id, UUID uuid, double amount, long timeCreated, List<ItemStack> items, @Nullable Boolean notified, Whitelist whitelist, long receiverPlaytime, double displayBounty, Set<String> tags){
+
+        this.id = id;
+        this.uuid = uuid;
+        this.amount = amount;
+        this.timeCreated = timeCreated;
+        this.notified = Objects.requireNonNullElse(notified, true);
+        this.whitelist = new Whitelist(whitelist.getList(), whitelist.isBlacklist());
+        this.receiverPlaytime = receiverPlaytime;
+        this.tags.addAll(tags);
+        this.hasItems = items != null && !items.isEmpty();
+        this.items = items;
         if (displayBounty == -1) {
             double displayBounty1;
             try {
@@ -77,7 +107,9 @@ public class Setter implements Comparable<Setter> {
     }
 
     public void addTag(String tag) {
-        tags.add(tag); // TODO: Test if adding long tags will produce an error with the database
+        if (tag.length() > 256)
+            tag = tag.substring(0, 256); // database limit
+        tags.add(tag);
     }
 
     public boolean canClaim(Player player) {
@@ -124,28 +156,16 @@ public class Setter implements Comparable<Setter> {
         return displayBounty;
     }
 
-    public void setItemsId(Integer itemsId) {
-        this.itemsId = itemsId;
-    }
-
     /**
      * Gets the items for this setter.
      * Calling this may load them from the database.
      * @return A list of items on this bounty.
      */
     public List<ItemStack> getItems() {
-        if (items == null && itemsId != null) {
-            items = DataManager.loadItems(itemsId);
+        if (items == null && hasItems && id != null) {
+            items = DataManager.loadBountyItems(id);
         }
         return items;
-    }
-
-    /**
-     * Get the id of the owning items in the database.
-     * @return The id of the owning items, or null if the items aren't in the database.
-     */
-    public @Nullable Integer getItemsId() {
-        return itemsId;
     }
 
     public void setId(Integer id) {
@@ -153,12 +173,11 @@ public class Setter implements Comparable<Setter> {
     }
 
     /**
-     * Check if the setter has items. If this is true, {@link #getItemsId()} will still return null if the items
-     * haven't been added to the database.
+     * Check if the setter has items.
      * @return True if this setter owns items.
      */
     public boolean hasItems() {
-        return itemsId != null || items != null;
+        return items != null;
     }
 
     public UUID getUuid() {
@@ -201,8 +220,8 @@ public class Setter implements Comparable<Setter> {
         return Objects.hash(id, uuid, amount, items, timeCreated, notified, whitelist, receiverPlaytime);
     }
 
-    public Integer getID() {
-        return id;
+    public Optional<Integer> getBountyId() {
+        return Optional.ofNullable(id);
     }
 
     public long getLatestUpdate() {

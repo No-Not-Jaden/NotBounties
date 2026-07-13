@@ -7,6 +7,7 @@ import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.data.WhitelistTypeAdapter;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.IOException;
 import java.util.*;
@@ -172,7 +173,8 @@ public class PlayerDataAdapter extends TypeAdapter<PlayerData> {
                     }
                 }
             }
-            playerData.addRefund(new RewardHead(uuid, killer, amount, null));
+            List<ItemStack> head = Collections.singletonList(RewardHead.getItem(uuid, killer, amount));
+            playerData.addRefund(new ItemRefund(head, null));
             jsonReader.endObject();
         }
         jsonReader.endArray();

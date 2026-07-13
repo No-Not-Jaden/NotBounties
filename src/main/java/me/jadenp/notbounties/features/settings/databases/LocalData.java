@@ -1,5 +1,7 @@
 package me.jadenp.notbounties.features.settings.databases;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Whitelist;
@@ -12,75 +14,49 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.NotBounties.isVanished;
 
-// TODO: Replace with caches
 public class LocalData extends NotBountiesDatabase {
-    protected final List<Bounty> activeBounties;
-    /**
-     * The bounties for online players.
-     */
-    private final Map<UUID, Bounty> onlineBounties = new HashMap<>();
-    protected final Map<UUID, PlayerStat> playerStats;
-    private final Map<UUID, PlayerData> playerDataMap;
+    private final Cache<UUID, Bounty> bountyCache;
+    private final Cache<UUID, PlayerStat> statCache;
+    private final Cache<UUID, PlayerData> playerDataCache;
 
-    public LocalData() {
-        super(null, "LocalData");
-        activeBounties = Collections.synchronizedList(new LinkedList<>());
-        playerStats = Collections.synchronizedMap(new HashMap<>());
-        playerDataMap = Collections.synchronizedMap(new HashMap<>());
+    public LocalData(Plugin plugin, long maxCacheSize) {
+        super(plugin, "LocalData");
+        bountyCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize).build();
+        statCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize).build();
+        playerDataCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize).build();
     }
 
     @Override
     public void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting) {
-        for (PlayerData playerData : playerDataMap.values()) {
+        for (PlayerData playerData : playerDataCache.asMap().values()) {
             playerData.setBroadcastSettings(broadcastSetting);
         }
     }
 
-    protected LocalData(List<Bounty> activeBounties, Map<UUID, PlayerStat> playerStats, Map<UUID, PlayerData> playerDataMap) {
-        super(null, "LocalData");
-        this.activeBounties = activeBounties;
-        this.playerStats = playerStats;
-        this.playerDataMap = playerDataMap;
-    }
-
-    private void sortActiveBounties() {
-        activeBounties.sort(Comparator.reverseOrder());
-    }
-
     @Override
     public void addStats(UUID uuid, PlayerStat stats) {
-        if (!playerStats.containsKey(uuid)) {
-            // player not in changes yet
-            this.playerStats.put(uuid, stats);
-        } else {
-            // add stats to the primary values
-            this.playerStats.replace(uuid, this.playerStats.get(uuid).combineStats(stats));
-        }
+        PlayerStat playerStat = statCache.getIfPresent(uuid);
+        if (playerStat != null)
+            stats = stats.combineStats(playerStat);
+        statCache.put(uuid, stats);
     }
 
     @Override
-    public @NotNull PlayerStat getStats(UUID uuid) {
-        return playerStats.get(uuid);
+    public @Nullable PlayerStat getStats(UUID uuid) {
+        return statCache.getIfPresent(uuid);
     }
 
-
-    @Override
-    public Map<UUID, PlayerStat> getAllStats() {
-        Map<UUID, PlayerStat> snapshot;
-        synchronized (playerStats) {
-            snapshot = new HashMap<>(playerStats);
-        }
-        return snapshot;
-    }
 
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) {
@@ -103,69 +79,19 @@ public class LocalData extends NotBountiesDatabase {
             removeBounty(bounty);
     }
 
-    public void setStats(Map<UUID, PlayerStat> stats) {
-        playerStats.clear();
-        playerStats.putAll(stats);
-    }
-
     @Override
     public Bounty addBounty(@NotNull Bounty bounty) {
         Bounty prevBounty = getBounty(bounty.getUUID());
         if (prevBounty == null) {
             // insert a new bounty for this player
-            int index = activeBounties.size();
-            for (int i = 0; i < activeBounties.size(); i++) {
-                if (activeBounties.get(i).compareTo(bounty) < 0) {
-                    index = i;
-                    break;
-                }
-            }
-            activeBounties.add(index, bounty);
+            bountyCache.put(bounty.getUUID(), bounty);
             prevBounty = bounty;
         } else {
             // combine with previous bounty
             for (Setter setter : bounty.getSetters()) {
                 prevBounty.addBounty(setter);
             }
-            sortActiveBounties();
-        }
-        // replace uuid with name if possible
-        if (prevBounty.getName() == null) {
-            String playerName = DataManager.getPlayerData(prevBounty.getUUID()).getPlayerName();
-            if (playerName != null) {
-                prevBounty.setDisplayName(playerName);
-            }
-        } else {
-            try {
-                UUID nameUUID = UUID.fromString(prevBounty.getName());
-                prevBounty.setDisplayName(LoggedPlayers.getPlayerName(nameUUID));
-            } catch (IllegalArgumentException ignored) {
-                // name is not a UUID (good)
-            }
-        }
-        // add bounty to online bounties
-        if (onlineBounties.containsKey(prevBounty.getUUID())) {
-            onlineBounties.replace(prevBounty.getUUID(), prevBounty);
-        } else {
-            // synchronous task to check if the player is online
-            Bounty finalPrevBounty = prevBounty;
-            if (Bukkit.isPrimaryThread()) {
-                if (Bukkit.getPlayer(finalPrevBounty.getUUID()) != null) {
-                    // need to get an accurate bounty
-                    Bounty newBounty = getBounty(finalPrevBounty.getUUID());
-                    if (newBounty != null)
-                        onlineBounties.put(finalPrevBounty.getUUID(), newBounty);
-                }
-            } else {
-                NotBounties.getServerImplementation().global().run(() -> {
-                    if (Bukkit.getPlayer(finalPrevBounty.getUUID()) != null) {
-                        // need to get an accurate bounty
-                        Bounty newBounty = getBounty(finalPrevBounty.getUUID());
-                        if (newBounty != null)
-                            onlineBounties.put(finalPrevBounty.getUUID(), newBounty);
-                    }
-                });
-            }
+            bountyCache.put(bounty.getUUID(), prevBounty);
         }
         return prevBounty;
     }
@@ -374,14 +300,8 @@ public class LocalData extends NotBountiesDatabase {
     }
 
     @Override
-    public List<PlayerData> getPlayerData() throws IOException {
-        // An alternative to sorting each time is to use a TreeMap, but time complexity increases for other operations.
-        return new ArrayList<>(playerDataMap.values().stream().sorted().toList());
-    }
-
-    @Override
     public int getPriority() {
-        return 0;
+        return Integer.MAX_VALUE;
     }
 
     @Override

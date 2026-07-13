@@ -1,19 +1,23 @@
 package me.jadenp.notbounties.features.settings.databases;
 
 import me.jadenp.notbounties.Leaderboard;
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.player_data.OnlineRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.PlayerStat;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Databases will be loaded first with the call of the constructor. Configuration should be loaded here
@@ -23,12 +27,12 @@ import java.util.*;
 public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatabase> {
     private final String name;
     private final Plugin plugin;
+    protected final Logger logger;
     private int priority = 0;
     private int refreshInterval = 0;
     private long lastSyncAttempt = 0;
     private long lastSync = 0;
     protected boolean hasConnected = false;
-
 
     protected static final String DISCONNECTED_MESSAGE = "Database has disconnected unexpectedly!";
     protected static final DatabaseConnectionException notConnectedException = new DatabaseConnectionException("Database is not connected!");
@@ -36,16 +40,22 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     protected NotBountiesDatabase(Plugin plugin, String name) {
         this.name = name;
         this.plugin = plugin;
-
+        this.logger = plugin.getLogger();
         readConfig();
     }
 
-    protected NotBountiesDatabase() {
-        this.name = "Pseudo";
-        this.plugin = null;
+    protected NotBountiesDatabase(NotBountiesDatabase database, String name) {
+        this.name = name + "[" +  database.name + "]";
+        this.plugin = database.plugin;
+        this.logger = database.logger;
     }
 
-    public abstract void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting);
+    /**
+     * Set the broadcast settings for all players in the database.
+     * @param broadcastSetting New broadcast setting.
+     * @throws DatabaseConnectionException If an error occurred while accessing the database.
+     */
+    public abstract void setAllBroadcastSetting(PlayerData.BroadcastSettings broadcastSetting) throws DatabaseConnectionException;
 
     /**
      * Add stats of a player to the database
@@ -60,7 +70,7 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * @return The stats of the player
      * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract @NotNull PlayerStat getStats(UUID uuid) throws DatabaseConnectionException;
+    public abstract @Nullable PlayerStat getStats(UUID uuid) throws DatabaseConnectionException;
 
     /**
      * Get a range of stats in a database
@@ -73,8 +83,24 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * Adds multiple stats to the database.
      * @apiNote This is used to synchronize multiple databases
      * @param playerStats Stats to be added to the database
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
     public abstract void addStats(Map<UUID, PlayerStat> playerStats) throws DatabaseConnectionException;
+
+    /**
+     * Delete a stat entry for a player.
+     * @param uuid UUID of the player.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract void deleteStats(UUID uuid) throws DatabaseConnectionException;
+
+    /**
+     * Set the stats for a player.
+     * @param uuid UUID of the player.
+     * @param stat Stats for the player.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract void setStats(UUID uuid, PlayerStat stat) throws DatabaseConnectionException;
 
     /**
      * Adds multiple bounties to the database
@@ -142,12 +168,28 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      */
     public abstract List<Bounty> getBounties(BountySortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException;
 
+    public abstract List<ItemStack> getBountyItems(int bountyId) throws DatabaseConnectionException;
+
+    public abstract List<ItemStack> getRefundItems(int refundId) throws DatabaseConnectionException;
+
+    /**
+     * Get the name for this database instance.
+     * @return The name of this database instance.
+     */
+    public String getName() {
+        return name;
+    }
+
     /**
      * Get a configurable name for this database.
      * @return A user-inputted name.
      */
-    public String getName() {
-        return name;
+    public String getConfigurationName() {
+        try {
+            return name.substring(name.lastIndexOf("[") + 1, name.indexOf("]"));
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return name;
+        }
     }
 
     /**
@@ -158,7 +200,7 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public abstract boolean isConnected();
 
     /**
-     * Attempts to reconnect to the database.
+     * Attempts to connect to the database.
      * @return True if the connection was successful.
      */
     public abstract boolean connect(boolean syncData);
@@ -235,7 +277,14 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * @return The player data in the database, sorted by UUID in ascending order.
      * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract List<PlayerData> getPlayerData() throws DatabaseConnectionException;
+    public abstract List<PlayerData> getPlayerData(PlayerSortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException;
+
+    /**
+     * Deletes a player's data from the database.
+     * @param uuid UUID of the player.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract void deletePlayerData(@NotNull UUID uuid) throws DatabaseConnectionException;
 
     /**
      * Get the priority of the database.
@@ -304,24 +353,33 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public abstract void logout(UUID uuid) throws DatabaseConnectionException;
 
     /**
-     * Check if the connected database is reliable and the data will persist.
-     * @return True if the database is permanent.
+     * Get the refunds for the player in the database and remove the returned entries.
+     * @param uuid UUID of the player.
+     * @return The refunds for the player.
+     * @throws DatabaseConnectionException If an error occurred while accessing the database.
      */
-    public abstract boolean isPermDatabase();
+    public abstract List<OnlineRefund<?>> getAndRemoveRefunds(UUID uuid) throws DatabaseConnectionException;
 
     /**
-     * Check if the database should be synced.
-     * The sync cooldown is set after calling this function.
-     * If this function returns false, the database should attempt to sync.
-     * @return False if the database should be synced.
+     * Get a specific database instance from this database wrapper.
+     * @param clazz Class to find.
+     * @return The database instance of the class, or null if that class isn't in this wrapper chain.
      */
-    public synchronized boolean checkSyncInterval() {
-        if (System.currentTimeMillis() - lastSyncAttempt > DataManager.MIN_DATABASE_SYNC_INTERVAL_MS) {
-            lastSyncAttempt = System.currentTimeMillis();
-            return false;
+    public @Nullable <T extends NotBountiesDatabase> T getDatabase(@NotNull Class<T> clazz) {
+        if (clazz.isInstance(this)) {
+            return clazz.cast(this);
         }
-        return true;
+        NotBountiesDatabase database = getWrappedDatabase();
+        if (database != null)
+            return database.getDatabase(clazz);
+        return null;
     }
+
+    /**
+     * Get the database that this wrapper encloses.
+     * @return The database that this wrapper encloses, or null if this instance is not a wrapper.
+     */
+    public abstract @Nullable NotBountiesDatabase getWrappedDatabase();
 
     @Override
     public int compareTo(@NotNull NotBountiesDatabase o) {
