@@ -59,7 +59,6 @@ public class DataManager {
 
     public static void loadData(Plugin plugin) throws IOException {
         DataManager.plugin = plugin;
-        localData = new LocalData();
         // load modern data
         SaveManager.read(plugin);
     }
@@ -70,18 +69,12 @@ public class DataManager {
         DataManager.databaseServerID = databaseServerID;
     }
 
-
-
-    public static LocalData getLocalData() {
-        return localData;
-    }
-
     public static void connectProxy(List<Bounty> bounties, Map<UUID, PlayerStat> playerStatMap, List<PlayerData> playerDataMap) {
         // turn local data into proxy database
         NotBounties.getServerImplementation().async().runNow(task -> {
             for (AsyncDatabaseWrapper database : databases) {
-                if (database.getDatabase() instanceof ProxyDatabase) {
-                    syncDatabase(database.getDatabase(), bounties, playerStatMap, playerDataMap);
+                if (database.getDatabase(ProxyDatabase.class) instanceof ProxyDatabase proxyDatabase) {
+                    syncDatabase(proxyDatabase, bounties, playerStatMap, playerDataMap);
                 }
             }
             ProxyMessaging.setDataSynced(true);
