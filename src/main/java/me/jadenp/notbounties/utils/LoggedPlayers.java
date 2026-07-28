@@ -208,7 +208,7 @@ public class LoggedPlayers {
         if (viableNames.isEmpty())
             return null;
         Collections.sort(viableNames);
-        return playerIDs.get(viableNames.get(0));
+        return playerIDs.get(viableNames.getFirst());
     }
 
     public static @NotNull String getPlayerName(@NotNull OfflinePlayer player) {
@@ -295,8 +295,8 @@ public class LoggedPlayers {
             return "";
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
             return ConfigOptions.getAutoBounties().getConsoleBountyName();
-        if (cachedNicknames.containsKey(uuid)) {
-            CacheEntry entry = cachedNicknames.get(uuid);
+        CacheEntry entry = cachedNicknames.get(uuid);
+        if (entry != null) {
             if (System.currentTimeMillis() - entry.loadedAt() > CACHE_REFRESH_TIME) {
                 // refresh name so it isn't loaded more than once
                 cachedNicknames.put(uuid, new CacheEntry(entry.value(), System.currentTimeMillis()));
@@ -317,9 +317,7 @@ public class LoggedPlayers {
                 return name;
         }
         if (ConfigOptions.getIntegrations().isCMIEnabled()) {
-            String name = CMIClass.getNick(uuid);
-            if (name != null)
-                return name;
+            return CMIClass.getNick(uuid);
         }
         return null;
     }
