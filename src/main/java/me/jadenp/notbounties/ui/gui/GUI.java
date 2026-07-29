@@ -631,7 +631,7 @@ public class GUI implements Listener {
                 String title = createTitle(gui, player, finalPage, maxPage, displayItems, data);
                 PlayerGUInfo info = new PlayerGUInfo(finalPage, maxPage, name, data, displayItems, title);
                 Inventory inventory = gui.createInventory(player, finalPage, maxPage, displayItems, title, data);
-                NotBounties.getServerImplementation().global().run(() -> {
+                NotBounties.getServerImplementation().entity(player).run(() -> {
                     boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && CompatabilityUtils.getTitle(player).equals(playerInfo.get(player.getUniqueId()).title());
                     playerInfo.put(player.getUniqueId(), info);
                     if (guiOpen) {
@@ -917,16 +917,16 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, info.data());
                         break;
                     case "select-price":
-                        NotBounties.getServerImplementation().global().run(() -> runGUIPluginCommand(event.getWhoClicked(), playerName + " " + info.page()));
+                        runGUIPluginCommand(event.getWhoClicked(), playerName + " " + info.page());
                         if (!ConfigOptions.isBountyConfirmation())
                             event.getWhoClicked().closeInventory();
                         break;
                     case "bounty-hunt-time":
-                        NotBounties.getServerImplementation().global().run(() -> runGUIPluginCommand(event.getWhoClicked(), "hunt " + playerName + " " + info.page()));
+                        runGUIPluginCommand(event.getWhoClicked(), "hunt " + playerName + " " + info.page());
                         event.getWhoClicked().closeInventory();
                         break;
                     case "bounty-item-select":
-                        if (!gui.getPlayerSlots().isEmpty() && event.getRawSlot() == gui.getPlayerSlots().get(0)) {
+                        if (!gui.getPlayerSlots().isEmpty() && event.getRawSlot() == gui.getPlayerSlots().getFirst()) {
                             // set bounty
                             ActionCommands.executeCommands((Player) event.getWhoClicked(), new ArrayList<>(Collections.singletonList("[p] " + ConfigOptions.getPluginBountyCommands().get(0) + " {data} --confirm")));
                         }

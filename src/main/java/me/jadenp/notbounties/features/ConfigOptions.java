@@ -461,7 +461,7 @@ public class ConfigOptions {
             NotBounties.getServerImplementation().global().run(() -> runGUIPluginCommand(sender, command));
         } else {
             if (usePlcmdInGui) {
-                Bukkit.dispatchCommand(sender, pluginBountyCommands.get(0) + " " + command);
+                Bukkit.dispatchCommand(sender, pluginBountyCommands.getFirst() + " " + command);
             } else {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "notbountiesadmin " + sender.getName() + " " + command);
             }
