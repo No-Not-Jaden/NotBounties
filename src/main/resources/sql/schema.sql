@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS player (
     uuid BINARY(16) NOT NULL,
-    name VARCHAR(16) NOT NULL UNIQUE,
+    name VARCHAR(16) NOT NULL UNIQUE, -- TODO: handle if a player data update tries to insert a new name
     server_id BINARY(16) NOT NULL DEFAULT 0,
     immunity_types TINYINT NOT NULL DEFAULT 0,
     broadcast_setting TINYINT NOT NULL DEFAULT 0,
-    last_claim BIGINT NOT NULL DEFAULT 0,
-    b_cooldown BIGINT NOT NULL DEFAULT 0,
+    last_claim DATETIME NOT NULL,
+    b_cooldown DATETIME NOT NULL,
     playtime BIGINT NOT NULL DEFAULT 0,
-    last_seen BIGINT NOT NULL DEFAULT 0,
+    last_seen DATETIME NOT NULL,
     time_zone VARCHAR(32),
     texture_id CHAR(64),
     whitelist_mode BOOLEAN NOT NULL DEFAULT FALSE,
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS refund_item (
 CREATE TABLE IF NOT EXISTS refund (
     refund_id INT NOT NULL AUTO_INCREMENT,
     uuid BINARY(16) NOT NULL,
-    refund_time BIGINT NOT NULL,
+    refund_time DATETIME NOT NULL,
     refund_amount DOUBLE,
     reason VARCHAR(256),
     PRIMARY KEY (refund_id),
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS bounty (
     amount DOUBLE NOT NULL,
     display DOUBLE NOT NULL,
     notified BOOLEAN NOT NULL DEFAULT FALSE,
-    time_placed BIGINT NOT NULL,
+    time_placed DATETIME NOT NULL,
     playtime BIGINT NOT NULL,
     whitelist_mode BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (bounty_id),
@@ -97,4 +97,4 @@ CREATE TABLE IF NOT EXISTS message (
     destination BINARY(16) NOT NULL,
     PRIMARY KEY (message_id)
 );
--- TODO: ADD INDEXES (pages) (
+-- TODO: ADD INDEXES (pages) definitly ids, for bounties,

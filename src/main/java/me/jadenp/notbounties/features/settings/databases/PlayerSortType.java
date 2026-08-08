@@ -4,7 +4,8 @@ public enum PlayerSortType {
     ALPHABETICAL("name", true),
     REVERSE_ALPHABETICAL("name", false),
     NEWEST("last_seen", false),
-    OLDEST("last_seen", true);
+    OLDEST("last_seen", true),
+    UUID("uuid", true);
 
     private final String sqlColumn;
     private final boolean ascending;

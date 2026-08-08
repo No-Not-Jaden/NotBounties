@@ -7,7 +7,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.data.Whitelist;
-import me.jadenp.notbounties.features.settings.databases.NotBountiesDatabase;
+import me.jadenp.notbounties.features.settings.databases.wrappers.NotBountiesDatabase;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;

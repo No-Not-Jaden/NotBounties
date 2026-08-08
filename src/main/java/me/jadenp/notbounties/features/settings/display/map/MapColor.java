@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Draw colors to maps.
- * Note: This class uses depreciated methods of Bukkit's MapPalette to get the current color palette and to support
+ * Note: This class uses deprecated methods of Bukkit's MapPalette to get the current color palette and to support
  *       older versions. There is no replacement methods for the used methods as of writing this.
  */
 public class MapColor {

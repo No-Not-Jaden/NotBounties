@@ -52,7 +52,7 @@ public class PlayerStatAdapter extends TypeAdapter<PlayerStat> {
                 case "serverID", "server-id" -> {
                     if (reader.peek() == JsonToken.NULL) {
                         reader.nextNull();
-                        serverID = DataManager.getDatabaseServerID(true);
+                        serverID = Databases.getDatabaseServerID();
                     } else {
                         serverID = UUID.fromString(reader.nextString());
                     }

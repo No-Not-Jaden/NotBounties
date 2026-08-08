@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
+import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.player_data.RewardHead;
 import me.jadenp.notbounties.data.Setter;
@@ -191,6 +192,10 @@ public class Events implements Listener {
             SkinManager.isSkinLoaded(player.getUniqueId());
 
             PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+
+            if (Whitelist.isEnabled() && !Whitelist.isAllowTogglingWhitelist()) {
+                playerData.getWhitelist().setBlacklist(!Whitelist.isDefaultWhitelist());
+            }
             // set last seen
             if (playerData.hasRefund() || System.currentTimeMillis() - playerData.getLastSeen() > 1000 * 60) {
                 // sync player data and set last seen

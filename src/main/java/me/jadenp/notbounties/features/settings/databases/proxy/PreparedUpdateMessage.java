@@ -15,6 +15,58 @@ import java.util.logging.Level;
 
 public class PreparedUpdateMessage {
 
+    /**
+     * Create a sequenced, chunked PreparedUpdateMessage for an arbitrary subchannel where the payload might exceed
+     * the plugin message size. The payload will be split into multiple messages. Each message body will contain:
+     *   [payloadChunk][currentIndex(short)][remainingCount(short)]
+     * The outer packet layout per chunk is:
+     *   writeUTF(subChannel); writeShort(body.length); write(body)
+     * The proxy should reassemble chunks in order (1..N) using the counters, concatenate payloadChunk bytes,
+     * then process once all chunks are received (remainingCount == 0).
+     */
+    public static PreparedUpdateMessage createSequenced(String subChannel, byte[] fullPayload, long id) {
+        // Build pre-assembled outer packets (already targeted at main channel), chunking the payload
+        List<byte[]> packets = new LinkedList<>();
+
+        // We must keep each outer packet under MAX_MESSAGE_SIZE. Account for overhead:
+        // - UTF of subChannel (2 bytes length + data)
+        // - short for inner body length (2)
+        // - inner body includes: payload chunk + 2 shorts (current, remaining)
+        int subChannelUtfLen = 2 + subChannel.getBytes(StandardCharsets.UTF_8).length;
+        int perPacketOverhead = subChannelUtfLen + 2 /*len field*/ + 2 /*current*/ + 2 /*remaining*/;
+        int maxChunk = Math.max(1, MAX_MESSAGE_SIZE - perPacketOverhead);
+
+        int total = (int) Math.ceil(fullPayload.length / (double) maxChunk);
+        if (fullPayload.length == 0) total = 1; // send an empty payload marker as single packet with counters
+
+        for (int i = 0; i < total; i++) {
+            int start = i * maxChunk;
+            int end = Math.min(fullPayload.length, start + maxChunk);
+            byte[] chunk = Arrays.copyOfRange(fullPayload, start, end);
+
+            try {
+                ByteArrayOutputStream bodyBytes = new ByteArrayOutputStream();
+                DataOutputStream bodyOut = new DataOutputStream(bodyBytes);
+                bodyOut.write(chunk);
+                bodyOut.writeShort(i + 1); // current index (1-based)
+                bodyOut.writeShort(total - (i + 1)); // remaining
+                bodyOut.flush();
+
+                ByteArrayDataOutput outer = ByteStreams.newDataOutput();
+                outer.writeUTF(subChannel);
+                outer.writeShort(bodyBytes.size());
+                outer.write(bodyBytes.toByteArray());
+
+                packets.add(outer.toByteArray());
+                bodyOut.close();
+            } catch (IOException e) {
+                NotBounties.getInstance().getLogger().log(Level.WARNING, "Failed to prepare sequenced proxy message", e);
+                throw new IllegalStateException("Sequenced message preparation failed", e);
+            }
+        }
+        return new PreparedUpdateMessage(packets, id);
+    }
+
     private PreparedUpdateMessage futureMessage = null;
     private final byte[] message;
     private static final int MAX_MESSAGE_SIZE = 32000;
@@ -25,7 +77,7 @@ public class PreparedUpdateMessage {
 
     public PreparedUpdateMessage(List<byte[]> messages, long id) {
         this.id = id;
-        message = messages.remove(0);
+        message = messages.removeFirst();
         if (!messages.isEmpty()) {
             futureMessage = new PreparedUpdateMessage(messages, id);
         }
@@ -100,7 +152,7 @@ public class PreparedUpdateMessage {
     }
 
     private void executeMessage() {
-        if (!Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled() && ProxyDatabase.isEnabled() && !canceled) {
+        if (!Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled() && ProxySettings.isEnabled() && !canceled) {
             ProxyMessaging.sendMessage(ProxyMessaging.CHANNEL, message, Bukkit.getOnlinePlayers().iterator().next());
             sent = true;
             if (futureMessage != null) {
@@ -118,7 +170,7 @@ public class PreparedUpdateMessage {
     public List<byte[]> getUnsentMessages(){
         List<byte[]> unSent = futureMessage != null ? futureMessage.getUnsentMessages() : new LinkedList<>();
         if (!sent) {
-            unSent.add(0, message);
+            unSent.addFirst(message);
         }
         return unSent;
     }

@@ -437,14 +437,18 @@ public class NumberFormatting {
     }
 
 
-    public static double getTotalValue(List<ItemStack> items) throws ExcludedItemException {
+    public static double getTotalValue(List<ItemStack> items) {
         if (items.isEmpty())
             return 0;
         double sum = 0.0;
         for (ItemStack item : items) {
             if (item != null) {
-                double itemValue = getItemValue(item);
-                sum += itemValue;
+                try {
+                    double itemValue = getItemValue(item);
+                    sum += itemValue;
+                } catch (ExcludedItemException ignored) {
+                    // cannot count this item
+                }
             }
         }
         return sum;

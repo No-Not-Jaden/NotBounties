@@ -1,13 +1,15 @@
-package me.jadenp.notbounties.features.settings.databases;
+package me.jadenp.notbounties.features.settings.databases.wrappers;
 
 import me.jadenp.notbounties.Leaderboard;
-import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.player_data.OnlineRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.PlayerStat;
 import me.jadenp.notbounties.features.ConfigOptions;
-import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.features.settings.databases.BountySortType;
+import me.jadenp.notbounties.features.settings.databases.DatabaseConnectionException;
+import me.jadenp.notbounties.features.settings.databases.PlayerSortType;
+import me.jadenp.notbounties.features.settings.databases.StatSortType;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -29,7 +31,6 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     private final Plugin plugin;
     protected final Logger logger;
     private int priority = 0;
-    private int refreshInterval = 0;
     private long lastSyncAttempt = 0;
     private long lastSync = 0;
     protected boolean hasConnected = false;
@@ -73,11 +74,16 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public abstract @Nullable PlayerStat getStats(UUID uuid) throws DatabaseConnectionException;
 
     /**
-     * Get a range of stats in a database
-     * @return A map of recorded stats.
-     * @throws DatabaseConnectionException When the database isn't connected.
+     * Get the top stats in the database.
+     * @param sortStat
+     * @param sortType
+     * @param offset
+     * @param limit
+     * @param excludedPlayers
+     * @return
+     * @throws DatabaseConnectionException
      */
-    public abstract Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException;
+    public abstract Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
 
     /**
      * Adds multiple stats to the database.
@@ -119,10 +125,16 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     /**
      * Add a bounty to the database
      * @param bounty Bounty to be added
-     * @return A bounty that is the combination of all the bounties on the same person which includes the supplied bounty.
      * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract Bounty addBounty(@NotNull Bounty bounty) throws DatabaseConnectionException;
+    public abstract void addBounty(@NotNull Bounty bounty) throws DatabaseConnectionException;
+
+    /**
+     * Set a bounty for a player. This will remove all previous bounties.
+     * @param bounty New bounty.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract void setBounty(@NotNull Bounty bounty) throws DatabaseConnectionException;
 
     /**
      * Replaces a bounty in the database
@@ -156,21 +168,64 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public abstract void removeBounty(Bounty bounty) throws DatabaseConnectionException;
 
     /**
-     * Get all the bounties in the database
-     * @param sortType How the returned list should be sorted
-     *                 <p>-1  = Not sorted</p>
-     *                 <p> 0  = Oldest bounties first</p>
-     *                 <p> 1  = Newest bounties first</p>
-     *                 <p> 2  = Most expensive bounties first</p>
-     *                 <p> 3  = Least expensive bounties first</p>
-     * @return A list of all the bounties in the redis database
+     * Get the top bounties in the database.
+     *
+     * @param sortType How the bounties are sorted.
+     * @param offset
+     * @param limit The maximum number of entries to be returned.
+     * @param excludedPlayers
+     * @return A sorted list of the top bounties.
      * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract List<Bounty> getBounties(BountySortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException;
+    public abstract List<Bounty> getBounties(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
 
-    public abstract List<ItemStack> getBountyItems(int bountyId) throws DatabaseConnectionException;
+    /**
+     * Get the number of bounties in the database.
+     * Multiple bounties on the same person are counted.
+     * @return The number of bounties in the database.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract long getNumBounties() throws DatabaseConnectionException;
 
-    public abstract List<ItemStack> getRefundItems(int refundId) throws DatabaseConnectionException;
+    /**
+     * Get the number of unique bounties in the database.
+     * Multiple bounties on the same person are not counted.
+     * @return The number of bounties in the database.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract long getNumUniqueBounties() throws DatabaseConnectionException;
+
+    /**
+     * Get the bounty items for a specific bounty in the database.
+     * @param bountyId ID of the bounty.
+     * @return The items, or null if no data was found for that id.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract @Nullable List<ItemStack> getBountyItems(int bountyId) throws DatabaseConnectionException;
+
+    /**
+     * Get the refund items for a specific refund in the database.
+     * @param refundId ID of the refund.
+     * @return The items, or null if no data was found for that id.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract @Nullable List<ItemStack> getRefundItems(int refundId) throws DatabaseConnectionException;
+
+    /**
+     * Set the bounty items for a specific bounty in the database.
+     * @param bountyId ID of the bounty.
+     * @param items Items for the bounty.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract void setBountyItems(int bountyId, @NotNull List<ItemStack> items) throws DatabaseConnectionException;
+
+    /**
+     * Set the refund items for a specific refund in the database.
+     * @param refundId ID of the refund.
+     * @param items Items for the refund.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract void setRefundItems(int refundId, @NotNull List<ItemStack> items) throws DatabaseConnectionException;
 
     /**
      * Get the name for this database instance.
@@ -220,15 +275,6 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     }
 
     /**
-     * Get the refresh interval of the database.
-     * This is how many seconds between updating locally stored data with cloud data.
-     * @return The database refresh interval in seconds.
-     */
-    public int getRefreshInterval() {
-        return refreshInterval;
-    }
-
-    /**
      * Get the last time that data was read from this database.
      * @return A time in milliseconds.
      */
@@ -264,7 +310,7 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * @return The player data of the player.
      * @throws DatabaseConnectionException When the database isn't connected.
      */
-    public abstract PlayerData getPlayerData(@NotNull UUID uuid) throws DatabaseConnectionException;
+    public abstract @Nullable PlayerData getPlayerData(@NotNull UUID uuid) throws DatabaseConnectionException;
 
     /**
      * Add player data to the database. Existing player data with the same UUID will be overwritten.
@@ -273,11 +319,15 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public abstract void addPlayerData(List<PlayerData> playerDataMap) throws DatabaseConnectionException;
 
     /**
-     * Get the player data in the database.
-     * @return The player data in the database, sorted by UUID in ascending order.
-     * @throws DatabaseConnectionException When the database isn't connected.
+     * Get the top players in the database.
+     * @param sortType
+     * @param offset
+     * @param limit
+     * @param excludedPlayers
+     * @return
+     * @throws DatabaseConnectionException
      */
-    public abstract List<PlayerData> getPlayerData(PlayerSortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException;
+    public abstract List<PlayerData> getPlayerData(PlayerSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
 
     /**
      * Deletes a player's data from the database.
@@ -285,6 +335,13 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * @throws DatabaseConnectionException When the database isn't connected.
      */
     public abstract void deletePlayerData(@NotNull UUID uuid) throws DatabaseConnectionException;
+
+    /**
+     * Get the number of players in the database.
+     * @return Players in the database.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract long getNumPlayers() throws DatabaseConnectionException;
 
     /**
      * Get the priority of the database.
@@ -320,7 +377,6 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
         ConfigurationSection configSection = config.getConfigurationSection(name);
         if (configSection == null)
             return null;
-        refreshInterval = configSection.getInt("refresh-interval", 0);
         priority = configSection.getInt("priority", 0);
         return configSection;
     }
@@ -361,6 +417,14 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public abstract List<OnlineRefund<?>> getAndRemoveRefunds(UUID uuid) throws DatabaseConnectionException;
 
     /**
+     * Add refunds to the database.
+     * @param uuid UUID of the player that the refunds belong to.
+     * @param refunds Refunds to be added.
+     * @throws DatabaseConnectionException When the database isn't connected.
+     */
+    public abstract void addRefunds(UUID uuid, List<OnlineRefund<?>> refunds) throws DatabaseConnectionException;
+
+    /**
      * Get a specific database instance from this database wrapper.
      * @param clazz Class to find.
      * @return The database instance of the class, or null if that class isn't in this wrapper chain.
@@ -389,13 +453,13 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     // only hash config options
     @Override
     public int hashCode() {
-        return Objects.hash(name, priority, refreshInterval);
+        return Objects.hash(name, priority);
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         NotBountiesDatabase that = (NotBountiesDatabase) o;
-        return priority == that.priority && refreshInterval == that.refreshInterval && lastSync == that.lastSync && hasConnected == that.hasConnected && Objects.equals(name, that.name) && Objects.equals(plugin, that.plugin);
+        return priority == that.priority && lastSync == that.lastSync && hasConnected == that.hasConnected && Objects.equals(name, that.name) && Objects.equals(plugin, that.plugin);
     }
 }

@@ -2,6 +2,7 @@ package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.databases.BountySortType;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -17,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
@@ -29,17 +31,17 @@ public enum Leaderboard {
     DEATHS(false, "b_received"),
     SET(false, "b_set"),
     IMMUNITY(true, "immunity"),
-    CURRENT(true, "current");
+    CURRENT(true, "display"); // not an actual column name
 
     private final boolean money;
-    private final String databaseName;
-    Leaderboard(boolean decimals, String databaseName){
+    private final String columnName;
+    Leaderboard(boolean decimals, String columnName){
         this.money = decimals;
-        this.databaseName = databaseName;
+        this.columnName = columnName;
     }
 
-    public String getDatabaseName() {
-        return databaseName;
+    public String getColumnName() {
+        return columnName;
     }
 
     public boolean isMoney() {
@@ -51,8 +53,8 @@ public enum Leaderboard {
      * @param uuid UUID of the player
      * @return stat
      */
-    public double getStat(UUID uuid){
-        return DataManager.getStat(uuid, this);
+    public CompletableFuture<Double> getStat(UUID uuid){
+        return DataManager.getStatAsync(uuid, this);
     }
 
     /**
@@ -85,7 +87,7 @@ public enum Leaderboard {
      * @param uuid UUID of the player.
      * @return The player's formatted stat.
      */
-    public String getFormattedStat(UUID uuid){
+    public CompletableFuture<String> getFormattedStat(UUID uuid){
         if (money) {
             double stat = getStat(uuid);
             String amountString = NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(stat) + NumberFormatting.getCurrencySuffix();
@@ -114,21 +116,15 @@ public enum Leaderboard {
      * @param amount Amount of values you want returned
      * @return Map of UUID and stat value in descending order
      */
-    public Map<UUID, Double> getTop(int skip, int amount){
+    public CompletableFuture<Map<UUID, Double>> getTop(int skip, int amount){
         LinkedHashMap<UUID, Double> top = new LinkedHashMap<>();
         if (this == Leaderboard.CURRENT) {
-            for (Bounty bounty : BountyManager.getPublicBounties(2)) {
-                if (amount == 0)
-                    return top;
-                if (skip == 0) {
-                    top.put(bounty.getUUID(), bounty.getTotalDisplayBounty());
-                    amount--;
-                } else {
-                    skip--;
-                }
-            }
+            return DataManager.getTopBountiesAsync(BountySortType.HIGHEST, skip, amount)
+                    .thenApply(bounties -> bounties.stream()
+                            .filter(bounty -> bounty.getTotalDisplayBounty() > 0)
+                            .collect(Collectors.toMap(Bounty::getUUID, Bounty::getTotalDisplayBounty, (a, b) -> b, LinkedHashMap::new)));
         } else {
-            LinkedHashMap<UUID, Double> map = sortByValue(getStatMap());
+            LinkedHashMap<UUID, Double> map = sortByValue(getStatMap()); // todo make a lot of these return futures
             for (Map.Entry<UUID, Double> entry : map.entrySet()){
                 String name = LoggedPlayers.getPlayerName(entry.getKey());
                 if (ConfigOptions.getHiddenNames().contains(name))
@@ -146,7 +142,7 @@ public enum Leaderboard {
         return top;
     }
 
-    public int getRank(UUID uuid){
+    public CompletableFuture<Integer> getRank(UUID uuid){
         int rank = 1;
         if (this == Leaderboard.CURRENT) {
             for (Bounty bounty : BountyManager.getPublicBounties(2)) {

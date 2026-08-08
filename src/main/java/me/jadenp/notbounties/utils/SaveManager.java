@@ -13,7 +13,8 @@ import me.jadenp.notbounties.data.player_data.PlayerDataAdapter;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
 import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
-import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.features.settings.databases.wrappers.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.features.settings.databases.Databases;
 import me.jadenp.notbounties.features.settings.databases.proxy.PreparedUpdateMessage;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
@@ -60,12 +61,7 @@ public class SaveManager {
                 NotBounties.debugMessage("Created new data directory", false);
 
             if (!NotBounties.getInstance().isEnabled()) {
-                // sync databases if the plugin is disabling
-                for (AsyncDatabaseWrapper database : DataManager.getDatabases()) {
-                    if (database.isConnected()) {
-                        DataManager.getAndSyncDatabase(database.getDatabase());
-                    }
-                }
+                // plugin is disabling
                 if (ProxyMessaging.hasConnectedBefore())
                     saveUnsentProxyMessages(dataDirectory);
             }
@@ -84,57 +80,6 @@ public class SaveManager {
 
     }
 
-    /**
-     * Saves the current bounties to a bounties.json file in the data directory.
-     *
-     * @param dataDirectory Directory to save the file in.
-     * @throws IOException If an error occurs while writing to the file.
-     */
-    private static void saveBounties(File dataDirectory) throws IOException {
-        // save bounties
-        File bountiesFile = new File(dataDirectory + File.separator + "bounties.json");
-        if (bountiesFile.createNewFile()) {
-            NotBounties.debugMessage("Created a new bounties.json file.", false);
-        }
-        try (JsonWriter writer = new JsonWriter(new FileWriter(bountiesFile))) {
-            writer.beginArray();
-            BountyTypeAdapter adapter = new BountyTypeAdapter();
-            Set<Bounty> bounties = DataManager.getLocalBounties();
-            NotBounties.debugMessage("Saving " + bounties.size() + " bounties.", false);
-            for (Bounty bounty : bounties) {
-                adapter.write(writer, bounty);
-            }
-            writer.endArray();
-        }
-    }
-
-    /**
-     * Saves the current player stats to a player_stats.json file in the data directory.
-     *
-     * @param dataDirectory Directory to save the file in.
-     * @throws IOException If an error occurs while writing to the file.
-     */
-    private static void saveStats(File dataDirectory) throws IOException {
-        // save stats
-        File statsFile = new File(dataDirectory + File.separator + "player_stats.json");
-        if (statsFile.createNewFile()) {
-            NotBounties.debugMessage("Created a new player_stats.json file.", false);
-        }
-        try (JsonWriter writer = new JsonWriter(new FileWriter(statsFile))) {
-            writer.beginArray();
-            PlayerStatAdapter adapter = new PlayerStatAdapter();
-            Set<Map.Entry<UUID, PlayerStat>> playerStatMap = DataManager.getLocalStats();
-            NotBounties.debugMessage("Saving " + playerStatMap.size() + " stats.", false);
-            for (Map.Entry<UUID, PlayerStat> entry : playerStatMap) {
-                writer.beginObject();
-                writer.name("uuid").value(entry.getKey().toString());
-                writer.name("stats");
-                adapter.write(writer, entry.getValue());
-                writer.endObject();
-            }
-            writer.endArray();
-        }
-    }
 
     /**
      * Saves the current player data to a player_data.json file in the data directory.
@@ -151,24 +96,6 @@ public class SaveManager {
 
         try (JsonWriter writer = new JsonWriter(new FileWriter(playerDataFile))) {
             writer.beginObject();
-            writer.name("players");
-            writer.beginArray();
-            PlayerDataAdapter adapter = new PlayerDataAdapter();
-            Set<PlayerData> playerDataList = DataManager.getLocalPlayerData();
-            NotBounties.debugMessage("Saving " + playerDataList.size() + " player data.", false);
-            for (PlayerData playerData : playerDataList) {
-                if (playerData == null || playerData.getPlayerName() == null) {
-                    if (playerData != null) {
-                        NotBounties.debugMessage("Player has invalid name: " + playerData.getUuid(), false);
-                    }
-                    continue;
-                }
-                writer.beginObject();
-                writer.name("data");
-                adapter.write(writer, playerData);
-                writer.endObject();
-            }
-            writer.endArray();
 
             writer.name("trackedBounties");
             writer.beginArray();
@@ -361,7 +288,7 @@ public class SaveManager {
                     case "nextTimedBounties" -> TimedBounties.setNextBounties(readTimedBounties(reader));
                     case "bountyBoards" -> BountyBoard.addBountyBoards(readBountyBoards(reader));
                     case "nextChallengeChange" -> ChallengeManager.setNextChallengeChange(reader.nextLong());
-                    case "serverID" -> DataManager.setDatabaseServerID(UUID.fromString(reader.nextString()));
+                    case "serverID" -> Databases.setDatabaseServerID(UUID.fromString(reader.nextString()));
                     case "paused" -> NotBounties.setPaused(reader.nextBoolean());
                     case "wantedTagLocations" -> readWantedTagLocations(reader);
                     case "newPlayerImmunity" -> ImmunityManager.setNewPlayerImmunity(reader.nextLong());
@@ -376,7 +303,7 @@ public class SaveManager {
             if (playerDataList != null)
                 for (PlayerData playerData : playerDataList)
                     if (playerData.getServerID() == null || playerData.getServerID().equals(DataManager.GLOBAL_SERVER_ID))
-                        playerData.setServerID(DataManager.getDatabaseServerID(true));
+                        playerData.setServerID(Databases.getDatabaseServerID());
         }
     }
     private static void readNextRandomBounty(JsonReader reader) throws IOException {

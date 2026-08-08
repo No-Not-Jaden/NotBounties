@@ -52,7 +52,7 @@ public class BountyTypeAdapter extends TypeAdapter<Bounty> {
                 case "serverID", "server-id" -> {
                     if (reader.peek() == JsonToken.NULL) {
                         reader.nextNull();
-                        serverID = DataManager.getDatabaseServerID(true);
+                        serverID = Databases.getDatabaseServerID();
                     } else {
                         serverID = UUID.fromString(reader.nextString());
                     }

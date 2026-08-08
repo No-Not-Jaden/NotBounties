@@ -11,6 +11,7 @@ import me.jadenp.notbounties.data.player_data.ItemRefund;
 import me.jadenp.notbounties.data.player_data.OnlineRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.databases.*;
+import me.jadenp.notbounties.features.settings.databases.wrappers.NotBountiesDatabase;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.SerializeInventory;
@@ -25,6 +26,9 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,13 +56,8 @@ public class SQLDatabase extends NotBountiesDatabase {
 
     private Connection connection;
 
-    private String host;
-    private int port;
-    private String database;
-    private String username;
-    private String password;
-    private boolean useSSL;
     private String url;
+    private final Map<String, String> options = new HashMap<>();
 
     public SQLDatabase(Plugin plugin, String name) {
         super(plugin, name);
@@ -69,12 +68,11 @@ public class SQLDatabase extends NotBountiesDatabase {
         ConfigurationSection configuration = super.readConfig();
         if (configuration == null)
             return null;
-        host = configuration.getString("host", "localhost");
-        port = configuration.getInt("port", 3306);
-        database = configuration.getString("database", "db");
-        username = configuration.getString("user", "user");
-        password = configuration.getString("password", "");
-        useSSL = configuration.getBoolean("ssl", false);
+        for (String key : configuration.getKeys(false)) {
+            if (key.equalsIgnoreCase("url"))
+                continue;
+            options.put(key, configuration.getString(key));
+        }
         url = configuration.getString("url", "jdbc:mysql://{host}:{port}/{database}?useSSL={ssl}&allowMultiQueries=true");
         return configuration;
     }
@@ -94,13 +92,12 @@ public class SQLDatabase extends NotBountiesDatabase {
     @Override
     public boolean connect(boolean syncData) {
         try {
-            String parsedConnection = url
-                    .replace("{host}", host)
-                    .replace("{port}", Integer.toString(port))
-                    .replace("{database}", database)
-                    .replace("{ssl}", useSSL + "");
+            String parsedConnection = url;
+            for (Map.Entry<String, String> entry : options.entrySet()) {
+                parsedConnection = parsedConnection.replace("{" + entry.getKey() + "}", entry.getValue());
+            }
             NotBounties.debugMessage("Attempting to connect to " + parsedConnection, false);
-            connection = DriverManager.getConnection(parsedConnection, username, password);
+            connection = DriverManager.getConnection(parsedConnection, options.getOrDefault("user", ""), options.getOrDefault("password", ""));
             if (!hasConnected) {
                 // first connection
                 connection.setAutoCommit(false);
@@ -210,13 +207,18 @@ public class SQLDatabase extends NotBountiesDatabase {
     }
 
     @Override
-    public Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, UUID lastUuid, Object lastVal, int limit) throws DatabaseConnectionException {
+    public Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
         Map<UUID, PlayerStat> stats = new HashMap<>();
-        String sql = buildStatPageQuery(sortStat, sortType);
+        String sql = buildStatPageQuery(sortStat, sortType, excludedPlayers);
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setObject(1, lastVal);
-            stmt.setInt(2, limit);
+            int i = 1;
+            for (UUID uuid : excludedPlayers) {
+                stmt.setBytes(i++, convertToBinary(uuid));
+            }
+            stmt.setLong(i++, offset);
+            stmt.setLong(i, limit);
+
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     stats.put(bytesToUUID(rs.getBytes("uuid")), parseStatResult(rs));
@@ -230,7 +232,8 @@ public class SQLDatabase extends NotBountiesDatabase {
 
     private static String buildStatPageQuery(
             Leaderboard stat,
-            StatSortType sort
+            StatSortType sort,
+            Set<UUID> excludedPlayers
     ) {
 
         StringBuilder sql = new StringBuilder();
@@ -247,22 +250,26 @@ public class SQLDatabase extends NotBountiesDatabase {
                     FROM stat
                 """);
 
+        if (!excludedPlayers.isEmpty()) {
+            sql.append(' ').append("""
+                        WHERE stat.uuid NOT IN (%s)
+                    """.formatted(excludedPlayers.stream().map(u -> "?").collect(Collectors.joining(", "))));
+        }
+
         if (sort.requiresPlayerJoin()) {
-            sql.append("""
+            sql.append(' ').append("""
                         JOIN player
                             ON stat.uuid = player.uuid
                     """);
         }
 
-        String sortColumn = sort.sqlColumn() != null ? sort.sqlColumn() : stat.getDatabaseName();
+        String sortColumn = sort.sqlColumn() != null ? sort.sqlColumn() : stat.getColumnName();
 
-        sql.append("""
-                    WHERE %s %s ?
+        sql.append(' ').append("""
                     ORDER BY %s %s
-                    LIMIT ?
+                    OFFSET ?
+                    LIMIT ?;
                 """.formatted(
-                sortColumn,
-                sort.comparison(),
                 sortColumn,
                 sort.order()
         ));
@@ -284,24 +291,57 @@ public class SQLDatabase extends NotBountiesDatabase {
 
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) {
-        if (isConnected()) {
-            try (PreparedStatement ps = getConnection().prepareStatement(
-                    "INSERT INTO stat(uuid, b_claimed, b_set, b_received, b_all_time, immunity, b_claim_amt) VALUES(?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE b_claimed = b_claimed + ?, b_sets = b_sets + ?, b_received = b_received + ?, b_all_time = b_all_time + ?, immunity = immunity + ?, b_claim_amt = b_claim_amt + ?;"
-            )) {
-                for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
-                    PlayerStat stats = entry.getValue();
-                    ps.setBytes(1, convertToBinary(entry.getKey()));
-                    prepareStatInsert(ps, stats);
-                    ps.addBatch();
-                }
-                ps.executeBatch();
-            } catch (SQLException e) {
-                throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        try (PreparedStatement ps = getConnection().prepareStatement(
+                "INSERT INTO stat(uuid, b_claimed, b_set, b_received, b_all_time, immunity, b_claim_amt) VALUES(?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE b_claimed = b_claimed + ?, b_sets = b_sets + ?, b_received = b_received + ?, b_all_time = b_all_time + ?, immunity = immunity + ?, b_claim_amt = b_claim_amt + ?;"
+        )) {
+            for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
+                PlayerStat stats = entry.getValue();
+                ps.setBytes(1, convertToBinary(entry.getKey()));
+                prepareStatInsert(ps, stats);
+                ps.addBatch();
             }
-        } else {
-            throw notConnectedException;
+            ps.executeBatch();
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
         }
 
+    }
+
+    @Override
+    public void deleteStats(UUID uuid) throws DatabaseConnectionException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                """
+                DELETE FROM stat
+                WHERE uuid = ?;
+                """
+        )) {
+            ps.setBytes(1, convertToBinary(uuid));
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        }
+    }
+
+    @Override
+    public void setStats(UUID uuid, PlayerStat stat) throws DatabaseConnectionException {
+        try (PreparedStatement ps = getConnection().prepareStatement(
+                """
+                     INSERT INTO stat(uuid, b_claimed, b_set, b_received, b_all_time, immunity, b_claim_amt)
+                     VALUES(?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE
+                         b_claimed = ?,
+                         b_sets = ?,
+                         b_received = ?,
+                         b_all_time = ?,
+                         immunity = ?,
+                         b_claim_amt = ?;
+                     """
+        )) {
+            prepareStatInsert(ps, stat);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        }
     }
 
     private void prepareStatInsert(PreparedStatement ps, PlayerStat stats) throws SQLException {
@@ -362,13 +402,16 @@ public class SQLDatabase extends NotBountiesDatabase {
                 """
                         INSERT INTO bounty_item (item_list, bounty_id)
                         VALUES (?, ?)
+                        ON DUPLICATE KEY UPDATE item_list = ?;
                         """
         )) {
             for (Setter setter : setters) {
                 Optional<Integer> id = setter.getBountyId();
-                if (setter.hasItems() && id.isPresent()) {
-                    stmt.setBlob(1, SerializeInventory.itemStackArrayToBinaryStream(setter.getItems().toArray(new ItemStack[0])));
+                if (setter.hasItems() && id.isPresent() && setter.isItemsLoaded()) {
+                    ItemStack[] items = setter.getItems().join().toArray(new ItemStack[0]);
+                    stmt.setBlob(1, SerializeInventory.itemStackArrayToBinaryStream(items));
                     stmt.setInt(2, id.get());
+                    stmt.setBlob(3, SerializeInventory.itemStackArrayToBinaryStream(items));
                     stmt.addBatch();
                 }
             }
@@ -490,7 +533,7 @@ public class SQLDatabase extends NotBountiesDatabase {
                     stmt.setDouble(3, setter.getAmount());
                     stmt.setDouble(4, setter.getDisplayAmount());
                     stmt.setBoolean(5, setter.isNotified());
-                    stmt.setLong(6, setter.getTimeCreated());
+                    stmt.setObject(6, LocalDateTime.ofInstant(Instant.ofEpochMilli(setter.getTimeCreated()), ZoneId.systemDefault()));
                     stmt.setLong(7, setter.getReceiverPlaytime());
 
                     stmt.addBatch();
@@ -548,14 +591,24 @@ public class SQLDatabase extends NotBountiesDatabase {
     }
 
     @Override
-    public Bounty addBounty(@NotNull Bounty bounty) throws DatabaseConnectionException {
+    public void addBounty(@NotNull Bounty bounty) throws DatabaseConnectionException {
         try {
             executeTransaction(() -> insertBounty(bounty));
         } catch (SQLException e) {
             throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
         }
+    }
 
-        return getBounty(bounty.getUUID());
+    @Override
+    public void setBounty(@NotNull Bounty bounty) throws DatabaseConnectionException {
+        try {
+            executeTransaction(() -> {
+                deleteBounty(bounty.getUUID());
+                insertBounty(bounty);
+            });
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        }
     }
 
     /**
@@ -659,7 +712,7 @@ public class SQLDatabase extends NotBountiesDatabase {
                                b.time_placed,
                                b.playtime,
                                b.whitelist_mode,
-                               i.item_id
+                               i.bounty_id IS NOT NULL AS has_item
                         FROM bounty b
                         WHERE b.receiver = ?
                         LEFT JOIN bounty_item i
@@ -758,7 +811,7 @@ public class SQLDatabase extends NotBountiesDatabase {
         double amount = rs.getDouble("amount");
         double display = rs.getDouble("display");
         boolean notified = rs.getBoolean("notified");
-        long time = rs.getLong("time_placed");
+        long time = rs.getObject("time_placed", LocalDateTime.class).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         long playtime = rs.getLong("playtime");
         boolean whitelistMode = rs.getBoolean("whitelist_mode");
         Whitelist whitelist = new Whitelist(Collections.emptySortedSet(), whitelistMode);
@@ -810,12 +863,14 @@ public class SQLDatabase extends NotBountiesDatabase {
     }
 
     @Override
-    public List<Bounty> getBounties(BountySortType sortType, UUID lastUuid, Object lastVal, int limit) throws DatabaseConnectionException {
-        try (PreparedStatement stmt = connection.prepareStatement(buildBountyPageQuery(sortType))) {
-            stmt.setObject(1, lastVal);
-            stmt.setObject(2, lastVal);
-            stmt.setBytes(3, convertToBinary(lastUuid));
-            stmt.setInt(4, limit);
+    public List<Bounty> getBounties(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        try (PreparedStatement stmt = connection.prepareStatement(buildBountyPageQuery(sortType, excludedPlayers))) {
+            int i = 1;
+            for (UUID uuid : excludedPlayers) {
+                stmt.setBytes(i++, convertToBinary(uuid));
+            }
+            stmt.setLong(i++, offset);
+            stmt.setLong(i, limit);
 
             List<UUID> uuids = new LinkedList<>();
             try (ResultSet rs = stmt.executeQuery()) {
@@ -837,12 +892,50 @@ public class SQLDatabase extends NotBountiesDatabase {
         }
     }
 
-    private List<ItemStack> readItems(ResultSet resultSet) throws SQLException, IOException {
-        List<ItemStack> items = new ArrayList<>();
-        if (resultSet.next()) {
-            items.addAll(Arrays.asList(SerializeInventory.itemStackArrayFromBinaryStream(resultSet.getBlob("item_list").getBinaryStream())));
+    @Override
+    public long getNumBounties() throws DatabaseConnectionException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                """
+                    SELECT COUNT(*) AS total_bounties
+                    FROM bounty;
+                    """
+        )) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("total_bounties");
+                }
+            }
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
         }
-        return items;
+        return 0;
+    }
+
+    @Override
+    public long getNumUniqueBounties() throws DatabaseConnectionException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                """
+                    SELECT COUNT(*) AS total_bounties
+                    FROM bounty
+                    GROUP BY receiver;
+                    """
+        )) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("total_bounties");
+                }
+            }
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        }
+        return 0;
+    }
+
+    private @Nullable List<ItemStack> readItems(ResultSet resultSet) throws SQLException, IOException {
+        if (resultSet.next()) {
+            return Arrays.asList(SerializeInventory.itemStackArrayFromBinaryStream(resultSet.getBlob("item_list").getBinaryStream()));
+        }
+        return null;
     }
 
     @Override
@@ -879,54 +972,96 @@ public class SQLDatabase extends NotBountiesDatabase {
         }
     }
 
-    private static @NotNull String buildBountyPageQuery(BountySortType sortType) {
+    @Override
+    public void setBountyItems(int bountyId, @NotNull List<ItemStack> items) throws DatabaseConnectionException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                """
+                        INSERT INTO bounty_item (item_list, bounty_id)
+                        VALUES (?, ?)
+                        ON DUPLICATE KEY UPDATE item_list = ?;
+                        """
+        )) {
+            stmt.setBlob(1, SerializeInventory.itemStackArrayToBinaryStream(items.toArray(new ItemStack[0])));
+            stmt.setInt(2, bountyId);
+            stmt.setBlob(3, SerializeInventory.itemStackArrayToBinaryStream(items.toArray(new ItemStack[0])));
+            stmt.executeUpdate();
+        } catch (SQLException ignored) {
+            // could be rejected by the db if bountyId doesn't exist
+        }
+
+    }
+
+    @Override
+    public void setRefundItems(int refundId, @NotNull List<ItemStack> items) throws DatabaseConnectionException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                """
+                        INSERT INTO refund_item (item_list, refund_id)
+                        VALUES (?, ?)
+                        ON DUPLICATE KEY UPDATE item_list = ?;
+                        """
+        )) {
+            stmt.setBlob(1, SerializeInventory.itemStackArrayToBinaryStream(items.toArray(new ItemStack[0])));
+            stmt.setInt(2, refundId);
+            stmt.setBlob(3, SerializeInventory.itemStackArrayToBinaryStream(items.toArray(new ItemStack[0])));
+            stmt.executeUpdate();
+        } catch (SQLException ignored) {
+            // could be rejected by the db if bountyId doesn't exist
+        }
+    }
+
+    private static @NotNull String buildBountyPageQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
         return switch (sortType) {
-            case OLDEST,NEWEST -> buildTimePlacedPageQuery(sortType);
-            case HIGHEST, LOWEST -> buildDisplayAmountPageQuery(sortType);
-            case ALPHABETICAL, REVERSE_ALPHABETICAL -> buildNamePageQuery(sortType);
+            case OLDEST,NEWEST -> buildTimePlacedPageQuery(sortType, excludedPlayers);
+            case HIGHEST, LOWEST -> buildDisplayAmountPageQuery(sortType, excludedPlayers);
+            case ALPHABETICAL, REVERSE_ALPHABETICAL -> buildNamePageQuery(sortType, excludedPlayers);
         };
     }
 
-    private static @NotNull String buildDisplayAmountPageQuery(BountySortType sortType) {
+    private static @NotNull String buildDisplayAmountPageQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
         return """
                 SELECT
                     receiver,
                     SUM(display) AS total_display
                 FROM bounty
+                %s
                 GROUP BY receiver
-                HAVING total_display %s ?
-                    OR (total_display = ? AND receiver > ?)
                 ORDER BY total_display %s, receiver ASC
+                OFFSET ?
                 LIMIT ?;
-                """.formatted(sortType.comparison(), sortType.order());
+                """.formatted(getExcludedBountyPlayersClause(excludedPlayers), sortType.order());
     }
 
-    private static @NotNull String buildTimePlacedPageQuery(BountySortType sortType) {
-        String order = sortType.ascending() ? "MIN" : "MAX";
+    private static @NotNull String getExcludedBountyPlayersClause(Set<UUID> excludedPlayers) {
+        return excludedPlayers.isEmpty() ? "" : "WHERE receiver NOT IN (" + excludedPlayers.stream().map(u -> "?").collect(Collectors.joining(",")) + ")";
+    }
+
+    private static @NotNull String buildTimePlacedPageQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
+        final String order = sortType.ascending() ? "MIN" : "MAX";
         return """
                 SELECT
                     receiver,
                     %s(time_placed) AS agg_time_placed
                 FROM bounty
+                %s
                 GROUP BY receiver
-                HAVING agg_time_placed %s ?
-                    OR (agg_time_placed = ? AND receiver > ?)
                 ORDER BY agg_time_placed %s, receiver ASC
+                OFFSET ?
                 LIMIT ?;
-                """.formatted(order, sortType.comparison(), sortType.order());
+                """.formatted(order, getExcludedBountyPlayersClause(excludedPlayers), sortType.order());
     }
 
-    private static @NotNull String buildNamePageQuery(BountySortType sortType) {
+    private static @NotNull String buildNamePageQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
         // names are unique
+        final String excludedPlayersClause = excludedPlayers.isEmpty() ? "" : "WHERE receiver NOT IN (" + excludedPlayers.stream().map(u -> "?").collect(Collectors.joining(",")) + ")";
         return """
                 SELECT
                     uuid
                 FROM player
-                WHERE name %s ?
-                    OR (name = ? AND uuid > ?)
+                %s
                 ORDER BY name %s, uuid ASC
+                OFFSET ?
                 LIMIT ?;
-                """.formatted(sortType.comparison(), sortType.order());
+                """.formatted(excludedPlayersClause, sortType.order());
     }
 
     @Override
@@ -1015,10 +1150,10 @@ public class SQLDatabase extends NotBountiesDatabase {
         ps.setBytes(3, convertToBinary(playerData.getOnlineServerID()));
         ps.setByte(4, immunityToByte(playerData));
         ps.setByte(5, (byte) playerData.getBroadcastSettings().ordinal());
-        ps.setLong(6, playerData.getLastClaim());
-        ps.setLong(7, playerData.getBountyCooldown());
+        ps.setObject(6, LocalDateTime.ofInstant(Instant.ofEpochMilli(playerData.getLastClaim()), ZoneId.systemDefault()));
+        ps.setObject(7, LocalDateTime.ofInstant(Instant.ofEpochMilli(playerData.getBountyCooldown()), ZoneId.systemDefault()));
         ps.setLong(8, playerData.getPlayTime());
-        ps.setLong(9, playerData.getLastSeen());
+        ps.setObject(9, LocalDateTime.ofInstant(Instant.ofEpochMilli(playerData.getLastSeen()), ZoneId.systemDefault()));
         if (playerData.getTimeZone() != null) {
             ps.setString(10, playerData.getTimeZone().getID());
         } else {
@@ -1037,10 +1172,10 @@ public class SQLDatabase extends NotBountiesDatabase {
         ps.setBytes(15, convertToBinary(playerData.getOnlineServerID()));
         ps.setByte(16, immunityToByte(playerData));
         ps.setByte(17, (byte) playerData.getBroadcastSettings().ordinal());
-        ps.setLong(18, playerData.getLastClaim());
-        ps.setLong(19, playerData.getBountyCooldown());
+        ps.setObject(18, LocalDateTime.ofInstant(Instant.ofEpochMilli(playerData.getLastClaim()), ZoneId.systemDefault()));
+        ps.setObject(19, LocalDateTime.ofInstant(Instant.ofEpochMilli(playerData.getBountyCooldown()), ZoneId.systemDefault()));
         ps.setLong(20, playerData.getPlayTime());
-        ps.setLong(21, playerData.getLastSeen());
+        ps.setObject(21, LocalDateTime.ofInstant(Instant.ofEpochMilli(playerData.getLastSeen()), ZoneId.systemDefault()));
         if (playerData.getTimeZone() != null) {
             ps.setString(22, playerData.getTimeZone().getID());
         } else {
@@ -1077,7 +1212,7 @@ public class SQLDatabase extends NotBountiesDatabase {
      * @throws SQLException If an error occurs while accessing the database.
      */
     private void prepareRefundInsertStatement(OnlineRefund<?> refund, PreparedStatement ps) throws SQLException {
-        ps.setLong(2, refund.getTimeCreated());
+        ps.setObject(2, LocalDateTime.ofInstant(Instant.ofEpochMilli(refund.getTimeCreated()), ZoneId.systemDefault()));
         switch (refund) {
             case ItemRefund itemRefund -> ps.setDouble(3, 0);
             case AmountRefund amountRefund -> ps.setDouble(3, amountRefund.getRefund().orElse((double) 0));
@@ -1094,32 +1229,6 @@ public class SQLDatabase extends NotBountiesDatabase {
             deleteRefunds.setBytes(1, convertToBinary(uuid));
             deleteRefunds.executeUpdate();
         }
-    }
-
-    private void addRefundBatch(List<PlayerData> playerDataList) throws SQLException {
-        try (PreparedStatement addRefund = getRefundInsertStatement()) {
-            for (PlayerData playerData : playerDataList) {
-
-                addRefund.setBytes(1, convertToBinary(playerData.getUuid()));
-                List<OnlineRefund<?>> refunds = playerData.getRefund();
-                for (OnlineRefund<?> onlineRefund : refunds) {
-                    prepareRefundInsertStatement(onlineRefund, addRefund);
-                    addRefund.addBatch();
-                }
-            }
-            addRefund.executeBatch();
-
-            ResultSet rs = addRefund.getGeneratedKeys();
-            for (PlayerData playerData : playerDataList) {
-                ListIterator<OnlineRefund<?>> iterator = playerData.getRefund().listIterator();
-                while (iterator.hasNext() && rs.next()) {
-                    OnlineRefund<?> onlineRefund = iterator.next();
-                    onlineRefund.setId(rs.getInt(1));
-                }
-            }
-        }
-
-
     }
 
     private byte immunityToByte(PlayerData playerData) {
@@ -1146,10 +1255,10 @@ public class SQLDatabase extends NotBountiesDatabase {
     public PlayerData getPlayerData(@NotNull UUID uuid) throws DatabaseConnectionException {
 
         try {
-            PlayerData playerData = DataManager.getPlayerData(uuid);
+            PlayerData playerData = new PlayerData();
+            playerData.setUuid(uuid);
             executeTransaction(() -> {
                 readPlayerData(playerData);
-                readRefunds(Collections.singletonList(playerData));
                 playerData.getWhitelist().setList(getWhitelist(uuid));
             });
             return playerData;
@@ -1197,10 +1306,10 @@ public class SQLDatabase extends NotBountiesDatabase {
         playerData.setOnlineServerID(bytesToUUID(rs.getBytes("server_id")));
         immunityFromByte(playerData, rs.getByte("immunity_types"));
         playerData.setBroadcastSettings(PlayerData.BroadcastSettings.values()[rs.getInt("broadcast_setting")]);
-        playerData.setLastClaim(rs.getLong("last_claim"));
-        playerData.setBountyCooldown(rs.getLong("b_cooldown"));
+        playerData.setLastClaim(rs.getObject("last_claim", LocalDateTime.class).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        playerData.setBountyCooldown(rs.getObject("b_cooldown", LocalDateTime.class).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         playerData.setPlayTime(rs.getLong("playtime"));
-        playerData.setLastSeen(rs.getLong("last_seen"));
+        playerData.setLastSeen(rs.getObject("last_seen", LocalDateTime.class).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         String timezone = rs.getString("time_zone");
         if (timezone != null) {
             playerData.setTimeZone(TimeZone.getTimeZone(timezone));
@@ -1214,35 +1323,28 @@ public class SQLDatabase extends NotBountiesDatabase {
 
     /**
      * Read the players' refunds from the database.
-     * @param playerDataList Players to read the refunds for.
+     * @param uuid UUID of the player.
+     * @return The refunds.
      * @throws SQLException If there was an error accessing the database.
      */
-    private void readRefunds(List<PlayerData> playerDataList) throws SQLException {
-        String placeholders = playerDataList.stream()
-                .map(id -> "?")
-                .collect(Collectors.joining(", "));
-
+    private List<OnlineRefund<?>> readRefunds(UUID uuid) throws SQLException {
         String sql =
                 """
-                SELECT r.refund_time,
-                       r.refund_id,
-                       r.refund_amount,
-                       r.reason,
-                       r.uuid
-                FROM refund r
-                WHERE r.uuid IN (%s)
-                """.formatted(placeholders);
+                SELECT refund_time,
+                       refund_id,
+                       refund_amount,
+                       reason
+                FROM refund
+                WHERE uuid = ?;
+                """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            for (int i = 0; i < playerDataList.size(); i++) {
-                stmt.setBytes(i + 1, convertToBinary(playerDataList.get(i).getUuid()));
-            }
-            Map<UUID, List<OnlineRefund<?>>> refunds = new  HashMap<>();
+            stmt.setBytes(1, convertToBinary(uuid));
+            List<OnlineRefund<?>> refunds = new LinkedList<>();
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                UUID uuid = bytesToUUID(rs.getBytes("uuid"));
                 int id = rs.getInt("refund_id");
-                long timeCreated = rs.getLong("refund_time");
+                long timeCreated = rs.getObject("refund_time", LocalDateTime.class).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
                 String reason = rs.getString("reason");
                 double amount = rs.getDouble("refund_amount");
                 OnlineRefund<?> refund;
@@ -1252,14 +1354,11 @@ public class SQLDatabase extends NotBountiesDatabase {
                     refund = new AmountRefund(id, amount, timeCreated, reason);
                 }
                 refund.setId(id);
-                refunds.computeIfAbsent(uuid, k -> new LinkedList<>()).add(refund);
+                refunds.add(refund);
             }
 
-            for (PlayerData playerData : playerDataList) {
-                playerData.setRefund(refunds.getOrDefault(playerData.getUuid(), new LinkedList<>()));
-            }
+            return refunds;
         }
-
     }
 
     @Override
@@ -1278,8 +1377,6 @@ public class SQLDatabase extends NotBountiesDatabase {
 
                     ps.executeBatch();
 
-                    addRefundBatch(playerDataList);
-
                     setPlayerWhitelistsBatch(playerDataList);
                 }
             });
@@ -1290,16 +1387,43 @@ public class SQLDatabase extends NotBountiesDatabase {
     }
 
     @Override
-    public List<PlayerData> getPlayerData(PlayerSortType sortType, UUID lastUUID, Object lastVal, int limit) {
+    public void addRefunds(UUID uuid, List<OnlineRefund<?>> refunds) throws DatabaseConnectionException {
+        try (PreparedStatement addRefund = getRefundInsertStatement()) {
+            addRefund.setBytes(1, convertToBinary(uuid));
+            for (OnlineRefund<?> onlineRefund : refunds) {
+                prepareRefundInsertStatement(onlineRefund, addRefund);
+                addRefund.addBatch();
+            }
+            addRefund.executeBatch();
+
+            ResultSet rs = addRefund.getGeneratedKeys();
+            ListIterator<OnlineRefund<?>> iterator = refunds.listIterator();
+            while (iterator.hasNext() && rs.next()) {
+                OnlineRefund<?> onlineRefund = iterator.next();
+                onlineRefund.setId(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        }
+    }
+
+    @Override
+    public List<PlayerData> getPlayerData(PlayerSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
         List<PlayerData> playerDataList = new ArrayList<>();
-        String sql = buildPlayerPageQuery(sortType);
+        String sql = buildPlayerPageQuery(sortType, excludedPlayers);
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setObject(1, lastVal);
-            stmt.setInt(2, limit);
+            int i = 1;
+            for (UUID excludedPlayer : excludedPlayers) {
+                stmt.setBytes(i++, convertToBinary(excludedPlayer));
+            }
+            stmt.setLong(i++, offset);
+            stmt.setLong(i, limit);
+
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    PlayerData playerData = DataManager.getPlayerData(bytesToUUID(rs.getBytes("uuid")));
+                    PlayerData playerData = new PlayerData();
+                    playerData.setUuid(bytesToUUID(rs.getBytes("uuid")));
                     parsePlayerDataResult(playerData, rs);
                     playerDataList.add(playerData);
                 }
@@ -1325,8 +1449,28 @@ public class SQLDatabase extends NotBountiesDatabase {
         }
     }
 
+    @Override
+    public long getNumPlayers() throws DatabaseConnectionException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                """
+                    SELECT COUNT(*) AS total_players
+                    FROM player;
+                    """
+        )) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("total_players");
+                }
+            }
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        }
+        return 0;
+    }
+
     private static String buildPlayerPageQuery(
-            PlayerSortType sort
+            PlayerSortType sort,
+            Set<UUID> excludedPlayers
     ) {
 
         StringBuilder sql = new StringBuilder();
@@ -1348,15 +1492,19 @@ public class SQLDatabase extends NotBountiesDatabase {
                     FROM player
                 """);
 
+        if (!excludedPlayers.isEmpty()) {
+            sql.append(" WHERE uuid NOT IN (");
+            sql.append(excludedPlayers.stream().map(u -> "?").collect(Collectors.joining(",")));
+            sql.append(")");
+        }
+
         String sortColumn = sort.sqlColumn() != null ? sort.sqlColumn() : "name";
 
-        sql.append("""
-                    WHERE %s %s ?
+        sql.append(' ').append("""
                     ORDER BY %s %s
-                    LIMIT ?
+                    OFFSET ?
+                    LIMIT ?;
                 """.formatted(
-                sortColumn,
-                sort.comparison(),
                 sortColumn,
                 sort.order()
         ));
@@ -1371,15 +1519,13 @@ public class SQLDatabase extends NotBountiesDatabase {
                 """
                     UPDATE player
                     SET server_id = ?,
-                        playtime = ? - last_seen + playtime,
-                        last_seen = ?
+                        playtime = playtime + TIMESTAMPDIFF(MICROSECOND, last_seen, NOW(3)) / 1000,
+                        last_seen = NOW(3)
                     WHERE server_id = ?;
                     """
         )){
             stmt.setBytes(1, convertToBinary(DataManager.GLOBAL_SERVER_ID));
-            stmt.setLong(2, System.currentTimeMillis());
-            stmt.setLong(3, System.currentTimeMillis());
-            stmt.setBytes(4, convertToBinary(DataManager.getDatabaseServerID(false)));
+            stmt.setBytes(2, convertToBinary(Databases.getDatabaseServerID()));
             stmt.executeUpdate();
         } catch (SQLException ex) {
             logger.warning("Database shutdown partially failed. " + ex.getMessage());
@@ -1401,7 +1547,6 @@ public class SQLDatabase extends NotBountiesDatabase {
         }
     }
 
-    //TODO: Modify localdata the same way it is being modified in the database
     @Override
     public void logout(UUID uuid) throws DatabaseConnectionException {
         try {
@@ -1416,53 +1561,15 @@ public class SQLDatabase extends NotBountiesDatabase {
                 """
                     UPDATE player
                     SET server_id = ?,
-                        playtime = ? - last_seen + playtime,
-                        last_seen = ?
+                        playtime = playtime + TIMESTAMPDIFF(MICROSECOND, last_seen, NOW(3)) / 1000,
+                        last_seen = NOW(3)
                     WHERE uuid = ? AND server_id = ?;
-                    """
-        );
-        PreparedStatement updateOtherData = connection.prepareStatement(
-                """
-                    UPDATE player
-                    SET immunity_types = ?,
-                       broadcast_setting = ?,
-                       last_claim = ?,
-                       b_cooldown = ?,
-                       time_zone = COALESCE(?,time_zone),
-                       texture_id = COALESCE(?,texture_id),
-                       whitelist_mode = ?
-                    WHERE uuid = ?;
                     """
         )) {
             logout.setBytes(1, convertToBinary(DataManager.GLOBAL_SERVER_ID));
-            logout.setLong(2, System.currentTimeMillis());
-            logout.setLong(3, System.currentTimeMillis());
-            logout.setBytes(4, convertToBinary(uuid));
-            logout.setBytes(5, convertToBinary(DataManager.getDatabaseServerID(false)));
+            logout.setBytes(2, convertToBinary(uuid));
+            logout.setBytes(3, convertToBinary(Databases.getDatabaseServerID()));
             logout.executeUpdate();
-
-            PlayerData playerData = DataManager.getPlayerData(uuid);
-            updateOtherData.setByte(1, immunityToByte(playerData));
-            updateOtherData.setByte(2, (byte) playerData.getBroadcastSettings().ordinal());
-            updateOtherData.setLong(3, playerData.getLastClaim());
-            updateOtherData.setLong(4, playerData.getBountyCooldown());
-            if (playerData.getTimeZone() != null) {
-                updateOtherData.setString(5, playerData.getTimeZone().getID());
-            } else {
-                updateOtherData.setNull(5, Types.VARCHAR);
-            }
-            if (playerData.getSkin().missing()) {
-                updateOtherData.setNull(6, Types.CHAR);
-            } else {
-                updateOtherData.setString(6, playerData.getSkin().id());
-            }
-            updateOtherData.setBoolean(7, playerData.getWhitelist().isBlacklist());
-            updateOtherData.setBytes(8, convertToBinary(uuid));
-            updateOtherData.executeUpdate();
-
-            // refund should be updated in db as changes are made
-            // update whitelist
-            setPlayerWhitelistsBatch(Collections.singletonList(playerData));
         }
     }
 
@@ -1476,12 +1583,13 @@ public class SQLDatabase extends NotBountiesDatabase {
     }
 
     private void loginPlayer(UUID uuid, String playerName) throws SQLException {
-        PlayerData playerData = DataManager.getPlayerData(uuid).clone();
+        PlayerData playerData = new PlayerData();
+        playerData.setUuid(uuid);
         if (!readPlayerData(playerData)) {
             // player data does not exist in DB
             playerData.setPlayerName(playerName);
             playerData.setLastSeen(System.currentTimeMillis());
-            playerData.setOnlineServerID(DataManager.getDatabaseServerID(false));
+            playerData.setOnlineServerID(Databases.getDatabaseServerID());
             addPlayerData(Collections.singletonList(playerData));
         } else {
             boolean playtimeNeedsUpdating = playerData.getOnlineServerID().equals(DataManager.GLOBAL_SERVER_ID);
@@ -1491,22 +1599,16 @@ public class SQLDatabase extends NotBountiesDatabase {
                     SET server_id = ?,
                         name = ?,
                         %s
-                        last_seen = ?
+                        last_seen = NOW(3)
                     WHERE uuid = ?;
                     """.formatted(
                             playtimeNeedsUpdating
-                            ? "" : "playtime = ? - last_seen + playtime"
+                            ? "" : "playtime = playtime + TIMESTAMPDIFF(MICROSECOND, last_seen, NOW(3)) / 1000,"
                     );
             try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                ps.setBytes(1, convertToBinary(DataManager.getDatabaseServerID(false)));
+                ps.setBytes(1, convertToBinary(Databases.getDatabaseServerID()));
                 ps.setString(2, playerName);
-                ps.setLong(3, System.currentTimeMillis());
-                if (playtimeNeedsUpdating) {
-                    ps.setLong(5, System.currentTimeMillis());
-                    ps.setBytes(6, convertToBinary(uuid));
-                } else {
-                    ps.setBytes(4, convertToBinary(uuid));
-                }
+                ps.setBytes(3, convertToBinary(uuid));
                 ps.executeUpdate();
             }
         }
@@ -1515,13 +1617,10 @@ public class SQLDatabase extends NotBountiesDatabase {
 
     @Override
     public List<OnlineRefund<?>> getAndRemoveRefunds(UUID uuid) throws DatabaseConnectionException {
-        PlayerData playerData = DataManager.getPlayerData(uuid).clone();
         List<OnlineRefund<?>> onlineRefunds = new LinkedList<>();
         try {
             executeTransaction(() -> {
-                readRefunds(Collections.singletonList(playerData));
-                onlineRefunds.addAll(playerData.getRefund());
-                playerData.clearRefund();
+                onlineRefunds.addAll(readRefunds(uuid));
                 deleteRefund(uuid);
             });
         } catch (SQLException ex) {
@@ -1549,4 +1648,16 @@ public class SQLDatabase extends NotBountiesDatabase {
         }
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof SQLDatabase that)) return false;
+        if (!super.equals(o)) return false;
+        return Objects.equals(connection, that.connection) && Objects.equals(url, that.url) && Objects.equals(options, that.options);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), connection, url, options);
+    }
 }

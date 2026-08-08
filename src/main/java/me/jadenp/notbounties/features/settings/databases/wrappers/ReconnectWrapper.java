@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.features.settings.databases;
+package me.jadenp.notbounties.features.settings.databases.wrappers;
 
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
@@ -6,6 +6,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.PlayerStat;
 import me.jadenp.notbounties.data.player_data.OnlineRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.features.settings.databases.*;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,16 +18,6 @@ import java.util.*;
  * Attempt to reconnect to the database when disconnected.
  */
 public class ReconnectWrapper extends NotBountiesDatabase {
-
-    @FunctionalInterface
-    private interface DatabaseOperation<T> {
-        T run() throws DatabaseConnectionException;
-    }
-
-    @FunctionalInterface
-    private interface VoidDatabaseOperation {
-        void run() throws DatabaseConnectionException;
-    }
 
     private long nextReconnectAttempt;
     private int reconnectAttempts;
@@ -113,18 +104,28 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
-    public @NotNull PlayerStat getStats(UUID uuid) throws DatabaseConnectionException {
+    public @Nullable PlayerStat getStats(UUID uuid) throws DatabaseConnectionException {
         return execute(() -> database.getStats(uuid));
     }
 
     @Override
-    public Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException {
-        return execute(() -> database.getStats(sortStat, sortType, lastUUID, lastVal, limit));
+    public Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        return execute(() -> database.getStats(sortStat, sortType, offset, limit, excludedPlayers));
     }
 
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) throws DatabaseConnectionException {
         executeVoid(() -> database.addStats(playerStats));
+    }
+
+    @Override
+    public void deleteStats(UUID uuid) throws DatabaseConnectionException {
+        executeVoid(() -> database.deleteStats(uuid));
+    }
+
+    @Override
+    public void setStats(UUID uuid, PlayerStat stat) throws DatabaseConnectionException {
+        executeVoid(() -> database.setStats(uuid, stat));
     }
 
     @Override
@@ -138,8 +139,13 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
-    public Bounty addBounty(@NotNull Bounty bounty) throws DatabaseConnectionException {
-        return execute(() -> database.addBounty(bounty));
+    public void addBounty(@NotNull Bounty bounty) throws DatabaseConnectionException {
+        executeVoid(() -> database.addBounty(bounty));
+    }
+
+    @Override
+    public void setBounty(@NotNull Bounty bounty) throws DatabaseConnectionException {
+        executeVoid(() -> database.setBounty(bounty));
     }
 
     @Override
@@ -158,8 +164,18 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
-    public List<Bounty> getBounties(BountySortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException {
-        return execute(() -> database.getBounties(sortType,  lastUUID, lastVal, limit));
+    public List<Bounty> getBounties(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        return execute(() -> database.getBounties(sortType, offset, limit, excludedPlayers));
+    }
+
+    @Override
+    public long getNumBounties() throws DatabaseConnectionException {
+        return execute(database::getNumBounties);
+    }
+
+    @Override
+    public long getNumUniqueBounties() throws DatabaseConnectionException {
+        return execute(database::getNumUniqueBounties);
     }
 
     @Override
@@ -170,6 +186,16 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     @Override
     public List<ItemStack> getRefundItems(int refundId) throws DatabaseConnectionException {
         return execute(() -> getRefundItems(refundId));
+    }
+
+    @Override
+    public void setBountyItems(int bountyId, @NotNull List<ItemStack> items) throws DatabaseConnectionException {
+        executeVoid(() -> database.setBountyItems(bountyId, items));
+    }
+
+    @Override
+    public void setRefundItems(int refundId, @NotNull List<ItemStack> items) throws DatabaseConnectionException {
+        executeVoid(() -> database.setRefundItems(refundId, items));
     }
 
     @Override
@@ -208,8 +234,18 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
-    public List<PlayerData> getPlayerData(PlayerSortType sortType, UUID lastUUID, Object lastVal, int limit) throws DatabaseConnectionException {
-        return execute(() ->  database.getPlayerData(sortType, lastUUID, lastVal, limit));
+    public List<PlayerData> getPlayerData(PlayerSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        return execute(() ->  database.getPlayerData(sortType, offset, limit, excludedPlayers));
+    }
+
+    @Override
+    public void deletePlayerData(@NotNull UUID uuid) throws DatabaseConnectionException {
+        executeVoid(() -> database.deletePlayerData(uuid));
+    }
+
+    @Override
+    public long getNumPlayers() throws DatabaseConnectionException {
+        return execute(database::getNumPlayers);
     }
 
     @Override
@@ -230,6 +266,16 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     @Override
     public List<OnlineRefund<?>> getAndRemoveRefunds(UUID uuid) throws DatabaseConnectionException {
         return execute(() -> database.getAndRemoveRefunds(uuid));
+    }
+
+    @Override
+    public void addRefunds(UUID uuid, List<OnlineRefund<?>> refunds) throws DatabaseConnectionException {
+        executeVoid(() -> database.addRefunds(uuid, refunds));
+    }
+
+    @Override
+    public synchronized void shutdown() {
+        database.shutdown();
     }
 
     @Override

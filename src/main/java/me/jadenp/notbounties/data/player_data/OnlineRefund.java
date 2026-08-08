@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class OnlineRefund<T> {
 
@@ -35,7 +36,11 @@ public abstract class OnlineRefund<T> {
 
     public abstract Optional<T> getRefund();
 
-    public abstract T getRefundAsync();
+    public abstract CompletableFuture<T> getRefundAsync();
+
+    public boolean isRefundLoaded() {
+        return refund != null;
+    }
 
     public abstract String getRefundAmountString();
 

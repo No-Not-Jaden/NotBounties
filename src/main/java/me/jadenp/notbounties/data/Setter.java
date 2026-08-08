@@ -7,12 +7,14 @@ import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class Setter implements Comparable<Setter> {
     private Integer id;
@@ -46,18 +48,7 @@ public class Setter implements Comparable<Setter> {
         this.tags.addAll(tags);
         this.hasItems = hasItems;
         if (displayBounty == -1) {
-            if (hasItems) {
-                items = getItems();
-            } else {
-                items = Collections.emptyList();
-            }
-            double displayBounty1;
-            try {
-                displayBounty1 = amount + NumberFormatting.getTotalValue(items);
-            } catch (ExcludedItemException e) {
-                displayBounty1 = amount;
-            }
-            this.displayBounty = displayBounty1;
+            throw new UnsupportedOperationException("Display bounty has to be set");
         } else {
             this.displayBounty = displayBounty;
         }
@@ -77,17 +68,39 @@ public class Setter implements Comparable<Setter> {
         this.hasItems = items != null && !items.isEmpty();
         this.items = items;
         if (displayBounty == -1) {
-            double displayBounty1;
-            try {
-                displayBounty1 = amount + NumberFormatting.getTotalValue(items);
-            } catch (ExcludedItemException e) {
-                displayBounty1 = amount;
-            }
-            this.displayBounty = displayBounty1;
+            this.displayBounty = amount + NumberFormatting.getTotalValue(items);
         } else {
             this.displayBounty = displayBounty;
         }
 
+    }
+
+    public Setter(Setter setter) {
+        this.id = setter.id;
+        this.uuid = setter.uuid;
+        this.amount = setter.amount;
+        this.timeCreated = setter.timeCreated;
+        this.notified = setter.notified;
+        this.whitelist = new Whitelist(setter.whitelist.getList(), setter.whitelist.isBlacklist());
+        this.receiverPlaytime = setter.receiverPlaytime;
+        this.tags.addAll(setter.tags);
+        this.hasItems = setter.items != null && !setter.items.isEmpty();
+        this.items = setter.items;
+        this.displayBounty = setter.displayBounty;
+    }
+
+    public Setter(Setter setter, double change) {
+        this.id = setter.id;
+        this.uuid = setter.uuid;
+        this.amount = setter.amount + change;
+        this.timeCreated = setter.timeCreated;
+        this.notified = setter.notified;
+        this.whitelist = new Whitelist(setter.whitelist.getList(), setter.whitelist.isBlacklist());
+        this.receiverPlaytime = setter.receiverPlaytime;
+        this.tags.addAll(setter.tags);
+        this.hasItems = setter.items != null && !setter.items.isEmpty();
+        this.items = setter.items;
+        this.displayBounty = setter.displayBounty + change;
     }
 
     public JsonObject toJson(){
@@ -156,20 +169,35 @@ public class Setter implements Comparable<Setter> {
         return displayBounty;
     }
 
+    public String getName() {
+        return LoggedPlayers.getPlayerName(uuid);
+    }
+
     /**
      * Gets the items for this setter.
      * Calling this may load them from the database.
      * @return A list of items on this bounty.
      */
-    public List<ItemStack> getItems() {
-        if (items == null && hasItems && id != null) {
-            items = DataManager.loadBountyItems(id);
+    public CompletableFuture<List<ItemStack>> getItems() {
+        if ((items == null || items.isEmpty()) && hasItems && id != null) {
+            CompletableFuture<List<ItemStack>> loadingItems =
+                    ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getBountyItemsAsync(id);
+            loadingItems.thenAccept(bountyItems -> items = bountyItems);
+            return loadingItems;
         }
-        return items;
+        return CompletableFuture.completedFuture(items);
+    }
+
+    public boolean isItemsLoaded() {
+        return items != null && !items.isEmpty();
     }
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public void setItems(List<ItemStack> items) {
+        this.items = items;
     }
 
     /**
@@ -227,4 +255,5 @@ public class Setter implements Comparable<Setter> {
     public long getLatestUpdate() {
         return getTimeCreated();
     }
+
 }

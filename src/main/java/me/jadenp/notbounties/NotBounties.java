@@ -6,8 +6,9 @@ import com.cjcrafter.foliascheduler.FoliaCompatibility;
 import com.cjcrafter.foliascheduler.ServerImplementation;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.features.settings.auto_bounties.*;
-import me.jadenp.notbounties.features.settings.databases.AsyncDatabaseWrapper;
-import me.jadenp.notbounties.features.settings.databases.proxy.ProxyDatabase;
+import me.jadenp.notbounties.features.settings.databases.BountySortType;
+import me.jadenp.notbounties.features.settings.databases.wrappers.AsyncDatabaseWrapper;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxySettings;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
@@ -33,6 +34,7 @@ import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock
 import me.jadenp.notbounties.features.settings.integrations.external_api.bedrock.GeyserMCClass;
 import me.jadenp.notbounties.features.settings.integrations.external_api.worldguard.WorldGuardClass;
 import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentStyle;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
@@ -80,6 +82,10 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * EconomyShopGUI hook
  * bounty hunt end admin command
  * last seen placeholder
+ * message system in database. -> can force bounties to be updated
+ * shadow, opacity, and sprite tags
+ * stop similar database requests before the first one can return, or times out
+ * playtime placeholder
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -123,16 +129,16 @@ public final class NotBounties extends JavaPlugin {
     @Override
     public void onEnable() {
         if (new File(getDataFolder(), "debug.bin").exists()) {
-            debug = true;
+            setDebug(true);
             getLogger().info("Debug mode enabled by debug.bin file.");
         }
         if (Bukkit.getPluginManager().isPluginEnabled("Skript")) {
             SkriptAddon addon = Skript.registerAddon(this);
             try {
                 addon.loadClasses("me.jadenp.notbounties", "skripts");
-                Bukkit.getLogger().info("[NotBounties] Connected to Skript");
+                this.getLogger().info("[NotBounties] Connected to Skript");
             } catch (IOException e) {
-                Bukkit.getLogger().warning(e.toString());
+                this.getLogger().warning(e.toString());
             }
         }
         setServerImplementation(new FoliaCompatibility(this).getServerImplementation());
@@ -189,7 +195,7 @@ public final class NotBounties extends JavaPlugin {
         if (ConfigOptions.isSendBStats()) {
             int pluginId = 20776;
             Metrics metrics = new Metrics(this, pluginId);
-            metrics.addCustomChart(new Metrics.SingleLineChart("active_bounties", () -> BountyManager.getAllBounties(-1).size()));
+            metrics.addCustomChart(new Metrics.SingleLineChart("active_bounties", () -> Math.toIntExact(ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getNumBounties())));
         }
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
@@ -197,8 +203,7 @@ public final class NotBounties extends JavaPlugin {
         }
 
         // load skins for bounties
-        for (Bounty bounty : BountyManager.getAllBounties(-1))
-            SkinManager.isSkinLoaded(bounty.getUUID());
+        DataManager.getTopBountiesAsync(BountySortType.HIGHEST, 0, 100).thenAccept(bounties -> bounties.forEach(bounty -> SkinManager.isSkinLoaded(bounty.getUUID())));
 
         // force login players that are already on the server - this will happen if the plugin is loaded without a restart
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -215,23 +220,7 @@ public final class NotBounties extends JavaPlugin {
 
         // check permission immunity every 5 mins
         // sync player data if there is only 1 person online (for proxy)
-        getServerImplementation().global().runAtFixedRate(() ->
-        {
-            ImmunityManager.checkOnlinePermissionImmunity();
-            Collection<? extends Player> players = Bukkit.getOnlinePlayers();
-            if (players.size() == 1 && ProxyDatabase.isEnabled() && ProxyDatabase.isDatabaseSynchronization() && ProxyMessaging.hasConnectedBefore()) {
-                DataManager.syncPlayerData(players.iterator().next().getUniqueId(), null);
-            }
-            if (!players.isEmpty()) {
-                for (Player player : players) {
-                    if (LoggedPlayers.isMissing(player.getUniqueId())) {
-                        DataManager.getPlayerData(player.getUniqueId()).setPlayerName(player.getName());
-                        NotBounties.debugMessage("Logging a missing player name: " + player.getName() + " -> " + player.getUniqueId(), true);
-                    }
-                }
-            }
-
-        }, 3611, 3600);
+        getServerImplementation().global().runAtFixedRate(ImmunityManager::checkOnlinePermissionImmunity, 3611, 3600);
 
         // make bounty tracker work & big bounty particle & time immunity
         getServerImplementation().global().runAtFixedRate(() -> {
@@ -463,10 +452,11 @@ public final class NotBounties extends JavaPlugin {
 
     public void sendDebug(CommandSender sender) {
         sender.sendMessage(parse(getPrefix() + ChatColor.WHITE + "NotBounties debug info:", null));
-        long numConnected = DataManager.getDatabases().stream().filter(AsyncDatabaseWrapper::isConnected).count();
+        List<AsyncDatabaseWrapper> databases = ConfigOptions.getDatabases().getConfiguredDatabases();
+        long numConnected = databases.stream().filter(AsyncDatabaseWrapper::isConnected).count();
         String connected = numConnected > 0 ? ChatColor.GREEN + "" + numConnected : ChatColor.RED + "" + numConnected;
-        String numConfigured = ChatColor.WHITE + "" + DataManager.getDatabases().size();
-        int bounties = BountyManager.getAllBounties(-1).size();
+        String numConfigured = ChatColor.WHITE + "" + databases.size();
+        int bounties = Math.toIntExact(databases.getFirst().getNumBounties());
         sender.sendMessage(ChatColor.GOLD + "Databases > " + ChatColor.YELLOW + "Configured: " + numConfigured
                 + ChatColor.YELLOW + " Connected: " + connected);
 
@@ -485,7 +475,7 @@ public final class NotBounties extends JavaPlugin {
         sender.sendMessage(ChatColor.GOLD + "Stats > " + ChatColor.YELLOW + "Bounties: " + ChatColor.WHITE + bounties
                 + ChatColor.YELLOW + " Tracked Bounties: " + ChatColor.WHITE + BountyTracker.getTrackedBounties().size()
                 + ChatColor.YELLOW + " Bounty Boards: " + ChatColor.WHITE + BountyBoard.getBountyBoards().size()
-                + ChatColor.YELLOW + " Unique Players: " + ChatColor.WHITE + DataManager.getAllPlayerData().size()
+                + ChatColor.YELLOW + " Unique Players: " + ChatColor.WHITE + databases.getFirst().getNumPlayers()
         );
 
         List<String> hooks = getPluginHooks();
@@ -504,8 +494,8 @@ public final class NotBounties extends JavaPlugin {
         github.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/No-Not-Jaden/NotBounties"));
         String enable = NotBounties.isDebug() ? "disable" : "enable";
         TextComponent debugMsg = new TextComponent(ChatColor.YELLOW + "(Tip) " + ChatColor.GOLD + "Run " + ChatColor.GRAY + "/" + ConfigOptions.getPluginBountyCommands().get(0) + " debug " + enable + ChatColor.GOLD + " to " + enable + " debug messages in console.");
-        debugMsg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " debug " + enable));
-        debugMsg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().get(0) + " debug " + enable)));
+        debugMsg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " debug " + enable));
+        debugMsg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().getFirst() + " debug " + enable)));
         sender.spigot().sendMessage(discord);
         sender.spigot().sendMessage(spigot);
         sender.spigot().sendMessage(github);
@@ -517,16 +507,16 @@ public final class NotBounties extends JavaPlugin {
         String update = ConfigOptions.getUpdateNotification();
         if (update.equalsIgnoreCase("false")){
             updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.RED + "Disabled " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to enable.");
-            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification true"));
-            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification true")));
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true"));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true")));
         } else if (update.equalsIgnoreCase("true")){
             updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.GREEN + "Enabled " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to disable.");
-            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification false"));
-            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification false")));
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification false"));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification false")));
         } else {
             updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.YELLOW + "Paused for the latest version " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to enable.");
-            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification true"));
-            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification true")));
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true"));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true")));
         }
         return updateNotification;
     }

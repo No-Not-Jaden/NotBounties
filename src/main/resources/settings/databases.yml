@@ -8,11 +8,14 @@ auto-connect-interval: 0
 # Increasing this may make the plugin faster but use more ram.
 # A recommended value is the peak online player count of your server.
 max-local-cache-size: 200
-# you can change 'example-sql' to a different name if it helps you keep track of it
+# The time in seconds that data is valid locally after retrieving.
+# Set to 0 to always request data from the database.
+refresh-interval: 30
+# You can change 'example-sql' to a different name if it helps you keep track of it
 example-sql:
-  # the type of database: SQL, REDIS, or PROXY
+  # The type of database: SQL, REDIS, or PROXY
   type: SQL
-  # all the regular database options
+  # All the regular database options
   host: localhost
   port: 3306
   database: db # SQL specific: name of the database
@@ -20,9 +23,9 @@ example-sql:
   password: pass
   ssl: false
   url: 'jdbc:mysql://{host}:{port}/{database}?useSSL={ssl}&allowMultiQueries=true'
-  # higher priority means that this database will be used more
+  # Higher priority means that this database will be used more. Your most stable database should be the lowest priority.
   priority: 1
-# the redis config is very similar to SQL
+# The redis config is very similar to SQL
 example-redis:
   type: REDIS
   host: localhost

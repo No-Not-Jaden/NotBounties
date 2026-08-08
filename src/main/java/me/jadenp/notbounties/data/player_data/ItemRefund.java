@@ -1,14 +1,12 @@
 package me.jadenp.notbounties.data.player_data;
 
+import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
-import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.SerializeInventory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class ItemRefund extends OnlineRefund<List<ItemStack>> {
 
@@ -45,13 +43,15 @@ public class ItemRefund extends OnlineRefund<List<ItemStack>> {
     }
 
     @Override
-    public List<ItemStack> getRefundAsync() {
+    public CompletableFuture<List<ItemStack>> getRefundAsync() {
         if (refund == null) {
             if (id == null)
-                return Collections.emptyList();
-            refund = DataManager.loadRefundItems(id);
+                return CompletableFuture.completedFuture(Collections.emptyList());
+            CompletableFuture<List<ItemStack>> loadingItems = ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getRefundItemsAsync(id);
+            loadingItems.thenApply(itemStacks -> refund = itemStacks);
+            return loadingItems;
         }
-        return refund;
+        return CompletableFuture.completedFuture(refund);
     }
 
 

@@ -12,10 +12,6 @@ import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.ui.SkinManager;
-import me.jadenp.notbounties.ui.gui.GUI;
-import me.jadenp.notbounties.ui.gui.GUIOptions;
-import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUI;
-import me.jadenp.notbounties.ui.gui.bedrock.BedrockGUIOptions;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.jetbrains.annotations.NotNull;
@@ -27,7 +23,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class PlayerData implements Comparable<PlayerData>, Cloneable {
+public class PlayerData implements Comparable<PlayerData> {
 
     private static final Gson gson;
 
@@ -91,27 +87,12 @@ public class PlayerData implements Comparable<PlayerData>, Cloneable {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         PlayerData that = (PlayerData) o;
-        return generalImmunity == that.generalImmunity && murderImmunity == that.murderImmunity && randomImmunity == that.randomImmunity && timedImmunity == that.timedImmunity && bountyCooldown == that.bountyCooldown && newPlayer == that.newPlayer && lastSeen == that.lastSeen && lastClaim == that.lastClaim && Objects.equals(uuid, that.uuid) && Objects.equals(playerName, that.playerName) && Objects.equals(timeZone, that.timeZone) && broadcastSettings == that.broadcastSettings && Objects.equals(refund, that.refund) && Objects.equals(whitelist, that.whitelist);
+        return generalImmunity == that.generalImmunity && murderImmunity == that.murderImmunity && randomImmunity == that.randomImmunity && timedImmunity == that.timedImmunity && bountyCooldown == that.bountyCooldown && newPlayer == that.newPlayer && lastSeen == that.lastSeen && lastClaim == that.lastClaim && Objects.equals(uuid, that.uuid) && Objects.equals(playerName, that.playerName) && Objects.equals(timeZone, that.timeZone) && broadcastSettings == that.broadcastSettings && Objects.equals(whitelist, that.whitelist);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(uuid, playerName, generalImmunity, murderImmunity, randomImmunity, timedImmunity, timeZone, broadcastSettings, refund, bountyCooldown, whitelist, newPlayer, lastSeen, lastClaim);
-    }
-
-    @Override
-    public PlayerData clone() {
-        try {
-            PlayerData clone = (PlayerData) super.clone();
-            // TODO: copy mutable state here, so the clone can't change the internals of the original
-            return clone;
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError();
-        }
-    }
-
-    public void setAll(PlayerData playerData) {
-        // TODO: reverse of clone()
+        return Objects.hash(uuid, playerName, generalImmunity, murderImmunity, randomImmunity, timedImmunity, timeZone, broadcastSettings, bountyCooldown, whitelist, newPlayer, lastSeen, lastClaim);
     }
 
     public enum BroadcastSettings {
@@ -126,7 +107,6 @@ public class PlayerData implements Comparable<PlayerData>, Cloneable {
     private boolean timedImmunity = false;
     private TimeZone timeZone = null;
     private BroadcastSettings broadcastSettings;
-    private final List<OnlineRefund<?>> refund = new LinkedList<>();
     private long bountyCooldown = 0; // Time in ms when they set a bounty last
     private Whitelist whitelist;
     private boolean newPlayer = true;
@@ -134,10 +114,10 @@ public class PlayerData implements Comparable<PlayerData>, Cloneable {
     private long lastClaim = 0;
     private UUID serverID = null; // ID used for which server the data is on
     private UUID onlineServerID = DataManager.GLOBAL_SERVER_ID; // ID used for which server the player is on
-    private final Map<String, Integer> guiSortType = new HashMap<>();
     private boolean trackingExempt = false;
     private long playTime = 0;
     private PlayerSkin skin = SkinManager.getMissingSkin();
+    private ImpersistentPlayerData impersistentPlayerData;
 
     public PlayerData() {
         broadcastSettings = ConfigOptions.getMoney().getDefaultBroadcastSetting();
@@ -155,6 +135,15 @@ public class PlayerData implements Comparable<PlayerData>, Cloneable {
         }
     }
 
+    public @NotNull ImpersistentPlayerData getImpersistentPlayerData() throws IllegalStateException {
+        if (impersistentPlayerData == null) {
+            if (uuid == null)
+                throw new IllegalStateException("UUID must be set before setting impersistent player data");
+            impersistentPlayerData = ImpersistentPlayerData.get(uuid);
+        }
+        return impersistentPlayerData;
+    }
+
     public long getPlayTime() {
         return playTime;
     }
@@ -169,33 +158,6 @@ public class PlayerData implements Comparable<PlayerData>, Cloneable {
 
     public void setSkin(PlayerSkin skin) {
         this.skin = skin;
-    }
-
-    public void setGUISortType(String guiName, int sortType) {
-        this.guiSortType.put(guiName, sortType);
-    }
-
-    /**
-     * Get the sort type of GUI for this player.
-     * @param guiName The type of the GUI from the config.
-     * @return The sort type of the GUI. -1 if the GUI is not found.
-     */
-    public int getGUISortType(String guiName) {
-        if (guiName == null || guiName.isEmpty()) return -1;
-        if (guiSortType.containsKey(guiName)) {
-            return guiSortType.get(guiName);
-        }
-        if (NotBounties.isBedrockPlayer(uuid)) {
-            BedrockGUIOptions guiOptions = BedrockGUI.getGUI(guiName);
-            if (guiOptions != null) {
-                return guiOptions.getSortType();
-            }
-        }
-        GUIOptions guiOptions = GUI.getGUI(guiName);
-        if (guiOptions != null) {
-            return guiOptions.getSortType();
-        }
-        return -1;
     }
 
     public void setTrackingExempt(boolean trackingExempt) {
@@ -240,6 +202,7 @@ public class PlayerData implements Comparable<PlayerData>, Cloneable {
             return;
         }
         this.playerName = playerName;
+        getImpersistentPlayerData().setPlayerName(playerName);
         if (uuid != null && !LoggedPlayers.isLogged(playerName)) {
             LoggedPlayers.logPlayer(playerName, uuid);
         }
@@ -287,27 +250,6 @@ public class PlayerData implements Comparable<PlayerData>, Cloneable {
 
     public TimeZone getTimeZone() {
         return timeZone;
-    }
-
-    public List<OnlineRefund<?>> getRefund() {
-        return refund;
-    }
-
-    public void addRefund(OnlineRefund<?> onlineRefund) {
-        refund.add(onlineRefund);
-    }
-
-    public void clearRefund() {
-        refund.clear();
-    }
-
-    public void setRefund(List<OnlineRefund<?>> onlineRefund) {
-        refund.clear();
-        refund.addAll(onlineRefund);
-    }
-
-    public boolean hasRefund() {
-        return !refund.isEmpty();
     }
 
     public void setBroadcastSettings(@Nullable BroadcastSettings broadcastSettings) {
@@ -372,7 +314,6 @@ public class PlayerData implements Comparable<PlayerData>, Cloneable {
                 ", timedImmunity=" + timedImmunity +
                 ", timeZone=" + timeZone +
                 ", broadcastSettings=" + broadcastSettings +
-                ", refund=" + refund +
                 ", bountyCooldown=" + bountyCooldown +
                 ", whitelist=" + whitelist +
                 ", newPlayer=" + newPlayer +

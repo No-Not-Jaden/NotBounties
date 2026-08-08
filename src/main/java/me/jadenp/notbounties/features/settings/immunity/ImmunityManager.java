@@ -189,7 +189,7 @@ public class ImmunityManager {
     public static boolean removeImmunity(UUID uuid) {
         if (getImmunity(uuid) == 0)
             return false;
-        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStat(uuid, Leaderboard.IMMUNITY) * -1);
+        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY) * -1);
         if (immunityType == ImmunityType.TIME)
             immunityTimeTracker.remove(uuid);
         return true;
@@ -224,7 +224,7 @@ public class ImmunityManager {
                 expiredImmunity.add(entry.getKey());
             } else {
                 double immunity = onlinePlayers.contains(entry.getKey()) || timeOfflineTracking ? (entry.getValue() - System.currentTimeMillis()) / 1000.0D / time : (double) (entry.getValue()) / 1000 / time;
-                DataManager.changeStat(entry.getKey(), Leaderboard.IMMUNITY, immunity - DataManager.getStat(entry.getKey(), Leaderboard.IMMUNITY));
+                DataManager.changeStat(entry.getKey(), Leaderboard.IMMUNITY, immunity - DataManager.getStatAsync(entry.getKey(), Leaderboard.IMMUNITY));
             }
         }
         for (UUID uuid : expiredImmunity) {
@@ -234,7 +234,7 @@ public class ImmunityManager {
                     player.sendMessage(parse(getPrefix() + getMessage("immunity-expire"), player));
             }
             immunityTimeTracker.remove(uuid);
-            DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStat(uuid, Leaderboard.IMMUNITY) * -1);
+            DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY) * -1);
         }
 
     }
@@ -259,7 +259,7 @@ public class ImmunityManager {
     }
 
     public static void setImmunity(UUID uuid, double amount) {
-        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, amount - DataManager.getStat(uuid, Leaderboard.IMMUNITY));
+        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, amount - DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY));
         if (immunityType == ImmunityType.TIME) {
             if (onlinePlayers.contains(uuid) || !timeOfflineTracking) {
                 immunityTimeTracker.put(uuid, (long) (amount * time * 1000L + System.currentTimeMillis()));

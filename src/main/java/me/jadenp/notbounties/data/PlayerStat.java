@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import me.jadenp.notbounties.Leaderboard;
+import me.jadenp.notbounties.features.settings.databases.Databases;
 import me.jadenp.notbounties.utils.DataManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,7 +40,7 @@ public final class PlayerStat {
     }
 
     public PlayerStat(long bountiesClaimed, long bountiesSet, long bountiesReceived, double bountyAllTime, double immunity, double bountyClaimAmount) {
-        this(bountiesClaimed, bountiesSet, bountiesReceived, bountyAllTime, immunity, bountyClaimAmount, DataManager.getDatabaseServerID(true));
+        this(bountiesClaimed, bountiesSet, bountiesReceived, bountyAllTime, immunity, bountyClaimAmount, Databases.getDatabaseServerID());
     }
 
     public PlayerStat(PlayerStat playerStat) {
@@ -54,29 +55,27 @@ public final class PlayerStat {
         this(new PlayerStatAdapter().read(jsonReader));
     }
 
-    public static PlayerStat fromLeaderboard(Leaderboard leaderboard, double amount) {
+    public static PlayerStat fromLeaderboard(Leaderboard leaderboard, double amount) throws UnsupportedOperationException {
         switch (leaderboard) {
             case KILLS -> {
-                return new PlayerStat((long) amount, 0, 0, 0, 0, 0, DataManager.getDatabaseServerID(true));
+                return new PlayerStat((long) amount, 0, 0, 0, 0, 0, Databases.getDatabaseServerID());
             }
             case SET -> {
-                return new PlayerStat(0, (long) amount, 0, 0, 0, 0, DataManager.getDatabaseServerID(true));
+                return new PlayerStat(0, (long) amount, 0, 0, 0, 0, Databases.getDatabaseServerID());
             }
             case DEATHS -> {
-                return new PlayerStat(0, 0, (long) amount, 0, 0, 0, DataManager.getDatabaseServerID(true));
+                return new PlayerStat(0, 0, (long) amount, 0, 0, 0, Databases.getDatabaseServerID());
             }
             case ALL -> {
-                return new PlayerStat(0, 0, 0, amount, 0, 0, DataManager.getDatabaseServerID(true));
+                return new PlayerStat(0, 0, 0, amount, 0, 0, Databases.getDatabaseServerID());
             }
             case IMMUNITY -> {
-                return new PlayerStat(0, 0, 0, 0, amount, 0, DataManager.getDatabaseServerID(true));
+                return new PlayerStat(0, 0, 0, 0, amount, 0, Databases.getDatabaseServerID());
             }
             case CLAIMED -> {
-                return new PlayerStat(0, 0, 0, 0, 0, amount, DataManager.getDatabaseServerID(true));
+                return new PlayerStat(0, 0, 0, 0, 0, amount, Databases.getDatabaseServerID());
             }
-            default -> {
-                return new PlayerStat(0, 0, 0, 0, 0, 0, DataManager.getDatabaseServerID(true));
-            }
+            default -> throw new UnsupportedOperationException("Unknown leaderboard: " + leaderboard);
         }
     }
 

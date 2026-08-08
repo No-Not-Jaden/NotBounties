@@ -4,7 +4,9 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.data.player_data.ImpersistentPlayerData;
 import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.features.settings.databases.BountySortType;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
@@ -45,7 +47,6 @@ import java.util.*;
 import static me.jadenp.notbounties.features.ConfigOptions.runGUIPluginCommand;
 import static me.jadenp.notbounties.features.ConfigOptions.saveConfigurationSection;
 
-// <TODO>Dialog system to replace GUI
 public class GUI implements Listener {
 
     public static final Map<UUID, PlayerGUInfo> playerInfo = new HashMap<>();
@@ -221,7 +222,12 @@ public class GUI implements Listener {
         return 54;
     }
 
+    // TODO: make page zero indexed
     public static List<DisplayItem> getGUIValues(Player player, String name, long page, Object[] data) {
+        if (Bukkit.isPrimaryThread()) {
+            NotBounties.debugMessage("GUI values being loaded on main thread.", true);
+            Arrays.stream(Thread.currentThread().getStackTrace()).forEach(stackTraceElement -> NotBounties.debugMessage(stackTraceElement.toString(), true));
+        }
         List<DisplayItem> displayItems = new ArrayList<>();
         if (!customGuis.containsKey(name))
             return displayItems;
@@ -231,11 +237,11 @@ public class GUI implements Listener {
 
         boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
         Set<UUID> onlinePlayers = NotBounties.getNetworkPlayers().keySet();
-        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
-        int sortType = playerData.getGUISortType(name);
+        int sortType = ImpersistentPlayerData.get(player.getUniqueId()).getGUISortType(name);
         switch (name) {
             case "bounty-gui":
-                List<Bounty> sortedList = BountyManager.getAllBounties(sortType);
+                // public bounties?
+                List<Bounty> sortedList = DataManager.getPublicBountiesAsync(BountySortType.values()[Math.clamp(sortType, 0, BountySortType.values().length)], gui.getPlayerSlots().size() * (page-1), gui.getPlayerSlots().size()).join();
                 for (int i = 0; i < sortedList.size(); i++) {
                     Bounty bounty = sortedList.get(i);
                     double bountyAmount = Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);

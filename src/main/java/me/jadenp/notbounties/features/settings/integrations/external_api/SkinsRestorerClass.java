@@ -2,7 +2,7 @@ package me.jadenp.notbounties.features.settings.integrations.external_api;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.features.settings.databases.proxy.ProxyDatabase;
+import me.jadenp.notbounties.features.settings.databases.proxy.ProxySettings;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -44,7 +44,7 @@ public class SkinsRestorerClass {
                 // set first connect to false in 5 seconds (give the proxy time to respond)
                 NotBounties.getServerImplementation().global().runDelayed(() -> firstConnect = false, 5 * 20L);
             }
-            if (!firstConnect && lastHookError < System.currentTimeMillis() && !(ProxyMessaging.hasConnectedBefore() && ProxyDatabase.areSkinRequestsEnabled())) {
+            if (!firstConnect && lastHookError < System.currentTimeMillis() && !(ProxyMessaging.hasConnectedBefore() && ProxySettings.areSkinRequestsEnabled())) {
                 NotBounties.getInstance().getLogger().warning("Failed at hooking into SkinsRestorer, will try again on next call.");
                 lastHookError = System.currentTimeMillis() + 60000 * 5;
             }
@@ -103,7 +103,7 @@ public class SkinsRestorerClass {
     }
 
     public void saveSkin(UUID uuid) {
-        if (ProxyMessaging.hasConnectedBefore() && ProxyDatabase.areSkinRequestsEnabled()) {
+        if (ProxyMessaging.hasConnectedBefore() && ProxySettings.areSkinRequestsEnabled()) {
             ProxyMessaging.requestPlayerSkin(uuid);
             // timeout
             addDelayedSkinCheck(uuid);

@@ -2,39 +2,37 @@ package me.jadenp.notbounties.features.settings.databases;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.data.Bounty;
-import me.jadenp.notbounties.data.Whitelist;
+import me.jadenp.notbounties.data.player_data.OnlineRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.features.settings.databases.wrappers.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.data.PlayerStat;
-import me.jadenp.notbounties.utils.LoggedPlayers;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static me.jadenp.notbounties.NotBounties.isVanished;
 
 public class LocalData extends NotBountiesDatabase {
+    // elements must expire quickly to be up to date with other servers
     private final Cache<UUID, Bounty> bountyCache;
     private final Cache<UUID, PlayerStat> statCache;
     private final Cache<UUID, PlayerData> playerDataCache;
 
-    public LocalData(Plugin plugin, long maxCacheSize) {
+    public LocalData(Plugin plugin, long maxCacheSize, long refreshInterval) {
         super(plugin, "LocalData");
-        bountyCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize).build();
-        statCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize).build();
-        playerDataCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize).build();
+        bountyCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
+                .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();
+        statCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
+                .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();
+        playerDataCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
+                .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();
     }
 
     @Override
@@ -57,12 +55,30 @@ public class LocalData extends NotBountiesDatabase {
         return statCache.getIfPresent(uuid);
     }
 
+    @Override
+    public Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        throw new DatabaseConnectionException("Leaderboard lookup not allowed locally.");
+    }
+
+    public Map<UUID, PlayerStat> getCachedStats() {
+        return statCache.asMap();
+    }
 
     @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) {
         for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet()) {
             addStats(entry.getKey(), entry.getValue());
         }
+    }
+
+    @Override
+    public void deleteStats(UUID uuid) throws DatabaseConnectionException {
+        statCache.invalidate(uuid);
+    }
+
+    @Override
+    public void setStats(UUID uuid, PlayerStat stat) throws DatabaseConnectionException {
+        statCache.put(uuid, stat);
     }
 
     @Override
@@ -80,12 +96,11 @@ public class LocalData extends NotBountiesDatabase {
     }
 
     @Override
-    public Bounty addBounty(@NotNull Bounty bounty) {
+    public void addBounty(@NotNull Bounty bounty) {
         Bounty prevBounty = getBounty(bounty.getUUID());
         if (prevBounty == null) {
             // insert a new bounty for this player
             bountyCache.put(bounty.getUUID(), bounty);
-            prevBounty = bounty;
         } else {
             // combine with previous bounty
             for (Setter setter : bounty.getSetters()) {
@@ -93,75 +108,94 @@ public class LocalData extends NotBountiesDatabase {
             }
             bountyCache.put(bounty.getUUID(), prevBounty);
         }
-        return prevBounty;
+    }
+
+    @Override
+    public void setBounty(@NotNull Bounty bounty) throws DatabaseConnectionException {
+        bountyCache.put(bounty.getUUID(), bounty);
     }
 
     @Override
     public void replaceBounty(UUID uuid, @Nullable Bounty bounty) {
-        for (int i = 0; i < activeBounties.size(); i++) {
-            if (activeBounties.get(i).getUUID().equals(uuid)) {
-                if (bounty != null) {
-                    activeBounties.set(i, bounty);
-                    sortActiveBounties();
-                    if (onlineBounties.containsKey(uuid))
-                        onlineBounties.replace(uuid, bounty);
-                } else {
-                    onlineBounties.remove(uuid);
-                    activeBounties.remove(i);
-                }
-                break;
-            }
+        if (bounty != null) {
+            bountyCache.put(uuid, bounty);
+        } else {
+            bountyCache.invalidate(uuid);
         }
     }
 
     @Override
     public @Nullable Bounty getBounty(UUID uuid) {
-        if (onlineBounties.containsKey(uuid) && onlineBounties.get(uuid) != null)
-            return onlineBounties.get(uuid);
-        for (Bounty bounty : activeBounties) {
-            if (bounty.getUUID().equals(uuid))
-                return bounty;
-        }
-        return null;
-    }
-
-    public @Nullable Bounty getBounty(String name) {
-        for (Bounty bounty : activeBounties) {
-            if (bounty.getName().equalsIgnoreCase(name))
-                return bounty;
-        }
-        return null;
-    }
-
-    public @Nullable Bounty getOnlineBounty(UUID uuid) {
-        return onlineBounties.get(uuid);
+        return bountyCache.getIfPresent(uuid);
     }
 
     @Override
     public void removeBounty(Bounty bounty) {
-        for (int i = 0; i < activeBounties.size(); i++) {
-            if (activeBounties.get(i).getUUID().equals(bounty.getUUID())) {
-                Bounty bountyCopy = new Bounty(activeBounties.get(i));
-                removeSimilarSetters(bountyCopy.getSetters(), new ArrayList<>(bounty.getSetters()));
-                // if no master setters are left over, remove bounty entirely from active bounties
-                if (bountyCopy.getSetters().isEmpty()) {
-                    activeBounties.remove(i);
-                    onlineBounties.remove(bountyCopy.getUUID());
-                } else {
-                    activeBounties.set(i, bountyCopy);
-                    if (onlineBounties.containsKey(bountyCopy.getUUID()))
-                        onlineBounties.replace(bountyCopy.getUUID(), bountyCopy);
-                    sortActiveBounties();
-                }
-                break;
+        Bounty prevBounty = getBounty(bounty.getUUID());
+        if (prevBounty != null) {
+            removeSimilarSetters(prevBounty.getSetters(), new ArrayList<>(bounty.getSetters()));
+            if (prevBounty.getSetters().isEmpty()) {
+                // no setters remain
+                bountyCache.invalidate(prevBounty.getUUID());
             }
         }
+    }
 
-        // the array list passed from bounty.getSetters() contains the leftover setters that couldn't be removed
+    @Override
+    public List<Bounty> getBounties(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        throw new DatabaseConnectionException("Leaderboard lookup not allowed locally.");
+    }
+
+    public List<Bounty> getCachedBounties() {
+        return new ArrayList<>(bountyCache.asMap().values());
+    }
+
+    @Override
+    public long getNumBounties() throws DatabaseConnectionException {
+        long numBounties = 0;
+        for (Map.Entry<UUID, Bounty> entry : bountyCache.asMap().entrySet()) {
+            numBounties += entry.getValue().getSetters().size();
+        }
+        return numBounties;
+    }
+
+    @Override
+    public long getNumUniqueBounties() throws DatabaseConnectionException {
+        return bountyCache.size();
+    }
+
+    @Override
+    public List<ItemStack> getBountyItems(int bountyId) throws DatabaseConnectionException {
+        throw new DatabaseConnectionException("Item lookup not allowed locally.");
+    }
+
+    @Override
+    public List<ItemStack> getRefundItems(int refundId) throws DatabaseConnectionException {
+        throw new DatabaseConnectionException("Item lookup not allowed locally.");
+    }
+
+    @Override
+    public void setBountyItems(int bountyId, @NotNull List<ItemStack> items) throws DatabaseConnectionException {
+        // find bounty with id (if exists) and update
+        for (Bounty bounty : bountyCache.asMap().values()) {
+            for (Setter setter : bounty.getSetters()) {
+                Optional<Integer> bId = setter.getBountyId();
+                if (bId.isPresent() && bId.get() == bountyId) {
+                    setter.setItems(items);
+                    break;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void setRefundItems(int refundId, @NotNull List<ItemStack> items) throws DatabaseConnectionException {
+        // refund items are not cached because they are removed as soon as they are queried.
     }
 
     /**
-     * A utility to remove all setters that have the same uuid and time created in both lists
+     * A utility to remove all setters that have the same uuid and time created in both lists.
+     * Setters are removed in both lists.
      */
     private static void removeSimilarSetters(List<Setter> masterSetterList, List<Setter> setterList) {
         // iterate through setters
@@ -183,43 +217,7 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public void removeBounty(UUID uuid) {
-        onlineBounties.remove(uuid);
-        synchronized (activeBounties) {
-            ListIterator<Bounty> bountyListIterator = activeBounties.listIterator();
-            while (bountyListIterator.hasNext()) {
-                Bounty bounty = bountyListIterator.next();
-                if (bounty.getUUID().equals(uuid)) {
-                    bountyListIterator.remove();
-                    return;
-                }
-            }
-        }
-
-    }
-
-    @Override
-    public List<Bounty> getAllBounties(int sortType) {
-        List<Bounty> sortedList;
-        sortedList = new ArrayList<>(activeBounties);
-        if (sortType == -1)
-            return sortedList;
-        if (sortType == 2)
-            return sortedList;
-        if (sortType == 3) {
-            Collections.reverse(sortedList);
-            return sortedList;
-        }
-        if (sortedList.isEmpty())
-            return sortedList;
-        // Optimized sort using Comparator instead of O(n^2) swaps
-        if (sortType == 0) {
-            // oldest bounties at top -> ascending by first setter time
-            sortedList.sort(Comparator.comparingLong(b -> b.getSetters().isEmpty() ? Long.MAX_VALUE : b.getSetters().get(0).getTimeCreated()));
-        } else if (sortType == 1) {
-            // newest bounties at top -> descending by latest update
-            sortedList.sort(Comparator.comparingLong(Bounty::getLatestUpdate).reversed());
-        }
-        return sortedList;
+        bountyCache.invalidate(uuid);
     }
 
     @Override
@@ -248,11 +246,6 @@ public class LocalData extends NotBountiesDatabase {
     }
 
     @Override
-    public int getRefreshInterval() {
-        return 0;
-    }
-
-    @Override
     public long getLastSync() {
         return 0;
     }
@@ -264,14 +257,15 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public Map<UUID, String> getOnlinePlayers() {
-        return Bukkit.getOnlinePlayers().stream().filter(player -> !isVanished(player)).collect(Collectors.toMap(Entity::getUniqueId, Player::getName, (a, b) -> b));
+        // Not tracking players on other servers
+        return Collections.emptyMap();
     }
 
     @Override
     public void updatePlayerData(PlayerData playerData) {
         if (playerData.getPlayerName() == null)
             return;
-        playerDataMap.put(playerData.getUuid(), playerData);
+        playerDataCache.put(playerData.getUuid(), playerData);
     }
 
     public PlayerData getPlayerData(@NotNull UUID uuid) {
@@ -279,12 +273,13 @@ public class LocalData extends NotBountiesDatabase {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID)) {
             playerData = new PlayerData();
         } else {
-            playerData = playerDataMap.computeIfAbsent(uuid, k -> {
-                PlayerData pd = new PlayerData();
-                pd.setUuid(uuid);
-                pd.setServerID(DataManager.getDatabaseServerID(true));
-                return pd;
-            });
+            playerData = playerDataCache.getIfPresent(uuid);
+            if (playerData == null) {
+                playerData = new PlayerData();
+                playerData.setUuid(uuid);
+                playerData.setServerID(Databases.getDatabaseServerID());
+                return playerData;
+            }
         }
         if (playerData.getUuid() == null) {
             playerData.setUuid(uuid);
@@ -297,6 +292,25 @@ public class LocalData extends NotBountiesDatabase {
         for (PlayerData playerData : playerDataMap) {
             updatePlayerData(playerData);
         }
+    }
+
+    @Override
+    public List<PlayerData> getPlayerData(PlayerSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        throw new DatabaseConnectionException("Leaderboard lookup not allowed locally.");
+    }
+
+    public List<PlayerData> getCachedPlayerData() {
+        return new ArrayList<>(playerDataCache.asMap().values());
+    }
+
+    @Override
+    public void deletePlayerData(@NotNull UUID uuid) throws DatabaseConnectionException {
+        playerDataCache.invalidate(uuid);
+    }
+
+    @Override
+    public long getNumPlayers() throws DatabaseConnectionException {
+        return playerDataCache.size();
     }
 
     @Override
@@ -332,44 +346,26 @@ public class LocalData extends NotBountiesDatabase {
     @Override
     public void login(UUID uuid, String playerName) {
         // This data is local, so bukkit methods can be used to retrieve status
-        Bounty bounty = getBounty(uuid);
-        if (bounty != null) {
-            onlineBounties.put(uuid, bounty);
-        }
-        // Force whitelist change if only one is supported
-        if (Whitelist.isEnabled() && !Whitelist.isAllowTogglingWhitelist() && playerDataMap.containsKey(uuid)) {
-            playerDataMap.get(uuid).getWhitelist().setBlacklist(!Whitelist.isDefaultWhitelist());
-        }
-
     }
 
     @Override
     public void logout(UUID uuid) {
         // This data is local, so bukkit methods can be used to retrieve status
-        onlineBounties.remove(uuid);
-    }
-
-    /**
-     * Replaces the server IDs that match with the local server with the global ID.
-     */
-    public void syncPermData() {
-        synchronized (activeBounties) {
-            for (Bounty bounty : activeBounties)
-                bounty.setServerID(DataManager.GLOBAL_SERVER_ID);
-        }
-        synchronized (playerStats) {
-            for (Map.Entry<UUID, PlayerStat> entry : playerStats.entrySet())
-                entry.getValue().setServerID(DataManager.GLOBAL_SERVER_ID);
-        }
-        synchronized (playerDataMap) {
-            for (Map.Entry<UUID, PlayerData> entry : playerDataMap.entrySet())
-                entry.getValue().setServerID(DataManager.GLOBAL_SERVER_ID);
-        }
     }
 
     @Override
-    public boolean isPermDatabase() {
-        return true;
+    public List<OnlineRefund<?>> getAndRemoveRefunds(UUID uuid) throws DatabaseConnectionException {
+        throw new DatabaseConnectionException("Refund lookup not allowed locally.");
+    }
+
+    @Override
+    public void addRefunds(UUID uuid, List<OnlineRefund<?>> refunds) throws DatabaseConnectionException {
+        // refunds are not cached
+    }
+
+    @Override
+    public @Nullable NotBountiesDatabase getWrappedDatabase() {
+        return null;
     }
 
     @Override
@@ -377,41 +373,11 @@ public class LocalData extends NotBountiesDatabase {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         LocalData localData = (LocalData) o;
-        return Objects.equals(activeBounties, localData.activeBounties) && Objects.equals(onlineBounties, localData.onlineBounties) && Objects.equals(playerStats, localData.playerStats) && Objects.equals(playerDataMap, localData.playerDataMap);
+        return Objects.equals(bountyCache, localData.bountyCache) && Objects.equals(statCache, localData.statCache) && Objects.equals(playerDataCache, localData.playerDataCache);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), activeBounties, onlineBounties, playerStats, playerDataMap);
-    }
-
-    public int getBountyRank(double display) {
-        // binary search
-        synchronized (activeBounties) {
-            if (activeBounties.isEmpty())
-                return 1;
-
-            int low = 0;
-            int high = activeBounties.size() - 1;
-            int result = -1; // track last seen index with value <= display
-
-            while (low <= high) {
-                int mid = (low + high) >>> 1;
-                double midVal = activeBounties.get(mid).getTotalDisplayBounty();
-
-                if (midVal > display) {
-                    // Need a lower bounty; move right
-                    low = mid + 1;
-                } else {
-                    // midVal <= display: this is a candidate, search left to find highest rank
-                    result = mid;
-                    high = mid - 1;
-                }
-            }
-
-            if (result == -1)
-                return activeBounties.size(); // no bounty with value <= display
-            return result + 1; // ranks are 1-based
-        }
+        return Objects.hash(super.hashCode(), bountyCache, statCache, playerDataCache);
     }
 }

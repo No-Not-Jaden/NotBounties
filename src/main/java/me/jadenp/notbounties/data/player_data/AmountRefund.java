@@ -3,7 +3,6 @@ package me.jadenp.notbounties.data.player_data;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.entity.Player;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,7 +26,7 @@ public class AmountRefund extends OnlineRefund<Double> {
     }
 
     @Override
-    public Double getRefundAsync() {
+    public CompletableFuture<T> getRefundAsync() {
         // TODO: implementation
     }
 
