@@ -631,7 +631,7 @@ public class GUI implements Listener {
                 String title = createTitle(gui, player, finalPage, maxPage, displayItems, data);
                 PlayerGUInfo info = new PlayerGUInfo(finalPage, maxPage, name, data, displayItems, title);
                 Inventory inventory = gui.createInventory(player, finalPage, maxPage, displayItems, title, data);
-                NotBounties.getServerImplementation().global().run(() -> {
+                NotBounties.getServerImplementation().entity(player).run(() -> {
                     boolean guiOpen = playerInfo.containsKey(player.getUniqueId()) && gui.getType().equals(playerInfo.get(player.getUniqueId()).guiType()) && CompatabilityUtils.getTitle(player).equals(playerInfo.get(player.getUniqueId()).title());
                     playerInfo.put(player.getUniqueId(), info);
                     if (guiOpen) {

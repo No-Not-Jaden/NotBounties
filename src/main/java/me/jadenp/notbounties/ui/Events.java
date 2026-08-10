@@ -99,14 +99,15 @@ public class Events implements Listener {
                 // natural death
                 NotBounties.debugMessage("Natural death for " + player.getName(), false);
                 Bounty currentBounty = BountyManager.getBounty(player.getUniqueId());
-                if (currentBounty != null) {
-                    Bounty lostBounty = TrickleBounties.getLostBounty(currentBounty);
-                    List<Setter> removedSetters = new LinkedList<>(lostBounty.getSetters());
-                    if (!removedSetters.isEmpty()) {
-                        player.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("natural-death"), lostBounty.getTotalBounty(), player));
-                        DataManager.removeSetters(currentBounty, removedSetters);
-                    }
-                }
+                // auto-bounties disabled
+                // if (currentBounty != null) {
+                //     Bounty lostBounty = TrickleBounties.getLostBounty(currentBounty);
+                //     List<Setter> removedSetters = new LinkedList<>(lostBounty.getSetters());
+                //     if (!removedSetters.isEmpty()) {
+                //         player.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("natural-death"), lostBounty.getTotalBounty(), player));
+                //         DataManager.removeSetters(currentBounty, removedSetters);
+                //     }
+                // }
             } else {
                 if (ConfigOptions.getClaimOrder() == ConfigOptions.ClaimOrder.REGULAR) {
                     Player killer = event.getEntity().getKiller();

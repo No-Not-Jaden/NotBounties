@@ -92,6 +92,7 @@ public class ImmunityManager {
      * The time in seconds that a player must wait before they can set another bounty.
      */
     private static long bountyCooldown;
+    private static long setDelay;
     /**
      * Time immunity tracking. This will either display at what time in milliseconds that the immunity expires,
      * or how many milliseconds the player has left in their immunity.
@@ -119,6 +120,7 @@ public class ImmunityManager {
         gracePeriod = configuration.getLong("grace-period");
         permissionImmunity = configuration.getBoolean("permission-immunity");
         bountyCooldown = configuration.getLong("bounty-cooldown");
+        setDelay = configuration.getLong("set-delay");
 
         // When the server starts, SaveManager loads the old newPlayerImmunity value from last start before this is run.
         long oldNewPlayerImmunity = newPlayerImmunity;
@@ -212,6 +214,21 @@ public class ImmunityManager {
     }
 
     public static void update() {
+        // clear new player immunity for online players once their playtime passes the threshold
+        // independent of the "type" (bought immunity) setting below
+        for (UUID uuid : onlinePlayers) {
+            PlayerData playerData = DataManager.getPlayerData(uuid);
+            if (playerData.isNewPlayer()) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player != null) {
+                    long immunityMS = (long) ((newPlayerImmunity - ((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20)) * 1000L);
+                    if (immunityMS <= 0) {
+                        playerData.setNewPlayer(false);
+                    }
+                }
+            }
+        }
+
         if (immunityType != ImmunityType.TIME)
             return;
 
@@ -345,6 +362,17 @@ public class ImmunityManager {
             immunityTimeTracker.replace(player.getUniqueId(), immunityTimeTracker.get(player.getUniqueId()) + System.currentTimeMillis());
         }
         checkPermissionImmunity(player);
+
+        // clear new player immunity once their playtime passes the threshold
+        // this is normally only re-checked when someone tries to set a bounty on them directly,
+        // which the player-selection GUIs never do, leaving them stuck immune otherwise
+        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+        if (playerData.isNewPlayer()) {
+            long immunityMS = (long) ((newPlayerImmunity - ((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20)) * 1000L);
+            if (immunityMS <= 0) {
+                playerData.setNewPlayer(false);
+            }
+        }
     }
 
     public static void logout(Player player){
@@ -402,5 +430,9 @@ public class ImmunityManager {
 
     public static long getBountyCooldown() {
         return bountyCooldown;
+    }
+
+    public static long getSetDelay() {
+        return setDelay;
     }
 }

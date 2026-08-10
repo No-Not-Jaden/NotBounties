@@ -30,7 +30,8 @@ bounty-posters:
   display-reward: true
   # reward text below name if display-reward is enabled
   # placeholders can be used here
-  reward-text: 'REWARD: {reward}'
+  # %notbounties_currency_icon% displays the gold coin icon
+  reward-text: 'REWARD: %notbounties_currency_icon% {reward} Gold Coins'
   # lock the bounty map - this will improve performance, but the maps will not update after they are created
   # if you turn this on, I advise disabling display-reward to avoid confusing your players
   lock-maps: false

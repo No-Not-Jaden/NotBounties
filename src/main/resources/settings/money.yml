@@ -27,10 +27,10 @@ currency:
   override-vault: false
   # accepts a material or a placeholder
   # if the currency is a material, the plugin will automatically take away the necessary amounts
-  object: 'DIAMOND'
+  object: 'GOLD_NUGGET'
   # before the currency in all occurrences in language.yml
-  prefix: '&f'
-  suffix: '&b◆'
+  prefix: '&6'
+  suffix: ' Gold Coins'
   # only needed if you are using a placeholder, but will be called either way.
   # {player} & {amount} or use a placeholder
   remove-commands: [] # ['eco take {player} {amount}']

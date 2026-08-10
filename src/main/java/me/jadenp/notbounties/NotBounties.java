@@ -180,6 +180,7 @@ public final class NotBounties extends JavaPlugin {
 
             ImmunityManager.loadPlayerData();
             LoggedPlayers.loadAllDisplayNames();
+            SaveManager.loadPendingBounties(this);
         } catch (IOException e) {
             getLogger().severe("[NotBounties] Failed to read player data!");
             getLogger().severe(e.toString());
@@ -248,8 +249,8 @@ public final class NotBounties extends JavaPlugin {
                 return;
 
             ImmunityManager.update();
-            RandomBounties.update();
-            TimedBounties.update();
+            // RandomBounties.update();
+            // TimedBounties.update();
 
             PVPRestrictions.checkCombatExpiry();
             ChallengeManager.checkChallengeChange();
@@ -264,7 +265,7 @@ public final class NotBounties extends JavaPlugin {
             getServerImplementation().async().runAtFixedRate(() -> {
                 if (paused)
                     return;
-                MurderBounties.cleanPlayerKills();
+                // MurderBounties.cleanPlayerKills();
                 SkinManager.removeOldData();
                 RemovePersistentEntitiesEvent.checkRemovedEntities();
                 ProxyMessaging.cleanCache();
@@ -312,6 +313,13 @@ public final class NotBounties extends JavaPlugin {
                 }
             }
         }, 20, 1);
+
+        // process pending bounties every second
+        getServerImplementation().global().runAtFixedRate(() -> {
+            if (paused)
+                return;
+            BountyManager.processPendingBounties();
+        }, 20, 20);
 
         // plugin was enabled successfully
         started = true;
@@ -535,6 +543,7 @@ public final class NotBounties extends JavaPlugin {
         var integrations = ConfigOptions.getIntegrations();
         List<String> hooks = new ArrayList<>();
 
+        if (NumberFormatting.isCoinWalletEnabled()) hooks.add("CoinWallet");
         if (NumberFormatting.isVaultEnabled()) hooks.add("Vault");
         if (integrations.isPapiEnabled()) hooks.add("PlaceholderAPI");
         if (integrations.isHeadDataBaseEnabled()) hooks.add("HeadDataBase");

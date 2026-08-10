@@ -52,6 +52,7 @@ public class BountyManager {
 
     private static final int BOUNTY_LIST_LENGTH = 10;
     private static List<BountyClaimInstance> delayedBountyClaims = Collections.synchronizedList(new LinkedList<>());
+    private static final List<PendingBounty> pendingBounties = Collections.synchronizedList(new ArrayList<>());
 
     private BountyManager(){}
 
@@ -173,7 +174,14 @@ public class BountyManager {
         boolean refund = false;
         // refund amount
         if (amount > 0) {
-            if (NumberFormatting.isVaultEnabled() && !NumberFormatting.isOverrideVault()) {
+            boolean coinWalletAvailable = NumberFormatting.isCoinWalletEnabled() && !NumberFormatting.isOverrideVault() && NumberFormatting.getCoinWalletClass() != null && NumberFormatting.getCoinWalletClass().isWorking();
+            if (coinWalletAvailable) {
+                if (!NumberFormatting.getCoinWalletClass().deposit(player, (int) amount)) {
+                    Bukkit.getLogger().warning("[NotBounties] Error depositing currency with CoinWallet for " + LoggedPlayers.getPlayerName(uuid) + "! Will retry when player joins next.");
+                    addRefund(uuid, amount, reason);
+                    refund = true;
+                }
+            } else if (NumberFormatting.isVaultEnabled() && !NumberFormatting.isOverrideVault()) {
                 if (!NumberFormatting.getVaultClass().deposit(player, amount)) {
                     Bukkit.getLogger().warning("[NotBounties] Error depositing currency with vault for " + LoggedPlayers.getPlayerName(uuid) + "! Will retry when player joins next.");
                     addRefund(uuid, amount, reason);
@@ -213,6 +221,40 @@ public class BountyManager {
 
     private static void addRefund(UUID uuid, double amount, String reason) {
             DataManager.getPlayerData(uuid).addRefund(new AmountRefund(amount, reason));
+    }
+
+    public static void addPendingBounty(PendingBounty pending) {
+        pendingBounties.add(pending);
+    }
+
+    public static List<PendingBounty> getPendingBounties() {
+        return new ArrayList<>(pendingBounties);
+    }
+
+    public static void processPendingBounties() {
+        if (pendingBounties.isEmpty())
+            return;
+        synchronized (pendingBounties) {
+            Iterator<PendingBounty> it = pendingBounties.iterator();
+            while (it.hasNext()) {
+                PendingBounty pending = it.next();
+                if (pending.isReady()) {
+                    OfflinePlayer receiver = Bukkit.getOfflinePlayer(pending.getReceiverUUID());
+                    OfflinePlayer setter = Bukkit.getOfflinePlayer(pending.getSetterUUID());
+                    if (setter.isOnline() && setter.getPlayer() != null) {
+                        addBounty(setter.getPlayer(), receiver, pending.getAmount(), pending.getItems(), pending.getWhitelist());
+                    } else {
+                        addBounty(receiver, pending.getAmount(), pending.getItems(), pending.getWhitelist());
+                    }
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    public static void loadPendingBounties(List<PendingBounty> loaded) {
+        pendingBounties.clear();
+        pendingBounties.addAll(loaded);
     }
 
     private static void addRefund(UUID uuid, List<ItemStack> items, String reason) {
@@ -389,8 +431,8 @@ public class BountyManager {
             return;
         }
 
-        TimedBounties.onDeath(player); // reset next bounty timer for being killed
-        boolean cancelTrickle = MurderBounties.killPlayer(player, killer); // possibly add bounty on killer
+        // TimedBounties.onDeath(player); // auto-bounties disabled
+        boolean cancelTrickle = false; // MurderBounties.killPlayer(player, killer); // auto-bounties disabled
 
         // check if killer can steal a bounty
         tryStealBounty(player, killer); // async-safe
@@ -530,7 +572,7 @@ public class BountyManager {
                 }
             }
         }
-        Bounty rewardedBounty = TrickleBounties.getRewardedBounty(claimedBounty, killer);
+        Bounty rewardedBounty = claimedBounty; // TrickleBounties.getRewardedBounty(claimedBounty, killer);
         NotBounties.debugMessage("Redeeming Reward: of " + rewardedBounty.getTotalDisplayBounty(), false);
         NotBounties.debugMessage(rewardedBounty.toString(), false);
         if (!ConfigOptions.getMoney().getRedeemRewardLater().isVouchers()) {
@@ -618,10 +660,11 @@ public class BountyManager {
         DataManager.changeStats(killer.getUniqueId(), new PlayerStat(1,0,0,0,0, bounty.getTotalDisplayBounty(killer)));
         NotBounties.debugMessage("Given stats.", false);
         List<Setter> removedSetters = new LinkedList<>(rewardedBounty.getSetters());
-        if (!cancelTrickle) {
-            Bounty transferedBounty = TrickleBounties.transferBounty(bounty, killer);
-            removedSetters.addAll(transferedBounty.getSetters());
-        }
+        // auto-bounties disabled
+        // if (!cancelTrickle) {
+        //     Bounty transferedBounty = TrickleBounties.transferBounty(bounty, killer);
+        //     removedSetters.addAll(transferedBounty.getSetters());
+        // }
 
         DataManager.removeSetters(bounty, removedSetters);
 

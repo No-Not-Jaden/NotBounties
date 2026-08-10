@@ -336,6 +336,12 @@
             <version>2.19.2</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>me.hboj</groupId>
+            <artifactId>CoinWallet</artifactId>
+            <version>1.0.1</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- https://central.sonatype.com/artifact/com.cjcrafter/foliascheduler -->
         <dependency>
             <groupId>com.cjcrafter</groupId>

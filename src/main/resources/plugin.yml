@@ -8,6 +8,7 @@ folia-supported: true
 softdepend:
   - PlaceholderAPI
   - HeadDataBase
+  - CoinWallet
   - Vault
   - LiteBans
   - SkinsRestorer
@@ -34,6 +35,8 @@ commands:
   notbounties:
     description: Use all of the bounty commands.
     permission: notbounties.player
+    aliases:
+      - bounty
   notbountiesadmin:
     description: Run bounty commands for other people.
     permission: notbounties.admin

@@ -193,6 +193,10 @@ public class BountyExpansion extends PlaceholderExpansion {
             return String.valueOf(Leaderboard.CLAIMED.getStat(player.getUniqueId()));
         }
 
+        if (params.equalsIgnoreCase("currency_icon")) {
+            return "§e♦";
+        }
+
         if (params.equalsIgnoreCase("notification")) {
             return DataManager.getPlayerData(player.getUniqueId()).getBroadcastSettings() + "";
         }

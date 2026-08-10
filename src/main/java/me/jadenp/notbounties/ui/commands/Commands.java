@@ -4,6 +4,7 @@ import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.bounty_events.BountyEditEvent;
 import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
 import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.PendingBounty;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.data.Whitelist;
@@ -1639,7 +1640,26 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         try {
                                             if (NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL)
                                                 NumberFormatting.doRemoveCommands(parser, finalTotal, new ArrayList<>());
-                                            addBounty(parser, player, finalAmount, items, whitelist);
+                                            long delay = ImmunityManager.getSetDelay();
+                                            if (delay > 0) {
+                                                PendingBounty pending = new PendingBounty(
+                                                    parser.getUniqueId(), parser.getName(),
+                                                    playerUUID, player.getName(),
+                                                    finalAmount, items, whitelist,
+                                                    System.currentTimeMillis(), delay
+                                                );
+                                                BountyManager.addPendingBounty(pending);
+                                                DataManager.getPlayerData(parser.getUniqueId()).setBountyCooldown(System.currentTimeMillis());
+                                                if (!finalSilent1) {
+                                                    String timeStr = LocalTime.formatTime(delay * 1000, LocalTime.TimeFormat.RELATIVE);
+                                                    String msg = LanguageOptions.isMessage("bounty-set-delayed")
+                                                        ? getMessage("bounty-set-delayed")
+                                                        : "&aYour bounty will be placed in {time}.";
+                                                    sender.sendMessage(parse(getPrefix() + msg.replace("{time}", timeStr), parser));
+                                                }
+                                            } else {
+                                                addBounty(parser, player, finalAmount, items, whitelist);
+                                            }
                                             reopenBountiesGUI();
                                         } catch (NotEnoughCurrencyException e) {
                                             if (!finalSilent1)

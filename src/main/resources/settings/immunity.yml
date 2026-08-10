@@ -41,3 +41,6 @@ new-player-immunity: 0 # 300 = 5 min, 3600 = 1 hr, 43200 = 12 hr
 
 # How long a player has to wait before setting another bounty - measured in seconds
 bounty-cooldown: 2
+
+# delay in seconds before a set bounty becomes active; money is taken immediately
+set-delay: 0

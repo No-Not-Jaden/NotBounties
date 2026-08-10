@@ -39,7 +39,7 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
         colorTranslations.put('3', new Color(0,170,170));
         colorTranslations.put('4', new Color(170,0,0));
         colorTranslations.put('5', new Color(170,0,170));
-        colorTranslations.put('6', new Color(255,170,0));
+        colorTranslations.put('6', new Color(200,130,20));
         colorTranslations.put('7', new Color(170,170,170));
         colorTranslations.put('8', new Color(85,85,85));
         colorTranslations.put('9', new Color(85,85,255));
@@ -47,7 +47,7 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
         colorTranslations.put('b', new Color(85,255,255));
         colorTranslations.put('c', new Color(255,85,85));
         colorTranslations.put('d', new Color(255,85,255));
-        colorTranslations.put('e', new Color(255,255,85));
+        colorTranslations.put('e', new Color(235,185,40));
         colorTranslations.put('f', Color.WHITE);
         colorTranslations.put('r', Color.BLACK);
     }

@@ -100,7 +100,9 @@ public class BountyBoard {
      */
     public static synchronized void update() {
         if (!Bukkit.isPrimaryThread()) {
-            Bukkit.getScheduler().runTask(NotBounties.getInstance(), BountyBoard::update);
+            // the classic BukkitScheduler.runTask() is unsupported on Folia (no single primary thread);
+            // route through the Folia-aware global scheduler that the rest of the plugin uses instead
+            NotBounties.getServerImplementation().global().run(BountyBoard::update);
             return;
         }
         if (BountyBoard.getLastBountyBoardUpdate() + updateInterval * 1000L < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled()) {

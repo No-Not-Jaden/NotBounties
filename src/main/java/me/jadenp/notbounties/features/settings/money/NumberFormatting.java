@@ -15,6 +15,7 @@ import me.jadenp.notbounties.utils.tasks.MultipleItemGive;
 import me.jadenp.notbounties.utils.tasks.SingleItemGive;
 import me.jadenp.notbounties.features.settings.integrations.external_api.EssentialsXClass;
 import me.jadenp.notbounties.features.settings.integrations.external_api.PlaceholderAPIClass;
+import me.jadenp.notbounties.features.settings.integrations.external_api.CoinWalletClass;
 import me.jadenp.notbounties.features.settings.integrations.external_api.VaultClass;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -61,9 +62,15 @@ public class NumberFormatting {
     }
     private static CurrencyAddType addSingleCurrency = CurrencyAddType.DESCENDING;
     private static boolean usingPapi = false;
+    private static CoinWalletClass coinWalletClass = null;
+    private static boolean coinWalletEnabled = false;
     private static VaultClass vaultClass = null;
     private static boolean vaultEnabled = false;
     private static boolean overrideVault = true;
+
+    private static boolean useCoinWallet() {
+        return coinWalletEnabled && !overrideVault && coinWalletClass != null && coinWalletClass.isWorking();
+    }
     private static boolean bountyItemsOverrideImmunity = false;
     public enum ManualEconomy {
         AUTOMATIC, PARTIAL, MANUAL
@@ -89,6 +96,7 @@ public class NumberFormatting {
     public static void loadConfiguration(ConfigurationSection currencyOptions, ConfigurationSection numberFormatting, Plugin plugin) {
         ConfigOptions.getIntegrations().loadEssentialsX();
         NumberFormatting.plugin = plugin;
+        coinWalletEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("CoinWallet");
         vaultEnabled = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
         overrideVault = currencyOptions.getBoolean("override-vault");
         try {
@@ -98,6 +106,18 @@ public class NumberFormatting {
             plugin.getLogger().warning("Invalid manual-economy type!");
         }
 
+        if (coinWalletEnabled && !overrideVault) {
+            try {
+                coinWalletClass = new CoinWalletClass();
+                if (coinWalletClass.isWorking())
+                    NotBounties.debugMessage("Using CoinWallet as currency!", false);
+                else
+                    coinWalletEnabled = false;
+            } catch (Throwable t) {
+                plugin.getLogger().warning("Failed to load CoinWallet integration: " + t.getClass().getSimpleName() + ": " + t.getMessage());
+                coinWalletEnabled = false;
+            }
+        }
         if (vaultEnabled && !overrideVault) {
             vaultClass = new VaultClass();
             NotBounties.debugMessage("Using Vault as currency!", false);
@@ -559,6 +579,14 @@ public class NumberFormatting {
             return new EnumMap<>(Material.class);
         }
 
+        if (useCoinWallet()) {
+            if (coinWalletClass.withdraw(p, (int) amount)) {
+                runCurrencyCommands(p, amount, removeCommands);
+                return new EnumMap<>(Material.class);
+            }
+            plugin.getLogger().warning("CoinWallet could not withdraw " + (int) amount + " from " + p.getName() + " — insufficient funds or error");
+            throw new NotEnoughCurrencyException("Not enough coins in wallet.");
+        }
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.withdraw(p, amount)) {
                 runCurrencyCommands(p, amount, removeCommands);
@@ -868,6 +896,14 @@ public class NumberFormatting {
         return total;
     }
 
+    public static CoinWalletClass getCoinWalletClass() {
+        return coinWalletClass;
+    }
+
+    public static boolean isCoinWalletEnabled() {
+        return coinWalletEnabled;
+    }
+
     public static VaultClass getVaultClass() {
         return vaultClass;
     }
@@ -880,6 +916,14 @@ public class NumberFormatting {
             return;
         }
 
+        if (useCoinWallet()) {
+            if (coinWalletClass.deposit(p, (int) amount)) {
+                runCurrencyCommands(p, amount, addCommands);
+                return;
+            }
+            plugin.getLogger().warning("CoinWallet could not deposit " + (int) amount + " to " + p.getName() + " — will retry later.");
+            BountyManager.refundPlayer(p.getUniqueId(), amount, Collections.emptyList(), "CoinWallet deposit error");
+        }
         if (vaultEnabled && !overrideVault) {
             if (vaultClass.deposit(p, amount)) {
                 NotBounties.debugMessage("Deposited money with vault!", false);
@@ -1113,6 +1157,8 @@ public class NumberFormatting {
     }
 
     public static boolean checkBalance(Player player, double amount) {
+        if (useCoinWallet())
+            return coinWalletClass.checkBalance(player, (int) amount);
         if (vaultEnabled && !overrideVault)
             return vaultClass.checkBalance(player, amount);
         double bal = getBalance(player);
@@ -1122,6 +1168,8 @@ public class NumberFormatting {
     }
 
     public static boolean shouldUseDecimals(){
+        if (useCoinWallet())
+            return true;
         if (vaultEnabled && !overrideVault)
             return true;
         for (String c : currency) {
@@ -1217,6 +1265,8 @@ public class NumberFormatting {
      * @return Balance of player
      */
     public static double getBalance(OfflinePlayer player) {
+        if (useCoinWallet())
+            return coinWalletClass.getBalance(player);
         if (vaultEnabled && !overrideVault)
             return vaultClass.getBalance(player);
         if (currency.isEmpty()){

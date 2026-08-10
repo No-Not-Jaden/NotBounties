@@ -153,6 +153,7 @@ public class LocalTime {
      */
     private static String formatDuration(long millis, String format) {
         long totalSeconds = millis / 1000;
+        long originalTotalSeconds = totalSeconds;
 
         long days = totalSeconds / 86400;
         totalSeconds %= 86400;
@@ -205,7 +206,7 @@ public class LocalTime {
         // Cleanup whitespace
         result = result.trim().replaceAll("\\s+", " ");
 
-        return totalSeconds == 0 ? "0s" : result;
+        return originalTotalSeconds == 0 ? "0s" : result;
     }
 
     public static String formatTime(long time, TimeFormat format, Player... players) {

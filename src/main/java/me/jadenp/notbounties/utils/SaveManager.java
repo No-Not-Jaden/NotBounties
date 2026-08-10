@@ -9,6 +9,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.utils.SerializeInventory;
 import me.jadenp.notbounties.data.player_data.PlayerDataAdapter;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.auto_bounties.RandomBounties;
@@ -24,6 +25,7 @@ import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
 import me.jadenp.notbounties.features.settings.display.map.BountyBoardTypeAdapter;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import org.bukkit.Location;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.io.*;
@@ -74,6 +76,7 @@ public class SaveManager {
             saveBounties(dataDirectory);
             saveStats(dataDirectory);
             savePlayerData(dataDirectory);
+            savePendingBounties(dataDirectory);
 
             BackupManager.saveBackups(dataDirectory, new File(plugin.getDataFolder() + File.separator + "backups"));
             saveLock = false;
@@ -572,5 +575,96 @@ public class SaveManager {
             NotBounties.debugMessage("Deleted proxy_message_cache.bin.", false);
 
         return messages;
+    }
+
+    public static void savePendingBounties(File dataDirectory) throws IOException {
+        List<PendingBounty> pending = BountyManager.getPendingBounties();
+        if (pending.isEmpty()) {
+            File file = new File(dataDirectory + File.separator + "pending_bounties.json");
+            if (file.exists())
+                file.delete();
+            return;
+        }
+        File file = new File(dataDirectory + File.separator + "pending_bounties.json");
+        if (file.createNewFile())
+            NotBounties.debugMessage("Created a new pending_bounties.json file.", false);
+        try (JsonWriter writer = new JsonWriter(new FileWriter(file))) {
+            writer.beginArray();
+            for (PendingBounty pb : pending) {
+                writer.beginObject();
+                writer.name("setterUUID").value(pb.getSetterUUID().toString());
+                writer.name("setterName").value(pb.getSetterName());
+                writer.name("receiverUUID").value(pb.getReceiverUUID().toString());
+                writer.name("receiverName").value(pb.getReceiverName());
+                writer.name("amount").value(pb.getAmount());
+                String itemsBase64 = SerializeInventory.itemStackArrayToBase64(pb.getItems().toArray(new ItemStack[0]));
+                writer.name("items").value(itemsBase64);
+                writer.name("setTime").value(pb.getSetTime());
+                writer.name("delaySeconds").value(pb.getDelaySeconds());
+                writer.name("whitelist");
+                new WhitelistTypeAdapter().write(writer, pb.getWhitelist());
+                writer.endObject();
+            }
+            writer.endArray();
+        }
+    }
+
+    public static void loadPendingBounties(Plugin plugin) throws IOException {
+        File dataDirectory = new File(plugin.getDataFolder() + File.separator + "data");
+        File file = new File(dataDirectory + File.separator + "pending_bounties.json");
+        if (!file.exists())
+            return;
+        List<PendingBounty> loaded = new ArrayList<>();
+        try (JsonReader reader = new JsonReader(new FileReader(file))) {
+            try {
+                if (reader.peek() == JsonToken.NULL) {
+                    reader.nextNull();
+                    return;
+                }
+            } catch (EOFException e) {
+                return;
+            }
+            reader.beginArray();
+            WhitelistTypeAdapter whitelistAdapter = new WhitelistTypeAdapter();
+            while (reader.hasNext()) {
+                reader.beginObject();
+                UUID setterUUID = null;
+                String setName = null;
+                UUID receiverUUID = null;
+                String receiverName = null;
+                double amount = 0;
+                List<ItemStack> items = new ArrayList<>();
+                long setTime = 0;
+                long delaySeconds = 0;
+                Whitelist whitelist = new Whitelist(new TreeSet<>(), false);
+                while (reader.hasNext()) {
+                    String name = reader.nextName();
+                    switch (name) {
+                        case "setterUUID" -> setterUUID = UUID.fromString(reader.nextString());
+                        case "setterName" -> setName = reader.nextString();
+                        case "receiverUUID" -> receiverUUID = UUID.fromString(reader.nextString());
+                        case "receiverName" -> receiverName = reader.nextString();
+                        case "amount" -> amount = reader.nextDouble();
+                        case "items" -> {
+                            String base64 = reader.nextString();
+                            ItemStack[] arr = SerializeInventory.itemStackArrayFromBase64(base64);
+                            if (arr != null)
+                                items = new ArrayList<>(Arrays.asList(arr));
+                        }
+                        case "setTime" -> setTime = reader.nextLong();
+                        case "delaySeconds" -> delaySeconds = reader.nextLong();
+                        case "whitelist" -> whitelist = whitelistAdapter.read(reader);
+                        default -> reader.skipValue();
+                    }
+                }
+                reader.endObject();
+                if (setterUUID != null && receiverUUID != null) {
+                    loaded.add(new PendingBounty(setterUUID, setName, receiverUUID, receiverName, amount, items, whitelist, setTime, delaySeconds));
+                }
+            }
+            reader.endArray();
+        }
+        BountyManager.loadPendingBounties(loaded);
+        NotBounties.debugMessage("Loaded " + loaded.size() + " pending bounties.", false);
     }
 }

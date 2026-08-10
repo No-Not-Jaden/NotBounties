@@ -89,6 +89,12 @@ custom-items:
     name: '&a&lAdd 10'
     commands:
       - '[next] 10'
+  add64:
+    material: LIME_STAINED_GLASS_PANE
+    amount: 64
+    name: '&a&lAdd 64'
+    commands:
+      - '[next] 64'
   add100:
     material: LIME_STAINED_GLASS_PANE
     amount: 64
@@ -481,7 +487,7 @@ select-price:
       item: add10
       slot: 32-34
     8:
-      item: add100
+      item: add64
       slot: 41-43
     9:
       item: enter-value
@@ -752,7 +758,7 @@ bounty-hunt-time:
       item: add10
       slot: 32-34
     8:
-      item: add100
+      item: add64
       slot: 41-43
     9:
       item: enter-hunt-time
