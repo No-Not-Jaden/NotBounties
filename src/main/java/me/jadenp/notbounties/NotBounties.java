@@ -80,6 +80,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * EconomyShopGUI hook
  * bounty hunt end admin command
  * last seen placeholder
+ * add delay for action commands
  */
 public final class NotBounties extends JavaPlugin {
 

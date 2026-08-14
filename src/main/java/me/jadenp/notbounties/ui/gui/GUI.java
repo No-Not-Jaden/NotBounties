@@ -769,13 +769,19 @@ public class GUI implements Listener {
      * @param player Player who may have a GUI open
      */
     public static void safeCloseGUI(Player player, boolean shutdown) {
-        if (playerInfo.containsKey(player.getUniqueId())) {
-            // return any items placed in the inventory
-            Inventory topInventory = CompatabilityUtils.getTopInventory(player);
-            returnGUIItems(player, topInventory, shutdown);
-            playerInfo.remove(player.getUniqueId());
-            player.closeInventory();
+        if (!NotBounties.getServerImplementation().isOwnedByCurrentRegion(player) && !shutdown) {
+            NotBounties.getServerImplementation().entity(player).run(() -> safeCloseGUI(player, false));
+            return;
         }
+
+            if (playerInfo.containsKey(player.getUniqueId())) {
+                // return any items placed in the inventory
+                Inventory topInventory = CompatabilityUtils.getTopInventory(player);
+                returnGUIItems(player, topInventory, shutdown);
+                playerInfo.remove(player.getUniqueId());
+                player.closeInventory();
+            }
+
     }
 
     private static void returnGUIItems(Player player, Inventory inventory, boolean shutdown) {
@@ -882,12 +888,12 @@ public class GUI implements Listener {
                                     TextComponent message = LanguageOptions.getTextComponent(messageText);
                                     TextComponent prefix = LanguageOptions.getTextComponent(LanguageOptions.parse(LanguageOptions.getPrefix(), (OfflinePlayer) event.getWhoClicked()));
                                     message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(messageText)));
-                                    message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " edit " + viewedBounty.getName() + " from " + playerName + " "));
+                                    message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " edit " + viewedBounty.getName() + " from " + playerName + " "));
                                     prefix.addExtra(message);
                                     event.getWhoClicked().spigot().sendMessage(prefix);
                                 } else if (event.isLeftClick()) {
                                     event.getWhoClicked().closeInventory();
-                                    Bukkit.dispatchCommand(event.getWhoClicked(), ConfigOptions.getPluginBountyCommands().get(0) + " remove " + viewedBounty.getName() + " from " + playerName);
+                                    Bukkit.dispatchCommand(event.getWhoClicked(), ConfigOptions.getPluginBountyCommands().getFirst() + " remove " + viewedBounty.getName() + " from " + playerName);
                                 }
                             } else {
                                 // no longer has a bounty
@@ -917,12 +923,12 @@ public class GUI implements Listener {
                         openGUI((Player) event.getWhoClicked(), "set-whitelist", 1, info.data());
                         break;
                     case "select-price":
-                        runGUIPluginCommand(event.getWhoClicked(), playerName + " " + info.page());
+                        runGUIPluginCommand((Player) event.getWhoClicked(), playerName + " " + info.page());
                         if (!ConfigOptions.isBountyConfirmation())
                             event.getWhoClicked().closeInventory();
                         break;
                     case "bounty-hunt-time":
-                        runGUIPluginCommand(event.getWhoClicked(), "hunt " + playerName + " " + info.page());
+                        runGUIPluginCommand((Player) event.getWhoClicked(), "hunt " + playerName + " " + info.page());
                         event.getWhoClicked().closeInventory();
                         break;
                     case "bounty-item-select":

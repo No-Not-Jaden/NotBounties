@@ -1623,7 +1623,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                 } else {
                                                     // erase data from gui
                                                     GUI.playerInfo.remove(parser.getUniqueId());
-                                                    parser.closeInventory();
+                                                    NotBounties.getServerImplementation().entity(parser).run(parser::closeInventory);
                                                 }
                                             } else {
                                                 result = NumberFormatting.removeItems(parser, new ArrayList<>(items), NumberFormatting.getManualEconomy() == ManualEconomy.AUTOMATIC);

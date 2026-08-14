@@ -93,8 +93,11 @@ public class BountyManager {
             return;
         }
         // unlock recipes
-        if (!setter.hasDiscoveredRecipe(BountyTracker.getBountyTrackerRecipe()))
-            setter.discoverRecipe(BountyTracker.getBountyTrackerRecipe());
+        NotBounties.getServerImplementation().entity(setter).run(() -> {
+            if (!setter.hasDiscoveredRecipe(BountyTracker.getBountyTrackerRecipe()))
+                setter.discoverRecipe(BountyTracker.getBountyTrackerRecipe());
+        });
+
 
         // add stat
         DataManager.changeStat(setter.getUniqueId(), Leaderboard.SET, 1);

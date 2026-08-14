@@ -25,6 +25,7 @@ import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
@@ -456,15 +457,11 @@ public class ConfigOptions {
      * @param sender Player who is going to run the command
      * @param command Command to be ran without the /bounty in front of it
      */
-    public static void runGUIPluginCommand(CommandSender sender, String command) {
-        if (!Bukkit.isPrimaryThread()) {
-            NotBounties.getServerImplementation().global().run(() -> runGUIPluginCommand(sender, command));
+    public static void runGUIPluginCommand(Player sender, String command) {
+        if (usePlcmdInGui) {
+            ActionCommands.runPlayerCommand(sender, pluginBountyCommands.getFirst() + " " + command);
         } else {
-            if (usePlcmdInGui) {
-                Bukkit.dispatchCommand(sender, pluginBountyCommands.getFirst() + " " + command);
-            } else {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "notbountiesadmin " + sender.getName() + " " + command);
-            }
+            ActionCommands.runConsoleCommand("notbountiesadmin " + sender.getName() + " " + command);
         }
     }
 

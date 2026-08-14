@@ -68,7 +68,7 @@ public class ActionCommands {
     }
 
     public static void executeBountyJoin(Player player, Bounty bounty) {
-        NotBounties.getServerImplementation().global().runDelayed(() -> {
+        NotBounties.getServerImplementation().entity(player).runDelayed(() -> {
             for (String command : bountyJoinCommands) {
                 execute(player, player, bounty, command, player.getUniqueId());
             }
@@ -76,7 +76,7 @@ public class ActionCommands {
     }
 
     public static void executeBountyQuit(Player player, Bounty bounty) {
-        NotBounties.getServerImplementation().global().run(() -> {
+        NotBounties.getServerImplementation().entity(player).run(() -> {
             for (String command : bountyQuitCommands) {
                 execute(player, player, bounty, command, player.getUniqueId());
             }
@@ -84,7 +84,7 @@ public class ActionCommands {
     }
 
     public static void executeBountyClaim(Player player, Player killer, Bounty bounty) {
-        NotBounties.getServerImplementation().global().runDelayed(task -> {
+        NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
             for (String command : bountyClaimCommands) {
                 execute(player, killer, bounty, command, player.getUniqueId());
             }
@@ -92,7 +92,7 @@ public class ActionCommands {
     }
 
     public static void executeBountySet(UUID receiver, Player setter, Bounty bounty) {
-        NotBounties.getServerImplementation().global().runDelayed(task -> {
+        NotBounties.getServerImplementation().entity(setter).runDelayed(task -> {
             for (String command : bountySetCommands) {
                 command = command.replace("{receiver}", LoggedPlayers.getPlayerName(receiver));
                 execute(Bukkit.getPlayer(receiver), setter, bounty, command, receiver);
@@ -112,7 +112,7 @@ public class ActionCommands {
      */
     public static void executeCommands(Player player, Player killer, List<String> commands) {
         Bounty bounty = BountyManager.getBounty(killer.getUniqueId());
-        NotBounties.getServerImplementation().global().run(() -> {
+        NotBounties.getServerImplementation().entity(player).run(() -> {
             for (String command : commands) {
                 execute(player, killer, bounty, command, player.getUniqueId());
             }
@@ -120,7 +120,7 @@ public class ActionCommands {
     }
 
     public static void executeBigBounty(Player player, Bounty bounty) {
-        NotBounties.getServerImplementation().global().runDelayed(task -> {
+        NotBounties.getServerImplementation().entity(player).runDelayed(task -> {
             for (String command : bigBountyCommands) {
                 execute(player, player, bounty, command, player.getUniqueId());
             }
@@ -524,12 +524,21 @@ public class ActionCommands {
             }
         } else if (player != null && (command.startsWith("[cprompt] ") || command.startsWith("[pprompt] "))) {
             boolean playerPrompt = command.startsWith("[pprompt] ");
+            if (!NotBounties.getServerImplementation().isOwnedByCurrentRegion(player)) {
+                NotBounties.getServerImplementation().entity(player).run(player::closeInventory);
+            } else {
+                player.closeInventory();
+            }
             command = command.substring(10);
-            player.closeInventory();
             Prompt.addCommandPrompt(player.getUniqueId(), new CommandPrompt(player, command, playerPrompt));
         } else if (player != null && command.startsWith("[close]")) {
-            player.closeInventory();
+            if (!NotBounties.getServerImplementation().isOwnedByCurrentRegion(player)) {
+                NotBounties.getServerImplementation().entity(player).run(player::closeInventory);
+            } else {
+                player.closeInventory();
+            }
             playerInfo.remove(player.getUniqueId());  // would only do something for bedrock players
+
         } else if (info != null && command.startsWith("[next]")) {
             int amount = 1;
             try {
@@ -669,12 +678,17 @@ public class ActionCommands {
         } else {
             if (ConfigOptions.getIntegrations().isPapiEnabled())
                 command = new PlaceholderAPIClass().parse(player, command);
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            runConsoleCommand(command);
         }
     }
 
+    public static void runConsoleCommand(String command) {
+        // for some reason, Bukkit.isPrimaryThread() may return true on folia, but an error will be thrown saying that the command was dispatched async
+        NotBounties.getServerImplementation().global().run(() -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command));
+    }
+
     public static void runPlayerCommand(Player player, String command) {
-        if (ServerVersions.isFolia()) {
+        if (!NotBounties.getServerImplementation().isOwnedByCurrentRegion(player)) {
             NotBounties.getServerImplementation().entity(player).run(() -> Bukkit.dispatchCommand(player, command));
         } else {
             Bukkit.dispatchCommand(player, command);
