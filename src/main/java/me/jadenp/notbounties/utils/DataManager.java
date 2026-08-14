@@ -245,6 +245,12 @@ public class DataManager {
         return DataManager.getTopBountiesAsync(sortType, offset, limit, ConfigOptions.getHiddenNames().stream().map(LoggedPlayers::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet()));
     }
 
+    public static CompletableFuture<Map<UUID, PlayerStat>> getPublicStatsAsync(Leaderboard sortStat, StatSortType sortType, long offset, long limit) {
+        // could add something that fetches more bounties if some were removed
+
+        return ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getStatsAsync(sortStat, sortType, offset, limit, ConfigOptions.getHiddenNames().stream().map(LoggedPlayers::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet()));
+    }
+
     /**
      * Remove a bounty from the active bounties
      *

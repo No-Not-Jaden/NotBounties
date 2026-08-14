@@ -1,8 +1,10 @@
 package me.jadenp.notbounties;
 
 import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.PlayerStat;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.databases.BountySortType;
+import me.jadenp.notbounties.features.settings.databases.StatSortType;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -89,14 +91,16 @@ public enum Leaderboard {
      */
     public CompletableFuture<String> getFormattedStat(UUID uuid){
         if (money) {
-            double stat = getStat(uuid);
-            String amountString = NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(stat) + NumberFormatting.getCurrencySuffix();
-            if (this == Leaderboard.IMMUNITY && ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.TIME) {
-                amountString = amountString + ChatColor.WHITE + " (" + LocalTime.formatTime(ImmunityManager.currencyToTime(stat), LocalTime.TimeFormat.RELATIVE) + ")";
-            }
-            return amountString;
+            return getStat(uuid).thenApply(stat -> {
+                String amountString = NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(stat) + NumberFormatting.getCurrencySuffix();
+                if (this == Leaderboard.IMMUNITY && ImmunityManager.getImmunityType() == ImmunityManager.ImmunityType.TIME) {
+                    amountString = amountString + ChatColor.WHITE + " (" + LocalTime.formatTime(ImmunityManager.currencyToTime(stat), LocalTime.TimeFormat.RELATIVE) + ")";
+                }
+                return amountString;
+            });
+
         }
-        return NumberFormatting.formatNumber(getStat(uuid));
+        return getStat(uuid).thenApply(NumberFormatting::formatNumber);
     }
 
     public String getStatMsg(boolean shorten){
@@ -117,29 +121,21 @@ public enum Leaderboard {
      * @return Map of UUID and stat value in descending order
      */
     public CompletableFuture<Map<UUID, Double>> getTop(int skip, int amount){
-        LinkedHashMap<UUID, Double> top = new LinkedHashMap<>();
+
         if (this == Leaderboard.CURRENT) {
-            return DataManager.getTopBountiesAsync(BountySortType.HIGHEST, skip, amount)
+            return DataManager.getPublicBountiesAsync(BountySortType.HIGHEST, skip, amount)
                     .thenApply(bounties -> bounties.stream()
                             .filter(bounty -> bounty.getTotalDisplayBounty() > 0)
                             .collect(Collectors.toMap(Bounty::getUUID, Bounty::getTotalDisplayBounty, (a, b) -> b, LinkedHashMap::new)));
         } else {
-            LinkedHashMap<UUID, Double> map = sortByValue(getStatMap()); // todo make a lot of these return futures
-            for (Map.Entry<UUID, Double> entry : map.entrySet()){
-                String name = LoggedPlayers.getPlayerName(entry.getKey());
-                if (ConfigOptions.getHiddenNames().contains(name))
-                    continue;
-                if (amount <= 0.01)
-                    return top;
-                if (skip == 0) {
-                    top.put(entry.getKey(), entry.getValue());
-                    amount--;
-                } else {
-                    skip--;
+            return DataManager.getPublicStatsAsync(this, StatSortType.HIGHEST, skip, amount).thenApply(map -> {
+                LinkedHashMap<UUID, Double> top = new LinkedHashMap<>();
+                for (Map.Entry<UUID, PlayerStat> entry : map.entrySet()){
+                    top.put(entry.getKey(), entry.getValue().leaderboardType(this));
                 }
-            }
+                return top;
+            });
         }
-        return top;
     }
 
     public CompletableFuture<Integer> getRank(UUID uuid){
