@@ -86,6 +86,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * shadow, opacity, and sprite tags
  * stop similar database requests before the first one can return, or times out
  * playtime placeholder
+ * bounty reason - make arguments after amount in command be tags you can add
  */
 public final class NotBounties extends JavaPlugin {
 

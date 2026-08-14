@@ -9,6 +9,7 @@ import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.features.settings.databases.wrappers.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
@@ -58,6 +59,46 @@ public class LocalData extends NotBountiesDatabase {
     @Override
     public Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
         throw new DatabaseConnectionException("Leaderboard lookup not allowed locally.");
+    }
+
+    @Override
+    public long getStatRank(UUID uuid, Leaderboard sortStat, StatSortType sortType, Set<UUID> excludedPlayers) {
+        if (excludedPlayers.contains(uuid)) {
+            return -1;
+        }
+
+        List<Map.Entry<UUID, PlayerStat>> entries = new ArrayList<>(statCache.asMap().entrySet());
+        Comparator<Map.Entry<UUID, PlayerStat>> comparator = switch (sortType) {
+            case HIGHEST -> Comparator
+                    .comparingDouble((Map.Entry<UUID, PlayerStat> entry) -> entry.getValue().leaderboardType(sortStat))
+                    .reversed()
+                    .thenComparing(Map.Entry::getKey);
+            case LOWEST -> Comparator
+                    .comparingDouble((Map.Entry<UUID, PlayerStat> entry) -> entry.getValue().leaderboardType(sortStat))
+                    .thenComparing(Map.Entry::getKey);
+            case NEWEST -> Comparator
+                    .comparingLong((Map.Entry<UUID, PlayerStat> entry) -> DataManager.getPlayerData(entry.getKey()).getLastSeen())
+                    .reversed()
+                    .thenComparing(Map.Entry::getKey);
+            case OLDEST -> Comparator
+                    .comparingLong((Map.Entry<UUID, PlayerStat> entry) -> DataManager.getPlayerData(entry.getKey()).getLastSeen())
+                    .thenComparing(Map.Entry::getKey);
+            case ALPHABETICAL -> Comparator
+                    .comparing((Map.Entry<UUID, PlayerStat> entry) -> LoggedPlayers.getPlayerName(entry.getKey()), Comparator.nullsLast(String::compareTo))
+                    .thenComparing(Map.Entry::getKey);
+            case REVERSE_ALPHABETICAL -> Comparator
+                    .comparing((Map.Entry<UUID, PlayerStat> entry) -> LoggedPlayers.getPlayerName(entry.getKey()), Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(Map.Entry::getKey);
+        };
+
+        entries.removeIf(entry -> excludedPlayers.contains(entry.getKey()));
+        entries.sort(comparator);
+        for (int i = 0; i < entries.size(); i++) {
+            if (entries.get(i).getKey().equals(uuid)) {
+                return i + 1L;
+            }
+        }
+        return -1;
     }
 
     public Map<UUID, PlayerStat> getCachedStats() {
@@ -144,6 +185,39 @@ public class LocalData extends NotBountiesDatabase {
     @Override
     public List<Bounty> getBounties(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
         throw new DatabaseConnectionException("Leaderboard lookup not allowed locally.");
+    }
+
+    @Override
+    public long getBountyRank(UUID uuid, BountySortType sortType, Set<UUID> excludedPlayers) {
+        if (excludedPlayers.contains(uuid)) {
+            return -1;
+        }
+
+        List<Bounty> bounties = getCachedBounties();
+        bounties.removeIf(bounty -> excludedPlayers.contains(bounty.getUUID()));
+
+        Comparator<Bounty> comparator = switch (sortType) {
+            case HIGHEST -> Comparator.comparingDouble((Bounty bounty) -> bounty.getTotalDisplayBounty()).reversed().thenComparing(Bounty::getUUID);
+            case LOWEST -> Comparator.comparingDouble((Bounty bounty) -> bounty.getTotalDisplayBounty()).thenComparing(Bounty::getUUID);
+            case NEWEST -> Comparator.comparingLong(Bounty::getLatestUpdate).reversed().thenComparing(Bounty::getUUID);
+            case OLDEST -> Comparator
+                    .comparingLong((Bounty bounty) -> bounty.getSetters().stream().mapToLong(Setter::getTimeCreated).filter(time -> time >= 0).min().orElse(0))
+                    .thenComparing(Bounty::getUUID);
+            case ALPHABETICAL -> Comparator
+                    .comparing(Bounty::getName, Comparator.nullsLast(String::compareTo))
+                    .thenComparing(Bounty::getUUID);
+            case REVERSE_ALPHABETICAL -> Comparator
+                    .comparing(Bounty::getName, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(Bounty::getUUID);
+        };
+
+        bounties.sort(comparator);
+        for (int i = 0; i < bounties.size(); i++) {
+            if (bounties.get(i).getUUID().equals(uuid)) {
+                return i + 1L;
+            }
+        }
+        return -1;
     }
 
     public List<Bounty> getCachedBounties() {

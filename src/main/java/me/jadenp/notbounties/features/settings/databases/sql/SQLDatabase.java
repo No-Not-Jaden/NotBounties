@@ -208,7 +208,7 @@ public class SQLDatabase extends NotBountiesDatabase {
 
     @Override
     public Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
-        Map<UUID, PlayerStat> stats = new HashMap<>();
+        Map<UUID, PlayerStat> stats = new LinkedHashMap<>();
         String sql = buildStatPageQuery(sortStat, sortType, excludedPlayers);
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -228,6 +228,34 @@ public class SQLDatabase extends NotBountiesDatabase {
             throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
         }
         return stats;
+    }
+
+    @Override
+    public long getStatRank(UUID uuid, Leaderboard sortStat, StatSortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        if (excludedPlayers.contains(uuid)) {
+            return -1;
+        }
+
+        String sql = buildStatRankQuery(sortStat, sortType, excludedPlayers);
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            int i = 1;
+            for (UUID excluded : excludedPlayers) {
+                stmt.setBytes(i++, convertToBinary(excluded));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                long rank = 1;
+                while (rs.next()) {
+                    if (uuid.equals(bytesToUUID(rs.getBytes("uuid")))) {
+                        return rank;
+                    }
+                    rank++;
+                }
+            }
+            return -1;
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        }
     }
 
     private static String buildStatPageQuery(
@@ -274,6 +302,40 @@ public class SQLDatabase extends NotBountiesDatabase {
                 sort.order()
         ));
 
+        return sql.toString();
+    }
+
+    private static String buildStatRankQuery(
+            Leaderboard stat,
+            StatSortType sort,
+            Set<UUID> excludedPlayers
+    ) {
+        StringBuilder sql = new StringBuilder();
+
+        sql.append("""
+                    SELECT
+                        stat.uuid
+                    FROM stat
+                """);
+
+        if (!excludedPlayers.isEmpty()) {
+            sql.append(' ').append("""
+                        WHERE stat.uuid NOT IN (%s)
+                    """.formatted(excludedPlayers.stream().map(u -> "?").collect(Collectors.joining(", "))));
+        }
+
+        if (sort.requiresPlayerJoin()) {
+            sql.append(' ').append("""
+                        JOIN player
+                            ON stat.uuid = player.uuid
+                    """);
+        }
+
+        String sortColumn = sort.sqlColumn() != null ? sort.sqlColumn() : stat.getColumnName();
+
+        sql.append(' ').append("""
+                    ORDER BY %s %s, stat.uuid ASC;
+                """.formatted(sortColumn, sort.order()));
         return sql.toString();
     }
 
@@ -893,6 +955,34 @@ public class SQLDatabase extends NotBountiesDatabase {
     }
 
     @Override
+    public long getBountyRank(UUID uuid, BountySortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        if (excludedPlayers.contains(uuid)) {
+            return -1;
+        }
+
+        String sql = buildBountyRankQuery(sortType, excludedPlayers);
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            int i = 1;
+            for (UUID excluded : excludedPlayers) {
+                stmt.setBytes(i++, convertToBinary(excluded));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                long rank = 1;
+                while (rs.next()) {
+                    if (uuid.equals(bytesToUUID(rs.getBytes("receiver")))) {
+                        return rank;
+                    }
+                    rank++;
+                }
+            }
+            return -1;
+        } catch (SQLException e) {
+            throw new DatabaseConnectionException(DISCONNECTED_MESSAGE, e);
+        }
+    }
+
+    @Override
     public long getNumBounties() throws DatabaseConnectionException {
         try (PreparedStatement stmt = connection.prepareStatement(
                 """
@@ -1017,6 +1107,14 @@ public class SQLDatabase extends NotBountiesDatabase {
         };
     }
 
+    private static @NotNull String buildBountyRankQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
+        return switch (sortType) {
+            case OLDEST,NEWEST -> buildTimePlacedRankQuery(sortType, excludedPlayers);
+            case HIGHEST, LOWEST -> buildDisplayAmountRankQuery(sortType, excludedPlayers);
+            case ALPHABETICAL, REVERSE_ALPHABETICAL -> buildNameRankQuery(sortType, excludedPlayers);
+        };
+    }
+
     private static @NotNull String buildDisplayAmountPageQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
         return """
                 SELECT
@@ -1028,6 +1126,17 @@ public class SQLDatabase extends NotBountiesDatabase {
                 ORDER BY total_display %s, receiver ASC
                 OFFSET ?
                 LIMIT ?;
+                """.formatted(getExcludedBountyPlayersClause(excludedPlayers), sortType.order());
+    }
+
+    private static @NotNull String buildDisplayAmountRankQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
+        return """
+                SELECT
+                    receiver
+                FROM bounty
+                %s
+                GROUP BY receiver
+                ORDER BY SUM(display) %s, receiver ASC;
                 """.formatted(getExcludedBountyPlayersClause(excludedPlayers), sortType.order());
     }
 
@@ -1050,6 +1159,18 @@ public class SQLDatabase extends NotBountiesDatabase {
                 """.formatted(order, getExcludedBountyPlayersClause(excludedPlayers), sortType.order());
     }
 
+    private static @NotNull String buildTimePlacedRankQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
+        final String aggregate = sortType.ascending() ? "MIN" : "MAX";
+        return """
+                SELECT
+                    receiver
+                FROM bounty
+                %s
+                GROUP BY receiver
+                ORDER BY %s(time_placed) %s, receiver ASC;
+                """.formatted(getExcludedBountyPlayersClause(excludedPlayers), aggregate, sortType.order());
+    }
+
     private static @NotNull String buildNamePageQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
         // names are unique
         final String excludedPlayersClause = excludedPlayers.isEmpty() ? "" : "WHERE receiver NOT IN (" + excludedPlayers.stream().map(u -> "?").collect(Collectors.joining(",")) + ")";
@@ -1061,6 +1182,17 @@ public class SQLDatabase extends NotBountiesDatabase {
                 ORDER BY name %s, uuid ASC
                 OFFSET ?
                 LIMIT ?;
+                """.formatted(excludedPlayersClause, sortType.order());
+    }
+
+    private static @NotNull String buildNameRankQuery(BountySortType sortType, Set<UUID> excludedPlayers) {
+        final String excludedPlayersClause = excludedPlayers.isEmpty() ? "" : "WHERE uuid NOT IN (" + excludedPlayers.stream().map(u -> "?").collect(Collectors.joining(",")) + ")";
+        return """
+                SELECT
+                    uuid AS receiver
+                FROM player
+                %s
+                ORDER BY name %s, uuid ASC;
                 """.formatted(excludedPlayersClause, sortType.order());
     }
 

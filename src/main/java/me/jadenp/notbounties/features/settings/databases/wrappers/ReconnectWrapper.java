@@ -114,6 +114,11 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     }
 
     @Override
+    public long getStatRank(UUID uuid, Leaderboard sortStat, StatSortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        return execute(() -> database.getStatRank(uuid, sortStat, sortType, excludedPlayers));
+    }
+
+    @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) throws DatabaseConnectionException {
         executeVoid(() -> database.addStats(playerStats));
     }
@@ -166,6 +171,11 @@ public class ReconnectWrapper extends NotBountiesDatabase {
     @Override
     public List<Bounty> getBounties(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
         return execute(() -> database.getBounties(sortType, offset, limit, excludedPlayers));
+    }
+
+    @Override
+    public long getBountyRank(UUID uuid, BountySortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        return execute(() -> database.getBountyRank(uuid, sortType, excludedPlayers));
     }
 
     @Override

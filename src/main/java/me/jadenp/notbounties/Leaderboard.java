@@ -164,18 +164,6 @@ public enum Leaderboard {
         return rank;
     }
 
-    /**
-     * Construct a map of this specific leaderboard stat.
-     * Will not work for the CURRENT leaderboard
-     * @return A map containing all stats for a specific type.
-     */
-    public @NotNull Map<UUID, Double> getStatMap() {
-        LinkedHashMap<UUID, Double> map = new LinkedHashMap<>();
-        if (this == Leaderboard.CURRENT) {
-            return map;
-        }
-        return DataManager.getAllStats().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().leaderboardType(this), (a, b) -> b, LinkedHashMap::new));
-    }
 
     public void displayTopStat(CommandSender sender, int amount){
         if (sender instanceof Player player)
@@ -183,20 +171,29 @@ public enum Leaderboard {
         else
             sender.sendMessage(parse(getMessage("bounty-top-title"), null));
         boolean useCurrency = this == Leaderboard.IMMUNITY || this == Leaderboard.CLAIMED || this == Leaderboard.ALL;
-        Map<UUID, Double> map = getTop(0, amount);
-        int i = 0;
-        for (Map.Entry<UUID, Double> entry : map.entrySet()){
-            OfflinePlayer p = Bukkit.getOfflinePlayer(entry.getKey());
-            String name = LoggedPlayers.getPlayerName(entry.getKey());
-            sender.sendMessage(parseBountyTopString(i + 1, name, entry.getValue(), useCurrency, p));
-            i++;
-        }
-        sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                   ");
+        getTop(0, amount).thenAccept(map -> {
+            int i = 0;
+            for (Map.Entry<UUID, Double> entry : map.entrySet()){
+                OfflinePlayer p = Bukkit.getOfflinePlayer(entry.getKey());
+                String name = LoggedPlayers.getPlayerName(entry.getKey());
+                sender.sendMessage(parseBountyTopString(i + 1, name, entry.getValue(), useCurrency, p));
+                i++;
+            }
+            sender.sendMessage(ChatColor.GRAY + "" + ChatColor.STRIKETHROUGH + "                                                   ");
+        });
+
     }
 
 
+    /**
+     * Parse the text for the player, replacing {amount} for the formatted stat.
+     * @apiNote This will load the stats of the player, so it should be used asynchronously.
+     * @param text Text to format.
+     * @param player Player to format the text for.
+     * @return A formatted String.
+     */
     private String parseStats(String text, OfflinePlayer player){
-        text = text.replace("{amount}", (getFormattedStat(player.getUniqueId())));
+        text = text.replace("{amount}", (getFormattedStat(player.getUniqueId()).join()));
 
         return parse(text, player);
     }
@@ -243,34 +240,35 @@ public enum Leaderboard {
         return parse(text, player);
     }
 
-    public Map<UUID, Double> getSortedList(int skip, int amount, int sortType) {
-        LinkedHashMap<UUID, Double> top = (LinkedHashMap<UUID, Double>) getTop(skip, amount);
-        if (sortType == 2)
-            top = reverseMap(top);
-        if (sortType == 3)
-            top = sortByName(top);
-        if (sortType == 4)
-            top = reverseMap(sortByName(top));
-        return top;
-    }
-    public Map<UUID, String> getFormattedList(int skip, int amount, int sortType){
-        LinkedHashMap<UUID, Double> top = (LinkedHashMap<UUID, Double>) getSortedList(skip, amount, sortType);
-        LinkedHashMap<UUID, String> formattedList = new LinkedHashMap<>();
-        for (Map.Entry<UUID, Double> entry : top.entrySet()){
-            if (this.isMoney()) {
-                formattedList.put(entry.getKey(), NumberFormatting.getCurrencyPrefix() + NumberFormatting.getValue(entry.getValue()) + NumberFormatting.getCurrencySuffix());
-            } else {
-                formattedList.put(entry.getKey(), NumberFormatting.getValue(entry.getValue()));
-            }
-        }
-        return formattedList;
+    public CompletableFuture<Map<UUID, Double>> getSortedList(int skip, int amount, int sortType) {
+        return getTop(skip, amount).thenApply(map -> {
+            if (sortType == 2)
+                return reverseMap(map);
+            if (sortType == 3)
+                return sortByName(map);
+            if (sortType == 4)
+                return reverseMap(sortByName(map));
+            return map;
+        });
     }
 
-    private static LinkedHashMap<UUID, Double> reverseMap(LinkedHashMap<UUID, Double> map){
-        List<UUID> keys = new ArrayList<>(map.keySet());
-        Collections.reverse(keys);
+    public CompletableFuture<Map<UUID, String>> getFormattedList(int skip, int amount, int sortType) {
+        return getSortedList(skip, amount, sortType).thenApply(map -> {
+            LinkedHashMap<UUID, String> formattedList = new LinkedHashMap<>();
+            for (Map.Entry<UUID, Double> entry : map.entrySet()){
+                if (this.isMoney()) {
+                    formattedList.put(entry.getKey(), NumberFormatting.getCurrencyPrefix() + NumberFormatting.getValue(entry.getValue()) + NumberFormatting.getCurrencySuffix());
+                } else {
+                    formattedList.put(entry.getKey(), NumberFormatting.getValue(entry.getValue()));
+                }
+            }
+            return formattedList;
+        });
+    }
+
+    private static LinkedHashMap<UUID, Double> reverseMap(Map<UUID, Double> map){
         LinkedHashMap<UUID, Double> newMap = new LinkedHashMap<>();
-        for (UUID key : keys){
+        for (UUID key : map.keySet().stream().toList().reversed()){
             newMap.put(key, map.get(key));
         }
         return newMap;

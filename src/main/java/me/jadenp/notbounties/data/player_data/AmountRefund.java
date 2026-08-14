@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class AmountRefund extends OnlineRefund<Double> {
 
@@ -26,8 +27,8 @@ public class AmountRefund extends OnlineRefund<Double> {
     }
 
     @Override
-    public CompletableFuture<T> getRefundAsync() {
-        // TODO: implementation
+    public CompletableFuture<Double> getRefundAsync() {
+        return CompletableFuture.completedFuture(amount);
     }
 
     @Override

@@ -86,6 +86,17 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     public abstract Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
 
     /**
+     * Get rank of a player's stat according to the leaderboard settings.
+     * @param uuid UUID of the player.
+     * @param sortStat Stat being ranked.
+     * @param sortType How the stat leaderboard is sorted.
+     * @param excludedPlayers Players excluded from leaderboard results.
+     * @return 1-based rank, or -1 if no rank exists for the player.
+     * @throws DatabaseConnectionException If an error occurred while accessing the database.
+     */
+    public abstract long getStatRank(UUID uuid, Leaderboard sortStat, StatSortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
+
+    /**
      * Adds multiple stats to the database.
      * @apiNote This is used to synchronize multiple databases
      * @param playerStats Stats to be added to the database
@@ -178,6 +189,16 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * @throws DatabaseConnectionException When the database isn't connected.
      */
     public abstract List<Bounty> getBounties(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
+
+    /**
+     * Get rank of a player's bounty according to the sort settings.
+     * @param uuid UUID of the player.
+     * @param sortType How the bounty leaderboard is sorted.
+     * @param excludedPlayers Players excluded from leaderboard results.
+     * @return 1-based rank, or -1 if no rank exists for the player.
+     * @throws DatabaseConnectionException If an error occurred while accessing the database.
+     */
+    public abstract long getBountyRank(UUID uuid, BountySortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
 
     /**
      * Get the number of bounties in the database.

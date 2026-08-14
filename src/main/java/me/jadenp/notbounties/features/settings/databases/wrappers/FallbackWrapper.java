@@ -111,6 +111,14 @@ public class FallbackWrapper extends NotBountiesDatabase {
     }
 
     @Override
+    public long getStatRank(UUID uuid, Leaderboard sortStat, StatSortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        if (fallbackDB != null) {
+            return fallbackDB.getStatRank(uuid, sortStat, sortType, excludedPlayers);
+        }
+        return database.getStatRank(uuid, sortStat, sortType, excludedPlayers);
+    }
+
+    @Override
     public void addStats(Map<UUID, PlayerStat> playerStats) throws DatabaseConnectionException {
         executeUpdateOp(() -> database.addStats(playerStats), () -> fallbackDB.addStats(playerStats));
     }
@@ -167,6 +175,14 @@ public class FallbackWrapper extends NotBountiesDatabase {
             return fallbackDB.getBounties(sortType, offset, limit, excludedPlayers);
         }
         return database.getBounties(sortType, offset, limit, excludedPlayers);
+    }
+
+    @Override
+    public long getBountyRank(UUID uuid, BountySortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        if (fallbackDB != null) {
+            return fallbackDB.getBountyRank(uuid, sortType, excludedPlayers);
+        }
+        return database.getBountyRank(uuid, sortType, excludedPlayers);
     }
 
     @Override
