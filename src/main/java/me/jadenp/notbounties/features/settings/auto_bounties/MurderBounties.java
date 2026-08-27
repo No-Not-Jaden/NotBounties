@@ -95,9 +95,9 @@ public class MurderBounties {
         CompletableFuture<ImmunityManager.ImmunityType> appliedImmunity = ImmunityManager.getAppliedImmunity(killer.getUniqueId(), bountyIncrease);
         return CompletableFuture.allOf(hasPermissionImmunity, appliedImmunity).thenApply(ignored -> {
             double bountyAmount = playerBounty != null ? playerBounty.getTotalBounty() : 0;
-            return !ConfigOptions.getAutoBounties().isOverrideImmunity() // immunity is not overridden
-                    && ( // check external immunity
-                    appliedImmunity.join() != ImmunityManager.ImmunityType.DISABLE // has regular immunity
+            return ((!ConfigOptions.getAutoBounties().isOverrideImmunity() // immunity is not overridden
+                    &&  // check external immunity
+                    appliedImmunity.join() != ImmunityManager.ImmunityType.DISABLE) // has regular immunity
                     || hasPermissionImmunity.join() // has permission immunity
                     || (exclusiveMurderOrTrickle && TrickleBounties.getBountyTransferRatio(killerBounty != null) * bountyAmount > bountyIncrease) // trickle bounty will be used instead
                     )
