@@ -3,8 +3,8 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.features.ActionCommands;
+import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.utils.BountyManager.getAllBounties;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public class BigBounty {
@@ -88,17 +87,13 @@ public class BigBounty {
 
     public static void refreshParticlePlayers() {
         particlePlayers.clear();
-        List<Bounty> topBounties = getAllBounties(2);
 
-        for (Bounty bounty : topBounties) {
-            if (bounty.getTotalDisplayBounty() >= BigBounty.getThreshold()) {
-                OfflinePlayer player = Bukkit.getOfflinePlayer(bounty.getUUID());
-                if (player.isOnline()) {
-                    particlePlayers.add(Objects.requireNonNull(player.getPlayer()).getUniqueId());
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            DataManager.getBountyAsync(player.getUniqueId()).thenAccept(bounty -> {
+                if (bounty != null && bounty.getTotalDisplayBounty() >= BigBounty.getThreshold() && player.isOnline()) {
+                    particlePlayers.add(player.getUniqueId());
                 }
-            } else {
-                break;
-            }
+            });
         }
     }
 

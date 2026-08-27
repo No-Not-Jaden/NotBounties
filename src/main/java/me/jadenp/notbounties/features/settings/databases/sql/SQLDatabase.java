@@ -73,7 +73,7 @@ public class SQLDatabase extends NotBountiesDatabase {
                 continue;
             options.put(key, configuration.getString(key));
         }
-        url = configuration.getString("url", "jdbc:mysql://{host}:{port}/{database}?useSSL={ssl}&allowMultiQueries=true");
+        url = configuration.getString("url", "jdbc:sqlite:data/local.db");
         return configuration;
     }
 

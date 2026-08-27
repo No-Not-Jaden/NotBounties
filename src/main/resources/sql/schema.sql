@@ -37,14 +37,14 @@ CREATE TABLE IF NOT EXISTS bounty_item (
     bounty_id INT NOT NULL,
     item_list BLOB NOT NULL,
     PRIMARY KEY (bounty_id),
-    FOREIGN KEY (bounty_id) REFERENCES bounty(bounty_id) ON DELETE CASCADE,
+    FOREIGN KEY (bounty_id) REFERENCES bounty(bounty_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS refund_item (
     refund_id INT NOT NULL,
     item_list BLOB NOT NULL,
     PRIMARY KEY (refund_id),
-    FOREIGN KEY (refund_id) REFERENCES refund(refund_id) ON DELETE CASCADE,
+    FOREIGN KEY (refund_id) REFERENCES refund(refund_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS refund (
@@ -54,8 +54,7 @@ CREATE TABLE IF NOT EXISTS refund (
     refund_amount DOUBLE,
     reason VARCHAR(256),
     PRIMARY KEY (refund_id),
-    FOREIGN KEY (uuid) REFERENCES player(uuid) ON DELETE CASCADE,
-    FOREIGN KEY (item_id) REFERENCES item(item_id) ON DELETE CASCADE
+    FOREIGN KEY (uuid) REFERENCES player(uuid) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS bounty (
@@ -70,14 +69,13 @@ CREATE TABLE IF NOT EXISTS bounty (
     whitelist_mode BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (bounty_id),
     FOREIGN KEY (setter) REFERENCES player(uuid) ON DELETE NO ACTION,
-    FOREIGN KEY (receiver) REFERENCES player(uuid) ON DELETE NO ACTION,
-    FOREIGN KEY (item_id) REFERENCES item(item_id) ON DELETE SET NULL
+    FOREIGN KEY (receiver) REFERENCES player(uuid) ON DELETE NO ACTION
 );
 
 CREATE TABLE IF NOT EXISTS whitelist (
     owner BINARY(16) NOT NULL,
     uuid BINARY(16) NOT NULL,
-    PRIMARY KEY (owner, player),
+    PRIMARY KEY (owner, uuid),
     FOREIGN KEY (owner) REFERENCES player(uuid) ON DELETE CASCADE,
     FOREIGN KEY (uuid) REFERENCES player(uuid) ON DELETE CASCADE
 );
@@ -85,7 +83,7 @@ CREATE TABLE IF NOT EXISTS whitelist (
 CREATE TABLE IF NOT EXISTS bounty_whitelist (
     bounty_id INT NOT NULL,
     uuid BINARY(16) NOT NULL,
-    PRIMARY KEY (bounty_id, player),
+    PRIMARY KEY (bounty_id, uuid),
     FOREIGN KEY (bounty_id) REFERENCES bounty(bounty_id) ON DELETE CASCADE,
     FOREIGN KEY (uuid) REFERENCES player(uuid) ON DELETE CASCADE
     );

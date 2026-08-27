@@ -1,7 +1,7 @@
 package me.jadenp.notbounties.features.settings.auto_bounties;
 
-import com.cjcrafter.foliascheduler.TaskImplementation;
-import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.Bounty;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -12,6 +12,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static me.jadenp.notbounties.utils.BanChecker.isPlayerBanned;
 import static me.jadenp.notbounties.NotBounties.isVanished;
@@ -102,21 +103,23 @@ public class TimedBounties {
                 if (player.isOnline() && isVanished(Objects.requireNonNull(player.getPlayer())))
                     continue;
                 // set bounty
-                TaskImplementation<Boolean> checkBounty = NotBounties.getServerImplementation().async().runNow(task -> { return isPlayerBanned(player); });
-                checkBounty.asFuture().thenRun(() -> NotBounties.getServerImplementation().global().run(nextTask -> {
-                    if (Boolean.TRUE.equals(checkBounty.getCallback())) {
+                CompletableFuture<Bounty> bountyFuture = DataManager.getBountyAsync(player.getUniqueId());
+                CompletableFuture<Boolean> hasPermissionImmunity = ImmunityManager.hasPermissionImmunity(player, "notbounties.immunity.timed", PlayerData::hasTimedImmunity);
+                CompletableFuture<ImmunityManager.ImmunityType> appliedImmunity = ImmunityManager.getAppliedImmunity(player.getUniqueId(), bountyIncrease);
+                CompletableFuture.allOf(bountyFuture, hasPermissionImmunity, appliedImmunity).thenAcceptAsync(ignored -> {
+                    Bounty bounty = bountyFuture.join();
+                    if (!isPlayerBanned(player)) {
                         if (player.isOnline() || offlineTracking)
                             nextBounties.replace(entry.getKey(), System.currentTimeMillis() + time * 1000);
                         else nextBounties.replace(entry.getKey(), time * 1000);
-                        if (!hasBounty(player.getUniqueId()) || !isMaxed(Objects.requireNonNull(getBounty(player.getUniqueId())).getTotalDisplayBounty())) {
-                            // check immunity
-                            if ((ConfigOptions.getAutoBounties().isOverrideImmunity() || ImmunityManager.getAppliedImmunity(player.getUniqueId(), bountyIncrease) == ImmunityManager.ImmunityType.DISABLE) && !hasImmunity(player))
+                        if ((bounty == null || !isMaxed(bounty.getTotalDisplayBounty())) &&
+                                (ConfigOptions.getAutoBounties().isOverrideImmunity() || appliedImmunity.join() == ImmunityManager.ImmunityType.DISABLE) && Boolean.FALSE.equals(hasPermissionImmunity.join())) // check immunity
                                 addBounty(player, bountyIncrease, new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
-                        }
+
                     } else {
                         nextBounties.remove(entry.getKey());
                     }
-                }));
+                });
             }
         }
     }
@@ -167,13 +170,5 @@ public class TimedBounties {
             return nextBounties.get(uuid) - System.currentTimeMillis();
         }
         return -1;
-    }
-
-    private static boolean hasImmunity(OfflinePlayer player) {
-        if (!ImmunityManager.isPermissionImmunity())
-            return false;
-        if (player.isOnline())
-            return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.timed");
-        return DataManager.getPlayerData(player.getUniqueId()).hasTimedImmunity();
     }
 }

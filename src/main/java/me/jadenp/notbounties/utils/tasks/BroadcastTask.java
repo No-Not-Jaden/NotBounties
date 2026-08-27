@@ -140,17 +140,26 @@ public class BroadcastTask extends CancelableTask {
         }
     }
 
-    private static void sendBroadcast(String shortMessage, String[] extendedMessage, Player player, boolean overrideDisable) {
-        PlayerData.BroadcastSettings broadcastSettings = DataManager.getPlayerData(player.getUniqueId()).getBroadcastSettings();
-        if (broadcastSettings == PlayerData.BroadcastSettings.SHORT
-                || (broadcastSettings == PlayerData.BroadcastSettings.DISABLE && overrideDisable)) {
-            if (!shortMessage.isBlank())
-                player.sendMessage(shortMessage);
-        } else if (broadcastSettings == PlayerData.BroadcastSettings.EXTENDED) {
-            for (String string : extendedMessage) {
-                player.sendMessage(string);
-            }
-        }
+    public static void sendBroadcast(String shortMessage, String[] extendedMessage, Player player, boolean overrideDisable) {
+        DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> {
+            PlayerData.BroadcastSettings broadcastSettings = playerData.getBroadcastSettings();
+            NotBounties.getServerImplementation().global().run(() -> {
+                if (broadcastSettings == PlayerData.BroadcastSettings.SHORT
+                        || (broadcastSettings == PlayerData.BroadcastSettings.DISABLE && overrideDisable)) {
+                    if (!shortMessage.isBlank())
+                        player.sendMessage(shortMessage);
+                } else if (broadcastSettings == PlayerData.BroadcastSettings.EXTENDED) {
+                    if (extendedMessage == null || extendedMessage.length == 0) {
+                        player.sendMessage(shortMessage);
+                    } else {
+                        for (String string : extendedMessage) {
+                            player.sendMessage(string);
+                        }
+                    }
+                }
+            });
+        });
+
     }
 
     /**

@@ -127,7 +127,7 @@ public class MySQL {
                             if (bountyAmounts.containsKey(uuid)) {
                                 bountyAmounts.get(uuid).addBounty(setter);
                             } else {
-                                bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(setter)), resultSet.getString("name")));
+                                bountyAmounts.put(uuid, new Bounty(UUID.fromString(uuid), new ArrayList<>(Collections.singletonList(setter))));
                             }
                         } catch (IOException e) {
                             // error parsing encoded items

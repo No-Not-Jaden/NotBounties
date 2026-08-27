@@ -4,7 +4,7 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.features.settings.databases.Databases;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -39,7 +39,7 @@ public class PlayerStatAdapter extends TypeAdapter<PlayerStat> {
         double all = 0;
         double immunity = 0;
         double claimed = 0;
-        UUID serverID = DataManager.getDatabaseServerID(false);
+        UUID serverID = Databases.getDatabaseServerID();
         while (reader.hasNext()) {
             String name = reader.nextName();
             switch (name) {
@@ -52,14 +52,12 @@ public class PlayerStatAdapter extends TypeAdapter<PlayerStat> {
                 case "serverID", "server-id" -> {
                     if (reader.peek() == JsonToken.NULL) {
                         reader.nextNull();
-                        serverID = Databases.getDatabaseServerID();
                     } else {
                         serverID = UUID.fromString(reader.nextString());
                     }
                 }
-                default -> {
-                    // unknown stat
-                }
+                default -> // unknown stat
+                        reader.skipValue();
             }
         }
         reader.endObject();

@@ -29,8 +29,6 @@ import java.util.stream.Collectors;
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
-// TODO: make non async methods public
-
 /**
  * Manage the stored data.
  */
@@ -249,6 +247,63 @@ public class DataManager {
         // could add something that fetches more bounties if some were removed
 
         return ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getStatsAsync(sortStat, sortType, offset, limit, ConfigOptions.getHiddenNames().stream().map(LoggedPlayers::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet()));
+    }
+
+    public static CompletableFuture<Long> getStatRank(UUID uuid, Leaderboard sortStat, StatSortType sortType) {
+        return ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getStatRankAsync(uuid, sortStat, sortType, ConfigOptions.getHiddenNames().stream().map(LoggedPlayers::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet()));
+    }
+
+    public static CompletableFuture<Long> getBountyRank(UUID uuid, BountySortType bountySortType) {
+        return ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getBountyRankAsync(uuid, bountySortType, ConfigOptions.getHiddenNames().stream().map(LoggedPlayers::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet()));
+    }
+
+    @FunctionalInterface
+    public interface StatOperation {
+        void run(UUID uuid, PlayerStat stat);
+    }
+
+    public static void iterateAllStats(StatOperation op) {
+        iterateStats(0, op);
+    }
+
+    private static void iterateStats(long offset, StatOperation op) {
+        final long limit = 100;
+        // getting player data from the db will automatically update the impersistent name
+        ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getStatsAsync(Leaderboard.DEATHS, StatSortType.ALPHABETICAL, offset, limit, Collections.emptySet()).thenAccept(stats -> {
+            for (Map.Entry<UUID, PlayerStat> entry : stats.entrySet()) {
+                op.run(entry.getKey(), entry.getValue());
+            }
+            if (stats.size() >= limit) {
+                iterateStats(offset + limit, op);
+            }
+        });
+    }
+
+    @FunctionalInterface
+    public interface BountyOperation {
+        void run(Bounty bounty);
+    }
+
+    /**
+     * Operate on all bounties.
+     * Not guaranteed to hit every bounty exactly once.
+     * @param operation Operation to perform.
+     */
+    public static void iterateAllBounties(BountyOperation operation) {
+        iterateBounties(operation, 0);
+    }
+
+    private static void iterateBounties(BountyOperation operation, long offset) {
+        final long limit = 100;
+
+        ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getBountiesAsync(BountySortType.OLDEST, offset, limit, Collections.emptySet()).thenAccept(bounties -> {
+            for (Bounty bounty : bounties) {
+                operation.run(bounty);
+            }
+            if (bounties.size() >= limit) {
+                iterateBounties(operation, offset + limit);
+            }
+        });
     }
 
     /**

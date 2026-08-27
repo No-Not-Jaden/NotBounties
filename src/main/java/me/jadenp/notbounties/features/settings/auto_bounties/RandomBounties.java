@@ -2,6 +2,7 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.utils.BanChecker;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
@@ -12,9 +13,11 @@ import me.jadenp.notbounties.data.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import static me.jadenp.notbounties.utils.BountyManager.addBounty;
 
@@ -79,38 +82,44 @@ public class RandomBounties {
 
     public static void update() {
         // random bounties
-        if (randomBountyMinTime != 0 && nextRandomBounty != 0 && System.currentTimeMillis() > nextRandomBounty) {
-            if (!randomBountyOfflineSet && NotBounties.getNetworkPlayers().isEmpty()) {
-                setNextRandomBounty();
-                return;
-            }
-            UUID uuid = randomBountyOfflineSet ? (UUID) LoggedPlayers.getLoggedPlayers().keySet().toArray()[random.nextInt(LoggedPlayers.getLoggedPlayers().size())] : (UUID) NotBounties.getNetworkPlayers().keySet().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())];
-            if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
-                // this shouldn't be possible, but it's an extra safety measure
-                return;
-            final double[] price = {randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice)};
-            try {
-                OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-                // check immunity
-                if (!ConfigOptions.getAutoBounties().isOverrideImmunity() && ImmunityManager.getAppliedImmunity(player.getUniqueId(), price[0]) != ImmunityManager.ImmunityType.DISABLE || hasImmunity(player))
-                    return;
-                NotBounties.getServerImplementation().async().runNow(task -> {
-                    if (!BanChecker.isPlayerBanned(player)) {
-                        if (!NumberFormatting.shouldUseDecimals()) {
-                            price[0] = (long) price[0];
-                        }
-                        double finalPrice = price[0];
+        if (randomBountyMinTime == 0 || nextRandomBounty == 0 || System.currentTimeMillis() <= nextRandomBounty) {
+            return;
+        }
 
-                        NotBounties.getServerImplementation().global().run((Consumer<TaskImplementation<Void>>) task1 ->
-                                addBounty(player, finalPrice, new ArrayList<>(), new Whitelist(new TreeSet<>(), false)));
-
-                        setNextRandomBounty();
+        if (!randomBountyOfflineSet && NotBounties.getNetworkPlayers().isEmpty()) {
+            setNextRandomBounty();
+            return;
+        }
+        UUID uuid = randomBountyOfflineSet ? (UUID) LoggedPlayers.getLoggedPlayers().keySet().toArray()[random.nextInt(LoggedPlayers.getLoggedPlayers().size())] : (UUID) NotBounties.getNetworkPlayers().keySet().toArray()[random.nextInt(NotBounties.getNetworkPlayers().size())];
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
+            // this shouldn't be possible, but it's an extra safety measure
+            return;
+        final double[] price = {randomBountyMinPrice + Math.random() * (randomBountyMaxPrice - randomBountyMinPrice)};
+        try {
+            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+            // check immunity
+            CompletableFuture<Boolean> hasPermissionImmunity = ImmunityManager.hasPermissionImmunity(player, "notbounties.immunity.random", PlayerData::hasRandomImmunity);
+            CompletableFuture<ImmunityManager.ImmunityType> appliedImmunity = ImmunityManager.getAppliedImmunity(player.getUniqueId(), price[0]);
+            CompletableFuture.allOf(hasPermissionImmunity, appliedImmunity).thenAcceptAsync(ignored -> {
+                if (
+                        (ConfigOptions.getAutoBounties().isOverrideImmunity()
+                                || appliedImmunity.join() == ImmunityManager.ImmunityType.DISABLE)
+                                && !Boolean.TRUE.equals(hasPermissionImmunity.join())
+                                && !BanChecker.isPlayerBanned(player)
+                ) {
+                    if (!NumberFormatting.shouldUseDecimals()) {
+                        price[0] = (long) price[0];
                     }
-                });
 
-            } catch (IllegalArgumentException e) {
-                Bukkit.getLogger().info("[NotBounties] Invalid UUID of picked player for random bounty: " + uuid);
-            }
+                    addBounty(player, price[0], new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
+
+                    setNextRandomBounty();
+                }
+            });
+
+        } catch (IllegalArgumentException e) {
+            // what throws this?
+            NotBounties.getInstance().getLogger().warning("Invalid UUID of picked player for random bounty: " + uuid);
         }
     }
 
@@ -136,13 +145,5 @@ public class RandomBounties {
 
     public static void setTimeHash(int timeHash) {
         RandomBounties.timeHash = timeHash;
-    }
-
-    private static boolean hasImmunity(OfflinePlayer player) {
-        if (!ImmunityManager.isPermissionImmunity())
-            return false;
-        if (player.isOnline())
-            return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.random");
-        return DataManager.getPlayerData(player.getUniqueId()).hasRandomImmunity();
     }
 }

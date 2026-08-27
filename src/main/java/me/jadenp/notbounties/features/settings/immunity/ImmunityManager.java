@@ -1,18 +1,28 @@
 package me.jadenp.notbounties.features.settings.immunity;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
+import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
+import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.tasks.LoadPlaytimeTask;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.Function;
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
@@ -102,6 +112,7 @@ public class ImmunityManager {
 
     /**
      * Load the immunity configuration.
+     *
      * @param configuration The immunity configuration section in the config.yml file.
      */
     public static void loadConfiguration(ConfigurationSection configuration) {
@@ -120,21 +131,7 @@ public class ImmunityManager {
         permissionImmunity = configuration.getBoolean("permission-immunity");
         bountyCooldown = configuration.getLong("bounty-cooldown");
 
-        // When the server starts, SaveManager loads the old newPlayerImmunity value from last start before this is run.
-        long oldNewPlayerImmunity = newPlayerImmunity;
         newPlayerImmunity = configuration.getLong("new-player-immunity");
-        if (oldNewPlayerImmunity != newPlayerImmunity) {
-            // immunity changed - recalculate new player immunity for players
-            if (newPlayerImmunity > 0) {
-                LoadPlaytimeTask loadPlaytimeTask = new LoadPlaytimeTask(newPlayerImmunity > oldNewPlayerImmunity);
-                loadPlaytimeTask.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(loadPlaytimeTask, 1, 1));
-            } else {
-                // disabled
-                for (PlayerData pd : DataManager.getAllPlayerData()) {
-                    DataManager.getPlayerData(pd.getUuid()).setNewPlayer(false);
-                }
-            }
-        }
 
         if (immunityType == ImmunityType.TIME) {
             // convert saved times if necessary
@@ -166,33 +163,34 @@ public class ImmunityManager {
 
     public static void loadPlayerData() {
         // add immunity that isn't in time tracker - this should only do anything when immunity is switched to time immunity or the server is starting
-        Map<UUID, Double> immunity = getImmunity();
         if (immunityType == ImmunityType.TIME) {
-            for (Map.Entry<UUID, Double> entry : immunity.entrySet()) {
-                if (entry.getValue() > 0 && !immunityTimeTracker.containsKey(entry.getKey())) {
-                    if (onlinePlayers.contains(entry.getKey()) || timeOfflineTracking) {
-                        immunityTimeTracker.put(entry.getKey(), (long) ((entry.getValue() * time * 1000) + System.currentTimeMillis()));
+            DataManager.iterateAllStats((uuid, playerStat) -> {
+                if (playerStat.immunity() > 0 && !immunityTimeTracker.containsKey(uuid)) {
+                    if (onlinePlayers.contains(uuid) || timeOfflineTracking) {
+                        immunityTimeTracker.put(uuid, (long) ((playerStat.immunity() * time * 1000) + System.currentTimeMillis()));
                     } else {
-                        immunityTimeTracker.put(entry.getKey(), (long) (entry.getValue() * time * 1000));
+                        immunityTimeTracker.put(uuid, (long) (playerStat.immunity() * time * 1000));
                     }
                 }
-            }
+            });
         }
-
     }
 
     /**
      * Removes immunity of a player
+     *
      * @param uuid UUID of the player
-     * @return true if the player had immunity
+     * @return A true future if the player had immunity
      */
-    public static boolean removeImmunity(UUID uuid) {
-        if (getImmunity(uuid) == 0)
-            return false;
-        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY) * -1);
-        if (immunityType == ImmunityType.TIME)
-            immunityTimeTracker.remove(uuid);
-        return true;
+    public static CompletableFuture<Boolean> removeImmunity(UUID uuid) {
+        return DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY).thenApply(immunity -> {
+            if (immunity == 0)
+                return false;
+            DataManager.changeStat(uuid, Leaderboard.IMMUNITY, immunity * -1);
+            if (immunityType == ImmunityType.TIME)
+                immunityTimeTracker.remove(uuid);
+            return true;
+        });
     }
 
     public static double getScalingRatio() {
@@ -208,13 +206,13 @@ public class ImmunityManager {
     }
 
     public static void startGracePeriod(Player player) {
-        DataManager.getPlayerData(player.getUniqueId()).setLastClaim(System.currentTimeMillis());
+        DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> playerData.setLastClaim(System.currentTimeMillis()));
     }
 
     public static void update() {
         if (immunityType != ImmunityType.TIME)
             return;
-
+        // TODO: Check if immunity was removed on another server -> immunity value = 0
         // iterate through time tracker to find any expired immunity.
         List<UUID> expiredImmunity = new ArrayList<>();
         for (Map.Entry<UUID, Long> entry : immunityTimeTracker.entrySet()) {
@@ -224,17 +222,18 @@ public class ImmunityManager {
                 expiredImmunity.add(entry.getKey());
             } else {
                 double immunity = onlinePlayers.contains(entry.getKey()) || timeOfflineTracking ? (entry.getValue() - System.currentTimeMillis()) / 1000.0D / time : (double) (entry.getValue()) / 1000 / time;
-                DataManager.changeStat(entry.getKey(), Leaderboard.IMMUNITY, immunity - DataManager.getStatAsync(entry.getKey(), Leaderboard.IMMUNITY));
+                DataManager.getStatAsync(entry.getKey(), Leaderboard.IMMUNITY).thenAccept(immunityValue -> DataManager.changeStat(entry.getKey(), Leaderboard.IMMUNITY, immunity - immunityValue));
+
             }
         }
         for (UUID uuid : expiredImmunity) {
             if (onlinePlayers.contains(uuid)) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player != null)
-                    player.sendMessage(parse(getPrefix() + getMessage("immunity-expire"), player));
+                    Messages.send(player, getPrefix() + getMessage("immunity-expire"), MessageContext.builder().receiver(player).build());
             }
             immunityTimeTracker.remove(uuid);
-            DataManager.changeStat(uuid, Leaderboard.IMMUNITY, DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY) * -1);
+            DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY).thenAccept(immunityValue -> DataManager.changeStat(uuid, Leaderboard.IMMUNITY, immunityValue * -1));
         }
 
     }
@@ -259,7 +258,7 @@ public class ImmunityManager {
     }
 
     public static void setImmunity(UUID uuid, double amount) {
-        DataManager.changeStat(uuid, Leaderboard.IMMUNITY, amount - DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY));
+        DataManager.getStatAsync(uuid, Leaderboard.IMMUNITY).thenAccept(immunityValue -> DataManager.changeStat(uuid, Leaderboard.IMMUNITY, amount - immunityValue));
         if (immunityType == ImmunityType.TIME) {
             if (onlinePlayers.contains(uuid) || !timeOfflineTracking) {
                 immunityTimeTracker.put(uuid, (long) (amount * time * 1000L + System.currentTimeMillis()));
@@ -269,20 +268,19 @@ public class ImmunityManager {
         }
     }
 
-    private static Map<UUID, Double> getImmunity() {
-        return Leaderboard.IMMUNITY.getStatMap();
-    }
 
-    public static long getGracePeriod(@NotNull UUID uuid) {
-            long timeSinceDeath = System.currentTimeMillis() - DataManager.getPlayerData(uuid).getLastClaim();
+    public static CompletableFuture<Long> getGracePeriod(@NotNull UUID uuid) {
+        return DataManager.getPlayerDataAsync(uuid).thenApply(playerData -> {
+            long timeSinceDeath = System.currentTimeMillis() - playerData.getLastClaim();
             if (timeSinceDeath < gracePeriod * 1000L) {
                 // still in grace period
                 return (gracePeriod * 1000L) - timeSinceDeath;
             }
-        return 0;
+            return 0L;
+        });
     }
 
-    public static double getImmunity(UUID uuid) {
+    public static CompletableFuture<Double> getImmunity(UUID uuid) {
         return Leaderboard.IMMUNITY.getStat(uuid);
     }
 
@@ -296,39 +294,49 @@ public class ImmunityManager {
 
     /**
      * Get the player immunity from a bounty set
-     * @param uuid The player to check immunity for
+     *
+     * @param uuid   The player to check immunity for
      * @param amount The amount of currency the bounty will be set for
      * @return The immunity type preventing the bounty or ImmunityType.DISABLE if there is none
      */
-    public static ImmunityType getAppliedImmunity(@NotNull UUID uuid, double amount) {
-        // check for grace period
-        if (getGracePeriod(uuid) > 0)
-            return ImmunityType.GRACE_PERIOD;
-        // check for permanent immunity
-        if (uuid.equals(DataManager.GLOBAL_SERVER_ID)
-                || (permissionImmunity && DataManager.getPlayerData(uuid).hasGeneralImmunity())) {
-            return ImmunityType.PERMANENT;
-        }
-        // check for bought immunity
-        switch (immunityType) {
-            case TIME:
-                if (hasTimeImmunity(uuid))
-                    return ImmunityType.TIME;
-                break;
-            case SCALING:
-                if (getImmunity(uuid) * scalingRatio >= amount && amount != 0)
-                    return ImmunityType.SCALING;
-                break;
-            case PERMANENT:
-                if (getImmunity(uuid) >= permanentCost)
-                    return ImmunityType.PERMANENT;
-                break;
-            default:
-                return ImmunityType.DISABLE;
-        }
-        // check for new player immunity
-        if (DataManager.getPlayerData(uuid).isNewPlayer()) return ImmunityType.NEW_PLAYER;
-        return ImmunityType.DISABLE;
+    public static CompletableFuture<ImmunityType> getAppliedImmunity(@NotNull UUID uuid, double amount) {
+        CompletableFuture<Long> gracePeriod = getGracePeriod(uuid);
+        CompletableFuture<Double> immunity = getImmunity(uuid);
+        CompletableFuture<PlayerData> playerData = DataManager.getPlayerDataAsync(uuid);
+
+        return CompletableFuture.allOf(gracePeriod, immunity, playerData).thenApply(v -> {
+            // check for grace period
+            if (gracePeriod.join() > 0)
+                return ImmunityType.GRACE_PERIOD;
+            // check for permanent immunity
+            if (uuid.equals(DataManager.GLOBAL_SERVER_ID)
+                    || (permissionImmunity && playerData.join().hasGeneralImmunity())) {
+                return ImmunityType.PERMANENT;
+            }
+            // check for bought immunity
+            switch (immunityType) {
+                case TIME:
+                    if (hasTimeImmunity(uuid))
+                        return ImmunityType.TIME;
+                    break;
+                case SCALING:
+                    if (immunity.join() * scalingRatio >= amount && amount != 0)
+                        return ImmunityType.SCALING;
+                    break;
+                case PERMANENT:
+                    if (immunity.join() >= permanentCost)
+                        return ImmunityType.PERMANENT;
+                    break;
+                default:
+                    return ImmunityType.DISABLE;
+            }
+            // check for new player immunity
+            if (playerData.join().isNewPlayer()) return ImmunityType.NEW_PLAYER;
+
+            return ImmunityType.DISABLE;
+        });
+
+
     }
 
     private static boolean hasTimeImmunity(UUID uuid) {
@@ -347,7 +355,7 @@ public class ImmunityManager {
         checkPermissionImmunity(player);
     }
 
-    public static void logout(Player player){
+    public static void logout(Player player) {
         onlinePlayers.remove(player.getUniqueId());
         if (immunityType == ImmunityType.TIME && !timeOfflineTracking && immunityTimeTracker.containsKey(player.getUniqueId())) {
             // change storage type from time to expire to time until expire
@@ -374,17 +382,17 @@ public class ImmunityManager {
 
     /**
      * Check permission immunity for a player and store the results in their playerdata.
+     *
      * @param player Player to check the immunity for.
      */
     public static void checkPermissionImmunity(Player player) {
-        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
-        playerData.setGeneralImmunity(player.hasPermission("notbounties.immune"));
-        playerData.setTimedImmunity(player.hasPermission("notbounties.immunity.timed"));
-        playerData.setRandomImmunity(player.hasPermission("notbounties.immunity.random"));
-        playerData.setMurderImmunity(player.hasPermission("notbounties.immunity.murder"));
-        if (playerData.isNewPlayer())
-            NotBounties.getServerImplementation().global().run(() -> playerData.setNewPlayer(((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 1200) < newPlayerImmunity));
-
+        DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> {
+            playerData.setGeneralImmunity(player.hasPermission("notbounties.immune"));
+            playerData.setTimedImmunity(player.hasPermission("notbounties.immunity.timed"));
+            playerData.setRandomImmunity(player.hasPermission("notbounties.immunity.random"));
+            playerData.setMurderImmunity(player.hasPermission("notbounties.immunity.murder"));
+            DataManager.updatePlayerData(playerData);
+        });
     }
 
     /**
@@ -402,5 +410,73 @@ public class ImmunityManager {
 
     public static long getBountyCooldown() {
         return bountyCooldown;
+    }
+
+
+    public static CompletableFuture<Boolean> hasPermissionImmunity(OfflinePlayer player, String permission, Function<PlayerData, Boolean> dataFunction) {
+        if (!ImmunityManager.isPermissionImmunity())
+            return CompletableFuture.completedFuture(false);
+
+        Player onlinePlayer = player.getPlayer();
+        if (onlinePlayer != null) {
+            TaskImplementation<Boolean> task = NotBounties.getServerImplementation().entity(Objects.requireNonNull(player.getPlayer()))
+                    .run((Function<TaskImplementation<Boolean>, Boolean>) t -> Objects.requireNonNull(player.getPlayer()).hasPermission(permission));
+            if (task != null) {
+                return task.asFuture().thenApply(TaskImplementation::getCallback);
+            }
+
+        }
+        // wait for prev check
+        return DataManager.getPlayerDataAsync(player.getUniqueId()).thenApply(dataFunction);
+    }
+
+    public static CompletableFuture<Boolean> checkAndNotifyImmunity(@NotNull CommandSender sender, double amount, boolean silent, OfflinePlayer player, List<ItemStack> items) {
+        return ImmunityManager.getAppliedImmunity(player.getUniqueId(), amount).thenApply(immunityType -> {
+
+            switch (immunityType) {
+                case ImmunityType.GRACE_PERIOD:
+                    if (!silent) {
+                        ImmunityManager.getGracePeriod(player.getUniqueId()).thenAccept(gracePeriod -> {
+                            Messages.send(sender, getPrefix()
+                                    + LanguageOptions.getMessage("grace-period")
+                                    .replace("{time}", (LocalTime.formatTime(
+                                            gracePeriod
+                                            , LocalTime.TimeFormat.RELATIVE))), MessageContext.builder().receiver(player).build());
+                        });
+                    }
+                    break;
+                case NEW_PLAYER:
+                    long immunityMS = (long) ((ImmunityManager.getNewPlayerImmunity() - ((double) player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20)) * 1000L);
+                    if (!silent)
+                        Messages.send(sender, getPrefix()
+                                + LanguageOptions.getMessage("new-player-immunity")
+                                .replace("{time}", (LocalTime.formatTime(
+                                        immunityMS,
+                                        LocalTime.TimeFormat.RELATIVE))), MessageContext.builder().receiver(player).build());
+                    break;
+                case PERMANENT:
+                    if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
+                        break;
+                    if (!silent)
+                        Messages.send(sender, getPrefix() + getMessage("permanent-immunity"), MessageContext.builder().receiver(player).bounty(ImmunityManager.getImmunity(player.getUniqueId()).join()).build());
+                    break;
+                case SCALING:
+                    if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
+                        break;
+                    if (!silent)
+                        Messages.send(sender, getPrefix() + getMessage("scaling-immunity"), MessageContext.builder().receiver(player).bounty(ImmunityManager.getImmunity(player.getUniqueId()).join()).build());
+                    break;
+                case TIME:
+                    if (NumberFormatting.isBountyItemsOverrideImmunity() && !items.isEmpty())
+                        break;
+                    if (!silent)
+                        Messages.send(sender, getPrefix() + LanguageOptions.getMessage("time-immunity").replace("{time}", (LocalTime.formatTime(ImmunityManager.getTimeImmunity(player.getUniqueId()), LocalTime.TimeFormat.RELATIVE))), MessageContext.builder().receiver(player).bounty(ImmunityManager.getImmunity(player.getUniqueId()).join()).build());
+                    break;
+                default:
+                    // Not using immunity
+                    return false;
+            }
+            return true;
+        });
     }
 }

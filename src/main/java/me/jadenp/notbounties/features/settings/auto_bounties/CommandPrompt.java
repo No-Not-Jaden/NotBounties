@@ -6,7 +6,6 @@ import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -115,11 +114,10 @@ public class CommandPrompt {
                 } catch (NumberFormatException e) {
                     Prompt.failExecute(player.getUniqueId());
                 }
-            } else if (responseType == ResponseType.PLAYER) {
-                if (!LoggedPlayers.isLogged(finalMessage)) {
+            } else if (responseType == ResponseType.PLAYER && !LoggedPlayers.isLogged(finalMessage)) {
                     Prompt.failExecute(player.getUniqueId());
                 }
-            }
+
         }, 1);
 
         silentCancel = true;

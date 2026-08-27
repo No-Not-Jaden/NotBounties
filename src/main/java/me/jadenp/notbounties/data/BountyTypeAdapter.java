@@ -4,6 +4,7 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import me.jadenp.notbounties.features.settings.databases.Databases;
 import me.jadenp.notbounties.utils.DataManager;
 
 import java.io.IOException;
@@ -39,14 +40,12 @@ public class BountyTypeAdapter extends TypeAdapter<Bounty> {
             return null;
         }
         reader.beginObject();
-        String playerName = null;
         UUID uuid = null;
         UUID serverID = DataManager.GLOBAL_SERVER_ID;
         List<Setter> setters = null;
         while (reader.hasNext()) {
             String name = reader.nextName();
             switch (name) {
-                case "name" -> playerName = reader.nextString();
                 case "uuid" -> uuid = UUID.fromString(reader.nextString());
                 case "setters" -> setters = readSetters(reader);
                 case "serverID", "server-id" -> {
@@ -57,15 +56,13 @@ public class BountyTypeAdapter extends TypeAdapter<Bounty> {
                         serverID = UUID.fromString(reader.nextString());
                     }
                 }
-                default -> {
+                default ->
                     // unexpected data
-                    // this shouldn't be reached
-                    reader.skipValue();
-                }
+                        reader.skipValue();
             }
         }
         reader.endObject();
-        return new Bounty(uuid, setters, playerName, serverID);
+        return new Bounty(uuid, setters, serverID);
     }
 
     private List<Setter> readSetters(JsonReader reader) throws IOException {

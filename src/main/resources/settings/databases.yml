@@ -11,6 +11,10 @@ max-local-cache-size: 200
 # The time in seconds that data is valid locally after retrieving.
 # Set to 0 to always request data from the database.
 refresh-interval: 30
+local-databse:
+  type: SQL
+  path: 'data/local.db'
+  url: 'jdbc:sqlite:{path}'
 # You can change 'example-sql' to a different name if it helps you keep track of it
 example-sql:
   # The type of database: SQL, REDIS, or PROXY
@@ -32,8 +36,7 @@ example-redis:
   port: 3306
   user: username
   password: pass
-  ssl: false
-  database-number: -1 # Redis specific: database number, -1 disables it
+  database: 1
   url: 'jdbc:redis://{host}:{port}/{database}'
   # higher priority means that this database will be used more
   priority: 2

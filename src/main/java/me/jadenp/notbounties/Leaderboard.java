@@ -138,26 +138,12 @@ public enum Leaderboard {
         }
     }
 
-    public CompletableFuture<Integer> getRank(UUID uuid){
-        int rank = 1;
+    public CompletableFuture<Long> getRank(UUID uuid){
         if (this == Leaderboard.CURRENT) {
-            for (Bounty bounty : BountyManager.getPublicBounties(2)) {
-                if (bounty.getUUID().equals(uuid))
-                    return rank;
-                rank++;
-            }
+            return DataManager.getBountyRank(uuid, BountySortType.HIGHEST);
         } else {
-            LinkedHashMap<UUID, Double> map = sortByValue(getStatMap());
-            for (Map.Entry<UUID, Double> entry : map.entrySet()){
-                String name = LoggedPlayers.getPlayerName(entry.getKey());
-                if (ConfigOptions.getHiddenNames().contains(name))
-                    continue;
-                if (entry.getKey().equals(uuid))
-                    return rank;
-                rank++;
-            }
+            return DataManager.getStatRank(uuid, this, StatSortType.HIGHEST);
         }
-        return rank;
     }
 
 

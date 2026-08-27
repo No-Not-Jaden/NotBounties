@@ -87,6 +87,9 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * stop similar database requests before the first one can return, or times out
  * playtime placeholder
  * bounty reason - make arguments after amount in command be tags you can add
+ * effective immunity placeholder
+ * make admin-edit-lore consistent with GUI clicks & configurable
+ * confirmation for remove and edit a specific bounty
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -188,7 +191,7 @@ public final class NotBounties extends JavaPlugin {
             ImmunityManager.loadPlayerData();
             LoggedPlayers.loadAllDisplayNames();
         } catch (IOException e) {
-            getLogger().severe("[NotBounties] Failed to read player data!");
+            getLogger().severe("Failed to read player data!");
             getLogger().severe(e.toString());
             Arrays.stream(e.getStackTrace()).forEach(stack -> getLogger().severe("       at " + stack.toString()));
         }
@@ -204,7 +207,7 @@ public final class NotBounties extends JavaPlugin {
         }
 
         // load skins for bounties
-        DataManager.getTopBountiesAsync(BountySortType.HIGHEST, 0, 100).thenAccept(bounties -> bounties.forEach(bounty -> SkinManager.isSkinLoaded(bounty.getUUID())));
+        DataManager.getPublicBountiesAsync(BountySortType.HIGHEST, 0, 100).thenAccept(bounties -> bounties.forEach(bounty -> SkinManager.isSkinLoaded(bounty.getUUID())));
 
         // force login players that are already on the server - this will happen if the plugin is loaded without a restart
         for (Player player : Bukkit.getOnlinePlayers()) {

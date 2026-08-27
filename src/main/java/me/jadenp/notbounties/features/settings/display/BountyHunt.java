@@ -14,6 +14,7 @@ import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
+import me.jadenp.notbounties.utils.tasks.BroadcastTask;
 import org.bukkit.*;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -319,8 +320,8 @@ public class BountyHunt {
         if (args.length <= 2) {
             List<BountyHunt> participatingHunts = getParticipatingHunts(player.getUniqueId());
             if (participatingHunts.size() == 1) {
-                participatingHunts.get(0).removeParticipatingPlayer(player);
-                sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), participatingHunts.get(0).getHuntedPlayer(), parser));
+                participatingHunts.getFirst().removeParticipatingPlayer(player);
+                sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), participatingHunts.getFirst().getHuntedPlayer(), parser));
                 return true;
             }
             return failUnknownCommand(sender, silent, parser, "help.hunt-participate");
@@ -548,29 +549,22 @@ public class BountyHunt {
     }
 
     public void endHunt() {
-        participatingPlayers.clear();
-        bossBar.removeAll();
         // send hunt ended msg
         String msg = LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("hunt-end"), setter, huntedPlayer);
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (
-                    player.getUniqueId().equals(huntedPlayer.getUniqueId())
-                    || (setter != null && player.getUniqueId().equals(setter.getUniqueId()))
-                    || DataManager.getPlayerData(player.getUniqueId()).getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE
-            ) {
-                player.sendMessage(msg);
-            }
+        for (Player player : participatingPlayers) {
+            if (player.isOnline())
+                BroadcastTask.sendBroadcast(msg, null, player, false);
         }
+
+        participatingPlayers.clear();
+        bossBar.removeAll();
+
     }
 
     private void sendBroadcast(Player player) {
-        if (
-                player.getUniqueId().equals(huntedPlayer.getUniqueId())
-                || (setter != null && player.getUniqueId().equals(setter.getUniqueId()))
-                || DataManager.getPlayerData(player.getUniqueId()).getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE
-        ) {
-            player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("hunt-broadcast").replace("{time}", LocalTime.formatTime(endTime - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), setter, huntedPlayer));
-        }
+        String msg = LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("hunt-broadcast").replace("{time}", LocalTime.formatTime(endTime - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), setter, huntedPlayer);
+
+        BroadcastTask.sendBroadcast(msg, null, player, false);
     }
 
     private String parseTitle() {

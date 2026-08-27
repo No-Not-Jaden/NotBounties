@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 public class LocalData extends NotBountiesDatabase {
     // elements must expire quickly to be up to date with other servers
+    // TODO don't expire elements unless there are no references to them?
     private final Cache<UUID, Bounty> bountyCache;
     private final Cache<UUID, PlayerStat> statCache;
     private final Cache<UUID, PlayerData> playerDataCache;

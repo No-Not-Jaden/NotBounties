@@ -197,4 +197,4 @@ permissions:
     description: Open a GUI.
 libraries:
   - com.mysql:mysql-connector-j:9.4.0
-  - io.lettuce:lettuce-core:7.2.1.RELEASE
+  - com.github.DataGrip:redis-jdbc-driver:v1.6

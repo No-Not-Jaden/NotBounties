@@ -8,9 +8,7 @@ import me.jadenp.notbounties.utils.SerializeInventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class SetterTypeAdapter extends TypeAdapter<Setter> {
     @Override
@@ -25,11 +23,12 @@ public class SetterTypeAdapter extends TypeAdapter<Setter> {
         writer.name("uuid").value(setter.getUuid().toString());
         writer.name("amount").value(setter.getAmount());
         writer.name("items");
-        if (setter.getItems().isEmpty()) {
-            writer.nullValue();
+        if (setter.hasItems() && setter.isItemsLoaded()) {
+            writer.value(SerializeInventory.itemStackArrayToBase64(setter.getItems().join().toArray(new ItemStack[0])));
         } else {
-            writer.value(SerializeInventory.itemStackArrayToBase64(setter.getItems().toArray(new ItemStack[0])));
+            writer.nullValue();
         }
+        writer.name("hasItems").value(setter.hasItems());
 
         writer.name("time").value(setter.getTimeCreated());
         writer.name("playtime").value(setter.getReceiverPlaytime());
@@ -37,6 +36,19 @@ public class SetterTypeAdapter extends TypeAdapter<Setter> {
         writer.name("display").value(setter.getDisplayAmount());
         writer.name("whitelist");
         new WhitelistTypeAdapter().write(writer, setter.getWhitelist());
+        writer.name("tags");
+        writer.beginArray();
+        for (String tag : setter.getTags()) {
+            writer.value(tag);
+        }
+        writer.endArray();
+        writer.name("bountyId");
+        Optional<Integer> id = setter.getBountyId();
+        if (id.isPresent()) {
+            writer.value(id.get());
+        } else {
+            writer.nullValue();
+        }
         writer.endObject();
     }
 
@@ -47,21 +59,22 @@ public class SetterTypeAdapter extends TypeAdapter<Setter> {
             return null;
         }
 
-        String playerName = null;
         UUID uuid = null;
         double amount = 0;
         List<ItemStack> itemStacks = new ArrayList<>();
+        boolean hasItems = false;
         long time = 0;
         long playtime = 0;
         boolean notified = false;
         double display = 0;
-        Whitelist whitelist = null;
+        Whitelist whitelist = new Whitelist(new TreeSet<>(), false);
+        Set<String> tags = new HashSet<>();
+        Integer bountyId = null;
 
         reader.beginObject();
         while (reader.hasNext()) {
             String name = reader.nextName();
             switch (name) {
-                case "name" -> playerName = reader.nextString();
                 case "uuid" -> uuid = UUID.fromString(reader.nextString());
                 case "amount" -> amount = reader.nextDouble();
                 case "items" -> {
@@ -71,17 +84,31 @@ public class SetterTypeAdapter extends TypeAdapter<Setter> {
                         itemStacks.addAll(List.of(SerializeInventory.itemStackArrayFromBase64(reader.nextString())));
                     }
                 }
+                case "hasItems" -> hasItems = reader.nextBoolean();
                 case "time" -> time = reader.nextLong();
                 case "playtime" -> playtime = reader.nextLong();
                 case "notified" -> notified = reader.nextBoolean();
                 case "display" -> display = reader.nextDouble();
                 case "whitelist" -> whitelist = new WhitelistTypeAdapter().read(reader);
+                case "tags" ->  {
+                    reader.beginArray();
+                    while (reader.hasNext()) {
+                        tags.add(reader.nextString());
+                    }
+                    reader.endArray();
+                }
+                case "bountyId" -> {
+                    if (reader.peek() != JsonToken.NULL)
+                        bountyId = reader.nextInt();
+                }
                 default -> reader.skipValue();
             }
         }
         reader.endObject();
-
-        return new Setter(playerName, uuid, amount, itemStacks, time, notified, whitelist, playtime, display);
+        if (!itemStacks.isEmpty()) {
+            return new Setter(bountyId, uuid, amount, time, hasItems, notified, whitelist, playtime, display, tags);
+        }
+        return new Setter(bountyId, uuid, amount, time, itemStacks, notified, whitelist, playtime, display, tags);
     }
 
 }

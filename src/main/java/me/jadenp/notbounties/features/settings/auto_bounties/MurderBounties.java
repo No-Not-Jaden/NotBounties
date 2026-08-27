@@ -3,20 +3,19 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Whitelist;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
-import static me.jadenp.notbounties.utils.BountyManager.getBounty;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public class MurderBounties {
@@ -82,51 +81,62 @@ public class MurderBounties {
 
     private static boolean canTriggerMurderBounty(Player player, Player killer) {
         return isEnabled()
-                && !BountyManager.isNPC(killer) // don't raise bounty on a npc
+                && !BountyManager.isNPC(killer) // don't raise bounty on an NPC
                 && !( // don't raise bounty from a duel if blocked in config
                 ConfigOptions.getIntegrations().isDuelsEnabled()
                         && !ConfigOptions.getIntegrations().getDuels().isMurderBounty()
                         && ConfigOptions.getIntegrations().getDuels().isInDuel(killer)
                 )
-                && (allowNPC || !BountyManager.isNPC(player)); // don't raise a bounty if the killed player was an npc
+                && (allowNPC || !BountyManager.isNPC(player)); // don't raise a bounty if the killed player was an NPC
     }
 
-    private static boolean hasMurderImmunity(Player player, Player killer, double bountyIncrease) {
-        Bounty bounty = getBounty(player.getUniqueId());
-        double bountyAmount = bounty != null ? bounty.getTotalBounty() : 0;
-        return !ConfigOptions.getAutoBounties().isOverrideImmunity() // immunity is not overridden
-                && ( // check external immunity
-                        ImmunityManager.getAppliedImmunity(killer.getUniqueId(), bountyIncrease) != ImmunityManager.ImmunityType.DISABLE // has regular immunity
-                        || hasPermissionImmunity(killer) // has permission immunity
-                        || (exclusiveMurderOrTrickle && TrickleBounties.getBountyTransferRatio(killer) * bountyAmount > bountyIncrease) // trickle bounty will be used instead
+    private static CompletableFuture<Boolean> hasMurderImmunity(Player player, @Nullable Bounty playerBounty, Player killer, double bountyIncrease, @Nullable Bounty killerBounty) {
+        CompletableFuture<Boolean> hasPermissionImmunity = ImmunityManager.hasPermissionImmunity(killer, "notbounties.immunity.murder", PlayerData::hasMurderImmunity);
+        CompletableFuture<ImmunityManager.ImmunityType> appliedImmunity = ImmunityManager.getAppliedImmunity(killer.getUniqueId(), bountyIncrease);
+        return CompletableFuture.allOf(hasPermissionImmunity, appliedImmunity).thenApply(ignored -> {
+            double bountyAmount = playerBounty != null ? playerBounty.getTotalBounty() : 0;
+            return !ConfigOptions.getAutoBounties().isOverrideImmunity() // immunity is not overridden
+                    && ( // check external immunity
+                    appliedImmunity.join() != ImmunityManager.ImmunityType.DISABLE // has regular immunity
+                    || hasPermissionImmunity.join() // has permission immunity
+                    || (exclusiveMurderOrTrickle && TrickleBounties.getBountyTransferRatio(killerBounty != null) * bountyAmount > bountyIncrease) // trickle bounty will be used instead
                     )
-                && !( // check internal immunity
-                        (!playerKills.containsKey(killer.getUniqueId()) ||
-                        !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
-                        playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L) // check for cooldown
-                        && (!murderExcludeClaiming || bounty == null || bounty.getTotalDisplayBounty(killer) < 0.01) // check if claiming a bounty is not allowed
-                    );
+                    && !( // check internal immunity
+                    (
+                            !playerKills.containsKey(killer.getUniqueId()) ||
+                            !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
+                            playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L
+                    ) // check for cooldown
+                    && (!murderExcludeClaiming || bountyAmount < 0.01) // check if claiming a bounty is not allowed
+            );
+        });
     }
 
     /**
      * Checks if a bounty should be placed on the killer for murder, and places one if necessary.
+     * @apiNote Bounties are loaded in this method. Call Asynchronously.
      * @param player Player that was killed.
      * @param killer Player that killed.
      * @return True if the trickle bounty should be canceled.
      */
-    public static boolean killPlayer(Player player, Player killer) {
+    public static boolean killPlayer(Player player, @Nullable Bounty playerBounty, Player killer, @Nullable Bounty killerBounty) {
         // check if we should increase the killer's bounty
         if (canTriggerMurderBounty(player, killer)) {
             // check immunity
-            double bountyIncrease = getBountyIncrease(killer);
-            if (hasMurderImmunity(player, killer, bountyIncrease)) {
+            double bountyIncrease = getBountyIncrease(killerBounty);
+            if (Boolean.TRUE.equals(hasMurderImmunity(player, playerBounty, killer, bountyIncrease, killerBounty).join())) {
                 NotBounties.debugMessage("Killer is currently immune to this murder bounty.", false);
                 return false;
             }
             // increase
             if (bountyIncrease > 0) {
-                addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
-                killer.sendMessage(parse(getPrefix() + getMessage("murder"), Objects.requireNonNull(getBounty(killer.getUniqueId())).getTotalDisplayBounty(), player));
+                addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new TreeSet<>(), false)).thenAccept(bounty -> {
+                    if (bounty != null) {
+                        killer.sendMessage(parse(getPrefix() + getMessage("murder"), bounty.getTotalDisplayBounty(), player));
+                    } else {
+                        NotBounties.debugMessage("Could not increase killer's bounty.", false);
+                    }
+                });
             }
             if (!commands.isEmpty())
                 ActionCommands.executeCommands(player, killer, commands);
@@ -138,9 +148,8 @@ public class MurderBounties {
         return false;
     }
 
-    private static double getBountyIncrease(Player player) {
-        Bounty bounty = getBounty(player.getUniqueId());
-        double bountyAmount = bounty != null ? bounty.getTotalDisplayBounty() : 0;
+    private static double getBountyIncrease(@Nullable Bounty killerBounty) {
+        double bountyAmount = killerBounty != null ? killerBounty.getTotalDisplayBounty() : 0;
         double bountyIncrease;
         if (multiplicative) {
             if (bountyAmount > ConfigOptions.getMoney().getMinBounty()) {
@@ -157,17 +166,10 @@ public class MurderBounties {
             bountyIncrease = Math.max(ConfigOptions.getMoney().getMaxBounty() - bountyAmount, 0);
         }
         return bountyIncrease;
+
     }
 
     public static boolean isEnabled() {
         return murderBountyIncrease > 0 || !commands.isEmpty();
-    }
-
-    private static boolean hasPermissionImmunity(OfflinePlayer player) {
-        if (!ImmunityManager.isPermissionImmunity())
-            return false;
-        if (player.isOnline())
-            return Objects.requireNonNull(player.getPlayer()).hasPermission("notbounties.immunity.murder");
-        return DataManager.getPlayerData(player.getUniqueId()).hasMurderImmunity();
     }
 }

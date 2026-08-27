@@ -10,6 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.ui.PlayerSkin;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.DataManager;
@@ -87,12 +88,12 @@ public class PlayerData implements Comparable<PlayerData> {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         PlayerData that = (PlayerData) o;
-        return generalImmunity == that.generalImmunity && murderImmunity == that.murderImmunity && randomImmunity == that.randomImmunity && timedImmunity == that.timedImmunity && bountyCooldown == that.bountyCooldown && newPlayer == that.newPlayer && lastSeen == that.lastSeen && lastClaim == that.lastClaim && Objects.equals(uuid, that.uuid) && Objects.equals(playerName, that.playerName) && Objects.equals(timeZone, that.timeZone) && broadcastSettings == that.broadcastSettings && Objects.equals(whitelist, that.whitelist);
+        return generalImmunity == that.generalImmunity && murderImmunity == that.murderImmunity && randomImmunity == that.randomImmunity && timedImmunity == that.timedImmunity && bountyCooldown == that.bountyCooldown && lastSeen == that.lastSeen && lastClaim == that.lastClaim && Objects.equals(uuid, that.uuid) && Objects.equals(playerName, that.playerName) && Objects.equals(timeZone, that.timeZone) && broadcastSettings == that.broadcastSettings && Objects.equals(whitelist, that.whitelist);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(uuid, playerName, generalImmunity, murderImmunity, randomImmunity, timedImmunity, timeZone, broadcastSettings, bountyCooldown, whitelist, newPlayer, lastSeen, lastClaim);
+        return Objects.hash(uuid, playerName, generalImmunity, murderImmunity, randomImmunity, timedImmunity, timeZone, broadcastSettings, bountyCooldown, whitelist, lastSeen, lastClaim);
     }
 
     public enum BroadcastSettings {
@@ -109,7 +110,6 @@ public class PlayerData implements Comparable<PlayerData> {
     private BroadcastSettings broadcastSettings;
     private long bountyCooldown = 0; // Time in ms when they set a bounty last
     private Whitelist whitelist;
-    private boolean newPlayer = true;
     private long lastSeen = 0;
     private long lastClaim = 0;
     private UUID serverID = null; // ID used for which server the data is on
@@ -184,12 +184,8 @@ public class PlayerData implements Comparable<PlayerData> {
         return lastClaim;
     }
 
-    public void setNewPlayer(boolean newPlayer) {
-        this.newPlayer = newPlayer;
-    }
-
     public boolean isNewPlayer() {
-        return newPlayer;
+        return ImmunityManager.getNewPlayerImmunity() * 1000L > playTime;
     }
 
     public void setPlayerName(@NotNull String playerName) {
@@ -316,7 +312,6 @@ public class PlayerData implements Comparable<PlayerData> {
                 ", broadcastSettings=" + broadcastSettings +
                 ", bountyCooldown=" + bountyCooldown +
                 ", whitelist=" + whitelist +
-                ", newPlayer=" + newPlayer +
                 ", lastSeen=" + lastSeen +
                 ", lastClaim=" + lastClaim +
                 ", serverID=" + serverID +

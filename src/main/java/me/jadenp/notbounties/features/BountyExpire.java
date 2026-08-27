@@ -4,7 +4,6 @@ import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
-import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -41,7 +40,7 @@ public class BountyExpire {
         proportional = configuration.getBoolean("proportional");
         extendExpiration = configuration.getBoolean("extend-expiration");
         if (expirationCheckTask == null) {
-            expirationCheckTask = NotBounties.getServerImplementation().async().runAtFixedRate(() -> BountyExpire.removeExpiredBounties(), EXPIRATION_CHECK_INTERVAL_MS / 50 + 2007, EXPIRATION_CHECK_INTERVAL_MS / 50);
+            expirationCheckTask = NotBounties.getServerImplementation().async().runAtFixedRate(BountyExpire::removeExpiredBounties, EXPIRATION_CHECK_INTERVAL_MS / 50 + 2007, EXPIRATION_CHECK_INTERVAL_MS / 50);
         }
     }
 
@@ -91,10 +90,9 @@ public class BountyExpire {
         if (bounty == null)
             return 0;
         if (bounty.getSetters().isEmpty()) {
-            DataManager.getLocalData().removeBounty(bounty.getUUID());
             return 0;
         }
-        long lowestTime = getExpireTime(bounty, bounty.getSetters().get(0));
+        long lowestTime = getExpireTime(bounty, bounty.getSetters().getFirst());
         for (int i = 1; i < bounty.getSetters().size(); i++) {
             long expireTime = getExpireTime(bounty, bounty.getSetters().get(i));
             if (expireTime < lowestTime)
@@ -107,7 +105,6 @@ public class BountyExpire {
         if (bounty == null)
             return 0;
         if (bounty.getSetters().isEmpty()) {
-            DataManager.getLocalData().removeBounty(bounty.getUUID());
             return 0;
         }
         long highestTime = getExpireTime(bounty, bounty.getSetters().get(0));
@@ -239,28 +236,11 @@ public class BountyExpire {
         };
     }
 
-    private static void removeExpiredBounties(List<Bounty> bounties) {
-        // go through all the bounties and remove setters if it has been more than expire time
-        int expiredBounties = 0;
-        Map<Bounty, List<Setter>> settersToRemove = new HashMap<>();
-        for (Bounty bounty : bounties) {
-            List<Setter> expired = refundExpiredBounty(bounty);
-            if (!expired.isEmpty()) {
-                expiredBounties += expired.size();
-                if (settersToRemove.containsKey(bounty)) {
-                    settersToRemove.get(bounty).addAll(expired);
-                } else {
-                    settersToRemove.put(bounty, new ArrayList<>(expired));
-                }
-            }
+    private static void tryRemoveExpiredBounty(Bounty bounty) {
+        List<Setter> expired = refundExpiredBounty(bounty);
+        if (!expired.isEmpty()) {
+            DataManager.removeSetters(bounty, expired);
         }
-        for (Map.Entry<Bounty, List<Setter>> entry : settersToRemove.entrySet()) {
-            DataManager.removeSetters(entry.getKey(), entry.getValue());
-        }
-        if (expiredBounties > 0) {
-            NotBounties.debugMessage("Removed " + expiredBounties + " expired bounties", false);
-        }
-
     }
 
     /**
@@ -282,7 +262,7 @@ public class BountyExpire {
                             player.sendMessage(parse(getPrefix() + getMessage("expired-bounty"), setter.getDisplayAmount(), Bukkit.getOfflinePlayer(bounty.getUUID())));
                         }
                         if (rewardReceiver) {
-                            refundPlayer(bounty.getUUID(), setter.getAmount(), setter.getItems(), null);
+                            setter.getItems().thenAccept(items -> refundPlayer(bounty.getUUID(), setter.getAmount(), items, null));
                         } else {
                             refundSetter(setter, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-expire"), Bukkit.getOfflinePlayer(bounty.getUUID())));
                         }
@@ -296,13 +276,12 @@ public class BountyExpire {
         if (minExpireTime < NON_EXPIRING_MILLIS) {
             // a setter in this bounty will expire soon
             final UUID bountyUUID = bounty.getUUID();
-            NotBounties.getServerImplementation().async().runDelayed(() -> {
-                Bounty futureBounty = BountyManager.getBounty(bountyUUID);
+            NotBounties.getServerImplementation().async().runDelayed(() -> DataManager.getBountyAsync(bountyUUID).thenAccept(futureBounty -> {
                 if (futureBounty != null) {
                     List<Setter> setters = refundExpiredBounty(futureBounty);
                     DataManager.removeSetters(futureBounty, setters);
                 }
-            }, minExpireTime / 50 + 2);
+            }), minExpireTime / 50 + 2);
         }
         return expired;
     }
@@ -311,7 +290,7 @@ public class BountyExpire {
         if (timeMillis <= 0 && ConfigOptions.getAutoBounties().getExpireTimeMillis() <= 0) {
             return;
         }
-        removeExpiredBounties(DataManager.getAllBounties(-1));
+        DataManager.iterateAllBounties(BountyExpire::tryRemoveExpiredBounty);
     }
 
 }

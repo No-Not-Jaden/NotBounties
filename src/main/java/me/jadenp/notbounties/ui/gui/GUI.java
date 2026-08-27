@@ -189,7 +189,7 @@ public class GUI implements Listener {
                 customModelDataComponent.setFloats(customModelData);
                 meta.setCustomModelDataComponent(customModelDataComponent);
             } else {
-                meta.setCustomModelData(customModelData.get(0).intValue());
+                meta.setCustomModelData(customModelData.getFirst().intValue());
             }
         }
         if (NotBounties.isAboveVersion(21, 3) && itemModel != null)
@@ -273,7 +273,7 @@ public class GUI implements Listener {
                 break;
             case "view-bounty":
                 if (data.length > 0 && data[0] instanceof UUID uuid) {
-                    Bounty viewedBounty = BountyManager.getBounty(uuid);
+                    Bounty viewedBounty = DataManager.getBountyAsync(uuid).join();
                     if (viewedBounty != null) {
                         List<Setter> setters = new ArrayList<>(viewedBounty.getSetters());
                         List<String> additionalLore = player.hasPermission(NotBounties.getAdminPermission()) ? new ArrayList<>(LanguageOptions.getListMessage("admin-edit-lore")) : new ArrayList<>();
@@ -304,7 +304,7 @@ public class GUI implements Listener {
                             }
                             List<String> combinedLore = new ArrayList<>(additionalLore);
                             combinedLore.addAll(whitelistLore);
-                            concurrentItems.addAll(currentSetter.getItems());
+                            concurrentItems.addAll(currentSetter.getItems().join());
                             concurrentAmount += currentSetter.getAmount();
                             concurrentDisplay += currentSetter.getDisplayAmount();
                             if (currentSetter.getTimeCreated() > latestSet)
@@ -320,13 +320,13 @@ public class GUI implements Listener {
                                         // change material and amount (possible multiple items) to represent a physical item
                                         ItemStack item = getGeneralCurrencyItem().getFormattedItem(player, null, name);
                                         try {
-                                            Material material = Material.valueOf(NumberFormatting.getCurrency().get(0).toUpperCase());
+                                            Material material = Material.valueOf(NumberFormatting.getCurrency().getFirst().toUpperCase());
                                             item.setType(material);
                                         } catch (IllegalArgumentException ignored) {
                                             // currency is not a placeholder and isn't a currency
                                         }
                                         // split items into groups of max stack size
-                                        float valuePerItem = NumberFormatting.getCurrencyValues().get(NumberFormatting.getCurrency().get(0));
+                                        float valuePerItem = NumberFormatting.getCurrencyValues().get(NumberFormatting.getCurrency().getFirst());
                                         int stacks = (int) (concurrentAmount / valuePerItem / item.getMaxStackSize());
                                         int remainder = (int) (concurrentAmount / valuePerItem % item.getMaxStackSize());
 
@@ -382,14 +382,14 @@ public class GUI implements Listener {
             case "leaderboard":
                 Leaderboard leaderboard = data.length > 0 && data[0] instanceof Leaderboard board ? board : Leaderboard.ALL;
                 int rankIndex = 0;
-                for (Map.Entry<UUID, Double> entry : leaderboard.getSortedList(0, gui.getPlayerSlots().size(), sortType).entrySet()) {
+                for (Map.Entry<UUID, Double> entry : leaderboard.getSortedList(0, gui.getPlayerSlots().size(), sortType).join().entrySet()) {
                     displayItems.add(new PlayerItem(entry.getKey(), entry.getValue(), leaderboard, rankIndex++, System.currentTimeMillis(), new ArrayList<>()));
                 }
                 break;
             case "set-bounty":
                 NotBounties.debugMessage("Viewing Online players: " + online + "  Online: " + onlinePlayers, false);
                     Set<UUID> addedPlayers = new HashSet<>();
-                    for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), sortType).entrySet()) {
+                    for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), sortType).join().entrySet()) {
                         if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                             // skip if offline or vanished
                             continue;
@@ -429,7 +429,7 @@ public class GUI implements Listener {
                 break;
             case "bounty-hunt-player":
                 Set<UUID> addedBountyPlayers = new HashSet<>();
-                for (Map.Entry<UUID, Double> entry : Leaderboard.CURRENT.getSortedList(0, gui.getPlayerSlots().size(), sortType).entrySet()) {
+                for (Map.Entry<UUID, Double> entry : Leaderboard.CURRENT.getSortedList(0, gui.getPlayerSlots().size(), sortType).join().entrySet()) {
                     if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                         // skip if offline or vanished
                         continue;
@@ -469,13 +469,13 @@ public class GUI implements Listener {
                 break;
             case "set-whitelist":
                 List<UUID> playersAdded = new ArrayList<>();
-                Whitelist whitelist = DataManager.getPlayerData(player.getUniqueId()).getWhitelist();
+                Whitelist whitelist = DataManager.getPlayerDataAsync(player.getUniqueId()).join().getWhitelist();
                 for (UUID uuid : whitelist.getList()) {
                     List<String> additionalLore = whitelist.isBlacklist() ? LanguageOptions.getListMessage("blacklist-lore") : LanguageOptions.getListMessage("whitelist-lore");
-                    displayItems.add(new WhitelistedPlayerItem(uuid, Leaderboard.IMMUNITY.getStat(uuid), Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), additionalLore, "&a"));
+                    displayItems.add(new WhitelistedPlayerItem(uuid, Leaderboard.IMMUNITY.getStat(uuid).join(), Leaderboard.IMMUNITY, playersAdded.size(), System.currentTimeMillis(), additionalLore, "&a"));
                     playersAdded.add(uuid);
                 }
-                for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), sortType).entrySet()) {
+                for (Map.Entry<UUID, Double> entry : Leaderboard.IMMUNITY.getSortedList(0, gui.getPlayerSlots().size(), sortType).join().entrySet()) {
                     if (!playersAdded.contains(entry.getKey())) {
                         if (online && cantSeePlayer(player, onlinePlayers, entry.getKey())) {
                             // skip if offline or vanished
@@ -519,11 +519,7 @@ public class GUI implements Listener {
                 double total = 0;
                 ItemStack[][] items = data.length > 1 && data[1] instanceof ItemStack[][] itemStacks ? itemStacks : new ItemStack[1][getMaxBountyItemSlots()];
                 for (ItemStack[] item : items) {
-                    try {
-                        total += NumberFormatting.getTotalValue(Arrays.asList(item));
-                    } catch (ExcludedItemException ignored) {
-                        // cant get value
-                    }
+                    total += NumberFormatting.getTotalValue(Arrays.asList(item));
                 }
                 displayItems.add(new PlayerItem(uuid3, total, Leaderboard.CURRENT, 0, System.currentTimeMillis(), new ArrayList<>()));
                 break;
@@ -1015,7 +1011,7 @@ public class GUI implements Listener {
     public static String getActiveSortTypeName(UUID uuid) {
         if (playerInfo.containsKey(uuid)) {
             PlayerGUInfo info = playerInfo.get(uuid);
-            return parseSortType(info.guiType(),DataManager.getPlayerData(uuid).getGUISortType(info.guiType()));
+            return parseSortType(info.guiType(), ImpersistentPlayerData.get(uuid).getGUISortType(info.guiType()));
         }
         return LanguageOptions.getMessage("sort-type.player.-1");
     }
@@ -1023,7 +1019,7 @@ public class GUI implements Listener {
     public static int getActiveSortType(UUID uuid) {
         if (playerInfo.containsKey(uuid)) {
             PlayerGUInfo info = playerInfo.get(uuid);
-            return DataManager.getPlayerData(uuid).getGUISortType(info.guiType());
+            return ImpersistentPlayerData.get(uuid).getGUISortType(info.guiType());
         }
         return -1;
     }

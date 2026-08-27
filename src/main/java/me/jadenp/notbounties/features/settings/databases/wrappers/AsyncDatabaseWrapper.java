@@ -104,13 +104,17 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
         return database.getStats(sortStat, sortType, offset, limit, excludedPlayers);
     }
 
+    public CompletableFuture<Map<UUID, PlayerStat>> getStatsAsync(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) {
+        return execute(() -> database.getStats(sortStat, sortType, offset, limit, excludedPlayers));
+    }
+
     @Override
     public long getStatRank(UUID uuid, Leaderboard sortStat, StatSortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
         return database.getStatRank(uuid, sortStat, sortType, excludedPlayers);
     }
 
-    public CompletableFuture<Map<UUID, PlayerStat>> getStatsAsync(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) {
-        return execute(() -> database.getStats(sortStat, sortType, offset, limit, excludedPlayers));
+    public CompletableFuture<Long> getStatRankAsync(UUID uuid, Leaderboard sortStat, StatSortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        return execute(() -> database.getStatRank(uuid, sortStat, sortType, excludedPlayers));
     }
 
     @Override
@@ -196,13 +200,17 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
         return database.getBounties(sortType, offset, limit, excludedPlayers);
     }
 
+    public CompletableFuture<List<Bounty>> getBountiesAsync(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) {
+        return execute(() -> database.getBounties(sortType, offset, limit, excludedPlayers));
+    }
+
     @Override
     public long getBountyRank(UUID uuid, BountySortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
         return database.getBountyRank(uuid, sortType, excludedPlayers);
     }
 
-    public CompletableFuture<List<Bounty>> getBountiesAsync(BountySortType sortType, long offset, long limit, Set<UUID> excludedPlayers) {
-        return execute(() -> database.getBounties(sortType, offset, limit, excludedPlayers));
+    public CompletableFuture<Long> getBountyRankAsync(UUID uuid, BountySortType sortType, Set<UUID> excludedPlayers) throws DatabaseConnectionException {
+        return execute(() -> database.getBountyRank(uuid, sortType, excludedPlayers));
     }
 
     @Override

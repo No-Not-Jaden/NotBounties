@@ -2,7 +2,6 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Setter;
-import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.BountyExpire;
 import me.jadenp.notbounties.features.LanguageOptions;
@@ -12,7 +11,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -39,11 +37,12 @@ public class TrickleBounties {
      * Does not modify items.
      * @param bounty Bounty to be claimed
      * @param claimer Player claiming the bounty.
+     * @param claimerHasBounty Whether the claimer already has a bounty.
      * @return A bounty that should be rewarded to the claimer
      */
-    public static Bounty getRewardedBounty(Bounty bounty, Player claimer) {
+    public static Bounty getRewardedBounty(Bounty bounty, Player claimer, boolean claimerHasBounty) {
         Bounty rewardedBounty = new Bounty(bounty); // create a copy so the original isn't modified
-        float givenRatio = getGivenRewardRatio(claimer);
+        float givenRatio = getGivenRewardRatio(claimerHasBounty);
         ListIterator<Setter> setterListIterator = rewardedBounty.getSetters().listIterator();
         while (setterListIterator.hasNext()) {
             Setter setter = setterListIterator.next();
@@ -85,7 +84,7 @@ public class TrickleBounties {
         } else {
             newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * multiplier : Math.floor(setter.getAmount() * multiplier);
         }
-        return new Setter(setter.getName(), setter.getUuid(), newAmount, setter.getItems(), setter.getTimeCreated(), setter.isNotified(), setter.getWhitelist(), setter.getReceiverPlaytime(), setter.getDisplayAmount() + (newAmount - setter.getAmount()));
+        return new Setter(setter, newAmount - setter.getAmount());
     }
 
     /**
@@ -93,30 +92,31 @@ public class TrickleBounties {
      * Items are not transferred.
      * @param bounty Bounty that was claimed.
      * @param claimer Player who claimed the bounty and is receiving the transfer
+     * @param claimerHasBounty Whether the claimer already has a bounty.
      * @return Bounty that was transferred
      */
-    public static Bounty transferBounty(Bounty bounty, Player claimer) {
-        float transfterRatio = getBountyTransferRatio(claimer);
+    public static Bounty transferBounty(Bounty bounty, Player claimer, boolean claimerHasBounty) {
+        float transferRatio = getBountyTransferRatio(claimerHasBounty);
         // check if a bounty should be transferred
-        if (transfterRatio <= 0 || bounty.getTotalBounty(claimer) <= 0) {
-            return new Bounty(claimer.getUniqueId(), new LinkedList<>(), claimer.getName());
+        if (transferRatio <= 0 || bounty.getTotalBounty(claimer) <= 0) {
+            return new Bounty(claimer.getUniqueId(), new LinkedList<>());
         }
         List<Setter> newSetters = new LinkedList<>();
         for (Setter setter : bounty.getSetters()) {
-            if (setter.canClaim(claimer)) {
-                double newAmount;
-                if (setter.getAmount() < 0.01) {
-                    newAmount = 0;
-                } else {
-                    newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * transfterRatio : Math.ceil(setter.getAmount() * transfterRatio);
-                }
-                if (newAmount > 0) {
-                    Setter newSetter = new Setter(setter.getName(), setter.getUuid(), newAmount, new ArrayList<>(), System.currentTimeMillis(), setter.isNotified(), setter.getWhitelist(), BountyExpire.getTimePlayed(claimer.getUniqueId()), setter.getDisplayAmount() + (newAmount - setter.getAmount()));
-                    newSetters.add(newSetter);
-                }
+            if (!setter.canClaim(claimer))
+                continue;
+            double newAmount;
+            if (setter.getAmount() < 0.01) {
+                newAmount = 0;
+            } else {
+                newAmount = NumberFormatting.isUsingDecimals() ? setter.getAmount() * transferRatio : Math.ceil(setter.getAmount() * transferRatio);
+            }
+            if (newAmount > 0) {
+                Setter newSetter = new Setter(null, setter.getUuid(), newAmount, System.currentTimeMillis(), false, setter.isNotified(), setter.getWhitelist(), BountyExpire.getTimePlayed(claimer.getUniqueId()), setter.getDisplayAmount() + (newAmount - setter.getAmount()), setter.getTags());
+                newSetters.add(newSetter);
             }
         }
-        Bounty transferedBounty = new Bounty(claimer.getUniqueId(), newSetters, claimer.getName()); // create a new bounty
+        Bounty transferedBounty = new Bounty(claimer.getUniqueId(), newSetters); // create a new bounty
         // send message to claimer
         claimer.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("trickle-bounty"), transferedBounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
         DataManager.addBounty(transferedBounty);
@@ -126,20 +126,14 @@ public class TrickleBounties {
 
     /**
      * Get the ratio of the bounty that should be given to the claimer.
-     * @param claimer Player who claimed the bounty.
+     * @param hasBounty Whether the claimer already has a bounty.
      * @return The ratio of the bounty that should be given to the claimer.
      */
-    private static float getGivenRewardRatio(Player claimer) {
-        if (BountyManager.hasBounty(claimer.getUniqueId())) {
-            return givenReward;
-        }
-        return unbountiedGivenReward;
+    private static float getGivenRewardRatio(boolean hasBounty) {
+        return hasBounty ? givenReward : unbountiedGivenReward;
     }
 
-    public static float getBountyTransferRatio(Player claimer) {
-        if (BountyManager.hasBounty(claimer.getUniqueId())) {
-            return bountyTransfer;
-        }
-        return unbountiedBountyTransfer;
+    public static float getBountyTransferRatio(boolean hasBounty) {
+        return hasBounty ? bountyTransfer : unbountiedBountyTransfer;
     }
 }
