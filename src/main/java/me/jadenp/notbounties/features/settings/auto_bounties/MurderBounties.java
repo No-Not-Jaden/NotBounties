@@ -92,12 +92,11 @@ public class MurderBounties {
     private static boolean hasMurderImmunity(Player player, Player killer, double bountyIncrease) {
         Bounty bounty = getBounty(player.getUniqueId());
         double bountyAmount = bounty != null ? bounty.getTotalBounty() : 0;
-        if (!ConfigOptions.getAutoBounties().isOverrideImmunity() // immunity is not overridden
-                && ( // check external immunity
-                ImmunityManager.getAppliedImmunity(killer.getUniqueId(), bountyIncrease) != ImmunityManager.ImmunityType.DISABLE // has regular immunity
+        if ((!ConfigOptions.getAutoBounties().isOverrideImmunity() // immunity is not overridden
+                &&  // check external immunity
+                ImmunityManager.getAppliedImmunity(killer.getUniqueId(), bountyIncrease) != ImmunityManager.ImmunityType.DISABLE) // has regular immunity
                         || hasPermissionImmunity(killer) // has permission immunity
                         || (exclusiveMurderOrTrickle && TrickleBounties.getBountyTransferRatio(killer) * bountyAmount > bountyIncrease) // trickle bounty will be used instead
-                )
         ) {
             return true;
         }
