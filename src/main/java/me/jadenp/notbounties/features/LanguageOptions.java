@@ -27,6 +27,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -115,7 +116,7 @@ public class LanguageOptions {
         return messages.containsKey(key) || listMessages.containsKey(key);
     }
 
-    public static List<String> getListMessage(String key) {
+    public static @NotNull List<String> getListMessage(String key) {
         if (listMessages.containsKey(key))
             return listMessages.get(key);
         if (messages.containsKey(key))

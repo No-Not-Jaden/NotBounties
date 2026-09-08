@@ -112,7 +112,7 @@ public class MurderBounties {
      */
     private static boolean hasMurderCooldown(Player player, Player killer, @Nullable Bounty playerBounty) {
         return (playerKills.containsKey(killer.getUniqueId()) && playerKills.get(killer.getUniqueId()).getIfPresent(player.getUniqueId()) != null) // murder cooldown is present
-                && (!murderExcludeClaiming || playerBounty == null || playerBounty.getTotalDisplayBounty(killer) < 0.01); // check if player has a bounty
+                || (murderExcludeClaiming && playerBounty != null && playerBounty.getTotalDisplayBounty(killer) > 0.01); // check if player has a bounty
     }
 
     /**

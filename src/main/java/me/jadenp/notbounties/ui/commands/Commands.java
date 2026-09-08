@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.ui.commands;
 
+import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.bounty_events.BountyEditEvent;
 import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
@@ -709,7 +710,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         // added arguments
                         if (args[1].equalsIgnoreCase("true") || args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("enable")) {
                             // enable
-                            playerData.setBroadcastSettings(PlayerData.BroadcastSettings.EXTENDED);
+                            playerData.setBroadcastSettings(ConfigOptions.getMoney().getDefaultBroadcastSetting());
                             if (!silent)
                                 sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
                         } else if (args[1].equalsIgnoreCase("false") || args[1].equalsIgnoreCase("off") || args[1].equalsIgnoreCase("disable")) {
@@ -748,7 +749,12 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("disable-broadcast"), parser));
                             }
                             case DISABLE -> {
-                                playerData.setBroadcastSettings(PlayerData.BroadcastSettings.EXTENDED);
+                                if (LanguageOptions.getListMessage("extended-bounty-broadcast").isEmpty()) {
+                                    playerData.setBroadcastSettings(PlayerData.BroadcastSettings.SHORT);
+                                } else {
+                                    playerData.setBroadcastSettings(PlayerData.BroadcastSettings.EXTENDED);
+                                }
+
                                 if (!silent)
                                     sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
                             }
