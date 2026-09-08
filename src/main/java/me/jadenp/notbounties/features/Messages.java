@@ -49,7 +49,7 @@ public class Messages {
 
 
         MessageContext safeContext = context == null ? MessageContext.builder().build() : context;
-        String parsed = message;
+        String parsed = safeContext.isAddPrefix() ? LanguageOptions.getMessage("prefix") + message : message;
 
         if (safeContext.getTime() != null && safeContext.getTimeFormat() != null && parsed.contains("{time}")) {
             parsed = parsed.replace("{time}", formatTime(safeContext.getTime(), safeContext.getTimeFormat(), getPlayer(safeContext.getReceiver())));

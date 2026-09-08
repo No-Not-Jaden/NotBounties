@@ -5,6 +5,8 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.PlayerData;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.CompatabilityUtils;
@@ -32,7 +34,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static me.jadenp.notbounties.features.LanguageOptions.getPrefix;
 import static me.jadenp.notbounties.features.settings.money.NumberFormatting.*;
 import static me.jadenp.notbounties.ui.gui.GUI.*;
 
@@ -362,15 +363,15 @@ public class ActionCommands {
             runPlayerCommand(killer, command.substring(9));
         } else if (player != null && command.startsWith("[message_player] ")) {
             String message = command.substring(17);
-            player.sendMessage(LanguageOptions.parse(getPrefix() + message, player));
+            Messages.send(player, message, MessageContext.builder().receiver(player).player(player).build());
         } else if (killer != null && command.startsWith("[message_killer] ")) {
             String message = command.substring(17);
-            killer.sendMessage(LanguageOptions.parse(getPrefix() + message, killer));
+            Messages.send(killer, message, MessageContext.builder().receiver(killer).player(killer).build());
         } else if (command.startsWith("[broadcast] ")) {
             String message = command.substring(12);
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (DataManager.getPlayerData(p.getUniqueId()).getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE) {
-                    p.sendMessage(LanguageOptions.parse(getPrefix() + message, killer));
+                    Messages.send(p, message, MessageContext.builder().receiver(p).player(killer).build());
                 }
             }
         } else if (player != null && command.startsWith("[sound_player] ")) {
@@ -690,7 +691,7 @@ public class ActionCommands {
             Object parsedValue = parseValue(value);
 
             if ((placeholder.contains("%") && ConfigOptions.getIntegrations().isPapiEnabled()) || (placeholder.contains("{") && placeholder.contains("}"))) {
-                String parsed = LanguageOptions.parse(placeholder, player);
+                String parsed = Messages.parse(placeholder, MessageContext.builder().withPrefix(false).receiver(player).build()).join();
                 Object parsedPlaceholder = parseValue(parsed);
 
                 // value types don't match

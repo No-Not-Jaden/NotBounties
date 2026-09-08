@@ -2,6 +2,8 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -36,7 +38,7 @@ public class Prompt implements Listener {
             }
             if (cancelWords.contains(event.getMessage().replace(" ", "").toLowerCase())) {
                 removePrompt(event.getPlayer().getUniqueId());
-                event.getPlayer().sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("prompt-cancel"), event.getPlayer()));
+                Messages.send(event.getPlayer(), LanguageOptions.getMessage("prompt-cancel"), MessageContext.builder().receiver(event.getPlayer()).build());
                 event.setCancelled(true);
                 return;
             }

@@ -19,6 +19,7 @@ public class MessageContext {
     private final LocalTime.TimeFormat timeFormat;
     private final boolean playerPrefix;
     private final boolean playerSuffix;
+    private final boolean addPrefix;
     private final Map<String, String> placeholders;
 
     private MessageContext(Builder builder) {
@@ -31,6 +32,7 @@ public class MessageContext {
         this.timeFormat = builder.timeFormat;
         this.playerPrefix = builder.playerPrefix;
         this.playerSuffix = builder.playerSuffix;
+        this.addPrefix = builder.addPrefix;
         this.placeholders = Collections.unmodifiableMap(new LinkedHashMap<>(builder.placeholders));
     }
 
@@ -74,6 +76,10 @@ public class MessageContext {
         return playerSuffix;
     }
 
+    public boolean isAddPrefix() {
+        return addPrefix;
+    }
+
     public Map<String, String> getPlaceholders() {
         return placeholders;
     }
@@ -88,7 +94,13 @@ public class MessageContext {
         private LocalTime.TimeFormat timeFormat;
         private boolean playerPrefix = true;
         private boolean playerSuffix = true;
+        private boolean addPrefix = true;
         private final Map<String, String> placeholders = new LinkedHashMap<>();
+
+        public Builder withPrefix(boolean prefix) {
+            this.playerPrefix = prefix;
+            return this;
+        }
 
         public Builder withPlayerPrefix(boolean playerPrefix) {
             this.playerPrefix = playerPrefix;

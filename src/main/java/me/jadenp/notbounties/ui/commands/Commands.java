@@ -9,6 +9,7 @@ import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.settings.databases.Databases;
+import me.jadenp.notbounties.features.settings.databases.LocalData;
 import me.jadenp.notbounties.features.settings.databases.wrappers.NotBountiesDatabase;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
@@ -59,7 +60,8 @@ import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 // This is a very old file with lots of spaghetti code. You have been warned
-// TODO: change returning true/false to setting a condition in a prompt object with the command id for future completion
+// TODO: change prefixes to message function
+
 
 public class Commands implements CommandExecutor, TabCompleter {
 
@@ -80,7 +82,7 @@ public class Commands implements CommandExecutor, TabCompleter {
     static boolean failGiveOwnWait(CommandSender sender, boolean silent, Player player) {
         if (Commands.giveOwnCooldown.containsKey(player.getUniqueId()) && Commands.giveOwnCooldown.get(player.getUniqueId()) > System.currentTimeMillis()) {
             if (!silent)
-                Messages.send(sender, getPrefix() + getMessage("wait-command"), MessageContext.builder().receiver(player).time(Commands.giveOwnCooldown.get(player.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE).build());
+                Messages.send(sender, getMessage("wait-command"), MessageContext.builder().receiver(player).time(Commands.giveOwnCooldown.get(player.getUniqueId()) - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE).build());
             return false;
         }
         Commands.giveOwnCooldown.put(player.getUniqueId(), System.currentTimeMillis() + Commands.GIVE_OWN_COOLDOWN_MS);
@@ -89,40 +91,41 @@ public class Commands implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, Command command, @NotNull String label, String[] args) {
+
         if (command.getName().equalsIgnoreCase("notbounties")) {
             boolean adminPermission = sender.hasPermission(NotBounties.getAdminPermission());
-            boolean commandResult = executeCommand(sender, args, false, adminPermission);
-            if (sender instanceof Player player) {
-                if (commandResult) {
-                    Prompt.successfulExecute(player.getUniqueId());
-                } else {
-                    Prompt.failExecute(player.getUniqueId());
-                }
-            }
+            CompletableFuture<Boolean> result = executeCommand(sender, args, false, adminPermission);
+            result.thenAccept(bool -> completeCommand(sender, bool));
         } else if (command.getName().equalsIgnoreCase("notbountiesadmin") && sender.hasPermission(NotBounties.getAdminPermission())) {
             if (args.length > 0) {
                 Player player = Bukkit.getPlayer(args[0]);
                 if (player != null) {
                     String[] newArgs = new String[args.length - 1];
                     System.arraycopy(args, 1, newArgs, 0, newArgs.length);
-                    boolean commandResult = executeCommand(player, newArgs, true, true);
-                    if (commandResult) {
-                        Prompt.successfulExecute(player.getUniqueId());
-                    } else {
-                        Prompt.failExecute(player.getUniqueId());
-                    }
+                    CompletableFuture<Boolean> result = executeCommand(player, newArgs, true, true);
+                    result.thenAccept(bool -> completeCommand(sender, bool));
                 } else {
-                    Messages.send(sender, LanguageOptions.getPrefix() + LanguageOptions.getMessage("unknown-player"), MessageContext.builder().receiver(null).build());
+                    Messages.send(sender, LanguageOptions.getMessage("unknown-player"), MessageContext.builder().receiver(null).build());
                 }
             } else {
-                Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(null).build());
+                Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(null).build());
                 LanguageOptions.sendHelpMessage(sender, getListMessage("help.admin"));
             }
         }
         return true;
     }
 
-    public static boolean executeCommand(@NotNull CommandSender sender, String[] args, boolean forcePermission, boolean adminPermission) {
+    private static void completeCommand(CommandSender sender, boolean success) {
+        if (sender instanceof Player player) {
+            if (success) {
+                Prompt.successfulExecute(player.getUniqueId());
+            } else {
+                Prompt.failExecute(player.getUniqueId());
+            }
+        }
+    }
+
+    public static CompletableFuture<Boolean> executeCommand(@NotNull CommandSender sender, String[] args, boolean forcePermission, boolean adminPermission) {
         if (NotBounties.isPaused() && args.length > 0) {
             boolean allow = false;
             for (String str : allowedPausedAliases) {
@@ -133,8 +136,8 @@ public class Commands implements CommandExecutor, TabCompleter {
             }
             if (!allow) {
                 if (forcePermission || adminPermission)
-                    Messages.send(sender, getPrefix() + getMessage("paused"), MessageContext.builder().receiver(null).build());
-                return true;
+                    Messages.send(sender, getMessage("paused"), MessageContext.builder().receiver(null).build());
+                return CompletableFuture.completedFuture(true);
             }
         }
 
@@ -177,23 +180,23 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (item != null) {
                         player.getInventory().addItem(item.getFormattedItem(player, null, "bounty-gui"));
                         if (!silent) {
-                            Messages.send(player, getPrefix() + ChatColor.YELLOW + "You have been given the custom item.", MessageContext.builder().receiver(parser).build());
-                            Messages.send(player, getPrefix() + ChatColor.YELLOW + "Use " + ChatColor.GREEN + "/data get entity @s SelectedItem " + ChatColor.YELLOW + "while holding the item to view its components.", MessageContext.builder().receiver(parser).build());
+                            Messages.send(player, ChatColor.YELLOW + "You have been given the custom item.", MessageContext.builder().receiver(parser).build());
+                            Messages.send(player, ChatColor.YELLOW + "Use " + ChatColor.GREEN + "/data get entity @s SelectedItem " + ChatColor.YELLOW + "while holding the item to view its components.", MessageContext.builder().receiver(parser).build());
                         }
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     } else {
                         // unknown item
                         if (!silent)
-                            Messages.send(player, getPrefix() + ChatColor.RED + "Unknown custom item \"" + args[1] + "\". (case-sensitive)", MessageContext.builder().receiver(parser).build());
-                        return false;
+                            Messages.send(player, ChatColor.RED + "Unknown custom item \"" + args[1] + "\". (case-sensitive)", MessageContext.builder().receiver(parser).build());
+                        return CompletableFuture.completedFuture(false);
                     }
                 } else {
                     // usage
                     if (!silent) {
-                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                         LanguageOptions.sendHelpMessage(sender, getListMessage("help.admin"));
                     }
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("sort") && (forcePermission || sender.hasPermission("notbounties.sort"))) {
                 // /bounty sort (gui-type) #
@@ -202,8 +205,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     GUIOptions guiOptions = getGUI(args[1].toLowerCase());
                     if (guiOptions == null) {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("unknown-gui").replace("{gui}", args[1]), MessageContext.builder().receiver(parser).build());
-                        return false;
+                            Messages.send(sender, getMessage("unknown-gui").replace("{gui}", args[1]), MessageContext.builder().receiver(parser).build());
+                        return CompletableFuture.completedFuture(false);
                     }
                     boolean indexFrom0 = args[1].equalsIgnoreCase("bounty-gui");
                     UUID uuid;
@@ -211,14 +214,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                         uuid = LoggedPlayers.getPlayer(args[3]);
                         if (uuid == null) {
                             failUnknownPlayer(sender, args[3], silent);
-                            return false;
+                            return CompletableFuture.completedFuture(false);
                         }
                     } else if (sender instanceof Player player) {
                         uuid = player.getUniqueId();
                     } else {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
-                        return false;
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                        return CompletableFuture.completedFuture(false);
                     }
                     Player player = Bukkit.getPlayer(uuid);
                     if (args[2].equalsIgnoreCase("toggle")) {
@@ -233,35 +236,35 @@ public class Commands implements CommandExecutor, TabCompleter {
                             }
                         }
                         if (player != null) {
-                            Messages.send(player, getPrefix() + getMessage("sort-change").replace("{gui}", args[1]).replace("{sort_type}", String.valueOf(newSortType)).replace("{sort_type_name}", GUI.parseSortType(args[1].toLowerCase(), newSortType)), MessageContext.builder().receiver(player).build());
+                            Messages.send(player, getMessage("sort-change").replace("{gui}", args[1]).replace("{sort_type}", String.valueOf(newSortType)).replace("{sort_type_name}", GUI.parseSortType(args[1].toLowerCase(), newSortType)), MessageContext.builder().receiver(player).build());
                         }
                         ImpersistentPlayerData.get(uuid).setGUISortType(args[1].toLowerCase(), newSortType);
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     int sortType;
                     try {
                         sortType = Integer.parseInt(args[2]);
                     } catch (NumberFormatException e) {
                         if (!silent) {
-                            Messages.send(sender, getPrefix() + getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
                             LanguageOptions.sendHelpMessage(sender, getListMessage("help.sort"));
                         }
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                     if (sortType < 0 || sortType > 4) {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("invalid-range").replace("{range}", "1-4"), MessageContext.builder().receiver(parser).build());
-                        return false;
+                            Messages.send(sender, getMessage("invalid-range").replace("{range}", "1-4"), MessageContext.builder().receiver(parser).build());
+                        return CompletableFuture.completedFuture(false);
                     }
                     if (player != null && !silent)
-                        Messages.send(player, getPrefix() + getMessage("sort-change").replace("{gui}", args[1]).replace("{sort_type}", String.valueOf(sortType)), MessageContext.builder().receiver(player).build());
+                        Messages.send(player, getMessage("sort-change").replace("{gui}", args[1]).replace("{sort_type}", String.valueOf(sortType)), MessageContext.builder().receiver(player).build());
 
                     ImpersistentPlayerData.get(uuid).setGUISortType(args[1].toLowerCase(), sortType);
-                    return true;
+                    return CompletableFuture.completedFuture(true);
                 } else {
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("hunt") && BountyHunt.isEnabled()) {
                 if (forcePermission || sender.hasPermission("notbounties.hunt")) {
@@ -269,15 +272,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else {
                     // no permission
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("challenges") && ChallengeManager.isEnabled()) {
                 if ((forcePermission || sender.hasPermission("notbounties.challenges")) && sender instanceof Player) {
                     if (args.length == 1) {
                         // open GUI
                         openGUI(parser, "challenges", 1);
-                            return true;
+                            return CompletableFuture.completedFuture(true);
                     } else {
                         if (args[1].equalsIgnoreCase("claim")) {
                             if (args.length == 2) {
@@ -292,14 +295,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 try {
                                     int challengeIndex = (int) (NumberFormatting.tryParse(args[2]) - 1);
                                     ChallengeManager.tryClaim(parser, challengeIndex);
-                                    return true;
+                                    return CompletableFuture.completedFuture(true);
                                 } catch (NumberFormatException e) {
                                     // unknown command
                                     if (!silent) {
-                                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                         LanguageOptions.sendHelpMessage(sender, getListMessage("help.challenges"));
                                     }
-                                    return false;
+                                    return CompletableFuture.completedFuture(false);
                                 }
                             }
                         } else if (args[1].equalsIgnoreCase("check")) {
@@ -321,30 +324,30 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         sender.sendMessage(text);
                                     }
                                     sender.sendMessage("");
-                                    return true;
+                                    return CompletableFuture.completedFuture(true);
                                 } catch (NumberFormatException e) {
                                     // unknown command
                                     if (!silent) {
-                                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                         LanguageOptions.sendHelpMessage(sender, getListMessage("help.challenges"));
                                     }
-                                    return false;
+                                    return CompletableFuture.completedFuture(false);
                                 }
                             }
                         } else {
                             // unknown command
                             if (!silent) {
-                                Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                 LanguageOptions.sendHelpMessage(sender, getListMessage("help.challenges"));
                             }
-                            return false;
+                            return CompletableFuture.completedFuture(false);
                         }
                     }
                 } else {
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
                 }
-                return false;
+                return CompletableFuture.completedFuture(false);
             } else if (args[0].equalsIgnoreCase("update-notification") && (forcePermission || adminPermission)) {
                 if (args.length == 1) {
                     if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("true")) {
@@ -363,11 +366,11 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
                 if (!silent) {
                     if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("true")) {
-                        Messages.send(sender, getPrefix() + ChatColor.YELLOW + "The update notification is now " + ChatColor.GREEN + "enabled" + ChatColor.YELLOW + ".", MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, ChatColor.YELLOW + "The update notification is now " + ChatColor.GREEN + "enabled" + ChatColor.YELLOW + ".", MessageContext.builder().receiver(parser).build());
                     } else if (ConfigOptions.getUpdateNotification().equalsIgnoreCase("false")) {
-                        Messages.send(sender, getPrefix() + ChatColor.YELLOW + "The update notification is now " + ChatColor.RED + "disabled" + ChatColor.YELLOW + ".", MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, ChatColor.YELLOW + "The update notification is now " + ChatColor.RED + "disabled" + ChatColor.YELLOW + ".", MessageContext.builder().receiver(parser).build());
                     } else {
-                        Messages.send(sender, getPrefix() + ChatColor.YELLOW + "The update notification is now skipping the version " + ChatColor.GOLD + ConfigOptions.getUpdateNotification() + ChatColor.YELLOW + ".", MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, ChatColor.YELLOW + "The update notification is now skipping the version " + ChatColor.GOLD + ConfigOptions.getUpdateNotification() + ChatColor.YELLOW + ".", MessageContext.builder().receiver(parser).build());
                     }
                 }
             } else if (args[0].equalsIgnoreCase("skin") && (forcePermission || adminPermission)) {
@@ -375,7 +378,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                     UUID uuid = LoggedPlayers.getPlayer(args[1]);
                     if (uuid == null) {
                         failUnknownPlayer(sender, args[1], silent);
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                     if (SkinManager.isSkinLoaded(uuid)) {
                         PlayerSkin playerSkin = SkinManager.getSkin(uuid);
@@ -387,14 +390,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                         idComponent.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, playerSkin.id()));
                         idComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GREEN + "Click to copy")));
                         sender.spigot().sendMessage(idComponent);
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     } else {
                         sender.sendMessage("Skin is loading! Please enter the command again.");
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                 } else {
                     sender.sendMessage("/bounty skin (player name/uuid)");
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("setdefaultbroadcast") && (forcePermission || adminPermission)) {
                 if (args.length > 1) {
@@ -403,7 +406,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         settings = PlayerData.BroadcastSettings.valueOf(args[1].toUpperCase());
                     } catch (IllegalArgumentException ignored) {
                         sender.sendMessage("/bounty setdefaultbroadcast (EXTENDED/SHORT/DISABLE)");
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                     File moneyFile = new File(NotBounties.getInstance().getDataFolder(), "settings" + File.separator + "money.yml");
                     YamlConfiguration configuration = YamlConfiguration.loadConfiguration(moneyFile);
@@ -411,21 +414,21 @@ public class Commands implements CommandExecutor, TabCompleter {
                     try {
                         configuration.save(moneyFile);
                     } catch (IOException e) {
-                        Messages.send(sender, "Failed to modify money.yml file.", MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, "Failed to modify money.yml file.", MessageContext.builder().withPrefix(false).receiver(parser).build());
                     }
                     ConfigOptions.getMoney().setDefaultBroadcastSetting(settings);
                     ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().setAllBroadcastSetting(settings);
                     sender.sendMessage("All player's broadcast settings have been set to " + settings.name() + ".");
-                    return true;
+                    return CompletableFuture.completedFuture(true);
                 } else {
                     sender.sendMessage("/bounty setdefaultbroadcast (EXTENDED/SHORT/DISABLE)");
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("cleanEntities") && (forcePermission || sender.hasPermission("notbounties.cleanentities"))) {
                 if (!(sender instanceof Player)) {
                     if (!silent)
                         sender.sendMessage("Only players can use this command!");
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 }
                 double radius;
                 if (args.length == 1) {
@@ -435,29 +438,29 @@ public class Commands implements CommandExecutor, TabCompleter {
                         radius = Double.parseDouble(args[1]);
                     } catch (NumberFormatException e) {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
-                        return false;
+                            Messages.send(sender, getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
+                        return CompletableFuture.completedFuture(false);
                     }
                 }
                 RemovePersistentEntitiesEvent.cleanAsync(parser.getNearbyEntities(radius, radius, radius), sender);
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("pause") && (forcePermission || adminPermission)) {
                 if (NotBounties.isPaused()) {
-                    Messages.send(sender, getPrefix() + ChatColor.RED + "NotBounties is already paused.", MessageContext.builder().receiver(parser).build());
-                    return false;
+                    Messages.send(sender, ChatColor.RED + "NotBounties is already paused.", MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 } else {
                     NotBounties.setPaused(true);
-                    Messages.send(sender, getPrefix() + ChatColor.RED + "NotBounties is now paused. Players will only be able to view previous bounties. Run " + ChatColor.GREEN + "/" + ConfigOptions.getPluginBountyCommands().get(0) + " unpause " + ChatColor.RED + " to use all features again.", MessageContext.builder().receiver(parser).build());
-                    return true;
+                    Messages.send(sender, ChatColor.RED + "NotBounties is now paused. Players will only be able to view previous bounties. Run " + ChatColor.GREEN + "/" + ConfigOptions.getPluginBountyCommands().get(0) + " unpause " + ChatColor.RED + " to use all features again.", MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(true);
                 }
             } else if (args[0].equalsIgnoreCase("unpause") && (forcePermission || adminPermission)) {
                 if (NotBounties.isPaused()) {
                     NotBounties.setPaused(false);
-                    Messages.send(sender, getPrefix() + ChatColor.GREEN + "NotBounties is no longer paused.", MessageContext.builder().receiver(parser).build());
-                    return true;
+                    Messages.send(sender, ChatColor.GREEN + "NotBounties is no longer paused.", MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(true);
                 } else {
-                    Messages.send(sender, getPrefix() + ChatColor.GREEN + "NotBounties is already unpaused.", MessageContext.builder().receiver(parser).build());
-                    return false;
+                    Messages.send(sender, ChatColor.GREEN + "NotBounties is already unpaused.", MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("debug") && (forcePermission || adminPermission)) {
                 if (args.length == 1) {
@@ -481,7 +484,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 }
                             }
                         });
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     boolean newValue;
                     newValue = args[1].equalsIgnoreCase("enable");
@@ -489,43 +492,43 @@ public class Commands implements CommandExecutor, TabCompleter {
                         NotBounties.setDebug(newValue);
                         if (NotBounties.isDebug()) {
                             if (!silent) {
-                                Messages.send(sender, getPrefix() + ChatColor.GREEN + "Debug messages will now be sent in console.", MessageContext.builder().receiver(parser).build());
+                                Messages.send(sender, ChatColor.GREEN + "Debug messages will now be sent in console.", MessageContext.builder().receiver(parser).build());
                             }
                         } else if (!silent) {
-                            Messages.send(sender, getPrefix() + ChatColor.RED + "Debug messages will no longer be sent in console.", MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, ChatColor.RED + "Debug messages will no longer be sent in console.", MessageContext.builder().receiver(parser).build());
                         }
                     } else {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + ChatColor.YELLOW + "Debug mode is already set this way.", MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, ChatColor.YELLOW + "Debug mode is already set this way.", MessageContext.builder().receiver(parser).build());
                     }
                 }
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("board") && (forcePermission || adminPermission)) {
                 if (!(sender instanceof Player)) {
                     if (!silent)
                         sender.sendMessage("Only players can use this command!");
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 }
                 int rank = 0;
                 if (args.length > 1) {
                     if (args[1].equalsIgnoreCase("clear")) {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + ChatColor.DARK_RED + "Removed " + BountyBoard.getBountyBoards().size() + " bounty boards.", MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, ChatColor.DARK_RED + "Removed " + BountyBoard.getBountyBoards().size() + " bounty boards.", MessageContext.builder().receiver(parser).build());
                         BountyBoard.clearBoard();
 
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     if (args[1].equalsIgnoreCase("remove")) {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + ChatColor.RED + "Right click the bounty board to remove.", MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, ChatColor.RED + "Right click the bounty board to remove.", MessageContext.builder().receiver(parser).build());
                         BountyBoard.getBoardSetup().put(parser.getUniqueId(), -1);
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     try {
                         rank = Integer.parseInt(args[1]);
                     } catch (NumberFormatException e) {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
                     }
                 } else {
                     // get highest rank
@@ -538,30 +541,30 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (rank < 1)
                     rank = 1;
                 if (!silent)
-                    Messages.send(sender, getPrefix() + ChatColor.DARK_AQUA + ChatColor.BOLD + "<Rank " + rank + "> " + ChatColor.AQUA + "Punch a block to place the bounty board on.", MessageContext.builder().receiver(parser).build());
+                    Messages.send(sender, "" + ChatColor.DARK_AQUA + ChatColor.BOLD + "<Rank " + rank + "> " + ChatColor.AQUA + "Punch a block to place the bounty board on.", MessageContext.builder().receiver(parser).build());
                 BountyBoard.getBoardSetup().put(parser.getUniqueId(), rank);
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("tutorial") && (forcePermission || sender.hasPermission("notbounties.basic.tutorial"))) {
                 Tutorial.onCommand(sender, args);
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("whitelist") && Whitelist.isEnabled() && (forcePermission || sender.hasPermission("notbounties.whitelist"))) {
                 if (sender instanceof Player player) {
                     if (args.length == 1) {
                         openGUI(parser, "set-whitelist", 1);
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     if (args[1].equalsIgnoreCase("offline")) {
                         openGUI(parser, "set-whitelist", 1, "offline");
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     if (args[1].equalsIgnoreCase("reset")) {
                         DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> {
                             playerData.getWhitelist().setList(new TreeSet<>());
                             DataManager.updatePlayerData(playerData);
                             if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("whitelist-reset"), MessageContext.builder().receiver(parser).build());
+                                Messages.send(sender, getMessage("whitelist-reset"), MessageContext.builder().receiver(parser).build());
                         });
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     if (args[1].equalsIgnoreCase("view")) {
                         DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> {
@@ -576,9 +579,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 names.append("<none>");
                             }
                             if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("whitelisted-players") + names, MessageContext.builder().receiver(parser).build());
+                                Messages.send(sender, getMessage("whitelisted-players") + names, MessageContext.builder().receiver(parser).build());
                         });
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     if (args[1].equalsIgnoreCase("toggle")) {
                         if (args.length == 2) {
@@ -587,18 +590,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> {
                                     if (playerData.getWhitelist().toggleBlacklist()) {
                                         if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("blacklist-toggle"), MessageContext.builder().receiver(parser).build());
+                                            Messages.send(sender, getMessage("blacklist-toggle"), MessageContext.builder().receiver(parser).build());
                                     } else {
                                         if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("whitelist-toggle"), MessageContext.builder().receiver(parser).build());
+                                            Messages.send(sender, getMessage("whitelist-toggle"), MessageContext.builder().receiver(parser).build());
                                     }
                                     DataManager.updatePlayerData(playerData);
                                 });
                             } else {
                                 // unknown command
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
-                                return false;
+                                    Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                return CompletableFuture.completedFuture(false);
                             }
                         } else {
                             List<String> toggleOptions = List.of("blacklist", "false", "off", "whitelist", "true", "on");
@@ -614,10 +617,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (change) {
                                         if (blacklist) {
                                             if (!silent)
-                                                Messages.send(sender, getPrefix() + getMessage("blacklist-toggle"), MessageContext.builder().receiver(parser).build());
+                                                Messages.send(sender, getMessage("blacklist-toggle"), MessageContext.builder().receiver(parser).build());
                                         } else {
                                             if (!silent)
-                                                Messages.send(sender, getPrefix() + getMessage("whitelist-toggle"), MessageContext.builder().receiver(parser).build());
+                                                Messages.send(sender, getMessage("whitelist-toggle"), MessageContext.builder().receiver(parser).build());
                                         }
                                         DataManager.updatePlayerData(playerData);
                                     }
@@ -629,32 +632,32 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (playerUUID == null) {
                                     // unknown player
                                     failUnknownPlayer(sender, args[2], silent);
-                                    return false;
+                                    return CompletableFuture.completedFuture(false);
                                 }
                                 DataManager.getPlayerDataAsync(playerUUID).thenAccept(playerData -> {
                                     Whitelist whitelist = playerData.getWhitelist();
                                     if (whitelist.getList().remove(playerUUID)) {
                                         if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
+                                            Messages.send(sender, getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
                                         DataManager.updatePlayerData(playerData);
                                     } else if (whitelist.getList().size() < 10) {
                                         whitelist.getList().add(playerUUID);
                                         if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
+                                            Messages.send(sender, getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
                                         DataManager.updatePlayerData(playerData);
                                     } else {
                                         if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("whitelist-max"), MessageContext.builder().receiver(parser).build());
+                                            Messages.send(sender, getMessage("whitelist-max"), MessageContext.builder().receiver(parser).build());
                                     }
                                 });
 
                             }
                         }
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     if (args.length > 2) {
                         String[] finalArgs = args;
-                        DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> {
+                        return DataManager.getPlayerDataAsync(player.getUniqueId()).thenApply(playerData -> {
                             Whitelist playerWhitelist = playerData.getWhitelist();
                             SortedSet<UUID> whitelist = new TreeSet<>();
                             SortedSet<UUID> previousWhitelist = playerWhitelist.getList();
@@ -675,9 +678,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 // don't need to set the player's whitelist to previousWhitelist because it is already a reference to it
                                 DataManager.updatePlayerData(playerData);
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
+                                    Messages.send(sender, getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
                                 if (previousWhitelist.size() == 10 && !silent)
-                                    Messages.send(sender, getPrefix() + getMessage("whitelist-max"), MessageContext.builder().receiver(parser).build());
+                                    Messages.send(sender, getMessage("whitelist-max"), MessageContext.builder().receiver(parser).build());
                                 return true;
                             }
                             if (finalArgs[1].equalsIgnoreCase("remove")) {
@@ -693,33 +696,38 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 // don't need to set the player's whitelist to previousWhitelist because it is already a reference to it
                                 DataManager.updatePlayerData(playerData);
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
+                                    Messages.send(sender, getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
                                 return true;
                             }
                             if (finalArgs[1].equalsIgnoreCase("set")) {
                                 playerWhitelist.setList(whitelist);
                                 DataManager.updatePlayerData(playerData);
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
+                                    Messages.send(sender, getMessage("whitelist-change"), MessageContext.builder().receiver(parser).build());
                                 return true;
                             }
+                            if (!silent) {
+                                Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                sendHelpMessage(sender, getListMessage("help.whitelist"));
+                            }
+                            return false;
                         });
 
                     }
                     // usage
                     if (!silent) {
-                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                         sendHelpMessage(sender, getListMessage("help.whitelist"));
                     }
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 } else {
                     if (!silent)
                         sender.sendMessage(getPrefix() + ChatColor.RED + "Only players can use this command.");
                 }
-                return false;
+                return CompletableFuture.completedFuture(false);
             } else if (args[0].equalsIgnoreCase("currency") && (forcePermission || adminPermission)) {
                 CurrencySetup.onCommand(sender, args);
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("set")) {
                 if ((forcePermission || sender.hasPermission("notbounties.set"))) {
                     if (sender instanceof Player) {
@@ -730,31 +738,31 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } else {
                         if (!silent)
                             sender.sendMessage(getPrefix() + ChatColor.RED + "Only players can use this command.");
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
-                    return true;
+                    return CompletableFuture.completedFuture(true);
                 } else {
                     // no permission
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if ((args[0].equalsIgnoreCase("bdc") || args[0].equalsIgnoreCase("broadcast")) && (forcePermission || sender.hasPermission("notbounties.basic.broadcast"))) {
                 if (sender instanceof Player player) {
                     String[] finalArgs1 = args;
-                    DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> {
+                    return DataManager.getPlayerDataAsync(player.getUniqueId()).thenApply(playerData -> {
                         if (finalArgs1.length > 1) {
                             // added arguments
                             if (finalArgs1[1].equalsIgnoreCase("true") || finalArgs1[1].equalsIgnoreCase("on") || finalArgs1[1].equalsIgnoreCase("enable")) {
                                 // enable
                                 playerData.setBroadcastSettings(PlayerData.BroadcastSettings.EXTENDED);
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("enable-broadcast"), MessageContext.builder().receiver(parser).build());
+                                    Messages.send(sender, getMessage("enable-broadcast"), MessageContext.builder().receiver(parser).build());
                             } else if (finalArgs1[1].equalsIgnoreCase("false") || finalArgs1[1].equalsIgnoreCase("off") || finalArgs1[1].equalsIgnoreCase("disable")) {
                                 // disable
                                 playerData.setBroadcastSettings(PlayerData.BroadcastSettings.DISABLE);
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("disable-broadcast"), MessageContext.builder().receiver(parser).build());
+                                    Messages.send(sender, getMessage("disable-broadcast"), MessageContext.builder().receiver(parser).build());
                             } else {
                                 try {
                                     PlayerData.BroadcastSettings broadcastSettings = PlayerData.BroadcastSettings.valueOf(finalArgs1[1].toUpperCase());
@@ -762,14 +770,14 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     if (!silent) {
                                         if (broadcastSettings == PlayerData.BroadcastSettings.DISABLE) {
                                             // disable
-                                            Messages.send(sender, getPrefix() + getMessage("disable-broadcast"), MessageContext.builder().receiver(parser).build());
+                                            Messages.send(sender, getMessage("disable-broadcast"), MessageContext.builder().receiver(parser).build());
                                         } else {
                                             // enabled
-                                            Messages.send(sender, getPrefix() + getMessage("enable-broadcast"), MessageContext.builder().receiver(parser).build());
+                                            Messages.send(sender, getMessage("enable-broadcast"), MessageContext.builder().receiver(parser).build());
                                         }
                                     }
                                 } catch (IllegalArgumentException e) {
-                                    Messages.send(sender, LanguageOptions.getPrefix() + LanguageOptions.getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                    Messages.send(sender, LanguageOptions.getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                     return false;
                                 }
                             }
@@ -778,45 +786,46 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 case EXTENDED -> {
                                     playerData.setBroadcastSettings(PlayerData.BroadcastSettings.SHORT);
                                     if (!silent)
-                                        Messages.send(sender, getPrefix() + getMessage("enable-broadcast"), MessageContext.builder().receiver(parser).build());
+                                        Messages.send(sender, getMessage("enable-broadcast"), MessageContext.builder().receiver(parser).build());
                                 }
                                 case SHORT -> {
                                     playerData.setBroadcastSettings(PlayerData.BroadcastSettings.DISABLE);
                                     if (!silent)
-                                        Messages.send(sender, getPrefix() + LanguageOptions.getMessage("disable-broadcast"), MessageContext.builder().receiver(parser).build());
+                                        Messages.send(sender, LanguageOptions.getMessage("disable-broadcast"), MessageContext.builder().receiver(parser).build());
                                 }
                                 case DISABLE -> {
                                     playerData.setBroadcastSettings(PlayerData.BroadcastSettings.EXTENDED);
                                     if (!silent)
-                                        Messages.send(sender, getPrefix() + getMessage("enable-broadcast"), MessageContext.builder().receiver(parser).build());
+                                        Messages.send(sender, getMessage("enable-broadcast"), MessageContext.builder().receiver(parser).build());
                                 }
                             }
                         }
                         DataManager.updatePlayerData(playerData);
+                        return true;
                     });
 
                 } else {
                     if (!silent)
                         sender.sendMessage("You can't disable bounty broadcast because you are not a player! (yet?) If you really want to disable, send a message in the discord!");
                 }
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("stat")) {
                 if (!(forcePermission || sender.hasPermission("notbounties.stats"))) {
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
                 if (args.length == 1) {
                     Leaderboard.ALL.displayStats(parser, false);
-                    return true;
+                    return CompletableFuture.completedFuture(true);
                 }
                 if (args.length > 3 && !(forcePermission || adminPermission) || args.length > 5) {
                     // usage
                     if (!silent) {
-                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                         sendHelpMessage(sender, getListMessage("help.stats"));
                     }
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 }
                 Leaderboard leaderboard;
                 try {
@@ -824,17 +833,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } catch (IllegalArgumentException e) {
                     // more usage
                     if (!silent) {
-                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                         sendHelpMessage(sender, getListMessage("help.stats"));
                     }
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 }
 
                 if (args.length == 2) {
                     if (!(sender instanceof Player)) {
                         if (!silent)
                             sender.sendMessage("Only players can use this command!");
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                     leaderboard.displayStats(parser, false);
                 } else {
@@ -842,25 +851,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                     if (playerUUID == null) {
                         // unknown player
                         failUnknownPlayer(sender, args[2], silent);
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                     if (args.length == 3) {
                         leaderboard.displayStats(Bukkit.getOfflinePlayer(playerUUID), parser, true);
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
                     // admin part to edit or setValue
                     if (!(forcePermission || adminPermission)) {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                        return false;
+                            Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                        return CompletableFuture.completedFuture(false);
                     }
                     if (args.length != 5 || (!args[3].equalsIgnoreCase("edit") && !args[3].equalsIgnoreCase("setValue"))) {
                         // usage
                         if (!silent) {
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                             sendHelpMessage(sender, getListMessage("help.admin"));
                         }
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                     // true = edit, false = setValue
                     boolean edit = args[3].equalsIgnoreCase("edit");
@@ -871,9 +880,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                     } catch (NumberFormatException e) {
                         // usage
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                         sendHelpMessage(sender, getListMessage("help.admin"));
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                     if (!leaderboard.isMoney())
                         value = (long) value;
@@ -890,7 +899,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                         }
                         if (!silent) {
                             String amountString = leaderboard.getFormattedStat(playerUUID).join();
-                            Messages.send(sender, getPrefix() + getMessage("update-stat")
+                            Messages.send(sender, getMessage("update-stat")
                                     .replace("{leaderboard_name}", leaderboard.getDisplayName())
                                     .replace("{leaderboard}", (leaderboard.toString()))
                                     .replace("{amount}", amountString), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(playerUUID)).build());
@@ -899,7 +908,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                 }
 
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("top")) {
                 if ((forcePermission || sender.hasPermission("notbounties.stats"))) {
                     Leaderboard leaderboard;
@@ -908,10 +917,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                             leaderboard = Leaderboard.valueOf(args[1].toUpperCase());
                         } catch (IllegalArgumentException e) {
                             if (!silent) {
-                                Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                 sendHelpMessage(sender, getListMessage("help.stats"));
                             }
-                            return false;
+                            return CompletableFuture.completedFuture(false);
                         }
                     } else {
                         leaderboard = Leaderboard.ALL;
@@ -924,10 +933,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                 } else {
                     // no permission
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("reload")) {
                 if ((forcePermission || adminPermission)) {
                     try {
@@ -937,84 +946,89 @@ public class Commands implements CommandExecutor, TabCompleter {
                     }
                     reopenBountiesGUI();
                     if (!silent)
-                        Messages.send(sender, getPrefix() + ChatColor.GREEN + "Reloaded NotBounties version " + NotBounties.getInstance().getDescription().getVersion(), MessageContext.builder().receiver(parser).build());
+                        Messages.send(sender, ChatColor.GREEN + "Reloaded NotBounties version " + NotBounties.getInstance().getDescription().getVersion(), MessageContext.builder().receiver(parser).build());
                 } else {
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("immunity")) {
                 return immunityCommandHandler.handle(sender, args, forcePermission, adminPermission, silent, parser);
             } else if (args[0].equalsIgnoreCase("buy")) {
-                if (sender instanceof Player) {
+                if (sender instanceof Player player) {
                     if (ConfigOptions.getMoney().isBuyOwn()) {
                         if (forcePermission || sender.hasPermission("notbounties.buyown")) {
-                            if (hasBounty(parser.getUniqueId())) { // TODO: Continue fixing
-                                Bounty bounty = getBounty(parser.getUniqueId());
-                                assert bounty != null;
-                                if ((repeatBuyBountyCommand.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyBountyCommand.get((parser).getUniqueId().toString()) < 30000) || (args.length > 1 && args[1].equalsIgnoreCase("--confirm"))) {
-                                    // try to find bounty and buy it
-                                    repeatBuyBountyCommand.remove((parser).getUniqueId().toString());
-                                    if (checkBalance(parser, (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()))) {
-                                        Bounty bought = new Bounty(bounty);
-                                        BountyRemoveEvent event = new BountyRemoveEvent(sender, true, bought);
-                                        Bukkit.getPluginManager().callEvent(event);
-                                        if (event.isCancelled())
-                                            return true;
-                                        try {
-                                            NumberFormatting.doRemoveCommands(parser, (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()), new ArrayList<>());
-                                            if (NumberFormatting.isBountyItemsBuyItem()) {
-                                                NumberFormatting.givePlayer(parser, bounty.getTotalItemBounty(), false);
-                                            } else {
-                                                for (Setter setter : bounty.getSetters()) {
-                                                    if (!setter.getItems().isEmpty())
-                                                        Messages.parse(LanguageOptions.getMessage("refund-reason-remove"), MessageContext.builder().receiver(parser).build()).thenAccept(reason -> BountyManager.refundPlayer(setter.getUuid(), 0, setter.getItems(), reason));
+                            String[] finalArgs6 = args;
+                            return DataManager.getBountyAsync(player.getUniqueId()).thenApply(bounty -> {
+                                if (bounty != null) {
+                                    if ((repeatBuyBountyCommand.containsKey((parser).getUniqueId().toString()) && System.currentTimeMillis() - repeatBuyBountyCommand.get((parser).getUniqueId().toString()) < 30000) || (finalArgs6.length > 1 && finalArgs6[1].equalsIgnoreCase("--confirm"))) {
+                                        // try to find bounty and buy it
+                                        repeatBuyBountyCommand.remove((parser).getUniqueId().toString());
+                                        if (checkBalance(parser, (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()))) {
+                                            Bounty bought = new Bounty(bounty);
+                                            BountyRemoveEvent event = new BountyRemoveEvent(sender, true, bought);
+                                            Bukkit.getPluginManager().callEvent(event);
+                                            if (event.isCancelled())
+                                                return true;
+                                            try {
+                                                NumberFormatting.doRemoveCommands(parser, (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()), new ArrayList<>());
+                                                if (NumberFormatting.isBountyItemsBuyItem()) {
+                                                    bounty.getTotalItemBountyAsync().thenAccept(items -> NumberFormatting.givePlayer(parser, items, false));
+                                                } else {
+                                                    for (Setter setter : bounty.getSetters()) {
+                                                        if (setter.hasItems()) {
+                                                            Messages.parse(LanguageOptions.getMessage("refund-reason-remove"), MessageContext.builder().receiver(parser).build()).thenCombine(setter.getItems(), (reason, items) -> {
+                                                                        BountyManager.refundPlayer(setter.getUuid(), 0, items, reason);
+                                                                        return "true"; // combine may not be the right operation here
+                                                                    });
+                                                        }
+                                                    }
                                                 }
+                                                BountyManager.removeBounty(bounty.getUUID());
+                                                ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.BUY_OWN, 1);
+                                                reopenBountiesGUI();
+                                                if (!silent)
+                                                    Messages.send(sender, getMessage("success-remove-bounty"), MessageContext.builder().receiver(parser).build());
+                                                return true;
+                                            } catch (NotEnoughCurrencyException e) {
+                                                // broke
+                                                if (!silent)
+                                                    Messages.send(sender, getMessage("broke"), MessageContext.builder().receiver(parser).amount((bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply())).build());
+                                                return false;
                                             }
-                                            BountyManager.removeBounty(bounty.getUUID());
-                                            ChallengeManager.updateChallengeProgress(parser.getUniqueId(), ChallengeType.BUY_OWN, 1);
-                                            reopenBountiesGUI();
-                                            if (!silent)
-                                                Messages.send(sender, getPrefix() + getMessage("success-remove-bounty"), MessageContext.builder().receiver(parser).build());
-                                            return true;
-                                        } catch (NotEnoughCurrencyException e) {
+                                        } else {
                                             // broke
                                             if (!silent)
-                                                Messages.send(sender, getPrefix() + getMessage("broke"), MessageContext.builder().receiver(parser).amount((bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply())).build());
+                                                Messages.send(sender, getMessage("broke"), MessageContext.builder().receiver(parser).amount((bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply())).build());
                                             return false;
                                         }
                                     } else {
-                                        // broke
-                                        if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("broke"), MessageContext.builder().receiver(parser).amount((bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply())).build());
-                                        return false;
+                                        // open gui
+                                        repeatBuyBountyCommand.put(parser.getUniqueId().toString(), System.currentTimeMillis());
+                                        GUI.openGUI(parser, "confirm", 1, parser.getUniqueId(), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()));
+                                        return true;
                                     }
                                 } else {
-                                    // open gui
-                                    repeatBuyBountyCommand.put(parser.getUniqueId().toString(), System.currentTimeMillis());
-                                    GUI.openGUI(parser, "confirm", 1, parser.getUniqueId(), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()));
-                                    return true;
+                                    if (!silent)
+                                        Messages.send(sender, getMessage("no-bounty"), MessageContext.builder().receiver(parser).build());
+                                    return false;
                                 }
-                            } else {
-                                if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("no-bounty"), MessageContext.builder().receiver(parser).build());
-                                return false;
-                            }
+                            });
                         } else {
                             if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                            return false;
+                                Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                            return CompletableFuture.completedFuture(false);
                         }
                     } else {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
-                        return false;
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                        return CompletableFuture.completedFuture(false);
                     }
                 } else {
                     if (!silent)
                         sender.sendMessage("You don't have a bounty!");
-                    return false;
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("check")) {
                 if (forcePermission || sender.hasPermission("notbounties.view")) {
@@ -1022,84 +1036,88 @@ public class Commands implements CommandExecutor, TabCompleter {
                         UUID pUUID = LoggedPlayers.getPlayer(args[1]);
                         if (pUUID == null) {
                             failUnknownPlayer(sender, args[1], silent);
-                            return false;
+                            return CompletableFuture.completedFuture(false);
                         }
-                        if (!hasBounty(pUUID)) {
-                            if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("no-bounty"), MessageContext.builder().receiver(parser).player(pUUID).build());
-                            return false;
-                        }
-                        Bounty bounty = getBounty(pUUID);
-                        assert bounty != null;
-                        double bountyAmount = Whitelist.isShowWhitelistedBounties() || adminPermission || !(sender instanceof Player) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(parser);
-                        if (bountyAmount == 0) {
-                            if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("no-bounty"), MessageContext.builder().receiver(parser).player(pUUID).build());
-                            return false;
-                        }
-
-                        if (args.length > 2) {
-                            if (args[2].equalsIgnoreCase("list")) {
-                                if (silent)
-                                    return true;
-                                OfflinePlayer p = Bukkit.getOfflinePlayer(pUUID);
-                                Messages.send(sender, getPrefix() + getMessage("check-bounty"), MessageContext.builder().receiver(p).bounty(bountyAmount).time(bounty.getLatestUpdate(), LocalTime.TimeFormat.PLAYER).build());
-                                for (Setter setters : bounty.getSetters()) {
-                                    if (Whitelist.isShowWhitelistedBounties() || adminPermission || !(sender instanceof Player) || setters.canClaim(parser)) {
-                                        if (getMessage("list-setter").contains("{items}") && !setters.getItems().isEmpty()) {
-                                            BaseComponent[] components = new BaseComponent[setters.getItems().size() + 2];
-                                            CompletableFuture<String> firstPartFuture = Messages.parse(
-                                                    getPrefix() + getMessage("list-setter").substring(0, getMessage("list-setter").indexOf("{items}")),
-                                                    MessageContext.builder().receiver(Bukkit.getOfflinePlayer(setters.getUuid())).amount(setters.getDisplayAmount()).time(setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER).build()
-                                            );
-                                            BaseComponent[] itemComponents = NumberFormatting.listHoverItems(setters.getItems(), 'x');
-                                            System.arraycopy(itemComponents, 0, components, 1, itemComponents.length);
-                                            CompletableFuture<String> secondPartFuture = Messages.parse(
-                                                    getMessage("list-setter").substring(getMessage("list-setter").indexOf("{items}") + 7),
-                                                    MessageContext.builder().receiver(Bukkit.getOfflinePlayer(setters.getUuid())).amount(setters.getDisplayAmount()).time(setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER).build()
-                                            );
-                                            firstPartFuture.thenCombine(secondPartFuture, (firstPart, secondPart) -> {
-                                                components[0] = LanguageOptions.getTextComponent(firstPart);
-                                                components[components.length - 1] = LanguageOptions.getTextComponent(secondPart);
-                                                return components;
-                                            }).thenAccept(finalComponents -> {
-                                                if (sender instanceof Player playerSender) {
-                                                    NotBounties.getServerImplementation().entity(playerSender).run(() -> playerSender.spigot().sendMessage(finalComponents));
-                                                } else {
-                                                    NotBounties.getServerImplementation().global().run(() -> sender.spigot().sendMessage(finalComponents));
-                                                }
-                                            });
-                                        } else {
-                                            Messages.send(sender, getPrefix() + getMessage("list-setter").replace("{items}", ""), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(setters.getUuid())).amount(setters.getDisplayAmount()).time(setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER).build());
-                                        }
-                                        if (!setters.canClaim(parser))
-                                            getListMessage("not-whitelisted").stream().filter(s -> !s.isEmpty()).forEach(s -> Messages.send(sender, s, MessageContext.builder().receiver(p).build()));
-                                    }
-                                }
-                                return true;
-                            } else {
-                                if (!silent) {
-                                    Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
-                                    sendHelpMessage(sender, getListMessage("help.view"));
-                                }
+                        String[] finalArgs2 = args;
+                        return DataManager.getBountyAsync(pUUID).thenApply(bounty -> {
+                            if (bounty == null) {
+                                if (!silent)
+                                    Messages.send(sender, getMessage("no-bounty"), MessageContext.builder().receiver(parser).player(pUUID).build());
                                 return false;
                             }
-                        } else {
-                            // open gui
-                            openGUI(parser, "view-bounty", 1, bounty.getUUID());
-                            return true;
-                        }
+                            double bountyAmount = Whitelist.isShowWhitelistedBounties() || adminPermission || !(sender instanceof Player) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(parser);
+                            if (bountyAmount == 0) {
+                                if (!silent)
+                                    Messages.send(sender, getMessage("no-bounty"), MessageContext.builder().receiver(parser).player(pUUID).build());
+                                return false;
+                            }
+
+                            if (finalArgs2.length > 2) {
+                                if (finalArgs2[2].equalsIgnoreCase("list")) {
+                                    if (silent)
+                                        return true;
+                                    OfflinePlayer p = Bukkit.getOfflinePlayer(pUUID);
+                                    Messages.send(sender, getMessage("check-bounty"), MessageContext.builder().receiver(p).bounty(bountyAmount).time(bounty.getLatestUpdate(), LocalTime.TimeFormat.PLAYER).build());
+                                    for (Setter setters : bounty.getSetters()) {
+                                        if (Whitelist.isShowWhitelistedBounties() || adminPermission || !(sender instanceof Player) || setters.canClaim(parser)) {
+
+                                            if (getMessage("list-setter").contains("{items}") && setters.hasItems()) {
+                                                setters.getItems().thenAccept(items -> {
+                                                    BaseComponent[] components = new BaseComponent[items.size() + 2];
+                                                    CompletableFuture<String> firstPartFuture = Messages.parse(
+                                                            getPrefix() + getMessage("list-setter").substring(0, getMessage("list-setter").indexOf("{items}")),
+                                                            MessageContext.builder().receiver(Bukkit.getOfflinePlayer(setters.getUuid())).amount(setters.getDisplayAmount()).time(setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER).build()
+                                                    );
+                                                    BaseComponent[] itemComponents = NumberFormatting.listHoverItems(items, 'x');
+                                                    System.arraycopy(itemComponents, 0, components, 1, itemComponents.length);
+                                                    CompletableFuture<String> secondPartFuture = Messages.parse(
+                                                            getMessage("list-setter").substring(getMessage("list-setter").indexOf("{items}") + 7),
+                                                            MessageContext.builder().receiver(Bukkit.getOfflinePlayer(setters.getUuid())).amount(setters.getDisplayAmount()).time(setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER).build()
+                                                    );
+                                                    firstPartFuture.thenCombine(secondPartFuture, (firstPart, secondPart) -> {
+                                                        components[0] = LanguageOptions.getTextComponent(firstPart);
+                                                        components[components.length - 1] = LanguageOptions.getTextComponent(secondPart);
+                                                        return components;
+                                                    }).thenAccept(finalComponents -> {
+                                                        if (sender instanceof Player playerSender) {
+                                                            NotBounties.getServerImplementation().entity(playerSender).run(() -> playerSender.spigot().sendMessage(finalComponents));
+                                                        } else {
+                                                            NotBounties.getServerImplementation().global().run(() -> sender.spigot().sendMessage(finalComponents));
+                                                        }
+                                                    });
+                                                });
+                                            } else {
+                                                Messages.send(sender, getMessage("list-setter").replace("{items}", ""), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(setters.getUuid())).amount(setters.getDisplayAmount()).time(setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER).build());
+                                            }
+                                            if (!setters.canClaim(parser))
+                                                getListMessage("not-whitelisted").stream().filter(s -> !s.isEmpty()).forEach(s -> Messages.send(sender, s, MessageContext.builder().receiver(p).build()));
+                                        }
+                                    }
+                                    return true;
+                                } else {
+                                    if (!silent) {
+                                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                        sendHelpMessage(sender, getListMessage("help.view"));
+                                    }
+                                    return false;
+                                }
+                            } else {
+                                // open gui
+                                openGUI(parser, "view-bounty", 1, bounty.getUUID());
+                                return true;
+                            }
+                        });
                     } else {
                         if (!silent) {
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                             sendHelpMessage(sender, getListMessage("help.view"));
                         }
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                 } else {
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("list")) {
                 if (forcePermission || sender.hasPermission("notbounties.view")) {
@@ -1114,17 +1132,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                     listBounties(sender, page - 1);
                 } else {
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
-                return true;
+                return CompletableFuture.completedFuture(true);
             } else if (args[0].equalsIgnoreCase("remove")) {
                 if (adminPermission) {
                     if (args.length > 1) {
                         UUID bountyUUID = LoggedPlayers.getPlayer(args[1]);
                         if (bountyUUID == null) {
                             failUnknownPlayer(sender, args[1], silent);
-                            return false;
+                            return CompletableFuture.completedFuture(false);
                         }
                         Bounty toRemove = DataManager.getGuarrenteedBounty(bountyUUID);
                         if (toRemove != null) {
@@ -1133,7 +1151,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 BountyRemoveEvent event = new BountyRemoveEvent(sender, false, bounty);
                                 Bukkit.getPluginManager().callEvent(event);
                                 if (event.isCancelled())
-                                    return true;
+                                    return CompletableFuture.completedFuture(true);
                                 BountyManager.removeBounty(toRemove.getUUID());
                                 Messages.parse(LanguageOptions.getMessage("refund-reason-remove"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(bountyUUID)).build())
                                         .thenAccept(reason -> NotBounties.getServerImplementation().global().run(() -> refundBounty(toRemove, reason)));
@@ -1143,20 +1161,20 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 WantedTags.removeWantedTag(toRemove.getUUID());
                                 OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("success-remove-bounty"), MessageContext.builder().receiver(player).build());
-                                return true;
+                                    Messages.send(sender, getMessage("success-remove-bounty"), MessageContext.builder().receiver(player).build());
+                                return CompletableFuture.completedFuture(true);
                             } else if (args.length == 4) {
                                 if (args[2].equalsIgnoreCase("from")) {
                                     final String setterName = args[3];
                                     List<Setter> actualSetters = toRemove.getSetters().stream().filter(setter -> setter.getName().equalsIgnoreCase(setterName) || setter.getUuid().toString().equalsIgnoreCase(setterName)).toList();
 
                                     if (!actualSetters.isEmpty()) {
-                                        Bounty bounty = new Bounty(toRemove.getUUID(), actualSetters, toRemove.getName());
+                                        Bounty bounty = new Bounty(toRemove.getUUID(), actualSetters);
                                         BountyRemoveEvent event = new BountyRemoveEvent(sender, false, bounty);
                                         Bukkit.getPluginManager().callEvent(event);
                                         if (event.isCancelled())
-                                            return true;
-                                        DataManager.removeSetters(getBounty(toRemove.getUUID()), actualSetters);
+                                            return CompletableFuture.completedFuture(true);
+                                        DataManager.getBountyAsync(toRemove.getUUID()).thenAccept(removeBounty -> DataManager.removeSetters(removeBounty, actualSetters));
 
                                         Messages.parse(LanguageOptions.getMessage("refund-reason-remove"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(bountyUUID)).build())
                                                 .thenAccept(reason -> NotBounties.getServerImplementation().global().run(() -> refundBounty(bounty, reason)));
@@ -1168,230 +1186,226 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                                         OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                                         if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("success-remove-bounty"), MessageContext.builder().receiver(player).build());
-                                        return true;
+                                            Messages.send(sender, getMessage("success-remove-bounty"), MessageContext.builder().receiver(player).build());
+                                        return CompletableFuture.completedFuture(true);
                                     } else {
                                         // couldn't find setter
                                         OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                                         if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("no-setter").replace("{player}", args[3]).replace("{receiver}", args[3]), MessageContext.builder().receiver(player).build());
-                                        return false;
+                                            Messages.send(sender, getMessage("no-setter").replace("{player}", args[3]).replace("{receiver}", args[3]), MessageContext.builder().receiver(player).build());
+                                        return CompletableFuture.completedFuture(false);
                                     }
 
                                 } else {
                                     // usage
                                     if (!silent) {
-                                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                         sendHelpMessage(sender, getListMessage("help.admin"));
                                     }
-                                    return false;
+                                    return CompletableFuture.completedFuture(false);
                                 }
                             } else {
                                 // usage
                                 if (!silent) {
-                                    Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                    Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                     sendHelpMessage(sender, getListMessage("help.admin"));
                                 }
-                                return false;
+                                return CompletableFuture.completedFuture(false);
                             }
                         } else {
                             // could not find bounty
                             if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("no-bounty"), MessageContext.builder().receiver(parser).player(bountyUUID).build());
-                            return false;
+                                Messages.send(sender, getMessage("no-bounty"), MessageContext.builder().receiver(parser).player(bountyUUID).build());
+                            return CompletableFuture.completedFuture(false);
                         }
                     } else {
                         // usage
                         if (!silent) {
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                             sendHelpMessage(sender, getListMessage("help.admin"));
                         }
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                 } else if (forcePermission || sender.hasPermission("notbounties.removeset") && sender instanceof Player) {
                     if (args.length != 2) {
                         // usage
                         if (!silent) {
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                             sendHelpMessage(sender, getListMessage("help.remove-set"));
                         }
-                        return false;
-                    }
-                    Bounty toRemove = null;
-                    List<Bounty> bountyList = BountyManager.getAllBounties(-1);
-                    for (Bounty bounty : bountyList) {
-                        if (bounty.getName().equalsIgnoreCase(args[1])) {
-                            toRemove = bounty;
-                            break;
-                        }
-                    }
-                    if (toRemove == null) {
-                        // could not find bounty
-                        if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("no-bounty").replace("{player}", args[1]).replace("{receiver}", args[1]), MessageContext.builder().receiver(parser).build());
-                        return false;
-                    }
-                    UUID senderUUID = parser != null ? parser.getUniqueId() : DataManager.GLOBAL_SERVER_ID;
-                    Setter actualRemove = null;
-                    for (Setter setter : toRemove.getSetters()) {
-                        if (setter.getUuid().equals(senderUUID)) {
-                            actualRemove = setter;
-                            break;
-                        }
+                        return CompletableFuture.completedFuture(false);
                     }
 
-                    if (actualRemove == null) {
-                        // couldnt find setter
+                    UUID uuid = LoggedPlayers.getPlayer(args[1]);
+                    String[] finalArgs3 = args;
+                    return DataManager.getBountyAsync(uuid).thenApply(toRemove -> {
+                        if (toRemove == null) {
+                            // could not find bounty
+                            if (!silent)
+                                Messages.send(sender, getMessage("no-bounty").replace("{player}", finalArgs3[1]).replace("{receiver}", finalArgs3[1]), MessageContext.builder().receiver(parser).build());
+                            return false;
+                        }
+
+                        UUID senderUUID = parser != null ? parser.getUniqueId() : DataManager.GLOBAL_SERVER_ID;
+                        Setter actualRemove = null;
+                        for (Setter setter : toRemove.getSetters()) {
+                            if (setter.getUuid().equals(senderUUID)) {
+                                actualRemove = setter;
+                                break;
+                            }
+                        }
+
+                        if (actualRemove == null) {
+                            // couldnt find setter
+                            OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
+                            if (!silent)
+                                Messages.send(sender, getMessage("no-setter"), MessageContext.builder().receiver(player).player(senderUUID).build());
+                            return false;
+                        }
+                        Bounty bounty = new Bounty(toRemove.getUUID(), Collections.singletonList(actualRemove));
+                        BountyRemoveEvent event = new BountyRemoveEvent(sender, false, bounty);
+                        Bukkit.getPluginManager().callEvent(event);
+                        if (event.isCancelled())
+                            return true;
+                        toRemove.removeBounty(actualRemove.getUuid());
+                        if (toRemove.getSetters().isEmpty()) {
+                            BountyManager.removeBounty(toRemove.getUUID());
+                        }
+                        Setter finalActualRemove = actualRemove;
+                        Messages.parse(LanguageOptions.getMessage("refund-reason-remove"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toRemove.getUUID())).build())
+                                .thenAccept(reason -> NotBounties.getServerImplementation().global().run(() -> refundSetter(finalActualRemove, reason)));
+                        // reopen gui for everyone
+                        reopenBountiesGUI();
+                        // successfully removed
+                        if (toRemove.getTotalDisplayBounty() < WantedTags.getMinWanted())
+                            WantedTags.removeWantedTag(toRemove.getUUID());
+
                         OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("no-setter"), MessageContext.builder().receiver(player).player(senderUUID).build());
-                        return false;
-                    }
-                    Bounty bounty = new Bounty(toRemove.getUUID(), Collections.singletonList(actualRemove), toRemove.getName());
-                    BountyRemoveEvent event = new BountyRemoveEvent(sender, false, bounty);
-                    Bukkit.getPluginManager().callEvent(event);
-                    if (event.isCancelled())
+                            Messages.send(sender, getMessage("success-remove-bounty"), MessageContext.builder().receiver(player).build());
                         return true;
-                    toRemove.removeBounty(actualRemove.getUuid());
-                    if (toRemove.getSetters().isEmpty()) {
-                        BountyManager.removeBounty(toRemove.getUUID());
-                    }
-                    Setter finalActualRemove = actualRemove;
-                    Messages.parse(LanguageOptions.getMessage("refund-reason-remove"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toRemove.getUUID())).build())
-                            .thenAccept(reason -> NotBounties.getServerImplementation().global().run(() -> refundSetter(finalActualRemove, reason)));
-                    // reopen gui for everyone
-                    reopenBountiesGUI();
-                    // successfully removed
-                    if (toRemove.getTotalDisplayBounty() < WantedTags.getMinWanted())
-                        WantedTags.removeWantedTag(toRemove.getUUID());
+                    });
 
-                    OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
-                    if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("success-remove-bounty"), MessageContext.builder().receiver(player).build());
-                    return true;
+
                 } else {
                     // no permission
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("edit")) {
                 if (adminPermission) {
                     if (args.length > 2) {
-                        Bounty toEdit = null;
-                        List<Bounty> bountyList = BountyManager.getAllBounties(-1);
-                        for (Bounty bounty : bountyList) {
-                            if (bounty.getName().equalsIgnoreCase(args[1])) {
-                                toEdit = bounty;
-                                break;
-                            }
-                        }
-                        if (toEdit != null) {
-                            if (args.length == 3) {
-                                double amount;
-                                try {
-                                    amount = tryParse(args[2]);
-                                } catch (NumberFormatException ignored) {
-                                    // unknown number - 2?
-                                    if (!silent)
-                                        Messages.send(sender, getPrefix() + getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
+                        String[] finalArgs4 = args;
+                        return DataManager.getBountyAsync(LoggedPlayers.getPlayer(args[1])).thenApply(toEdit -> {
+                            if (toEdit != null) {
+                                if (finalArgs4.length == 3) {
+                                    double amount;
+                                    try {
+                                        amount = tryParse(finalArgs4[2]);
+                                    } catch (NumberFormatException ignored) {
+                                        // unknown number - 2?
+                                        if (!silent)
+                                            Messages.send(sender, getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
 
-                                    return false;
-                                }
-                                Bounty before = new Bounty(toEdit);
-                                Bounty after = new Bounty(toEdit);
-                                after.addBounty(amount - toEdit.getTotalDisplayBounty(), new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
-                                BountyEditEvent event = new BountyEditEvent(sender, before, after);
-                                Bukkit.getPluginManager().callEvent(event);
-                                if (event.isCancelled())
-                                    return true;
-                                if (BountyManager.editBounty(toEdit, null, amount)) {
-                                    // successfully edited bounty
-                                    if (!silent)
-                                        Messages.send(sender, getPrefix() + getMessage("success-edit-bounty"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
-                                } else {
-                                    // unsuccessful edit
-                                    if (!silent)
-                                        Messages.send(sender, getPrefix() + getMessage("no-bounty"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
-                                }
-                                return true;
-                            } else if (args.length == 5) {
-                                if (args[2].equalsIgnoreCase("from")) {
-                                    Setter actualEdit = null;
-                                    for (Setter setter : toEdit.getSetters()) {
-                                        if (setter.getName().equalsIgnoreCase(args[3])) {
-                                            actualEdit = setter;
-                                            break;
-                                        }
+                                        return false;
                                     }
-                                    if (actualEdit != null) {
-                                        double amount;
-                                        try {
-                                            amount = tryParse(args[4]);
-                                        } catch (NumberFormatException ignored) {
-                                            // unknown number - 2?
+                                    Bounty before = new Bounty(toEdit);
+                                    Bounty after = new Bounty(toEdit);
+                                    after.addBounty(amount - toEdit.getTotalDisplayBounty(), new ArrayList<>(), new Whitelist(new TreeSet<>(), false));
+                                    BountyEditEvent event = new BountyEditEvent(sender, before, after);
+                                    Bukkit.getPluginManager().callEvent(event);
+                                    if (event.isCancelled())
+                                        return true;
+                                    if (BountyManager.editBounty(toEdit, null, amount)) {
+                                        // successfully edited bounty
+                                        if (!silent)
+                                            Messages.send(sender, getMessage("success-edit-bounty"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
+                                    } else {
+                                        // unsuccessful edit
+                                        if (!silent)
+                                            Messages.send(sender, getMessage("no-bounty"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
+                                    }
+                                    return true;
+                                } else if (finalArgs4.length == 5) {
+                                    if (finalArgs4[2].equalsIgnoreCase("from")) {
+                                        Setter actualEdit = null;
+                                        for (Setter setter : toEdit.getSetters()) {
+                                            if (setter.getName().equalsIgnoreCase(finalArgs4[3])) {
+                                                actualEdit = setter;
+                                                break;
+                                            }
+                                        }
+                                        if (actualEdit != null) {
+                                            double amount;
+                                            try {
+                                                amount = tryParse(finalArgs4[4]);
+                                            } catch (NumberFormatException ignored) {
+                                                // unknown number - 2?
+                                                if (!silent)
+                                                    Messages.send(sender, getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
+                                                return false;
+                                            }
+                                            Bounty before = new Bounty(toEdit);
+                                            Bounty after = new Bounty(toEdit);
+                                            after.editBounty(actualEdit.getUuid(), amount);
+                                            BountyEditEvent event = new BountyEditEvent(sender, before, after);
+                                            Bukkit.getPluginManager().callEvent(event);
+                                            if (event.isCancelled())
+                                                return true;
+
+                                            if (BountyManager.editBounty(toEdit, actualEdit.getUuid(), amount)) {
+                                                if (!silent)
+                                                    Messages.send(sender, getMessage("success-edit-bounty"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
+                                            } else {
+                                                // unsuccessful edit
+                                                if (!silent)
+                                                    Messages.send(sender, getMessage("no-bounty"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
+                                            }
+                                            return true;
+                                        } else {
+                                            // couldnt find setter
                                             if (!silent)
-                                                Messages.send(sender, getPrefix() + getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
+                                                Messages.send(sender, getMessage("no-setter").replace("{player}", finalArgs4[3]).replace("{receiver}", finalArgs4[3]), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
                                             return false;
                                         }
-                                        Bounty before = new Bounty(toEdit);
-                                        Bounty after = new Bounty(toEdit);
-                                        after.editBounty(actualEdit.getUuid(), amount);
-                                        BountyEditEvent event = new BountyEditEvent(sender, before, after);
-                                        Bukkit.getPluginManager().callEvent(event);
-                                        if (event.isCancelled())
-                                            return true;
-
-                                        if (BountyManager.editBounty(toEdit, actualEdit.getUuid(), amount)) {
-                                            if (!silent)
-                                                Messages.send(sender, getPrefix() + getMessage("success-edit-bounty"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
-                                        } else {
-                                            // unsuccessful edit
-                                            if (!silent)
-                                                Messages.send(sender, getPrefix() + getMessage("no-bounty"), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
-                                        }
-                                        return true;
                                     } else {
-                                        // couldnt find setter
-                                        if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("no-setter").replace("{player}", args[3]).replace("{receiver}", args[3]), MessageContext.builder().receiver(Bukkit.getOfflinePlayer(toEdit.getUUID())).build());
+                                        // usage
+                                        if (!silent) {
+                                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                            sendHelpMessage(sender, getListMessage("help.admin"));
+                                        }
                                         return false;
                                     }
                                 } else {
                                     // usage
                                     if (!silent) {
-                                        Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                        Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                         sendHelpMessage(sender, getListMessage("help.admin"));
                                     }
                                     return false;
                                 }
                             } else {
-                                // usage
-                                if (!silent) {
-                                    Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
-                                    sendHelpMessage(sender, getListMessage("help.admin"));
-                                }
+                                // couldn't find bounty
+                                if (!silent)
+                                    Messages.send(sender, getMessage("no-bounty").replace("{player}", finalArgs4[1]).replace("{receiver}", finalArgs4[1]), MessageContext.builder().receiver(parser).build());
                                 return false;
-                            }
-                        } else {
-                            // couldn't find bounty
-                            if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("no-bounty").replace("{player}", args[1]).replace("{receiver}", args[1]), MessageContext.builder().receiver(parser).build());
-                            return false;
 
-                        }
+                            }
+                        });
+
                     } else {
                         // usage
                         if (!silent) {
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                             sendHelpMessage(sender, getListMessage("help.admin"));
                         }
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
                 } else {
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             } else if (args[0].equalsIgnoreCase("poster") && BountyMap.isEnabled()) {
                 return posterCommandHandler.handle(sender, args, forcePermission, adminPermission, silent, parser);
@@ -1404,34 +1418,51 @@ public class Commands implements CommandExecutor, TabCompleter {
                         // can't find player
                         if (args.length == 1) {
                             if (!silent) {
-                                Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                                Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                                 sendHelpMessage(sender, getListMessage("help.set"));
                             }
                         } else {
                             failUnknownPlayer(sender, args[0], silent);
                         }
-                        return false;
+                        return CompletableFuture.completedFuture(false);
                     }
+                    CompletableFuture<Boolean> bountyCooldownCheck;
                     if (ImmunityManager.getBountyCooldown() > 0 && sender instanceof Player player1) {
                         // bounty cooldown
-                        long sinceLastSet = System.currentTimeMillis() - DataManager.getPlayerData(player1.getUniqueId()).getBountyCooldown();
-                        if (sinceLastSet < ImmunityManager.getBountyCooldown() * 1000L) {
-                            if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("bounty-set-cooldown"), MessageContext.builder().receiver(parser).time(ImmunityManager.getBountyCooldown() * 1000L - sinceLastSet, LocalTime.TimeFormat.RELATIVE).build());
-                            return false;
-                        }
+                        bountyCooldownCheck = DataManager.getPlayerDataAsync(player1.getUniqueId()).thenApply(data -> {
+                            long sinceLastSet = System.currentTimeMillis() - data.getBountyCooldown();
+                            if (sinceLastSet < ImmunityManager.getBountyCooldown() * 1000L) {
+                                if (!silent)
+                                    Messages.send(sender, getMessage("bounty-set-cooldown"), MessageContext.builder().receiver(parser).time(ImmunityManager.getBountyCooldown() * 1000L - sinceLastSet, LocalTime.TimeFormat.RELATIVE).build());
+                                return false;
+                            }
+                            return true;
+                        });
+
+                    } else {
+                        bountyCooldownCheck = CompletableFuture.completedFuture(true);
                     }
-                    if (BountyTracker.isTrackingExemptEnabled() && !BountyTracker.isTrackingExemptAllowBountySetting() && sender instanceof Player player2 && DataManager.getPlayerData(player2.getUniqueId()).isTrackingExempt()) {
-                        if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("tracker-exempt-bounty"), MessageContext.builder().receiver(parser).build());
-                        return false;
+
+                    CompletableFuture<Boolean> trackingCheck;
+                    if (BountyTracker.isTrackingExemptEnabled() && !BountyTracker.isTrackingExemptAllowBountySetting() && sender instanceof Player player2) {
+                        trackingCheck = DataManager.getPlayerDataAsync(player2.getUniqueId()).thenApply(data -> {
+                            if (data.isTrackingExempt()) {
+                                if (!silent)
+                                    Messages.send(sender, getMessage("tracker-exempt-bounty"), MessageContext.builder().receiver(parser).build());
+                                return false;
+                            }
+                            return true;
+                        });
+
+                    } else {
+                        trackingCheck = CompletableFuture.completedFuture(true);
                     }
 
                     if (!ConfigOptions.isSelfSetting() && sender instanceof Player p && p.getUniqueId().equals(playerUUID)) {
                         // own bounty
                         if (!silent)
-                            Messages.send(sender, getPrefix() + getMessage("self-set-deny"), MessageContext.builder().receiver(parser).build());
-                        return false;
+                            Messages.send(sender, getMessage("self-set-deny"), MessageContext.builder().receiver(parser).build());
+                        return CompletableFuture.completedFuture(false);
                     }
                     if (args.length == 1) {
                         if (sender instanceof Player) {
@@ -1441,47 +1472,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 openGUI(parser, "select-price", (long) ConfigOptions.getMoney().getMinBounty(), playerUUID.toString());
                             }
                         }
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
 
                     // get whitelisted people
-                    Whitelist whitelist = (sender instanceof Player player) && (forcePermission || sender.hasPermission("notbounties.whitelist")) && Whitelist.isEnabled() ? DataManager.getPlayerData(player.getUniqueId()).getWhitelist() : new Whitelist(new TreeSet<>(), false);
-                    if (args.length > 3 && (forcePermission || sender.hasPermission("notbounties.whitelist"))) {
-                        SortedSet<UUID> newWhitelist = new TreeSet<>();
-                        for (int i = 3; i < Math.min(args.length, 13); i++) {
-                            if (args[i].equalsIgnoreCase("--confirm"))
-                                continue;
-                            UUID p = LoggedPlayers.getPlayer(args[i]);
-                            if (p == null) {
-                                // unknown player
-                                failUnknownPlayer(sender, args[i], silent);
-                                return false;
-                            }
-                            newWhitelist.add(p);
-                        }
-                        whitelist.setList(newWhitelist);
+                    CompletableFuture<Whitelist> whitelistCompletableFuture;
+                    if ((sender instanceof Player player) && (forcePermission || sender.hasPermission("notbounties.whitelist")) && Whitelist.isEnabled()) {
+                        whitelistCompletableFuture = DataManager.getPlayerDataAsync(player.getUniqueId()).thenApply(PlayerData::getWhitelist);
+                    } else {
+                        whitelistCompletableFuture = CompletableFuture.completedFuture(new Whitelist(new TreeSet<>(), false));
                     }
-
-                    // check if max setters reached or max bounty
-                    double currentBounty = 0;
-                    if (ConfigOptions.getMaxSetters() > -1 || ConfigOptions.getMoney().getMaxBounty() > 0) {
-                        if (hasBounty(playerUUID)) {
-                            Bounty bounty = getBounty(playerUUID);
-                            assert bounty != null;
-                            currentBounty = bounty.getTotalDisplayBounty();
-                            if (ConfigOptions.getMaxSetters() > -1 && bounty.getSetters().size() >= ConfigOptions.getMaxSetters()) {
-                                if (!silent)
-                                    Messages.send(sender, getPrefix() + LanguageOptions.getMessage("max-setters"), MessageContext.builder().receiver(parser).player(playerUUID).build());
-                                return false;
-                            } else if (ConfigOptions.getMoney().getMaxBounty() > 0 && bounty.getTotalDisplayBounty() > ConfigOptions.getMoney().getMaxBounty()) {
-                                if (!silent)
-                                    Messages.send(sender, getPrefix() + LanguageOptions.getMessage("max-bounty"), MessageContext.builder().receiver(parser).player(playerUUID).bounty(ConfigOptions.getMoney().getMaxBounty()).build());
-                                return false;
-                            }
-
-                        }
-                    }
-
+                    CompletableFuture<Bounty> bountyFuture = DataManager.getBountyAsync(playerUUID);
 
                     // check if we can get the amount
                     double amount = 0;
@@ -1502,8 +1503,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 if (commaSeparated.length > 1 || entry.contains(":")) {
                                     // probably an attempt for a material
                                     if (!silent)
-                                        Messages.send(sender, getPrefix() + getMessage("unknown-material").replace("{material}", (materialString)), MessageContext.builder().receiver(parser).build());
-                                    return false;
+                                        Messages.send(sender, getMessage("unknown-material").replace("{material}", (materialString)), MessageContext.builder().receiver(parser).build());
+                                    return CompletableFuture.completedFuture(false);
                                 }
                                 continue;
                             }
@@ -1514,8 +1515,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                     throw new NumberFormatException("Number needs to be positive!");
                             } catch (NumberFormatException e) {
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
-                                return false;
+                                    Messages.send(sender, getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
+                                return CompletableFuture.completedFuture(false);
                             }
                             if (requestedItems.containsKey(material))
                                 requestedItems.replace(material, requestedItems.get(material) + materialAmount);
@@ -1577,8 +1578,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                         }
                                         // send message
                                         if (!silent)
-                                            Messages.send(sender, getPrefix() + getMessage("broke").replace("{amount}", (brokeAmount.toString())), MessageContext.builder().receiver(parser).build());
-                                        return false;
+                                            Messages.send(sender, getMessage("broke").replace("{amount}", (brokeAmount.toString())), MessageContext.builder().receiver(parser).build());
+                                        return CompletableFuture.completedFuture(false);
                                     }
                                     // don't update inventory until the bounty will be set
                                 }
@@ -1589,14 +1590,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 }
                             }
                             // get value from items
-                            try {
-                                amount = NumberFormatting.getTotalValue(items);
-                            } catch (ExcludedItemException e) {
-                                Messages.send(sender, getPrefix() + getMessage("excluded-bounty-item").replace("{material}", e.getMessage()), MessageContext.builder().receiver(parser).build());
-                                if (usingGUI)
-                                    GUI.safeCloseGUI(parser, false);
-                                return false;
-                            }
+                            amount = NumberFormatting.getTotalValue(items);
                         }
                     }
 
@@ -1606,129 +1600,169 @@ public class Commands implements CommandExecutor, TabCompleter {
                                 amount = tryParse(args[1]);
                             } catch (NumberFormatException ignored) {
                                 if (!silent)
-                                    Messages.send(sender, getPrefix() + getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
-                                return false;
+                                    Messages.send(sender, getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
+                                return CompletableFuture.completedFuture(false);
                             }
                     } else if (items.isEmpty()) {
                         // exclusive mode is enabled but player didn't specify any items
                         // unknown command
                         if (!silent) {
-                            Messages.send(sender, getPrefix() + getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
+                            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                             sendHelpMessage(sender, getListMessage("help.set"));
                         }
-                        return true;
+                        return CompletableFuture.completedFuture(true);
                     }
 
                     if (amount < ConfigOptions.getMoney().getMinBounty() && (items.isEmpty() || NumberFormatting.getBountyItemsUseItemValues() != ItemValueMode.DISABLE)) {
                         if (!silent)
-                            Messages.send(sender, getPrefix() + LanguageOptions.getMessage("min-bounty"), MessageContext.builder().receiver(parser).bounty(ConfigOptions.getMoney().getMinBounty()).build());
-                        return false;
+                            Messages.send(sender, LanguageOptions.getMessage("min-bounty"), MessageContext.builder().receiver(parser).bounty(ConfigOptions.getMoney().getMinBounty()).build());
+                        return CompletableFuture.completedFuture(false);
                     }
-                    if (ConfigOptions.getMoney().getMaxBounty() > 0 && amount + currentBounty > ConfigOptions.getMoney().getMaxBounty()) {
-                        if (!silent)
-                            Messages.send(sender, getPrefix() + LanguageOptions.getMessage("max-bounty"), MessageContext.builder().receiver(parser).bounty(ConfigOptions.getMoney().getMaxBounty()).build());
-                        return false;
-                    }
-                    // total cost to place this bounty in currency
-                    double total = amount * ConfigOptions.getMoney().getBountyTax() + whitelist.getList().size() * Whitelist.getCost();
-                    if (items.isEmpty())
-                        total += amount;  // this includes the bounty if no items are being set
 
-                    OfflinePlayer player = Bukkit.getOfflinePlayer(playerUUID);
-                    // check if it is a player
-                    if (sender instanceof Player) {
-                        // check for immunity
-                        if (checkAndNotifyImmunity(sender, amount, silent, player, items)) {
-                            if (usingGUI)
-                                GUI.safeCloseGUI(parser, false);
-                            return false;
-                        }
 
-                        if (checkBalance(parser, total)) {
-                            if (!args[args.length - 1].equalsIgnoreCase("--confirm") && ConfigOptions.isBountyConfirmation()) {
-                                // if there are items, open set-bounty-item gui
-                                if (!items.isEmpty()) {
-                                    // format items to take up multiple pages if necessary
-                                    ItemStack[][] serializedItems = NumberFormatting.separateItems(new ArrayList<>(items), GUI.getMaxBountyItemSlots());
-
-                                    // take items from player if not using the GUI
-                                    if (!usingGUI) {
-                                        NumberFormatting.removeItems(parser, new ArrayList<>(items), true);
-                                    }
-                                    // open gui
-                                    openGUI(parser, "bounty-item-select", 1, playerUUID, serializedItems);
-                                } else {
-                                    openGUI(parser, "confirm-bounty", (long) amount, playerUUID, (long) amount);
-                                }
-                                return true;
-                            }
-                            double finalAmount = amount;
-                            double finalTotal = total;
-                            boolean finalUsingGUI = usingGUI;
-                            boolean finalSilent = silent;
-                            boolean finalSilent1 = silent;
-                            NotBounties.getServerImplementation().async().runNow(() -> {
-                                // async ban check
-                                if (!player.isOnline() && ConfigOptions.isRemoveBannedPlayers() && BanChecker.isPlayerBanned(player)) {
-                                    NotBounties.getServerImplementation().global().run(() -> {
-                                        // has permanent immunity
-                                        if (!finalSilent)
-                                            Messages.send(sender, getPrefix() + getMessage("permanent-immunity"), MessageContext.builder().receiver(player).bounty(ImmunityManager.getImmunity(playerUUID).join()).build());
-                                    });
-                                } else {
-                                    NotBounties.getServerImplementation().global().run(() -> {
-                                        if (!items.isEmpty()) {
-                                            // check to see if player is still online after the async check
-                                            if (!parser.isOnline())
-                                                return;
-                                            String result = "";
-                                            if (finalUsingGUI && GUI.playerInfo.containsKey(parser.getUniqueId()) && GUI.playerInfo.get(parser.getUniqueId()).guiType().equals("bounty-item-select")) {
-                                                if (NumberFormatting.getManualEconomy() != ManualEconomy.AUTOMATIC) {
-                                                    // give items back
-                                                    GUI.safeCloseGUI(parser, false);
-                                                } else {
-                                                    // erase data from gui
-                                                    GUI.playerInfo.remove(parser.getUniqueId());
-                                                    parser.closeInventory();
-                                                }
-                                            } else {
-                                                result = NumberFormatting.removeItems(parser, new ArrayList<>(items), NumberFormatting.getManualEconomy() == ManualEconomy.AUTOMATIC);
-                                            }
-
-                                            if (!result.isEmpty()) {
-                                                // didn't have all the items
-                                                if (!finalSilent)
-                                                    Messages.send(sender, getPrefix() + getMessage("broke").replace("{amount}", result), MessageContext.builder().receiver(parser).build());
-                                                return;
-                                            }
-                                        }
-                                        try {
-                                            if (NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL)
-                                                NumberFormatting.doRemoveCommands(parser, finalTotal, new ArrayList<>());
-                                            addBounty(parser, player, finalAmount, items, whitelist);
-                                            reopenBountiesGUI();
-                                        } catch (NotEnoughCurrencyException e) {
-                                            if (!finalSilent1)
-                                                Messages.send(sender, getPrefix() + getMessage("broke"), MessageContext.builder().receiver(parser).amount(finalTotal).build());
-                                        }
-                                    });
-                                }
-                            });
-                        } else {
-                            if (!silent)
-                                Messages.send(sender, getPrefix() + getMessage("broke"), MessageContext.builder().receiver(parser).amount(total).build());
-                            return false;
-                        }
-
+                    CompletableFuture<Boolean> immunityFuture;
+                    if (sender instanceof Player player) {
+                        immunityFuture = ImmunityManager.checkAndNotifyImmunity(sender, amount, silent, player, items);
                     } else {
-                        addBounty(player, amount, items, whitelist);
-                        reopenBountiesGUI();
+                        immunityFuture = CompletableFuture.completedFuture(false);
                     }
+
+                    String[] finalArgs5 = args;
+                    double finalAmount = amount;
+                    boolean finalUsingGUI = usingGUI;
+                    // error cuz trying to return a value?
+                    return CompletableFuture.allOf(whitelistCompletableFuture, bountyFuture, immunityFuture, bountyCooldownCheck, trackingCheck).thenApply(v -> {
+                        if (!trackingCheck.join() || !bountyCooldownCheck.join()) {
+                            return false;
+                        }
+                        Bounty bounty = bountyFuture.join();
+                        Whitelist whitelist = whitelistCompletableFuture.join();
+                        boolean hasImmunity = immunityFuture.join();
+                        // check if max setters reached or max bounty
+                        double currentBounty = 0;
+                        if (ConfigOptions.getMaxSetters() > -1 || ConfigOptions.getMoney().getMaxBounty() > 0) {
+                            if (bounty != null) {
+                                currentBounty = bounty.getTotalDisplayBounty();
+                                if (ConfigOptions.getMaxSetters() > -1 && bounty.getSetters().size() >= ConfigOptions.getMaxSetters()) {
+                                    if (!silent)
+                                        Messages.send(sender, LanguageOptions.getMessage("max-setters"), MessageContext.builder().receiver(parser).player(playerUUID).build());
+                                    return false;
+                                } else if (ConfigOptions.getMoney().getMaxBounty() > 0 && bounty.getTotalDisplayBounty() > ConfigOptions.getMoney().getMaxBounty()) {
+                                    if (!silent)
+                                        Messages.send(sender, LanguageOptions.getMessage("max-bounty"), MessageContext.builder().receiver(parser).player(playerUUID).bounty(ConfigOptions.getMoney().getMaxBounty()).build());
+                                    return false;
+                                }
+
+                            }
+                        }
+
+
+                        if (ConfigOptions.getMoney().getMaxBounty() > 0 && finalAmount + currentBounty > ConfigOptions.getMoney().getMaxBounty()) {
+                            if (!silent)
+                                Messages.send(sender, LanguageOptions.getMessage("max-bounty"), MessageContext.builder().receiver(parser).bounty(ConfigOptions.getMoney().getMaxBounty()).build());
+                            return false;
+                        }
+                        // total cost to place this bounty in currency
+                        double total = finalAmount * ConfigOptions.getMoney().getBountyTax() + whitelist.getList().size() * Whitelist.getCost();
+                        if (items.isEmpty())
+                            total += finalAmount;  // this includes the bounty if no items are being set
+
+                        OfflinePlayer player = Bukkit.getOfflinePlayer(playerUUID);
+                        // check if it is a player
+                        if (sender instanceof Player) {
+                            // check for immunity
+                            if (hasImmunity) {
+                                if (finalUsingGUI)
+                                    GUI.safeCloseGUI(parser, false);
+                                return false;
+                            }
+
+                            if (checkBalance(parser, total)) {
+                                if (!finalArgs5[finalArgs5.length - 1].equalsIgnoreCase("--confirm") && ConfigOptions.isBountyConfirmation()) {
+                                    // if there are items, open set-bounty-item gui
+                                    if (!items.isEmpty()) {
+                                        // format items to take up multiple pages if necessary
+                                        ItemStack[][] serializedItems = NumberFormatting.separateItems(new ArrayList<>(items), GUI.getMaxBountyItemSlots());
+
+                                        // take items from player if not using the GUI
+                                        if (!finalUsingGUI) {
+                                            NumberFormatting.removeItems(parser, new ArrayList<>(items), true);
+                                        }
+                                        // open gui
+                                        openGUI(parser, "bounty-item-select", 1, playerUUID, serializedItems);
+                                    } else {
+                                        openGUI(parser, "confirm-bounty", (long) finalAmount, playerUUID, (long) finalAmount);
+                                    }
+                                    return true;
+                                }
+                                double finalTotal = total;
+                                NotBounties.getServerImplementation().async().runNow(() -> {
+                                    // async ban check
+                                    if (!player.isOnline() && ConfigOptions.isRemoveBannedPlayers() && BanChecker.isPlayerBanned(player)) {
+                                        NotBounties.getServerImplementation().global().run(() -> {
+                                            // has permanent immunity
+                                            if (!silent)
+                                                Messages.send(sender, getMessage("permanent-immunity"), MessageContext.builder().receiver(player).bounty(ImmunityManager.getImmunity(playerUUID).join()).build());
+                                        });
+                                    } else {
+                                        NotBounties.getServerImplementation().global().run(() -> {
+                                            if (!items.isEmpty()) {
+                                                // check to see if player is still online after the async check
+                                                if (!parser.isOnline())
+                                                    return;
+                                                String result = "";
+                                                if (finalUsingGUI && GUI.playerInfo.containsKey(parser.getUniqueId()) && GUI.playerInfo.get(parser.getUniqueId()).guiType().equals("bounty-item-select")) {
+                                                    if (NumberFormatting.getManualEconomy() != ManualEconomy.AUTOMATIC) {
+                                                        // give items back
+                                                        GUI.safeCloseGUI(parser, false);
+                                                    } else {
+                                                        // erase data from gui
+                                                        GUI.playerInfo.remove(parser.getUniqueId());
+                                                        parser.closeInventory();
+                                                    }
+                                                } else {
+                                                    result = NumberFormatting.removeItems(parser, new ArrayList<>(items), NumberFormatting.getManualEconomy() == ManualEconomy.AUTOMATIC);
+                                                }
+
+                                                if (!result.isEmpty()) {
+                                                    // didn't have all the items
+                                                    if (!silent)
+                                                        Messages.send(sender, getMessage("broke").replace("{amount}", result), MessageContext.builder().receiver(parser).build());
+                                                    return;
+                                                }
+                                            }
+                                            try {
+                                                if (NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL)
+                                                    NumberFormatting.doRemoveCommands(parser, finalTotal, new ArrayList<>());
+                                                addBounty(parser, player, finalAmount, items, whitelist);
+                                                reopenBountiesGUI();
+                                            } catch (NotEnoughCurrencyException e) {
+                                                if (!silent)
+                                                    Messages.send(sender, getMessage("broke"), MessageContext.builder().receiver(parser).amount(finalTotal).build());
+                                            }
+                                        });
+                                    }
+                                });
+                            } else {
+                                if (!silent)
+                                    Messages.send(sender, getMessage("broke"), MessageContext.builder().receiver(parser).amount(total).build());
+                                return false;
+                            }
+
+
+
+                        } else {
+                            addBounty(player, finalAmount, items, whitelist);
+                            reopenBountiesGUI();
+                        }
+                        return true;
+                    });
+
 
                 } else {
                     if (!silent)
-                        Messages.send(sender, getPrefix() + getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             }
         } else {
@@ -1738,8 +1772,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                     openGUI(parser, "bounty-gui", 1);
                 } else {
                     if (!silent)
-                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
-                    return false;
+                        Messages.send(sender, getMessage("no-permission"), MessageContext.builder().withPrefix(false).receiver(parser).build());
+                    return CompletableFuture.completedFuture(false);
                 }
             } else {
                 if (adminPermission) {
@@ -1747,7 +1781,7 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             }
         }
-        return true;
+        return CompletableFuture.completedFuture(true);
     }
 
     @Override
@@ -1854,21 +1888,17 @@ public class Commands implements CommandExecutor, TabCompleter {
                     tab.add("challenges");
             } else if (args.length == 2) {
                 if (args[0].equalsIgnoreCase("check") && sender.hasPermission("notbounties.view")) {
-                    List<Bounty> bountyList = BountyManager.getPublicBounties(-1);
-                    if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
-                        for (Bounty bounty : bountyList) {
-                            tab.add(bounty.getName());
-                        }
+                    Set<String> bountyNames = LoggedPlayers.getActiveBountyNames();
+                    if (bountyNames.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
+                        tab.addAll(bountyNames);
                     }
                 } else if (args[0].equalsIgnoreCase("sort") && sender.hasPermission("notbounties.sort")) {
                     tab.addAll(GUI.getGUITypes());
                 } else if (args[0].equalsIgnoreCase("hunt") && BountyHunt.isEnabled()) {
                     if (sender.hasPermission("notbounties.hunt.start")) {
-                        List<Bounty> bountyList = BountyManager.getPublicBounties(-1);
-                        if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
-                            for (Bounty bounty : bountyList) {
-                                tab.add(bounty.getName());
-                            }
+                        Set<String> bountyNames = LoggedPlayers.getActiveBountyNames();
+                        if (bountyNames.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
+                            tab.addAll(bountyNames);
                         }
                     }
                     if (sender.hasPermission("notbounties.hunt.participate") && sender instanceof Player player) {
@@ -1883,11 +1913,9 @@ public class Commands implements CommandExecutor, TabCompleter {
                         tab.add("cancel");
                     }
                 } else if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit") && adminPermission)) {
-                    List<Bounty> bountyList = BountyManager.getAllBounties(-1);
-                    if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
-                        for (Bounty bounty : bountyList) {
-                            tab.add(bounty.getName());
-                        }
+                    Set<String> bountyNames = LoggedPlayers.getActiveBountyNames();
+                    if (bountyNames.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
+                        tab.addAll(bountyNames);
                     }
                 } else if ((args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("stat")) && sender.hasPermission("notbounties.stats")) {
                     tab.add("all");
@@ -2014,14 +2042,15 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             } else if (args.length == 4) {
                 if ((args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("edit")) && adminPermission) {
-                    List<Bounty> bountyList = BountyManager.getAllBounties(-1);
-                    if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
-                        for (Bounty bounty1 : bountyList) {
-                            if (bounty1.getName().equalsIgnoreCase(args[1])) {
-                                for (Setter setter : bounty1.getSetters()) {
+                    LocalData localData = ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getDatabase(LocalData.class);
+                    if (localData != null) {
+                        UUID uuid = LoggedPlayers.getPlayer(args[1]);
+                        if (uuid != null) {
+                            Bounty bounty = localData.getBounty(uuid);
+                            if (bounty != null) {
+                                for (Setter setter : bounty.getSetters()) {
                                     tab.add(setter.getName());
                                 }
-                                break;
                             }
                         }
                     }
@@ -2040,11 +2069,18 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("notbounties.set") && isPlayer && ConfigOptions.isBountyConfirmation())
                     tab.add("--confirm");
                 if (args[0].equalsIgnoreCase("whitelist") && args[1].equalsIgnoreCase("remove") && sender.hasPermission("notbounties.whitelist") && sender instanceof Player player) {
-                    for (UUID uuid : DataManager.getPlayerData(player.getUniqueId()).getWhitelist().getList()) {
-                        String name = LoggedPlayers.getPlayerName(uuid);
-                        if (name.length() < 25)
-                            tab.add(name);
+                    LocalData localData = ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getDatabase(LocalData.class);
+                    if (localData != null) {
+                        PlayerData playerData = localData.getPlayerData(player.getUniqueId());
+                        if (playerData != null) {
+                            for (UUID uuid : playerData.getWhitelist().getList()) {
+                                String name = LoggedPlayers.getPlayerName(uuid);
+                                if (name.length() < 25)
+                                    tab.add(name);
+                            }
+                        }
                     }
+
                 }
             }
 
@@ -2052,25 +2088,22 @@ public class Commands implements CommandExecutor, TabCompleter {
             tab.removeIf(test -> test.toLowerCase(Locale.ROOT).indexOf(typed.toLowerCase(Locale.ROOT)) != 0);
             if (tab.isEmpty() && LoggedPlayers.getLoggedPlayers().size() <= ConfigOptions.getMaxTabCompletePlayers()) {
                 immunityCommandHandler.addEmptyTabFallback(args, tab, adminPermission);
-                if (args.length == 1 || args.length > 2) {
-                    if (sender.hasPermission("notbounties.set") && ConfigOptions.isOfflineSet()) {
+                if ((args.length == 1 || args.length > 2) && sender.hasPermission("notbounties.set") && ConfigOptions.isOfflineSet()) {
                         for (Map.Entry<UUID, String> entry : LoggedPlayers.getLoggedPlayers().entrySet()) {
                             if (!ConfigOptions.isSelfSetting() && sender instanceof Player player && player.getUniqueId().equals(entry.getKey()))
                                 continue;
                             tab.add(entry.getValue());
                         }
                     }
-                }
-                if (args.length == 3) {
-                    if ((args[0].equalsIgnoreCase("stat") && sender.hasPermission("notbounties.stats"))) {
+
+                if (args.length == 3 && (args[0].equalsIgnoreCase("stat") && sender.hasPermission("notbounties.stats"))) {
                         tab.addAll(LoggedPlayers.getLoggedPlayers().values());
                     }
-                }
-                if (args.length > 2) {
-                    if (args[0].equalsIgnoreCase("whitelist") && sender.hasPermission("notbounties.whitelist")) {
+
+                if (args.length > 2 && args[0].equalsIgnoreCase("whitelist") && sender.hasPermission("notbounties.whitelist")) {
                         tab.addAll(LoggedPlayers.getLoggedPlayers().values());
                     }
-                }
+
                 tab.removeIf(test -> test.toLowerCase(Locale.ROOT).indexOf(typed.toLowerCase(Locale.ROOT)) != 0);
             }
 
@@ -2132,7 +2165,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
     private static void failUnknownPlayer(CommandSender sender, String player, boolean silent) {
         if (!silent)
-            Messages.send(sender, getPrefix() + getMessage("unknown-player").replace("{player}", player).replace("{receiver}", player), MessageContext.builder().receiver(getParser(sender)).build());
+            Messages.send(sender, getMessage("unknown-player").replace("{player}", player).replace("{receiver}", player), MessageContext.builder().receiver(getParser(sender)).build());
     }
 
     @FunctionalInterface

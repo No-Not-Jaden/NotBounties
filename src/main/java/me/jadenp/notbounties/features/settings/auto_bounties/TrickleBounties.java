@@ -5,6 +5,8 @@ import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.BountyExpire;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -118,7 +120,7 @@ public class TrickleBounties {
         }
         Bounty transferedBounty = new Bounty(claimer.getUniqueId(), newSetters); // create a new bounty
         // send message to claimer
-        claimer.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("trickle-bounty"), transferedBounty.getTotalBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+        Messages.send(claimer, LanguageOptions.getMessage("trickle-bounty"), MessageContext.builder().amount(transferedBounty.getTotalBounty()).player(Bukkit.getOfflinePlayer(bounty.getUUID())).receiver(claimer).build());
         DataManager.addBounty(transferedBounty);
         return transferedBounty;
 

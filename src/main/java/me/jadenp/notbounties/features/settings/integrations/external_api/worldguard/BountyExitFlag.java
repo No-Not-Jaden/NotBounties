@@ -17,6 +17,8 @@ import com.sk89q.worldguard.session.handler.Handler;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 
 public class BountyExitFlag extends FlagValueChangeHandler<State> {
 
@@ -39,7 +41,7 @@ public class BountyExitFlag extends FlagValueChangeHandler<State> {
 
     private void update(LocalPlayer localPlayer, ApplicableRegionSet set, boolean allowed) {
         if (!allowed) {
-            storedMessage = LanguageOptions.parse(LanguageOptions.getMessage("deny-exit"), null);
+            storedMessage = Messages.parse(LanguageOptions.getMessage("deny-exit"), MessageContext.builder().withPrefix(false).build()).join();
             exitViaTeleport = set.testState(localPlayer, WorldGuardClass.getBountyTeleportExit());
         }
     }

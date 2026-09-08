@@ -4,6 +4,8 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -19,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 import static me.jadenp.notbounties.utils.BountyManager.getAllBounties;
@@ -72,40 +75,40 @@ class TrackerCommandHandler {
         }
     }
 
-    boolean handle(CommandSender sender, String[] args, boolean forcePermission, boolean adminPermission, boolean silent, Player parser) {
+    CompletableFuture<Boolean> handle(CommandSender sender, String[] args, boolean forcePermission, boolean adminPermission, boolean silent, Player parser) {
         if (!BountyTracker.isEnabled()) {
-            return true;
+            return CompletableFuture.completedFuture(true);
         }
 
-        Boolean trackingExemptResult = handleTrackingExempt(sender, args, forcePermission, silent, parser);
+        CompletableFuture<Boolean> trackingExemptResult = handleTrackingExempt(sender, args, forcePermission, silent, parser);
         if (trackingExemptResult != null) {
             return trackingExemptResult;
         }
 
         if (!hasCommandPermission(sender, forcePermission, adminPermission)) {
             if (!silent)
-                sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
-            return false;
+                Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
+            return CompletableFuture.completedFuture(false);
         }
 
         if (!Commands.applyGiveOwnCooldown(sender, forcePermission, adminPermission, silent)) {
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
 
         if (args.length <= 1) {
             if (!silent) {
-                sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+                Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
                 sendHelpMessage(sender, getListMessage("help.tracker-own"));
                 if (adminPermission)
                     sendHelpMessage(sender, getListMessage("help.tracker-other"));
             }
-            return false;
+            CompletableFuture.completedFuture(false);
         }
 
         return handleTrackerTarget(sender, args, forcePermission, adminPermission, silent, parser);
     }
 
-    private @Nullable Boolean handleTrackingExempt(CommandSender sender, String[] args, boolean forcePermission, boolean silent, Player parser) {
+    private @Nullable CompletableFuture<Boolean> handleTrackingExempt(CommandSender sender, String[] args, boolean forcePermission, boolean silent, Player parser) {
         if (!(BountyTracker.isTrackingExemptEnabled()
                 && sender instanceof Player player
                 && args.length > 1
@@ -114,24 +117,27 @@ class TrackerCommandHandler {
             return null;
         }
 
-        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
-        long sinceLastSet = System.currentTimeMillis() - playerData.getBountyCooldown();
-        boolean enable = shouldEnableTrackingExempt(args, playerData);
-        if (sinceLastSet < BountyTracker.getTrackingExemptDelayAfterSet() * 1000 && enable) {
-            if (!silent)
-                sender.sendMessage(parse(getPrefix() + getMessage("tracker-exempt-cooldown"), BountyTracker.getTrackingExemptDelayAfterSet() * 1000L - sinceLastSet, LocalTime.TimeFormat.RELATIVE, parser));
-            return false;
-        }
-
-        playerData.setTrackingExempt(enable);
-        if (!silent) {
-            if (enable) {
-                sender.sendMessage(parse(getPrefix() + getMessage("tracker-exempt-enable"), parser));
-            } else {
-                sender.sendMessage(parse(getPrefix() + getMessage("tracker-exempt-disable"), parser));
+        return DataManager.getPlayerDataAsync(player.getUniqueId()).thenApply(playerData -> {
+            long sinceLastSet = System.currentTimeMillis() - playerData.getBountyCooldown();
+            boolean enable = shouldEnableTrackingExempt(args, playerData);
+            if (sinceLastSet < BountyTracker.getTrackingExemptDelayAfterSet() * 1000 && enable) {
+                if (!silent)
+                    Messages.send(sender, getMessage("tracker-exempt-cooldown"), MessageContext.builder().time(BountyTracker.getTrackingExemptDelayAfterSet() * 1000L - sinceLastSet, LocalTime.TimeFormat.RELATIVE).receiver(parser).build());
+                return false;
             }
-        }
-        return true;
+
+            playerData.setTrackingExempt(enable);
+            DataManager.updatePlayerData(playerData);
+            if (!silent) {
+                if (enable) {
+                    Messages.send(sender, getMessage("tracker-exempt-enable"), MessageContext.builder().receiver(parser).build());
+                } else {
+                    Messages.send(sender, getMessage("tracker-exempt-disable"), MessageContext.builder().receiver(parser).build());
+                }
+            }
+            return true;
+        });
+
     }
 
     private boolean shouldEnableTrackingExempt(String[] args, PlayerData playerData) {
@@ -155,46 +161,47 @@ class TrackerCommandHandler {
         }
     }
 
-    private boolean handleTrackerTarget(CommandSender sender, String[] args, boolean forcePermission, boolean adminPermission, boolean silent, Player parser) {
+    private CompletableFuture<Boolean> handleTrackerTarget(CommandSender sender, String[] args, boolean forcePermission, boolean adminPermission, boolean silent, Player parser) {
 
         if (args[1].equalsIgnoreCase("empty")) {
             if (args.length > 2)
-                return giveTrackerToOther(sender, args, null, adminPermission, silent);
+                return CompletableFuture.completedFuture(giveTrackerToOther(sender, args, null, adminPermission, silent));
             else
-                return giveTrackerToSelf(sender, null, forcePermission, adminPermission, silent, parser);
+                return CompletableFuture.completedFuture(giveTrackerToSelf(sender, null, forcePermission, adminPermission, silent, parser));
         }
 
         UUID playerUUID = LoggedPlayers.getPlayer(args[1]);
         if (playerUUID == null) {
             unknownPlayerHandler.failUnknownPlayer(sender, args[1], silent);
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
 
-        Bounty bounty = getBounty(playerUUID);
+        return DataManager.getBountyAsync(playerUUID).thenApply(bounty -> {
+            if (bounty == null) {
+                if (!silent)
+                    Messages.send(sender, getMessage("no-bounty"), MessageContext.builder().player(playerUUID).receiver(parser).build());
+                return false;
+            }
 
-        if (bounty == null) {
-            if (!silent)
-                sender.sendMessage(parse(getPrefix() + getMessage("no-bounty"), playerUUID, parser));
-            return false;
-        }
+            if (bounty.getTotalDisplayBounty() < BountyTracker.getMinBounty()) {
+                if (!silent)
+                    Messages.send(sender, getMessage("min-bounty"), MessageContext.builder().amount(BountyTracker.getMinBounty()).receiver(parser).build());
+                return false;
+            }
 
-        if (bounty.getTotalDisplayBounty() < BountyTracker.getMinBounty()) {
-            if (!silent)
-                sender.sendMessage(parse(getPrefix() + getMessage("min-bounty"), BountyTracker.getMinBounty(), parser));
-            return false;
-        }
+            if (args.length > 2) {
+                return giveTrackerToOther(sender, args, playerUUID, adminPermission, silent);
+            }
+            return giveTrackerToSelf(sender, playerUUID, forcePermission, adminPermission, silent, parser);
+        });
 
-        if (args.length > 2) {
-            return giveTrackerToOther(sender, args, playerUUID, adminPermission, silent);
-        }
-        return giveTrackerToSelf(sender, playerUUID, forcePermission, adminPermission, silent, parser);
     }
 
     private boolean giveTrackerToOther(CommandSender sender, String[] args, @Nullable UUID playerUUID, boolean adminPermission, boolean silent) {
         // null playerUUID will give an empty tracker
         if (!adminPermission) {
             if (!silent)
-                sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), Commands.getParser(sender)));
+                Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(Commands.getParser(sender)).build());
             return false;
         }
 
@@ -208,11 +215,11 @@ class TrackerCommandHandler {
         NumberFormatting.givePlayer(receiver, tracker, 1);
         if (!silent) {
             if (playerUUID == null) {
-                sender.sendMessage(parse(getPrefix() + getMessage("tracker-give").replace("{player}", ChatColor.RED + "X"), receiver));
-                receiver.sendMessage(parse(getPrefix() + getMessage("tracker-receive-empty"), receiver));
+                Messages.send(sender, getMessage("tracker-give").replace("{player}", ChatColor.RED + "X"), MessageContext.builder().receiver(receiver).build());
+                Messages.send(receiver, getMessage("tracker-receive-empty"), MessageContext.builder().receiver(receiver).build());
             } else {
-                sender.sendMessage(parse(getPrefix() + getMessage("tracker-give"), playerUUID, receiver));
-                receiver.sendMessage(parse(getPrefix() + getMessage("tracker-receive"), Bukkit.getOfflinePlayer(playerUUID)));
+                Messages.send(sender, getMessage("tracker-give"), MessageContext.builder().player(playerUUID).receiver(receiver).build());
+                Messages.send(receiver, getMessage("tracker-receive"), MessageContext.builder().player(Bukkit.getOfflinePlayer(playerUUID)).receiver(receiver).build());
             }
         }
         return true;
@@ -228,7 +235,7 @@ class TrackerCommandHandler {
 
         if (!(forcePermission || sender.hasPermission("notbounties.tracker") || adminPermission)) {
             if (!silent)
-                sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
+                Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
             return false;
         }
 
@@ -243,20 +250,20 @@ class TrackerCommandHandler {
         } else {
             if (BountyTracker.isWriteEmptyTrackers() && sender.hasPermission("notbounties.tracker.writeempty")) {
                 if (!silent)
-                    sender.sendMessage(parse(getPrefix() + getMessage("no-empty-tracker"), parser));
+                    Messages.send(sender, getMessage("no-empty-tracker"), MessageContext.builder().receiver(parser).build());
             } else {
                 if (!silent)
-                    sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
+                    Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
             }
             return false;
         }
 
         if (playerUUID == null) {
             if (!silent)
-                sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive-empty"), parser));
+                Messages.send(sender, getMessage("tracker-receive-empty"), MessageContext.builder().receiver(parser).build());
         } else {
             if (!silent)
-                sender.sendMessage(parse(getPrefix() + getMessage("tracker-receive"), playerUUID, parser));
+                Messages.send(sender, getMessage("tracker-receive"), MessageContext.builder().player(playerUUID).receiver(parser).build());
         }
         return true;
     }

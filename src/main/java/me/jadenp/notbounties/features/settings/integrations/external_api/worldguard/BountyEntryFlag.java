@@ -12,6 +12,8 @@ import com.sk89q.worldguard.session.Session;
 import com.sk89q.worldguard.session.handler.Handler;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 
 import java.util.Set;
 
@@ -39,7 +41,7 @@ public class BountyEntryFlag extends Handler {
 
         if (!getSession().getManager().hasBypass(player, (World) to.getExtent()) && !allowed && moveType.isCancellable()
                 && DataManager.getLocalData().getOnlineBounty(player.getUniqueId()) != null) {
-            String message = LanguageOptions.parse(LanguageOptions.getMessage("deny-entry"), null);
+            String message = Messages.parse(LanguageOptions.getMessage("deny-entry"), MessageContext.builder().withPrefix(false).build()).join();
             long now = System.currentTimeMillis();
 
             if (now - lastMessage > MESSAGE_THRESHOLD && !message.isEmpty()) {

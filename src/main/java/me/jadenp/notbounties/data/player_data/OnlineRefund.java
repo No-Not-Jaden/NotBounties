@@ -1,6 +1,8 @@
 package me.jadenp.notbounties.data.player_data;
 
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import org.bukkit.entity.Player;
 
 import java.util.Objects;
@@ -47,7 +49,7 @@ public abstract class OnlineRefund<T> {
     public void giveRefund(Player player) {
         if (reason != null && !reason.isBlank()) {
             String message = LanguageOptions.getMessage("refund").replace("{amount}", getRefundAmountString()).replace("{reason}", reason);
-            player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + message, player));
+            Messages.send(player, message, MessageContext.builder().receiver(player).build());
         }
     }
 

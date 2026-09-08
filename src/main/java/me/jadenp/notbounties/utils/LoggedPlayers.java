@@ -4,6 +4,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.ImpersistentPlayerData;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.ConfigOptions;
+import me.jadenp.notbounties.features.settings.databases.BountySortType;
 import me.jadenp.notbounties.features.settings.databases.proxy.ProxyMessaging;
 import me.jadenp.notbounties.features.settings.integrations.external_api.CMIClass;
 import org.bukkit.Bukkit;
@@ -24,8 +25,11 @@ public class LoggedPlayers {
      */
     private static final Map<String, UUID> playerIDs = new HashMap<>();
     private static final Set<UUID> requestingNames = new HashSet<>();
+    private static final Set<String> activeBountyNames =  new HashSet<>();
 
     private static HttpSyncPool httpPool;
+    private static long lastBountyNameRequest = 0;
+    private static final long BOUNTY_NAME_REQUEST_INTERVAL_MS = 30000;
 
     private static void loadName(PlayerData playerData) {
         if (playerData.getPlayerName() != null) {
@@ -41,13 +45,28 @@ public class LoggedPlayers {
         }
     }
 
+    public static Set<String> getActiveBountyNames() {
+        if (System.currentTimeMillis() - lastBountyNameRequest > BOUNTY_NAME_REQUEST_INTERVAL_MS) {
+            lastBountyNameRequest = System.currentTimeMillis();
+            DataManager.getPublicBountiesAsync(BountySortType.HIGHEST, 0, ConfigOptions.getMaxTabCompletePlayers() + 1).thenAccept(bounties -> {
+                synchronized (activeBountyNames) {
+                    activeBountyNames.clear();
+                    bounties.forEach(bounty -> activeBountyNames.add(bounty.getName()));
+                }
+            });
+        }
+        synchronized (activeBountyNames) {
+            return new HashSet<>(activeBountyNames);
+        }
+    }
+
     /**
      * Loads player data and saves their names to a map.
      */
     public static void loadPlayerData() {
         playerIDs.clear();
         DataManager.iterateAllPlayerData(LoggedPlayers::loadName);
-
+        getActiveBountyNames();
     }
 
     private static void loadHttpPool() {

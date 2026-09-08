@@ -259,12 +259,12 @@ public class BountyExpire {
                     NotBounties.getServerImplementation().global().run(task -> {
                         Player player = Bukkit.getPlayer(setter.getUuid());
                         if (player != null) {
-                            player.sendMessage(parse(getPrefix() + getMessage("expired-bounty"), setter.getDisplayAmount(), Bukkit.getOfflinePlayer(bounty.getUUID())));
+                            Messages.send(player, getMessage("expired-bounty"), MessageContext.builder().amount(setter.getDisplayAmount()).player(Bukkit.getOfflinePlayer(bounty.getUUID())).receiver(player).build());
                         }
                         if (rewardReceiver) {
                             setter.getItems().thenAccept(items -> refundPlayer(bounty.getUUID(), setter.getAmount(), items, null));
                         } else {
-                            refundSetter(setter, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-expire"), Bukkit.getOfflinePlayer(bounty.getUUID())));
+                            refundSetter(setter, Messages.parse(LanguageOptions.getMessage("refund-reason-expire"), MessageContext.builder().withPrefix(false).receiver(Bukkit.getOfflinePlayer(setter.getUuid())).player(Bukkit.getOfflinePlayer(bounty.getUUID())).build()).join());
                         }
                     });
                 }

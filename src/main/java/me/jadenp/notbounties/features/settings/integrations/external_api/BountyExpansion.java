@@ -5,6 +5,7 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.data.player_data.ImpersistentPlayerData;
 import me.jadenp.notbounties.features.BountyExpire;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.utils.DataManager;
@@ -12,8 +13,11 @@ import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.auto_bounties.TimedBounties;
+import me.jadenp.notbounties.features.settings.databases.BountySortType;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.data.Whitelist;
 import org.bukkit.Bukkit;
@@ -107,7 +111,7 @@ public class BountyExpansion extends PlaceholderExpansion {
             Bounty bounty = BountyManager.getBounty(player.getUniqueId());
             if (bounty != null){
                 if (params.endsWith("_rank")) {
-                    return DataManager.getLocalData().getBountyRank(bounty.getTotalDisplayBounty()) + "";
+                    return DataManager.getBountyRank(player.getUniqueId(), BountySortType.HIGHEST).join() + "";
                 }
                 if (params.endsWith("_formatted"))
                     return LanguageOptions.color(NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(bounty.getTotalDisplayBounty()) + NumberFormatting.getCurrencySuffix());
@@ -129,13 +133,13 @@ public class BountyExpansion extends PlaceholderExpansion {
             }
             if (params.startsWith("sort_name")) {
                 if (params.equalsIgnoreCase("sort_name")) {
-                    return LanguageOptions.parse(GUI.getActiveSortTypeName(player.getUniqueId()), player);
+                    return Messages.parse(GUI.getActiveSortTypeName(player.getUniqueId()), MessageContext.builder().withPrefix(false).receiver(player).build()).join();
                 }
                 String guiName = params.substring(9);
-                return LanguageOptions.parse(GUI.parseSortType(guiName, DataManager.getPlayerData(player.getUniqueId()).getGUISortType(guiName)), player);
+                return Messages.parse(GUI.parseSortType(guiName, ImpersistentPlayerData.get(player.getUniqueId()).getGUISortType(guiName)), MessageContext.builder().withPrefix(false).receiver(player).build()).join();
             } else {
                 String guiName = params.substring(5);
-                return DataManager.getPlayerData(player.getUniqueId()).getGUISortType(guiName) + "";
+                return ImpersistentPlayerData.get(player.getUniqueId()).getGUISortType(guiName) + "";
             }
         }
         if (params.startsWith("challenge")) {
@@ -261,7 +265,8 @@ public class BountyExpansion extends PlaceholderExpansion {
                     return null;
                 }
             }
-            Map<UUID, Double> stat = leaderboard.getTop(rank - 1, 1);
+            // TODO: Review these synchronous joins in placeholder path; they currently preserve legacy immediate-return behavior.
+            Map<UUID, Double> stat = leaderboard.getTop(rank - 1, 1).join();
             if (stat.isEmpty())
                 return "...";
             boolean useCurrency = leaderboard == Leaderboard.IMMUNITY || leaderboard == Leaderboard.CLAIMED || leaderboard == Leaderboard.ALL || leaderboard == Leaderboard.CURRENT;
@@ -271,13 +276,13 @@ public class BountyExpansion extends PlaceholderExpansion {
             String name = LoggedPlayers.getPlayerName(uuid1);
             OfflinePlayer p = Bukkit.getOfflinePlayer(uuid1);
             if (ending == 1)
-                return LanguageOptions.parse(leaderboard.getStatMsg(true).replace("{amount}", (leaderboard.getFormattedStat(uuid1))), p);
+                return Messages.parse(leaderboard.getStatMsg(true).replace("{amount}", (leaderboard.getFormattedStat(uuid1).join())), MessageContext.builder().withPrefix(false).receiver(p).build()).join();
             if (ending == 2)
-                return LanguageOptions.parse(leaderboard.getFormattedStat(uuid1),p);
+                return Messages.parse(leaderboard.getFormattedStat(uuid1).join(), MessageContext.builder().withPrefix(false).receiver(p).build()).join();
             if (ending == 3)
-                return NumberFormatting.getValue(leaderboard.getStat(uuid1));
+                return NumberFormatting.getValue(leaderboard.getStat(uuid1).join());
             if (ending == 4) return name;
-            if (ending == 5) return NumberFormatting.formatNumber(leaderboard.getRank(uuid1));
+            if (ending == 5) return NumberFormatting.formatNumber(leaderboard.getRank(uuid1).join());
             if (ending == 6) return LoggedPlayers.getDisplayName(p);
             if (ending == 7) return LocalTime.formatTime(BountyExpire.getLowestExpireTime(BountyManager.getBounty(uuid1)), LocalTime.TimeFormat.RELATIVE);
             if (ending == 8) return LocalTime.formatTime(BountyExpire.getHighestExpireTime(BountyManager.getBounty(uuid1)), LocalTime.TimeFormat.RELATIVE);
@@ -289,16 +294,16 @@ public class BountyExpansion extends PlaceholderExpansion {
         try {
             Leaderboard leaderboard = Leaderboard.valueOf(value.toUpperCase());
             if (ending == 1)
-                return LanguageOptions.parse(leaderboard.getStatMsg(true).replace("{amount}", (leaderboard.getFormattedStat(player.getUniqueId()))), player);
+                return Messages.parse(leaderboard.getStatMsg(true).replace("{amount}", (leaderboard.getFormattedStat(player.getUniqueId()).join())), MessageContext.builder().withPrefix(false).receiver(player).build()).join();
             if (ending == 2)
-                return LanguageOptions.parse(leaderboard.getFormattedStat(player.getUniqueId()),player);
+                return Messages.parse(leaderboard.getFormattedStat(player.getUniqueId()).join(), MessageContext.builder().withPrefix(false).receiver(player).build()).join();
             if (ending == 3)
-                return NumberFormatting.getValue(leaderboard.getStat(player.getUniqueId()));
+                return NumberFormatting.getValue(leaderboard.getStat(player.getUniqueId()).join());
             if (ending == 4)
                 return LoggedPlayers.getPlayerName(player.getUniqueId());
-            if (ending == 5) return NumberFormatting.formatNumber(leaderboard.getRank(player.getUniqueId()));
+            if (ending == 5) return NumberFormatting.formatNumber(leaderboard.getRank(player.getUniqueId()).join());
             if (ending == 6) return LoggedPlayers.getDisplayName(player);
-            return NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId()));
+            return NumberFormatting.formatNumber(leaderboard.getStat(player.getUniqueId()).join());
         } catch (IllegalArgumentException ignored){
             // not a valid leaderboard
         }

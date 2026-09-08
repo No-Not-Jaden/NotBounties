@@ -165,7 +165,7 @@ public class PVPRestrictions implements Listener {
 
         if ((localCombatTime > 0 || localPVPRule == 2) && BountyManager.hasBounty(player.getUniqueId())) {
             if (isCombatSafe(player) && localCombatTime > 0 && combatLoggingSendMessage) {
-                player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-tag").replace("{time}", (LocalTime.formatTime(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE))), player));
+                Messages.send(player, LanguageOptions.getMessage("combat-tag"), MessageContext.builder().time(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE).receiver(player).build());
             }
             recordAttack(damager, player);
         }
@@ -201,7 +201,7 @@ public class PVPRestrictions implements Listener {
                 // send the combat-safe message
                 Player player = Bukkit.getPlayer(entry.getKey());
                 if (player != null)
-                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-safe"), player));
+                    Messages.send(player, LanguageOptions.getMessage("combat-safe"), MessageContext.builder().receiver(player).build());
             }
             if (pvpHistories.isEmpty()) {
                 iterator.remove();
@@ -282,7 +282,7 @@ public class PVPRestrictions implements Listener {
         if (localCombatLoggingTime == -1)
             localCombatLoggingTime = combatLoggingTime;
         if (!isCombatSafe(receiver) && timeSinceLastHit < localCombatLoggingTime * 1000L) {
-            receiver.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("combat-safe"), receiver));
+            Messages.send(receiver, LanguageOptions.getMessage("combat-safe"), MessageContext.builder().receiver(receiver).build());
             historyMap.remove(receiver.getUniqueId());
         }
     }

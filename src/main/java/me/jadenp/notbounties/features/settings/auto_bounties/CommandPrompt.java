@@ -3,6 +3,8 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ActionCommands;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.LanguageOptions;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
@@ -10,8 +12,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import java.util.Collections;
-
-import static me.jadenp.notbounties.features.LanguageOptions.parse;
 
 public class CommandPrompt {
     private final String command;
@@ -44,7 +44,7 @@ public class CommandPrompt {
             promptString = promptString.substring(7);
         }
 
-        player.sendMessage(parse(promptString, player));
+        Messages.send(player, promptString, MessageContext.builder().receiver(player).withPrefix(false).build());
 
         this.command = command;
         this.playerPrompt = playerPrompt;
@@ -60,7 +60,7 @@ public class CommandPrompt {
         expireTask = NotBounties.getServerImplementation().global().runDelayed(task -> {
             expired = true;
             if (!silentCancel && player.isOnline())
-                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("prompt-expire"), player));
+                    Messages.send(player, LanguageOptions.getMessage("prompt-expire"), MessageContext.builder().receiver(player).build());
         }, Prompt.getTimeLimit() * 20L);
 
     }
@@ -85,7 +85,7 @@ public class CommandPrompt {
 
     public void reprompt(){
         if (silentCancel) {
-            player.sendMessage(parse(prompt, player));
+            Messages.send(player, prompt, MessageContext.builder().receiver(player).withPrefix(false).build());
             attemptsUsed++;
             silentCancel = false;
             refreshExpireTask();
