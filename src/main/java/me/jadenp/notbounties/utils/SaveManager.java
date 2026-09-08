@@ -28,7 +28,9 @@ import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 public class SaveManager {
@@ -87,14 +89,12 @@ public class SaveManager {
      * @param dataDirectory Directory to save the file in.
      * @throws IOException If an error occurs while writing to the file.
      */
-    private static void savePlayerData(File dataDirectory) throws IOException {
+    private static synchronized void savePlayerData(File dataDirectory) throws IOException {
         // save player data
-        File playerDataFile = new File(dataDirectory + File.separator + "player_data.json");
-        if (playerDataFile.createNewFile()) {
-            NotBounties.debugMessage("Created a new player_data.json file.", false);
-        }
+        File playerDataFile = new File(dataDirectory, "player_data.json");
+        File tempFile = new File(dataDirectory, "player_data.json.tmp");
 
-        try (JsonWriter writer = new JsonWriter(new FileWriter(playerDataFile))) {
+        try (JsonWriter writer = new JsonWriter(Files.newBufferedWriter(tempFile.toPath(), StandardCharsets.UTF_8))) {
             writer.beginObject();
 
             writer.name("trackedBounties");
@@ -171,11 +171,18 @@ public class SaveManager {
 
             writer.endObject();
         }
+
+        Files.move(
+                tempFile.toPath(),
+                playerDataFile.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE
+        );
     }
 
     public static void read(Plugin plugin) throws IOException {
         SaveManager.plugin = plugin;
-
+        saveLock = true;
         File dataDirectory = new File(plugin.getDataFolder() + File.separator + "data");
         readPlayerData(dataDirectory);
         readBounties(dataDirectory);
@@ -184,9 +191,10 @@ public class SaveManager {
         List<byte[]> messages = readUnsentProxyMessages(dataDirectory);
         if (!messages.isEmpty())
             ProxyMessaging.addPreparedUpdateMessage(new PreparedUpdateMessage(messages, -1));
+        saveLock = false;
     }
 
-    private static void readStats(File dataDirectory) throws IOException {
+    private static synchronized void readStats(File dataDirectory) throws IOException {
         File statsFile = new File(dataDirectory + File.separator + "player_stats.json");
         if (!statsFile.exists())
             return;
@@ -220,7 +228,7 @@ public class SaveManager {
         }
     }
 
-    private static void readBounties(File dataDirectory) throws IOException {
+    private static synchronized void readBounties(File dataDirectory) throws IOException {
         File bountiesFile = new File(dataDirectory + File.separator + "bounties.json");
         if (!bountiesFile.exists())
             return;
@@ -247,7 +255,7 @@ public class SaveManager {
         }
     }
 
-    private static void readPlayerData(File dataDirectory) throws IOException {
+    private static synchronized void readPlayerData(File dataDirectory) throws IOException {
         ChallengeManager.setNextChallengeChange(1); // prepare new challenges if the last challenge change wasn't read
         File playerDataFile = new File(dataDirectory + File.separator + "player_data.json");
         try {
@@ -260,7 +268,7 @@ public class SaveManager {
         LoggedPlayers.loadPlayerData();
     }
 
-    private static void readPlayerFile(File playerDataFile) throws IOException {
+    private static synchronized void readPlayerFile(File playerDataFile) throws IOException {
         if (!playerDataFile.exists()) return;
         try (JsonReader reader = new JsonReader(new FileReader(playerDataFile))) {
             try {

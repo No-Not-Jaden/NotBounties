@@ -112,14 +112,16 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
      * @param head 8x8 image for the player face.
      */
     public void setPlayerFace(BufferedImage head, String name) {
-        this.playerFace = head;
+        if (head != null) {
+            this.playerFace = head;
 
-        if (BountyMap.isSaveTemplates()) {
-            File imageFile = new File(BountyMap.getPosterDirectory() + File.separator + name.toLowerCase() + " face.png");
-            try {
-                ImageIO.write(head, "PNG", imageFile);
-            } catch (IOException e) {
-                plugin.getLogger().warning(e.toString());
+            if (BountyMap.isSaveTemplates()) {
+                File imageFile = new File(BountyMap.getPosterDirectory() + File.separator + name.toLowerCase() + " face.png");
+                try {
+                    ImageIO.write(head, "PNG", imageFile);
+                } catch (IOException e) {
+                    plugin.getLogger().warning(e.toString());
+                }
             }
         }
     }

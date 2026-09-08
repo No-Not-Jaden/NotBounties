@@ -90,6 +90,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * effective immunity placeholder
  * make admin-edit-lore consistent with GUI clicks & configurable
  * confirmation for remove and edit a specific bounty
+ * add delay for action commands
  */
 public final class NotBounties extends JavaPlugin {
 
@@ -194,6 +195,7 @@ public final class NotBounties extends JavaPlugin {
             getLogger().severe("Failed to read player data!");
             getLogger().severe(e.toString());
             Arrays.stream(e.getStackTrace()).forEach(stack -> getLogger().severe("       at " + stack.toString()));
+            Bukkit.getPluginManager().disablePlugin(this);
         }
 
         if (ConfigOptions.isSendBStats()) {

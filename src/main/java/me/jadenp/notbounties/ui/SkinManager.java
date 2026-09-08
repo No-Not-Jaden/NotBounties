@@ -150,8 +150,13 @@ public class SkinManager {
      * @return The player's skin information, or the information of a question mark skin if the skin isn't loaded.
      */
     public static @NotNull PlayerSkin getSkin(UUID uuid) {
-        if (!savedSkins.containsKey(uuid))
+        if (!savedSkins.containsKey(uuid)) {
+            if (SkinManager.isUseUnloadedPlayerProfile()) {
+                // return default skin
+                return DefaultSkinHelper.get(uuid);
+            }
             return missingSkin;
+        }
         return savedSkins.get(uuid);
     }
 
@@ -239,7 +244,7 @@ public class SkinManager {
             } else {
                 // 10 seconds after the first item in the rate limit expires. (expires after 60 seconds)
                 // minimum of 1 second in the future
-                nextRequestTime = Math.max((10000 + MOJANG_API_LIMIT_MS - (System.currentTimeMillis() - rateLimit.get(0))) / 50, 1000L);
+                nextRequestTime = Math.max((10000 + MOJANG_API_LIMIT_MS - (System.currentTimeMillis() - rateLimit.getFirst())) / 50, 1000L);
             }
             if (NotBounties.getInstance().isEnabled()) {
                 NotBounties.getServerImplementation().async().runDelayed(() -> {
@@ -279,16 +284,16 @@ public class SkinManager {
      * @return A 8x8 face for the player include their mask.
      */
     public static @Nullable BufferedImage getPlayerFace(UUID uuid) {
-        if (!isSkinLoaded(uuid))
-            return null;
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && missingSkinFace != null)
             return missingSkinFace;
         BufferedImage skin = getBufferedImageFromUrl(getSkin(uuid).url());
         if (skin == null)
             return null;
         BufferedImage head = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
-
-        return copyHead(skin, head);
+        BufferedImage face = copyHead(skin, head);
+        if (uuid.equals(DataManager.GLOBAL_SERVER_ID))
+            missingSkinFace = face;
+        return face;
     }
 
     /**

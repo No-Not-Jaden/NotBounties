@@ -151,13 +151,12 @@ public class BountyManager {
 
             return CompletableFuture.completedFuture(null);
         }
-
-        // Only do these if a player actually set the bounty.
-        if (setter != null) {
-            // Unlock recipe
-            if (!setter.hasDiscoveredRecipe(BountyTracker.getBountyTrackerRecipe())) {
+        // unlock recipes
+        NotBounties.getServerImplementation().entity(setter).run(() -> {
+            if (!setter.hasDiscoveredRecipe(BountyTracker.getBountyTrackerRecipe()))
                 setter.discoverRecipe(BountyTracker.getBountyTrackerRecipe());
-            }
+        });
+
 
             // Add setter stat
             DataManager.changeStat(setter.getUniqueId(), Leaderboard.SET, 1);

@@ -211,7 +211,7 @@ public class BedrockGUIOptions {
     }
 
     public void openInventory(Player player, long page, long maxPage, List<DisplayItem> displayItems, String title, Object[] data) {
-        NotBounties.getServerImplementation().global().run(() -> {
+        NotBounties.getServerImplementation().entity(player).run(() -> {
             if (!LanguageOptions.getMessage("bedrock-open-gui").isEmpty() && !GUI.playerInfo.containsKey(player.getUniqueId())) {
                 player.sendMessage(LanguageOptions.parse(getPrefix() + getMessage("bedrock-open-gui").replace("{page}", page + ""), player));
             }

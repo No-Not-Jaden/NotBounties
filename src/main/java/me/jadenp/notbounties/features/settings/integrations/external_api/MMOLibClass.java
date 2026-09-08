@@ -108,7 +108,7 @@ public class MMOLibClass implements Listener {
             ModifierType modifierType;
             if (configuration.getBoolean("multiplicative")) {
                 try {
-                    modifierType = ModifierType.ADDITIVE_MULTIPLIER;
+                    modifierType = ModifierType.COMPOUND;
                 } catch (NoSuchFieldError e){
                     // not using latest version of MMOLib
                     modifierType = ModifierType.RELATIVE;

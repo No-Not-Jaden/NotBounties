@@ -1,5 +1,7 @@
 package me.jadenp.notbounties.features.settings.auto_bounties;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Whitelist;
@@ -12,8 +14,10 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static me.jadenp.notbounties.utils.BountyManager.*;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
@@ -51,7 +55,7 @@ public class MurderBounties {
      * A map of the killer and the player they have killed with the time they were killed.
      * (Killer, (Player, Time))
      */
-    private static Map<UUID, Map<UUID, Long>> playerKills = new HashMap<>();
+    private static final Map<UUID, Cache<UUID, Long>> playerKills = new HashMap<>();
 
     private static List<String> commands;
 
@@ -63,20 +67,13 @@ public class MurderBounties {
         exclusiveMurderOrTrickle = murderBounties.getBoolean("exclusive-murder-or-trickle");
         allowNPC = murderBounties.getBoolean("allow-npc");
         commands = murderBounties.getStringList("commands");
+        playerKills.clear();
     }
-
     /**
      * Removes old player kills from playerKills HashMap
      */
     public static void cleanPlayerKills() {
-        Map<UUID, Map<UUID, Long>> updatedMap = new HashMap<>();
-        for (Map.Entry<UUID, Map<UUID, Long>> entry : playerKills.entrySet()) {
-            Map<UUID, Long> deaths = entry.getValue();
-            deaths.entrySet().removeIf(entry1 -> entry1.getValue() < System.currentTimeMillis() - murderCooldown * 1000L);
-            updatedMap.put(entry.getKey(), deaths);
-        }
-        updatedMap.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-        playerKills = updatedMap;
+        playerKills.entrySet().removeIf(entry -> entry.getValue().size() == 0);
     }
 
     private static boolean canTriggerMurderBounty(Player player, Player killer) {
@@ -140,7 +137,7 @@ public class MurderBounties {
             }
             if (!commands.isEmpty())
                 ActionCommands.executeCommands(player, killer, commands);
-            Map<UUID, Long> kills = playerKills.containsKey(killer.getUniqueId()) ? playerKills.get(killer.getUniqueId()) : new HashMap<>();
+            Cache<UUID, Long> kills = playerKills.computeIfAbsent(killer.getUniqueId(), k -> CacheBuilder.newBuilder().expireAfterWrite(murderCooldown, TimeUnit.SECONDS).build());
             kills.put(player.getUniqueId(), System.currentTimeMillis());
             playerKills.put(killer.getUniqueId(), kills);
             return exclusiveMurderOrTrickle;
