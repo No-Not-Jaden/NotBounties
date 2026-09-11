@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.utils;
 
+import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.bounty_events.DropRewardHead;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.Leaderboard;
@@ -82,17 +83,24 @@ public class BountyManager {
 
     private static void sendBountyList(CommandSender sender, List<Bounty> sortedList, int page, Player parser) {
         String title = LanguageOptions.getMessage("bounty-list-title").replace("{page}", page + 1 + "");
-        title = parse(title, parser);
-        sender.sendMessage(title);
-        for (int i = 0; i <= BOUNTY_LIST_LENGTH; i++) {
-            if (sortedList.size() > i) {
-                sender.sendMessage(parse(getMessage("list-total"), sortedList.get(i).getTotalDisplayBounty(), Bukkit.getOfflinePlayer(sortedList.get(i).getUUID())));
-            } else {
-                break;
-            }
+        List<CompletableFuture<String>> messageList = new ArrayList<>(sortedList.size() + 1);
+        messageList.add(Messages.parse(title, MessageContext.builder().receiver(parser).withPrefix(false).build()));
+        for (Bounty bounty : sortedList) {
+            messageList.add(Messages.parse(getMessage("list-total"), MessageContext.builder()
+                    .withPrefix(false)
+                    .amount(bounty.getTotalDisplayBounty())
+                    .receiver(Bukkit.getOfflinePlayer(bounty.getUUID()))
+                    .build()));
         }
 
-        Tutorial.sendUnifiedPageLine(sender, page + 1, parser, page, page + 2, "list", (int) Math.ceil(((double) sortedList.size()) / BOUNTY_LIST_LENGTH) + 1);
+        CompletableFuture.allOf(messageList.toArray(new CompletableFuture[0])).thenAccept(v -> {
+            for (CompletableFuture<String> message : messageList) {
+                sender.sendMessage(message.join());
+            }
+            Tutorial.sendUnifiedPageLine(sender, page + 1, parser, page, page + 2, "list", (int) Math.ceil(((double) sortedList.size()) / BOUNTY_LIST_LENGTH) + 1);
+        });
+
+
     }
 
     public static CompletableFuture<Bounty> addBounty(OfflinePlayer receiver, double amount, List<ItemStack> items, Whitelist whitelist) {
@@ -147,16 +155,16 @@ public class BountyManager {
                 refundBounty = new Bounty(receiver, amount + amount * ConfigOptions.getMoney().getBountyTax() + Whitelist.getCost() * whitelist.getList().size(), items, whitelist);
             }
 
-            refundBounty(refundBounty, LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-bounty-cancel"), receiver));
+            Messages.parse(LanguageOptions.getMessage("refund-reason-bounty-cancel"), MessageContext.builder().withPrefix(false).receiver(receiver).build()).thenAccept(str -> refundBounty(refundBounty, str));
 
             return CompletableFuture.completedFuture(null);
         }
         // unlock recipes
-        NotBounties.getServerImplementation().entity(setter).run(() -> {
-            if (!setter.hasDiscoveredRecipe(BountyTracker.getBountyTrackerRecipe()))
-                setter.discoverRecipe(BountyTracker.getBountyTrackerRecipe());
-        });
-
+        if (setter != null) {
+            NotBounties.getServerImplementation().entity(setter).run(() -> {
+                if (!setter.hasDiscoveredRecipe(BountyTracker.getBountyTrackerRecipe()))
+                    setter.discoverRecipe(BountyTracker.getBountyTrackerRecipe());
+            });
 
             // Add setter stat
             DataManager.changeStat(setter.getUniqueId(), Leaderboard.SET, 1);
@@ -356,16 +364,16 @@ public class BountyManager {
                     killerBounty.getTotalItemBountyAsync().thenAccept(items -> NumberFormatting.givePlayer(killer, items, false));
                 }
                 // send messages
-                killer.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("stolen-bounty"), stolenBounty.getTotalDisplayBounty(), player));
+                Messages.send(killer, LanguageOptions.getMessage("stolen-bounty"), MessageContext.builder().amount(stolenBounty.getTotalDisplayBounty()).receiver(player).build());
                 // send messages
-                String message = parse(getPrefix() + getMessage("stolen-bounty-broadcast"), player, stolenBounty.getTotalDisplayBounty(), killerBounty.getTotalDisplayBounty(), killer);
-                Bukkit.getConsoleSender().sendMessage(message);
                 if (stolenBounty.getTotalDisplayBounty() >= ConfigOptions.getMoney().getMinBroadcast()) {
-                    if (!Bukkit.isPrimaryThread()) {
-                        NotBounties.getServerImplementation().global().run(() -> broadcastMessage(message, uuid -> uuid.equals(killer.getUniqueId())));
-                    } else {
-                        broadcastMessage(message, uuid -> uuid.equals(killer.getUniqueId()));
-                    }
+                    Messages.broadcastMessage(getMessage("stolen-bounty-broadcast"), MessageContext.builder()
+                            .player(player)
+                                    .receiver(killer)
+                                    .amount(stolenBounty.getTotalDisplayBounty())
+                                    .bounty(killerBounty.getTotalDisplayBounty())
+                            .build(),
+                            uuid -> uuid.equals(killer.getUniqueId()));
                 }
                 // play sound
                 killer.getWorld().playSound(player.getLocation(), Sound.ENTITY_CAT_HISS, 1, 1);
@@ -373,22 +381,22 @@ public class BountyManager {
         }
     }
 
-    /**
-     * Broadcast a message to the server. Must be called on the main thread.
-     *
-     * @param message   Message to broadcast.
-     * @param operation Players to exclude from the broadcast.
-     */
-    private static void broadcastMessage(String message, ExcludePlayersOperation operation) {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!operation.isExcluded(p.getUniqueId())) {
-                DataManager.getPlayerDataAsync(p.getUniqueId()).thenAccept(playerData -> {
-                    if (playerData.getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE) {
-                        NotBounties.getServerImplementation().entity(p).run(() -> p.sendMessage(message));
-                    }
-                });
-            }
-        }
+    // TODO: drop the head only when we know it won't be removed later
+    private static CompletableFuture<Item> dropHead(Player player) {
+        ItemStack head = Head.createPlayerSkull(player.getUniqueId(), SkinManager.getSkin(player.getUniqueId()).url());
+        ItemMeta headMeta = head.getItemMeta();
+        assert headMeta != null;
+        return CompletableFuture.supplyAsync(() -> {
+            headMeta.setDisplayName(Messages.parse(LanguageOptions.getMessage("any-kill-head-name"), MessageContext.builder().withPrefix(false).receiver(player).build()).join());
+            List<String> lore = new ArrayList<>();
+            LanguageOptions.getListMessage("any-kill-head-lore").forEach(str -> lore.add(Messages.parse(str, MessageContext.builder().withPrefix(false).receiver(player).build()).join()));
+            headMeta.setLore(lore);
+            head.setItemMeta(headMeta);
+            TaskImplementation<Item> item = NotBounties.getServerImplementation().global().run((task) -> {
+                return player.getWorld().dropItemNaturally(player.getLocation(), head);
+            });
+            return item.asFuture().join().getCallback();
+        });
     }
 
     /**
@@ -401,31 +409,26 @@ public class BountyManager {
      */
     public static void claimBounty(@NotNull Player player, Player killer, List<ItemStack> drops, boolean forceEditDrops, double deathTax) {
         NotBounties.debugMessage("Received a bounty claim request.", false);
-        Item droppedHead;
+        CompletableFuture<Item> headFuture = null;
         if (RewardHead.isRewardAnyKill()) {
-            ItemStack head = Head.createPlayerSkull(player.getUniqueId(), SkinManager.getSkin(player.getUniqueId()).url());
-            ItemMeta headMeta = head.getItemMeta();
-            assert headMeta != null;
-            headMeta.setDisplayName(LanguageOptions.parse(LanguageOptions.getMessage("any-kill-head-name"), player));
-            List<String> lore = new ArrayList<>();
-            LanguageOptions.getListMessage("any-kill-head-lore").forEach(str -> lore.add(LanguageOptions.parse(str, player)));
-            headMeta.setLore(lore);
-            head.setItemMeta(headMeta);
-            droppedHead = player.getWorld().dropItemNaturally(player.getLocation(), head);
+            headFuture = dropHead(player);
         } else {
-            droppedHead = null;
+            headFuture = CompletableFuture.completedFuture(null);
         }
         // possible remove this later when the other functions allow null killers aka non-player deaths
         if (killer == null)
             return;
         NotBounties.debugMessage(killer.getName() + " killed " + player.getName(), false);
 
-        // check if a bounty can be claimed from integrations
-        NotBounties.getServerImplementation().global().run(() -> {
-            if (canClaimPreCheck(player, killer)) { // some integrations are not async safe
-                NotBounties.getServerImplementation().async().runNow(() -> claimBountyPostIntegrations(player, killer, drops, forceEditDrops, deathTax, droppedHead));
-            }
+        headFuture.thenAccept(droppedHead -> {
+            // check if a bounty can be claimed from integrations
+            NotBounties.getServerImplementation().global().run(() -> {
+                if (canClaimPreCheck(player, killer)) { // some integrations are not async safe
+                    NotBounties.getServerImplementation().async().runNow(() -> claimBountyPostIntegrations(player, killer, drops, forceEditDrops, deathTax, droppedHead));
+                }
+            });
         });
+
 
 
     }
@@ -473,52 +476,17 @@ public class BountyManager {
         //claimedBounties.removeIf(setter -> !setter.canClaim(killer)); // this shouldn't do anything
 
         // broadcast message
-        String message = parse(getPrefix() + getMessage("claim-bounty-broadcast"), killer, bounty.getTotalDisplayBounty(killer), player);
-        Bukkit.getConsoleSender().sendMessage(message);
-        boolean aboveMinBounty = bounty.getTotalDisplayBounty(killer) >= ConfigOptions.getMoney().getMinBroadcast();
-        broadcastMessage(message, uuid -> !aboveMinBounty && !uuid.equals(killer.getUniqueId()) && !uuid.equals(player.getUniqueId()));
+        if (bounty.getTotalDisplayBounty(killer) >= ConfigOptions.getMoney().getMinBroadcast()) {
+            Messages.broadcastMessage(getMessage("claim-bounty-broadcast"), MessageContext.builder().player(killer).receiver(player).amount(bounty.getTotalDisplayBounty(killer)).build(), uuid -> !uuid.equals(killer.getUniqueId()) && !uuid.equals(player.getUniqueId()));
+        }
         NotBounties.debugMessage("Claim messages sent to all players.", false);
 
         // hand out reward heads
-        ItemRefund rewardHead = new ItemRefund(Collections.singletonList(RewardHead.getItem(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer))), LanguageOptions.parse(LanguageOptions.getMessage("refund-reason-reward-head"), player));
-        if (bounty.getTotalDisplayBounty(killer) >= RewardHead.getMinimumBounty()) {
-            if (dropRewardHead.isDropSettersHead()) {
-                // reward head for setters
-                Set<UUID> givenHead = new HashSet<>(); // record whose head has been given out
-                givenHead.add(DataManager.GLOBAL_SERVER_ID); // console id added so a head isn't attempted to be given to it
-                for (Setter setter : claimedBounties) {
-                    if (!givenHead.contains(setter.getUuid())) {
-                        givenHead.add(setter.getUuid());
-                        Player p = Bukkit.getPlayer(setter.getUuid());
-                        if (p != null) {
-                            // setter is online
-                            if (killer.getUniqueId().equals(setter.getUuid()) && droppedHead != null)
-                                // if the killer is a setter, remove the dropped head, so they only get one for being a setter
-                                droppedHead.remove();
-                            // check to make sure the setter isn't the killer and won't get another head for claiming
-                            if (!RewardHead.isRewardKiller() || !Objects.requireNonNull(killer).getUniqueId().equals(setter.getUuid())) {
-                                rewardHead.giveRefund(p); // give head ;)
-                                NotBounties.debugMessage("Gave setter " + p.getName() + " a player skull for the bounty.", false);
-                            }
-                        } else {
-                            // Setter is offline.
-                            // Save reward head to player data.
-                            DataManager.addRefund(setter.getUuid(), rewardHead);
-                            NotBounties.debugMessage("Will give " + setter.getName() + " a player skull when they log on next for the bounty.", false);
-                        }
-                    }
-                }
-            }
-            if (dropRewardHead.isDropKillerHead()) {
-                // reward head for killer
-                if (droppedHead != null)
-                    // if a head was dropped for killing a player (any-kill), remove it to be replaced with a custom head
-                    droppedHead.remove();
+        Messages.parse(LanguageOptions.getMessage("refund-reason-reward-head"), MessageContext.builder().receiver(player).build()).thenAccept(reason -> {
+            ItemRefund rewardHead = new ItemRefund(Collections.singletonList(RewardHead.getItem(player.getUniqueId(), killer.getUniqueId(), bounty.getTotalDisplayBounty(killer))), reason);
+            NotBounties.getServerImplementation().global().run(() -> dropRewardHead(killer, droppedHead, bounty, dropRewardHead, claimedBounties, rewardHead));
+        });
 
-                rewardHead.giveRefund(killer);
-                NotBounties.debugMessage("Gave killer " + killer.getName() + " a player skull for the bounty.", false);
-            }
-        }
 
         // death tax
         if (deathTax > 0 && NumberFormatting.getManualEconomy() != ManualEconomy.PARTIAL) {
@@ -547,7 +515,7 @@ public class BountyManager {
                 builder.replace(builder.length() - 2, builder.length(), "");
                 if (totalLoss > 0) {
                     NotBounties.debugMessage("Removing " + totalLoss + " currency for the death tax.", false);
-                    player.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("death-tax").replace("{items}", (builder.toString())), player));
+                    Messages.send(player, LanguageOptions.getMessage("death-tax").replace("{items}", (builder.toString())), MessageContext.builder().amount(totalLoss).receiver(player).build());
                     // modify drops
                     if (forceEditDrops)
                         for (Map.Entry<Material, Long> entry : removedItems.entrySet())
@@ -598,6 +566,7 @@ public class BountyManager {
                 // auto bounty reward
                 NumberFormatting.doAddCommands(killer, rewardedBounty.getBounty(DataManager.GLOBAL_SERVER_ID).getTotalBounty(killer));
             }
+            // TODO: Change this voucher system to persistent meta data
             if (ConfigOptions.getMoney().getRedeemRewardLater().isVoucherPerSetter()) {
                 NotBounties.debugMessage("Handing out vouchers.", false);
                 // multiple vouchers
@@ -681,6 +650,47 @@ public class BountyManager {
         ActionCommands.executeBountyClaim(player, killer, claimedBounty);
     }
 
+    private static void dropRewardHead(Player killer, Item droppedHead, Bounty bounty, DropRewardHead dropRewardHead, List<Setter> claimedBounties, ItemRefund rewardHead) {
+        if (bounty.getTotalDisplayBounty(killer) >= RewardHead.getMinimumBounty()) {
+            if (dropRewardHead.isDropSettersHead()) {
+                // reward head for setters
+                Set<UUID> givenHead = new HashSet<>(); // record whose head has been given out
+                givenHead.add(DataManager.GLOBAL_SERVER_ID); // console id added so a head isn't attempted to be given to it
+                for (Setter setter : claimedBounties) {
+                    if (!givenHead.contains(setter.getUuid())) {
+                        givenHead.add(setter.getUuid());
+                        Player p = Bukkit.getPlayer(setter.getUuid());
+                        if (p != null) {
+                            // setter is online
+                            if (killer.getUniqueId().equals(setter.getUuid()) && droppedHead != null)
+                                // if the killer is a setter, remove the dropped head, so they only get one for being a setter
+                                droppedHead.remove();
+                            // check to make sure the setter isn't the killer and won't get another head for claiming
+                            if (!RewardHead.isRewardKiller() || !Objects.requireNonNull(killer).getUniqueId().equals(setter.getUuid())) {
+                                rewardHead.giveRefund(p); // give head ;)
+                                NotBounties.debugMessage("Gave setter " + p.getName() + " a player skull for the bounty.", false);
+                            }
+                        } else {
+                            // Setter is offline.
+                            // Save reward head to player data.
+                            DataManager.addRefund(setter.getUuid(), rewardHead);
+                            NotBounties.debugMessage("Will give " + setter.getName() + " a player skull when they log on next for the bounty.", false);
+                        }
+                    }
+                }
+            }
+            if (dropRewardHead.isDropKillerHead()) {
+                // reward head for killer
+                if (droppedHead != null)
+                    // if a head was dropped for killing a player (any-kill), remove it to be replaced with a custom head
+                    droppedHead.remove();
+
+                rewardHead.giveRefund(killer);
+                NotBounties.debugMessage("Gave killer " + killer.getName() + " a player skull for the bounty.", false);
+            }
+        }
+    }
+
     /**
      * Gives the player a reward at a later time. All delayed rewards are handed out if the server restarts.
      *
@@ -718,11 +728,6 @@ public class BountyManager {
 
     public static boolean isNPC(Player player) {
         return player.hasMetadata("NPC") || player.getScoreboardTags().contains("CITIZENS_NPC");
-    }
-
-    @FunctionalInterface
-    private interface ExcludePlayersOperation {
-        boolean isExcluded(UUID uuid);
     }
 
 }

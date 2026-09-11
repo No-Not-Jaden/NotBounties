@@ -3,6 +3,7 @@ package me.jadenp.notbounties.features;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.ImpersistentPlayerData;
 import me.jadenp.notbounties.data.Whitelist;
+import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
@@ -11,6 +12,7 @@ import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
+import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.Bukkit;
@@ -38,6 +40,33 @@ public class Messages {
                 NotBounties.getServerImplementation().global().run(() -> sender.sendMessage(parsed));
             }
         });
+    }
+
+    @FunctionalInterface
+    public interface ExcludePlayersOperation {
+        boolean isExcluded(UUID uuid);
+    }
+
+    /**
+     * Broadcast a message to the server.
+     *
+     * @param message   Message to broadcast.
+     * @param operation Players to exclude from the broadcast.
+     */
+    public static void broadcastMessage(String message, MessageContext context, ExcludePlayersOperation operation) {
+        parse(message, context).thenAccept(parsedMessage -> NotBounties.getServerImplementation().global().run(() -> {
+            Bukkit.getConsoleSender().sendMessage(parsedMessage);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!operation.isExcluded(p.getUniqueId())) {
+                    DataManager.getPlayerDataAsync(p.getUniqueId()).thenAccept(playerData -> {
+                        if (playerData.getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE) {
+                            NotBounties.getServerImplementation().entity(p).run(() -> p.sendMessage(parsedMessage));
+                        }
+                    });
+                }
+            }
+        }));
+
     }
 
     public static CompletableFuture<String> parse(String message, MessageContext context) {

@@ -20,13 +20,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.BountyManager.getAllBounties;
-import static me.jadenp.notbounties.utils.BountyManager.getBounty;
-import static me.jadenp.notbounties.utils.BountyManager.getPublicBounties;
 
 class TrackerCommandHandler {
     private final Commands.UnknownPlayerHandler unknownPlayerHandler;
@@ -52,11 +50,9 @@ class TrackerCommandHandler {
                 return;
             }
 
-            List<Bounty> bountyList = adminPermission ? getAllBounties(-1) : getPublicBounties(-1);
+            Set<String> bountyList = LoggedPlayers.getActiveBountyNames();
             if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
-                for (Bounty bounty : bountyList) {
-                    tab.add(bounty.getName());
-                }
+                tab.addAll(bountyList);
             }
             if (adminPermission)
                 tab.add("empty");

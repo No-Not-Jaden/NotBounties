@@ -90,6 +90,13 @@ public class Head {
     }
 
 
+    /**
+     * Creates a player head with the given UUID and texture URL.
+     * @apiNote Use on the main thread.
+     * @param uuid UUID of the player.
+     * @param textureURL Texture of the head.
+     * @return A custom player head.
+     */
     public static @NotNull ItemStack createPlayerSkull(UUID uuid, @Nullable String textureURL) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();

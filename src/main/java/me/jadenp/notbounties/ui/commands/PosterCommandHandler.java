@@ -19,13 +19,11 @@ import org.bukkit.inventory.ItemStack;
 
 import javax.xml.crypto.Data;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
-import static me.jadenp.notbounties.utils.BountyManager.getAllBounties;
-import static me.jadenp.notbounties.utils.BountyManager.getBounty;
-import static me.jadenp.notbounties.utils.BountyManager.getPublicBounties;
 
 class PosterCommandHandler {
     private final Commands.UnknownPlayerHandler unknownPlayerHandler;
@@ -46,11 +44,9 @@ class PosterCommandHandler {
 
         if (args.length == 2 || (args.length == 3 && (adminPermission || BountyMap.isGiveOwn() || sender.hasPermission("notbounties.spawnposter")))) {
             // tab complete players for args 2 and 3 (admins only)
-            List<Bounty> bountyList = adminPermission ? getAllBounties(-1) : getPublicBounties(-1);
+            Set<String> bountyList = LoggedPlayers.getActiveBountyNames();
             if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
-                for (Bounty bounty : bountyList) {
-                    tab.add(bounty.getName());
-                }
+                tab.addAll(bountyList);
             }
         }
     }
