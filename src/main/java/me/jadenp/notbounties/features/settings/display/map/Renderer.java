@@ -24,6 +24,7 @@ public class Renderer extends MapRenderer {
     public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player renderer) {
         if (!mapProvider.isPlayerFacePresent() && SkinManager.isSkinLoaded(mapProvider.getPlayer().getUniqueId())) {
             // load new skin for poster
+            // the poster will only load if a player face is present
             mapProvider.setPlayerFace(SkinManager.getPlayerFace(mapProvider.getPlayer().getUniqueId()), LoggedPlayers.getPlayerName(mapProvider.getPlayer()));
         }
         mapProvider.setCanvas(canvas);
