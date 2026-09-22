@@ -17,6 +17,7 @@ import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.BountyClaimRequirements;
 import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
+import me.jadenp.notbounties.features.settings.money.Vouchers;
 import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.ui.gui.GUI;
@@ -568,56 +569,9 @@ public class BountyManager {
             }
             // TODO: Change this voucher system to persistent meta data
             if (ConfigOptions.getMoney().getRedeemRewardLater().isVoucherPerSetter()) {
-                NotBounties.debugMessage("Handing out vouchers.", false);
-                // multiple vouchers
-                for (Setter setter : rewardedBounty.getSetters()) {
-                    if (!setter.canClaim(killer)
-                            || setter.getAmount() <= 0.01
-                            || (setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID) && NumberFormatting.getManualEconomy() == ManualEconomy.PARTIAL))
-                        continue;
-                    ItemStack item = new ItemStack(Material.PAPER);
-                    ItemMeta meta = item.getItemMeta();
-                    assert meta != null;
-                    ArrayList<String> lore = new ArrayList<>();
-                    for (String str : getListMessage("bounty-voucher-lore")) {
-                        lore.add(parse(str.replace("{bounty}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.getCurrencySuffix())), Bukkit.getOfflinePlayer(setter.getUuid()), setter.getAmount(), player));
-                    }
-                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                    meta.setDisplayName(parse(getMessage("bounty-voucher-name").replace("{bounty}", (NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(rewardedBounty.getTotalBounty(killer)) + NumberFormatting.getCurrencySuffix())), killer, setter.getAmount(), player));
-                    ArrayList<String> setterLore = new ArrayList<>(lore);
-                    if (!ConfigOptions.getMoney().getRedeemRewardLater().getSetterLoreAddition().isEmpty()) {
-                        setterLore.add(parse(ConfigOptions.getMoney().getRedeemRewardLater().getSetterLoreAddition(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
-                    }
-                    setterLore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + setter.getAmount());
-                    meta.setLore(setterLore);
-                    item.setItemMeta(meta);
-                    item.addUnsafeEnchantment(Enchantment.CHANNELING, 0);
-                    NumberFormatting.givePlayer(killer, item, 1);
-                }
+                giveSetterVouchers(player, killer, rewardedBounty);
             } else {
-                NotBounties.debugMessage("Handing out a voucher.", false);
-                // one voucher
-                ItemStack item = new ItemStack(Material.PAPER);
-                ItemMeta meta = item.getItemMeta();
-                assert meta != null;
-                ArrayList<String> lore = new ArrayList<>();
-                for (String str : getListMessage("bounty-voucher-lore")) {
-                    lore.add(parse(str, killer, rewardedBounty.getTotalBounty(killer), player));
-                }
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                meta.setDisplayName(parse(getMessage("bounty-voucher-name"), killer, rewardedBounty.getTotalBounty(killer), player));
-                if (!ConfigOptions.getMoney().getRedeemRewardLater().getSetterLoreAddition().isEmpty()) {
-                    for (Setter setter : rewardedBounty.getSetters()) {
-                        if (!setter.canClaim(killer) || setter.getAmount() <= 0.01 || (setter.getUuid().equals(DataManager.GLOBAL_SERVER_ID) && NumberFormatting.getManualEconomy() == ManualEconomy.PARTIAL))
-                            continue;
-                        lore.add(parse(ConfigOptions.getMoney().getRedeemRewardLater().getSetterLoreAddition(), setter.getAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
-                    }
-                }
-                lore.add(ChatColor.BLACK + "" + ChatColor.STRIKETHROUGH + ChatColor.UNDERLINE + ChatColor.ITALIC + "@" + bounty.getTotalBounty(killer));
-                meta.setLore(lore);
-                item.setItemMeta(meta);
-                item.addUnsafeEnchantment(Enchantment.CHANNELING, 0);
-                NumberFormatting.givePlayer(killer, item, 1);
+                Vouchers.giveOneVoucher();
             }
         }
 
