@@ -210,8 +210,8 @@ public class Bounty extends Inconsistent implements Comparable<Bounty> {
             DataManager.getLocalData().removeBounty(uuid);
             return null;
         }
-        long latest = setters.get(0).getTimeCreated();
-        Setter latestSetter = setters.get(0);
+        long latest = setters.getFirst().getTimeCreated();
+        Setter latestSetter = setters.getFirst();
         for (int i = 1; i < setters.size(); i++) {
             if (setters.get(i).getTimeCreated() > latest) {
                 latest = setters.get(i).getTimeCreated();

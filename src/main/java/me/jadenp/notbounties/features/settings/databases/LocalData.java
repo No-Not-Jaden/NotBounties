@@ -352,12 +352,14 @@ public class LocalData extends NotBountiesDatabase {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID)) {
             playerData = new PlayerData();
         } else {
-            playerData = playerDataMap.computeIfAbsent(uuid, k -> {
-                PlayerData pd = new PlayerData();
-                pd.setUuid(uuid);
-                pd.setServerID(DataManager.getDatabaseServerID(true));
-                return pd;
-            });
+            synchronized (playerDataMap) {
+                playerData = playerDataMap.computeIfAbsent(uuid, k -> {
+                    PlayerData pd = new PlayerData();
+                    pd.setUuid(uuid);
+                    pd.setServerID(DataManager.getDatabaseServerID(true));
+                    return pd;
+                });
+            }
         }
         if (playerData.getUuid() == null) {
             playerData.setUuid(uuid);
@@ -375,7 +377,12 @@ public class LocalData extends NotBountiesDatabase {
     @Override
     public List<PlayerData> getPlayerData() throws IOException {
         // An alternative to sorting each time is to use a TreeMap, but time complexity increases for other operations.
-        return new ArrayList<>(playerDataMap.values().stream().sorted().toList());
+        List<PlayerData> allData;
+        synchronized (playerDataMap) {
+            allData = new ArrayList<>(playerDataMap.values().stream().sorted().toList());
+        }
+
+        return allData;
     }
 
     @Override

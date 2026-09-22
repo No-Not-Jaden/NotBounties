@@ -233,19 +233,20 @@ public class GUI implements Listener {
         Set<UUID> onlinePlayers = NotBounties.getNetworkPlayers().keySet();
         PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
         int sortType = playerData.getGUISortType(name);
+        boolean playerHasAdmin = player.hasPermission(NotBounties.getAdminPermission());
         switch (name) {
             case "bounty-gui":
                 List<Bounty> sortedList = BountyManager.getAllBounties(sortType);
                 for (int i = 0; i < sortedList.size(); i++) {
                     Bounty bounty = sortedList.get(i);
-                    double bountyAmount = Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
+                    double bountyAmount = (Whitelist.isShowWhitelistedBounties() || playerHasAdmin) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
                     if (bountyAmount > 0) {
                         List<String> additionalLore = GUIClicks.getClickLore(player, ConfigOptions.getMoney().isBuyOwn() && bounty.getUUID().equals(player.getUniqueId()) && player.hasPermission("notbounties.buyown"), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()));
                         if (bounty.getAllWhitelists().contains(player.getUniqueId()) && Whitelist.isAllowTogglingWhitelist()) {
                             additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
                         } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId()) && Whitelist.isEnabled()) {
                             additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
-                        } else if (Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission())) {
+                        } else if (Whitelist.isShowWhitelistedBounties() || playerHasAdmin) {
                             // not whitelisted
                             for (Setter setter : bounty.getSetters()) {
                                 if (!setter.canClaim(player)) {
@@ -270,7 +271,7 @@ public class GUI implements Listener {
                     Bounty viewedBounty = BountyManager.getBounty(uuid);
                     if (viewedBounty != null) {
                         List<Setter> setters = new ArrayList<>(viewedBounty.getSetters());
-                        List<String> additionalLore = player.hasPermission(NotBounties.getAdminPermission()) ? new ArrayList<>(LanguageOptions.getListMessage("admin-edit-lore")) : new ArrayList<>();
+                        List<String> additionalLore = playerHasAdmin ? new ArrayList<>(LanguageOptions.getListMessage("admin-edit-lore")) : new ArrayList<>();
                         setters.sort(Comparator.comparing(Setter::getUuid)); // same setters will be next to each other
                         List<ItemStack> concurrentItems = new ArrayList<>();
                         double concurrentAmount = 0;
@@ -287,7 +288,7 @@ public class GUI implements Listener {
                                 whitelistLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
                             } else if (currentSetter.getWhitelist().isBlacklist() && !currentSetter.getWhitelist().getList().isEmpty() && !currentSetter.getWhitelist().getList().contains(player.getUniqueId()) && Whitelist.isEnabled()) {
                                 whitelistLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
-                            } else if (Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission())) {
+                            } else if (Whitelist.isShowWhitelistedBounties() || playerHasAdmin) {
                                 // not whitelisted
                                 for (Setter setter : viewedBounty.getSetters()) {
                                     if (!setter.canClaim(player)) {

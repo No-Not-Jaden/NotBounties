@@ -38,14 +38,16 @@ public class RenderPoster extends CancelableTask{
             if (maxRequests <= 0) {
                 this.cancel();
                 NotBounties.debugMessage("Timed out waiting to generate a bounty poster for \"" + name + "\". Provider: " + renderer.getClass(), true);
+                // We have had plenty of time to load a skin. If the skin isn't loaded by now, there is an issue,
+                // so it will be set to the missing skin
+                if (!renderer.isPlayerFacePresent())
+                    renderer.setPlayerFace(SkinManager.getPlayerFace(renderer.getPlayer().getUniqueId()), name);
                 renderer.generateBackground(name);
                 return;
             }
             maxRequests--;
             if (renderer.isMissingElements())
                 return;
-            if (!renderer.isPlayerFacePresent())
-                renderer.setPlayerFace(SkinManager.getPlayerFace(renderer.getPlayer().getUniqueId()), name);
             renderer.generateBackground(name);
             this.cancel();
         }

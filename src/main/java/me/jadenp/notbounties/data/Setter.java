@@ -94,6 +94,8 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
 
     public boolean canClaim(@NotNull UUID claimerUuid) {
         // check if the claimer set this bounty
+        if (!Whitelist.isEnabled())
+            return true;
         if (!ConfigOptions.isSetterClaimOwn() && claimerUuid.equals(uuid))
             return false;
         // check the whitelist
@@ -144,9 +146,9 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
     @Override
     public int compareTo(@NotNull Setter o) {
         if (this.getAmount() != o.getAmount())
-            return (int) Math.signum(this.displayBounty - o.displayBounty);
+            return Double.compare(this.displayBounty, o.displayBounty);
         if (this.getTimeCreated() != o.getTimeCreated())
-            return (int) (this.timeCreated - o.timeCreated);
+            return Double.compare(this.timeCreated, o.timeCreated);
         return this.getUuid().compareTo(o.getUuid());
     }
 
