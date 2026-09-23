@@ -196,6 +196,7 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
     }
 
     protected void render() {
+        NotBounties.debugMessage("Checking req: currentCost=" + currentCost + " lastRender=" + (System.currentTimeMillis() - lastRender) + " playerFace=" + (playerFace != null) + " background=" + (background != null), false); // REMOVE LATER
         if ((BountyMap.isLockMaps() && currentCost != -1)
             || System.currentTimeMillis() - lastRender < BountyMap.getUpdateInterval()
             || playerFace == null || background == null)
@@ -208,6 +209,7 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
             if (currentCost == -1 || getPixelColor(72,72) == null
                     || (currentCost != bountyAmount && currentCost == 0)) {
                 // first render or bounty is no longer 0
+                NotBounties.debugMessage("Drawing background and face.", false); // REMOVE LATER
                 drawBackground();
                 drawPlayerFace();
             }
@@ -324,7 +326,7 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
     private int setBiggestFontSize(Graphics2D graphics, String text, boolean bold, float fontSize) {
         FontMetrics metrics = graphics.getFontMetrics();
         while (metrics.stringWidth(ChatColor.stripColor(text)) > 120 && fontSize > 1) {
-            fontSize--;
+            fontSize-= 1f;
             Font font = BountyMap.getPlayerFont(fontSize, bold);
             graphics.setFont(font);
             metrics = graphics.getFontMetrics();

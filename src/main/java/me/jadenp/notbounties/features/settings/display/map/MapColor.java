@@ -16,13 +16,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * Draw colors to maps.
  * Note: This class uses depreciated methods of Bukkit's MapPalette to get the current color palette and to support
- *       older versions. There is no replacement methods for the used methods as of writing this.
+ *       older versions. There are no replacement methods for the used methods as of writing this.
  */
 public class MapColor {
 
     /**
      * @param ratio 0 for pure bukkitIndexA, 1 for pure bukkitIndexB
-     * @param color apparent color
+     * @param color Mixed color
      */
     public record ColorEntry(byte bukkitIndexA, byte bukkitIndexB, double ratio, Color color) { }
 
@@ -45,25 +45,29 @@ public class MapColor {
             for (int i = 0; i < indexes.size(); i++) {
                 palette.add(new ColorEntry(indexes.get(i), indexes.get(i), 0.0, colors.get(i)));
             }
-            // mix colors
-            for (int i = 0; i < indexes.size(); i++) {
-                byte index1 = indexes.get(i);
-                Color bukkitColor1 = colors.get(i);
-                for (int j = i + 1; j < indexes.size(); j++) {
-                    byte index2 = indexes.get(j);
-                    Color bukkitColor2 = colors.get(j);
-                    if (maxColorDistance == 0 || getDistance(bukkitColor1, bukkitColor2) < maxColorDistance) {
-                        for (int step = 1; step < blends + 1; step++) {
-                            double ratio = step / (double) (blends + 1);
-                            Color mixedColor = mix(bukkitColor1, bukkitColor2, ratio);
-                            palette.add(new ColorEntry(index1, index2, ratio, mixedColor));
-                        }
-                    }
-                }
-            }
+            // add mixed colors to the palette
+            mixColors(indexes, colors);
 
             paletteGenerated = true;
         });
+    }
+
+    private void mixColors(List<Byte> indexes, List<Color> colors) {
+        for (int i = 0; i < indexes.size(); i++) {
+            byte index1 = indexes.get(i);
+            Color bukkitColor1 = colors.get(i);
+            for (int j = i + 1; j < indexes.size(); j++) {
+                byte index2 = indexes.get(j);
+                Color bukkitColor2 = colors.get(j);
+                if (maxColorDistance == 0 || getDistance(bukkitColor1, bukkitColor2) < maxColorDistance) {
+                    for (int step = 1; step < blends + 1; step++) {
+                        double ratio = step / (double) (blends + 1);
+                        Color mixedColor = mix(bukkitColor1, bukkitColor2, ratio);
+                        palette.add(new ColorEntry(index1, index2, ratio, mixedColor));
+                    }
+                }
+            }
+        }
     }
 
     private static void getAllValidBukkitColors(List<Byte> indexes, List<Color> colors) {
@@ -105,8 +109,8 @@ public class MapColor {
      */
     private static double getDistance(@NotNull Color c1, @NotNull Color c2) {
         double rmean = (c1.getRed() + c2.getRed()) / 2.0;
-        double r = c1.getRed() - c2.getRed();
-        double g = c1.getGreen() - c2.getGreen();
+        double r = (double) c1.getRed() - c2.getRed();
+        double g = (double) c1.getGreen() - c2.getGreen();
         int b = c1.getBlue() - c2.getBlue();
         double weightR = 2 + rmean / 256.0;
         double weightG = 4.0;
@@ -120,7 +124,7 @@ public class MapColor {
      * @return The closest color mix, or null if the palette isn't built.
      */
     private @Nullable ColorEntry getClosestColorEntry(Color color) {
-        if (!isPaletteGenerated())
+        if (isPaletteLoading())
             return null;
         ColorEntry colorEntry = colorCache.getIfPresent(color);
         if (colorEntry != null)
@@ -144,7 +148,7 @@ public class MapColor {
         if (color.getAlpha() < 10)
             return;
         // get closest colors
-        if (blends == 0 || !isPaletteGenerated()) {
+        if (blends == 0 || isPaletteLoading()) {
             // palette not generated - this will draw the closest color
             for (int ix = x; ix < w + x; ix++) {
                 for (int iy = y; iy < h + y; iy++) {
@@ -163,10 +167,10 @@ public class MapColor {
             for (int iy = y; iy < h + y; iy++) {
                 // length * ratio = num B pixels
                 // length / num pixels = spacing = 1/ratio
-                @SuppressWarnings("deprecation") Color colorToUse =
+                @SuppressWarnings("deprecation") Color colorToUse = MapPalette.getColor(
                         (startOffset + (iy - y)) % spacing < 1
-                                ? MapPalette.getColor(colorCombination.bukkitIndexB)
-                                : MapPalette.getColor(colorCombination.bukkitIndexA);
+                                ? colorCombination.bukkitIndexB
+                                : colorCombination.bukkitIndexA);
                 setPixel(ix, iy, colorToUse, canvas);
             }
         }
@@ -188,11 +192,13 @@ public class MapColor {
                 canvas.setPixelColor(x, y, color);
             else
                 canvas.setPixel(x, y, MapPalette.matchColor(color));
+        } else if (x == 72 && y == 72) {
+            NotBounties.debugMessage("Transparent center pixels.", true); // REMOVE LATER
         }
     }
 
-    public boolean isPaletteGenerated() {
-        return paletteGenerated;
+    public boolean isPaletteLoading() {
+        return !paletteGenerated;
     }
 
     public static void setBlends(int blends) {

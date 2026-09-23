@@ -47,6 +47,8 @@ bounty-posters:
   always-update: false
   # save created maps to be used later - player heads will not change unless the player changes their name
   save-templates: true
+  # The world to create maps in - leave blank to use the first world found
+  map-world: ''
   # mix available map colors for new colors on player faces
   # this causes a pixelated effect when looking close, but it looks nicer from far away
   # changing this section will require a restart of the server to apply
