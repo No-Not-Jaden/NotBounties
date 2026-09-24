@@ -24,8 +24,6 @@ public class MapProvider extends BountyPosterProvider{
     protected void setPixel(int x, int y, Color color) {
         if (canvas != null)
             BountyMap.getMapColor().setPixel(x, y, color, canvas);
-        else
-            NotBounties.debugMessage("Null canvas", true); // REMOVE LATER
     }
 
     @Override
@@ -43,8 +41,6 @@ public class MapProvider extends BountyPosterProvider{
 
     @Override
     public boolean isMissingElements() {
-        if (BountyMap.getMapColor().isPaletteLoading())
-            NotBounties.debugMessage("Palette not generated", true); // REMOVE LATER
         return super.isMissingElements() || BountyMap.getMapColor().isPaletteLoading();
     }
 }

@@ -257,14 +257,9 @@ public class BountyMap implements Listener {
                 item.setItemMeta(mapMeta);
             } else {
                 if (mapView != null) {
-                    NotBounties.debugMessage("Renderers before adding (loadItem): " + mapView.getRenderers().stream().map(mapRenderer -> mapRenderer.getClass().getName()).toList(), false); // REMOVE LATER
                     mapView.setLocked(lockMaps);
                     mapView.getRenderers().forEach(mapView::removeRenderer);
                     mapView.addRenderer(new Renderer(uuid, plugin));
-                    MapView finalMapView = mapView;
-                    NotBounties.getServerImplementation().global().runDelayed(() -> {
-                        NotBounties.debugMessage("Renderers after adding (loadItem): " + finalMapView.getRenderers().stream().map(mapRenderer -> mapRenderer.getClass().getName()).toList(), false); // REMOVE LATER
-                    }, 5);
                 } else {
                     mapView = getMapView(uuid);
                     mapMeta.setMapView(mapView);
@@ -519,15 +514,11 @@ public class BountyMap implements Listener {
             mapView = Bukkit.createMap(world);
             mapViews.put(uuid, mapView);
         }
-        NotBounties.debugMessage("Renderers before adding (mapView): " + mapView.getRenderers().stream().map(mapRenderer -> mapRenderer.getClass().getName()).toList(), false); // REMOVE LATER
         mapView.setUnlimitedTracking(false);
         mapView.getRenderers().forEach(mapView::removeRenderer);
         mapView.setLocked(lockMaps);
         mapView.setTrackingPosition(false);
         mapView.addRenderer(new Renderer(uuid, plugin));
-        NotBounties.getServerImplementation().global().runDelayed(() -> {
-            NotBounties.debugMessage("Renderers after adding (mapView): " + mapView.getRenderers().stream().map(mapRenderer -> mapRenderer.getClass().getName()).toList(), false); // REMOVE LATER
-        }, 5);
         return mapView;
     }
 

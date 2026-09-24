@@ -192,8 +192,6 @@ public class MapColor {
                 canvas.setPixelColor(x, y, color);
             else
                 canvas.setPixel(x, y, MapPalette.matchColor(color));
-        } else if (x == 72 && y == 72) {
-            NotBounties.debugMessage("Transparent center pixels.", true); // REMOVE LATER
         }
     }
 

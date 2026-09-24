@@ -196,14 +196,12 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
     }
 
     protected void render() {
-        NotBounties.debugMessage("Checking req: currentCost=" + currentCost + " lastRender=" + (System.currentTimeMillis() - lastRender) + " playerFace=" + (playerFace != null) + " background=" + (background != null), false); // REMOVE LATER
         if ((BountyMap.isLockMaps() && currentCost != -1)
             || System.currentTimeMillis() - lastRender < BountyMap.getUpdateInterval()
             || background == null
         )
             return;
-        boolean b= SkinManager.isSkinLoaded(player.getUniqueId()); // checks if skin needs to be refreshed
-        NotBounties.debugMessage("Checking skin loaded: b=" + b, false);
+        SkinManager.isSkinLoaded(player.getUniqueId()); // checks if skin needs to be refreshed
         lastRender = System.currentTimeMillis();
         double bountyAmount = getBountyAmount();
         if (currentCost != bountyAmount || BountyMap.isAlwaysUpdate()) {
@@ -211,7 +209,6 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
             if (currentCost == -1 || getPixelColor(72,72) == null
                     || (currentCost != bountyAmount && currentCost == 0)) {
                 // first render or bounty is no longer 0
-                NotBounties.debugMessage("Drawing background and face.", false); // REMOVE LATER
                 drawBackground();
                 if (playerFace != null)
                     drawPlayerFace();
