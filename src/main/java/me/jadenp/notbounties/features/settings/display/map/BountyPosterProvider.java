@@ -199,9 +199,11 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
         NotBounties.debugMessage("Checking req: currentCost=" + currentCost + " lastRender=" + (System.currentTimeMillis() - lastRender) + " playerFace=" + (playerFace != null) + " background=" + (background != null), false); // REMOVE LATER
         if ((BountyMap.isLockMaps() && currentCost != -1)
             || System.currentTimeMillis() - lastRender < BountyMap.getUpdateInterval()
-            || playerFace == null || background == null)
+            || background == null
+        )
             return;
-        SkinManager.isSkinLoaded(player.getUniqueId()); // checks if skin needs to be refreshed
+        boolean b= SkinManager.isSkinLoaded(player.getUniqueId()); // checks if skin needs to be refreshed
+        NotBounties.debugMessage("Checking skin loaded: b=" + b, false);
         lastRender = System.currentTimeMillis();
         double bountyAmount = getBountyAmount();
         if (currentCost != bountyAmount || BountyMap.isAlwaysUpdate()) {
@@ -211,7 +213,8 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
                 // first render or bounty is no longer 0
                 NotBounties.debugMessage("Drawing background and face.", false); // REMOVE LATER
                 drawBackground();
-                drawPlayerFace();
+                if (playerFace != null)
+                    drawPlayerFace();
             }
             currentCost = bountyAmount;
             if (BountyMap.isDisplayReward()) {
@@ -477,16 +480,25 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
     @Override
     public void onSkinUpdate(UUID uuid) {
         if (uuid.equals(player.getUniqueId())) {
-            playerFace = null;
-            String name;
-            Bounty bounty = BountyManager.getBounty(uuid);
-            if (bounty != null) {
-                name = bounty.getName();
-            } else {
-                name = LoggedPlayers.getPlayerName(uuid);
-            }
-            RenderPoster renderPoster = new RenderPoster(name, this);
-            renderPoster.setTaskImplementation(NotBounties.getServerImplementation().global().runAtFixedRate(renderPoster, 1, 40));
+            NotBounties.getServerImplementation().async().runNow(() -> {
+                String name;
+                Bounty bounty = BountyManager.getBounty(uuid);
+                if (bounty != null) {
+                    name = bounty.getName();
+                } else {
+                    name = LoggedPlayers.getPlayerName(uuid);
+                }
+                BufferedImage tempFace = SkinManager.getPlayerFace(uuid);
+                if (tempFace != null) {
+                    playerFace = tempFace;
+                }
+                playerFace = SkinManager.getPlayerFace(uuid);
+                NotBounties.getServerImplementation().global().run(() -> {
+                    generateBackground(name);
+                    drawBackground();
+                    drawPlayerFace();
+                });
+            });
         }
     }
 }

@@ -374,7 +374,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         failUnknownPlayer(sender, args[1], silent);
                         return false;
                     }
-                    if (SkinManager.isSkinLoaded(uuid)) {
+                    if (args.length > 2 && args[2].equalsIgnoreCase("force")) {
+                        // can also reload to refresh skin requests
+                        SkinManager.requestSkin(uuid, true);
+                        sender.sendMessage("Skin request has been sent. If you have debug mode enabled (/bounty debug enable), the result can be viewed in console.");
+                        sender.sendMessage("Run the command again without force to view the texture.");
+                        return true;
+                    } else if (SkinManager.isSkinLoaded(uuid)) {
                         PlayerSkin playerSkin = SkinManager.getSkin(uuid);
                         TextComponent textComponent = new TextComponent("Texture URL: " + playerSkin.url());
                         textComponent.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, playerSkin.url()));

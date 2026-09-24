@@ -287,8 +287,12 @@ public class SkinManager {
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID) && missingSkinFace != null)
             return missingSkinFace;
         BufferedImage skin = getBufferedImageFromUrl(getSkin(uuid).url());
-        if (skin == null)
-            return null;
+        if (skin == null) {
+            NotBounties.debugMessage("Error reading texture url for rendering player face." + getSkin(uuid).url(), true);
+            if (missingSkinFace == null)
+                NotBounties.debugMessage("Missing skin face is not present.", true);
+            return missingSkinFace;
+        }
         BufferedImage head = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
         BufferedImage face = copyHead(skin, head);
         if (uuid.equals(DataManager.GLOBAL_SERVER_ID))

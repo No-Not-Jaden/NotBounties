@@ -23,7 +23,6 @@ public class Renderer extends MapRenderer {
 
     @Override
     public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player renderer) {
-        NotBounties.debugMessage("Rendering Poster", false); // REMOVE LATER
         if (!mapProvider.isPlayerFacePresent() && SkinManager.isSkinLoaded(mapProvider.getPlayer().getUniqueId())) {
             // load new skin for poster
             // the poster will only load if a player face is present
