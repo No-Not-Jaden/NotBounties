@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.features.settings.display.map;
 
+import me.jadenp.notbounties.NotBounties;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +41,6 @@ public class MapProvider extends BountyPosterProvider{
 
     @Override
     public boolean isMissingElements() {
-        return super.isMissingElements() || !BountyMap.getMapColor().isPaletteGenerated();
+        return super.isMissingElements() || BountyMap.getMapColor().isPaletteLoading();
     }
 }

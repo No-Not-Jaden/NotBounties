@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.ui.commands;
 
+import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.bounty_events.BountyEditEvent;
 import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
@@ -380,7 +381,13 @@ public class Commands implements CommandExecutor, TabCompleter {
                         failUnknownPlayer(sender, args[1], silent);
                         return CompletableFuture.completedFuture(false);
                     }
-                    if (SkinManager.isSkinLoaded(uuid)) {
+                    if (args.length > 2 && args[2].equalsIgnoreCase("force")) {
+                        // can also reload to refresh skin requests
+                        SkinManager.requestSkin(uuid, true);
+                        sender.sendMessage("Skin request has been sent. If you have debug mode enabled (/bounty debug enable), the result can be viewed in console.");
+                        sender.sendMessage("Run the command again without force to view the texture.");
+                        return true;
+                    } else if (SkinManager.isSkinLoaded(uuid)) {
                         PlayerSkin playerSkin = SkinManager.getSkin(uuid);
                         TextComponent textComponent = new TextComponent("Texture URL: " + playerSkin.url());
                         textComponent.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, playerSkin.url()));
@@ -749,6 +756,61 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             } else if ((args[0].equalsIgnoreCase("bdc") || args[0].equalsIgnoreCase("broadcast")) && (forcePermission || sender.hasPermission("notbounties.basic.broadcast"))) {
                 if (sender instanceof Player player) {
+                    PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+                    if (args.length > 1) {
+                        // added arguments
+                        if (args[1].equalsIgnoreCase("true") || args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("enable")) {
+                            // enable
+                            playerData.setBroadcastSettings(ConfigOptions.getMoney().getDefaultBroadcastSetting());
+                            if (!silent)
+                                sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
+                        } else if (args[1].equalsIgnoreCase("false") || args[1].equalsIgnoreCase("off") || args[1].equalsIgnoreCase("disable")) {
+                            // disable
+                            playerData.setBroadcastSettings(PlayerData.BroadcastSettings.DISABLE);
+                            if (!silent)
+                                sender.sendMessage(parse(getPrefix() + getMessage("disable-broadcast"), parser));
+                        } else {
+                            try {
+                                PlayerData.BroadcastSettings broadcastSettings = PlayerData.BroadcastSettings.valueOf(args[1].toUpperCase());
+                                playerData.setBroadcastSettings(broadcastSettings);
+                                if (!silent) {
+                                    if (broadcastSettings == PlayerData.BroadcastSettings.DISABLE) {
+                                        // disable
+                                        sender.sendMessage(parse(getPrefix() + getMessage("disable-broadcast"), parser));
+                                    } else {
+                                        // enabled
+                                        sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
+                                    }
+                                }
+                            } catch (IllegalArgumentException e) {
+                                sender.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("unknown-command"), parser));
+                                return false;
+                            }
+                        }
+                    } else {
+                        switch (playerData.getBroadcastSettings()) {
+                            case EXTENDED -> {
+                                playerData.setBroadcastSettings(PlayerData.BroadcastSettings.SHORT);
+                                if (!silent)
+                                    sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
+                            }
+                            case SHORT -> {
+                                playerData.setBroadcastSettings(PlayerData.BroadcastSettings.DISABLE);
+                                if (!silent)
+                                    sender.sendMessage(parse(getPrefix() + LanguageOptions.getMessage("disable-broadcast"), parser));
+                            }
+                            case DISABLE -> {
+                                if (LanguageOptions.getListMessage("extended-bounty-broadcast").isEmpty()) {
+                                    playerData.setBroadcastSettings(PlayerData.BroadcastSettings.SHORT);
+                                } else {
+                                    playerData.setBroadcastSettings(PlayerData.BroadcastSettings.EXTENDED);
+                                }
+
+                                if (!silent)
+                                    sender.sendMessage(parse(getPrefix() + getMessage("enable-broadcast"), parser));
+                            }
+                        }
+                    }
                     String[] finalArgs1 = args;
                     return DataManager.getPlayerDataAsync(player.getUniqueId()).thenApply(playerData -> {
                         if (finalArgs1.length > 1) {

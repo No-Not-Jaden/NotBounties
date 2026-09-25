@@ -1,5 +1,6 @@
 package me.jadenp.notbounties.features.settings.display.map;
 
+import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.entity.Player;
@@ -24,6 +25,7 @@ public class Renderer extends MapRenderer {
     public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player renderer) {
         if (!mapProvider.isPlayerFacePresent() && SkinManager.isSkinLoaded(mapProvider.getPlayer().getUniqueId())) {
             // load new skin for poster
+            // the poster will only load if a player face is present
             mapProvider.setPlayerFace(SkinManager.getPlayerFace(mapProvider.getPlayer().getUniqueId()), LoggedPlayers.getPlayerName(mapProvider.getPlayer()));
         }
         mapProvider.setCanvas(canvas);

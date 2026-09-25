@@ -292,6 +292,7 @@ public class WantedTags {
         return (hideWantedWhenSneaking && player.isSneaking())
                 || (hideWantedWhenMoving && hasMoved())
                 || player.getGameMode().equals(GameMode.SPECTATOR)
+                || player.isDead()
                 || player.isInvisible()
                 || isVanished(player)
                 || !BountyManager.hasBounty(player.getUniqueId());

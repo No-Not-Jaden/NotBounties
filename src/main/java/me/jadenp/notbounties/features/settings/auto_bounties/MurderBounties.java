@@ -92,21 +92,28 @@ public class MurderBounties {
         CompletableFuture<ImmunityManager.ImmunityType> appliedImmunity = ImmunityManager.getAppliedImmunity(killer.getUniqueId(), bountyIncrease);
         return CompletableFuture.allOf(hasPermissionImmunity, appliedImmunity).thenApply(ignored -> {
             double bountyAmount = playerBounty != null ? playerBounty.getTotalBounty() : 0;
-            return ((!ConfigOptions.getAutoBounties().isOverrideImmunity() // immunity is not overridden
+            if ((!ConfigOptions.getAutoBounties().isOverrideImmunity() // immunity is not overridden
                     &&  // check external immunity
                     appliedImmunity.join() != ImmunityManager.ImmunityType.DISABLE) // has regular immunity
                     || hasPermissionImmunity.join() // has permission immunity
                     || (exclusiveMurderOrTrickle && TrickleBounties.getBountyTransferRatio(killerBounty != null) * bountyAmount > bountyIncrease) // trickle bounty will be used instead
-                    )
-                    && !( // check internal immunity
-                    (
-                            !playerKills.containsKey(killer.getUniqueId()) ||
-                            !playerKills.get(killer.getUniqueId()).containsKey(player.getUniqueId()) ||
-                            playerKills.get(killer.getUniqueId()).get(player.getUniqueId()) < System.currentTimeMillis() - murderCooldown * 1000L
-                    ) // check for cooldown
-                    && (!murderExcludeClaiming || bountyAmount < 0.01) // check if claiming a bounty is not allowed
-            );
+                    ) {
+                return true;
+            }
+            return hasMurderCooldown(player, killer, playerBounty);
         });
+    }
+
+    /**
+     * Check if the killer has a cooldown on the player.
+     * @param player Player that was killed.
+     * @param killer Player that killed.
+     * @param playerBounty Bounty of the player that was killed.
+     * @return True if the killer has a cooldown on the player.
+     */
+    private static boolean hasMurderCooldown(Player player, Player killer, @Nullable Bounty playerBounty) {
+        return (playerKills.containsKey(killer.getUniqueId()) && playerKills.get(killer.getUniqueId()).getIfPresent(player.getUniqueId()) != null) // murder cooldown is present
+                || (murderExcludeClaiming && playerBounty != null && playerBounty.getTotalDisplayBounty(killer) > 0.01); // check if player has a bounty
     }
 
     /**

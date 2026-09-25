@@ -73,6 +73,7 @@ public class BountyMap implements Listener {
     private static int updateInterval;
     private static boolean alwaysUpdate;
     private static boolean saveTemplates;
+    private static String mapWorld;
 
 
     public static void initialize(Plugin plugin){
@@ -122,6 +123,7 @@ public class BountyMap implements Listener {
         craftPoster = config.getBoolean("craft-poster");
         washPoster = config.getBoolean("wash-poster");
         writePoster = config.getBoolean("write-poster");
+        mapWorld = config.getString("map-world");
 
         MapColor.setBlends(config.getInt("face-shading.blends"));
         MapColor.setMaxColorDistance(config.getInt("face-shading.max-color-distance"));
@@ -505,7 +507,11 @@ public class BountyMap implements Listener {
         if (mapViews.containsKey(uuid)) {
             mapView = mapViews.get(uuid);
         } else {
-            mapView = Bukkit.createMap(Bukkit.getWorlds().get(0));
+            World world = mapWorld.isEmpty() ? null : Bukkit.getWorld(mapWorld);
+            if (world == null) {
+                world = Bukkit.getWorlds().getFirst();
+            }
+            mapView = Bukkit.createMap(world);
             mapViews.put(uuid, mapView);
         }
         mapView.setUnlimitedTracking(false);

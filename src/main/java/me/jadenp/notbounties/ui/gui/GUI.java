@@ -238,20 +238,22 @@ public class GUI implements Listener {
         boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
         Set<UUID> onlinePlayers = NotBounties.getNetworkPlayers().keySet();
         int sortType = ImpersistentPlayerData.get(player.getUniqueId()).getGUISortType(name);
+        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+        boolean playerHasAdmin = player.hasPermission(NotBounties.getAdminPermission());
         switch (name) {
             case "bounty-gui":
                 // public bounties?
                 List<Bounty> sortedList = DataManager.getPublicBountiesAsync(BountySortType.values()[Math.clamp(sortType, 0, BountySortType.values().length)], gui.getPlayerSlots().size() * (page-1), gui.getPlayerSlots().size()).join();
                 for (int i = 0; i < sortedList.size(); i++) {
                     Bounty bounty = sortedList.get(i);
-                    double bountyAmount = Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission()) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
+                    double bountyAmount = (Whitelist.isShowWhitelistedBounties() || playerHasAdmin) ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(player);
                     if (bountyAmount > 0) {
                         List<String> additionalLore = GUIClicks.getClickLore(player, ConfigOptions.getMoney().isBuyOwn() && bounty.getUUID().equals(player.getUniqueId()) && player.hasPermission("notbounties.buyown"), (bounty.getTotalDisplayBounty() * ConfigOptions.getMoney().getBuyOwnCostMultiply()));
                         if (bounty.getAllWhitelists().contains(player.getUniqueId()) && Whitelist.isAllowTogglingWhitelist()) {
                             additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
                         } else if (!bounty.getAllBlacklists().isEmpty() && !bounty.getAllBlacklists().contains(player.getUniqueId()) && Whitelist.isEnabled()) {
                             additionalLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
-                        } else if (Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission())) {
+                        } else if (Whitelist.isShowWhitelistedBounties() || playerHasAdmin) {
                             // not whitelisted
                             for (Setter setter : bounty.getSetters()) {
                                 if (!setter.canClaim(player)) {
@@ -276,7 +278,7 @@ public class GUI implements Listener {
                     Bounty viewedBounty = DataManager.getBountyAsync(uuid).join();
                     if (viewedBounty != null) {
                         List<Setter> setters = new ArrayList<>(viewedBounty.getSetters());
-                        List<String> additionalLore = player.hasPermission(NotBounties.getAdminPermission()) ? new ArrayList<>(LanguageOptions.getListMessage("admin-edit-lore")) : new ArrayList<>();
+                        List<String> additionalLore = playerHasAdmin ? new ArrayList<>(LanguageOptions.getListMessage("admin-edit-lore")) : new ArrayList<>();
                         setters.sort(Comparator.comparing(Setter::getUuid)); // same setters will be next to each other
                         List<ItemStack> concurrentItems = new ArrayList<>();
                         double concurrentAmount = 0;
@@ -293,7 +295,7 @@ public class GUI implements Listener {
                                 whitelistLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
                             } else if (currentSetter.getWhitelist().isBlacklist() && !currentSetter.getWhitelist().getList().isEmpty() && !currentSetter.getWhitelist().getList().contains(player.getUniqueId()) && Whitelist.isEnabled()) {
                                 whitelistLore.addAll(LanguageOptions.getListMessage("whitelist-notify"));
-                            } else if (Whitelist.isShowWhitelistedBounties() || player.hasPermission(NotBounties.getAdminPermission())) {
+                            } else if (Whitelist.isShowWhitelistedBounties() || playerHasAdmin) {
                                 // not whitelisted
                                 for (Setter setter : viewedBounty.getSetters()) {
                                     if (!setter.canClaim(player)) {
