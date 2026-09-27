@@ -4,10 +4,11 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -22,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.IntPredicate;
 
 
@@ -115,54 +117,58 @@ public class Tutorial {
             return;
         Player parser = sender instanceof Player player ? player : null;
         List<String> get = pages.get(page - 1);
-        NotBounties.debugMessage("Tutorial (" + page + ":" + sender.getName() + ") Sending Title.", false);
-        sender.sendMessage(parse(getMessage("help.title"), parser));
-        NotBounties.debugMessage("Tutorial (" + page + ":" + sender.getName() + ") Sending Contents.", false);
-        for (String line : get) {
-            TextComponent[] components = parseLine(line, parser);
-            sender.spigot().sendMessage(components);
-        }
-        NotBounties.debugMessage("Tutorial (" + page + ":" + sender.getName() + ") Sending Page Line.", false);
-        sendPageLine(sender, page);
 
+        Messages.parse(getMessage("help.title"), MessageContext.builder().receiver(parser).withPrefix(false).build()).thenAccept(str -> {
+            List<CompletableFuture<TextComponent[]>> lines = get.stream().map(line -> parseLine(line, parser)).toList();
+            CompletableFuture.allOf(lines.toArray(new CompletableFuture[0])).thenAccept(v -> NotBounties.getServerImplementation().global().run(() -> {
+                sender.sendMessage(str);
+                for (CompletableFuture<TextComponent[]> line : lines) {
+                    sender.spigot().sendMessage(line.join());
+                }
+                sendPageLine(sender, page);
+            }));
+        });
     }
 
-    private static TextComponent[] parseLine(String text, @Nullable OfflinePlayer parser) {
-        List<TextComponent> baseComponents = new ArrayList<>();
-        StringBuilder builder = new StringBuilder(text);
-        final String RUN_COMMAND_PREFIX = "{run_command=";
-        while (builder.indexOf(RUN_COMMAND_PREFIX) >= 0 && builder.indexOf("}", builder.indexOf(RUN_COMMAND_PREFIX)) >= 0) {
-            String before = parse(builder.substring(0, builder.indexOf(RUN_COMMAND_PREFIX)), parser);
-            String lastColors = ChatColor.getLastColors(before);
-            baseComponents.add(LanguageOptions.getTextComponent(before));
-            builder.delete(0, builder.indexOf(RUN_COMMAND_PREFIX));
-            String commandText = builder.substring(13, builder.indexOf("}"));
-            TextComponent command = LanguageOptions.getTextComponent(parse(lastColors + commandText, parser));
+    private static CompletableFuture<TextComponent[]> parseLine(String text, @Nullable OfflinePlayer parser) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<TextComponent> baseComponents = new ArrayList<>();
+            StringBuilder builder = new StringBuilder(text);
+            final String RUN_COMMAND_PREFIX = "{run_command=";
+            while (builder.indexOf(RUN_COMMAND_PREFIX) >= 0 && builder.indexOf("}", builder.indexOf(RUN_COMMAND_PREFIX)) >= 0) {
+                String before = Messages.parse(builder.substring(0, builder.indexOf(RUN_COMMAND_PREFIX)), MessageContext.builder().receiver(parser).withPrefix(false).build()).join();
+                String lastColors = ChatColor.getLastColors(before);
+                baseComponents.add(Messages.getTextComponent(before, MessageContext.builder().receiver(parser).withPrefix(false).build()).join());
+                builder.delete(0, builder.indexOf(RUN_COMMAND_PREFIX));
+                String commandText = builder.substring(13, builder.indexOf("}"));
+                TextComponent command = Messages.getTextComponent(lastColors + commandText, MessageContext.builder().receiver(parser).withPrefix(false).build()).join();
 
-            command.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(runCommandHover, parser))));
-            command.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, commandText));
-            baseComponents.add(command);
-            builder.delete(0, builder.indexOf("}") + 1);
-        }
+                command.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(Messages.parse(runCommandHover, MessageContext.builder().receiver(parser).withPrefix(false).build()).join())));
+                command.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, commandText));
+                baseComponents.add(command);
+                builder.delete(0, builder.indexOf("}") + 1);
+            }
 
-        final String SUGGEST_COMMAND_PREFIX = "{suggest_command=";
-        while (builder.indexOf(SUGGEST_COMMAND_PREFIX) >= 0 && builder.indexOf("}", builder.indexOf(SUGGEST_COMMAND_PREFIX)) >= 0) {
-            String before = parse(builder.substring(0, builder.indexOf(SUGGEST_COMMAND_PREFIX)), parser);
-            String lastColors = ChatColor.getLastColors(before);
-            baseComponents.add(LanguageOptions.getTextComponent(before));
-            builder.delete(0, builder.indexOf(SUGGEST_COMMAND_PREFIX));
-            String commandText = builder.substring(17, builder.indexOf("}"));
-            TextComponent command = LanguageOptions.getTextComponent(parse(lastColors + commandText, parser));
-            // don't send parenthesis options in command
-            if (commandText.contains("("))
-                commandText = commandText.substring(0, commandText.indexOf("("));
-            command.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(suggestCommandHover, parser))));
-            command.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, commandText));
-            baseComponents.add(command);
-            builder.delete(0, builder.indexOf("}") + 1);
-        }
-        baseComponents.add(LanguageOptions.getTextComponent(parse(builder.toString(), parser)));
-        return baseComponents.toArray(new TextComponent[0]);
+            final String SUGGEST_COMMAND_PREFIX = "{suggest_command=";
+            while (builder.indexOf(SUGGEST_COMMAND_PREFIX) >= 0 && builder.indexOf("}", builder.indexOf(SUGGEST_COMMAND_PREFIX)) >= 0) {
+                String before = Messages.parse(builder.substring(0, builder.indexOf(SUGGEST_COMMAND_PREFIX)), MessageContext.builder().receiver(parser).withPrefix(false).build()).join();
+                String lastColors = ChatColor.getLastColors(before);
+                baseComponents.add(Messages.getTextComponent(before, MessageContext.builder().receiver(parser).withPrefix(false).build()).join());
+                builder.delete(0, builder.indexOf(SUGGEST_COMMAND_PREFIX));
+                String commandText = builder.substring(17, builder.indexOf("}"));
+                TextComponent command = Messages.getTextComponent(lastColors + commandText, MessageContext.builder().receiver(parser).withPrefix(false).build()).join();
+                // don't send parenthesis options in command
+                if (commandText.contains("("))
+                    commandText = commandText.substring(0, commandText.indexOf("("));
+                command.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(Messages.parse(suggestCommandHover, MessageContext.builder().receiver(parser).withPrefix(false).build()).join())));
+                command.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, commandText));
+                baseComponents.add(command);
+                builder.delete(0, builder.indexOf("}") + 1);
+            }
+            baseComponents.add(Messages.getTextComponent(builder.toString(), MessageContext.builder().receiver(parser).withPrefix(false).build()).join());
+            return baseComponents.toArray(new TextComponent[0]);
+        });
+
     }
 
     public static void onCommand(@NotNull CommandSender sender, @NotNull String[] args) {
@@ -178,7 +184,7 @@ public class Tutorial {
 
     }
 
-    public static void sendPageLine(CommandSender sender, int currentPage) {
+    private static void sendPageLine(CommandSender sender, int currentPage) {
         Player parser = sender instanceof Player player ? player : null;
         int previousPage = getNextValidPage(currentPage - 1, -1);
         int nextPage = getNextValidPage(currentPage + 1, 1);
@@ -197,32 +203,78 @@ public class Tutorial {
             middle = footer.substring(before.length() + 6, footer.indexOf("{next}"));
         String after = footer.substring(before.length() + middle.length() + 12).replace("{page}", currentPage + "").replace("{page}", currentPage + "");
 
-        TextComponent prevComponent;
+        MessageContext context = MessageContext.builder().receiver(parser).build();
+
+        CompletableFuture<TextComponent> beforeFuture = Messages.getTextComponent(before.replace("{page}", String.valueOf(currentPage)), context);
+
+        CompletableFuture<TextComponent> middleFuture = Messages.getTextComponent(middle.replace("{page}", String.valueOf(currentPage)), context);
+
+        CompletableFuture<TextComponent> afterFuture = Messages.getTextComponent(after, context);
+
+        CompletableFuture<TextComponent> prevFuture;
+        CompletableFuture<String> prevHoverFuture;
+
         if (previousPage <= 0) {
-            prevComponent = LanguageOptions.getTextComponent(parse(LanguageOptions.getMessage("help.prev-deny"), parser));
+            prevHoverFuture = null;
+            prevFuture = Messages.getTextComponent(LanguageOptions.getMessage("help.prev-deny"), context);
         } else {
-            prevComponent = LanguageOptions.getTextComponent(parse(LanguageOptions.getMessage("help.prev-text"), parser));
-            prevComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.previous-page"), null))));
-            prevComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " " + changePageCommand + " " + previousPage));
+            prevFuture = Messages.getTextComponent(LanguageOptions.getMessage("help.prev-text"), context);
+
+            prevHoverFuture = Messages.parse(LanguageOptions.getMessage("help.previous-page"), MessageContext.builder().build());
         }
 
-        TextComponent nextComponent;
+        CompletableFuture<TextComponent> nextFuture;
+        CompletableFuture<String> nextHoverFuture;
+
         if (nextPage >= maxPage || nextPage <= previousPage) {
-            nextComponent = LanguageOptions.getTextComponent(parse(LanguageOptions.getMessage("help.next-deny"), parser));
+            nextHoverFuture = null;
+            nextFuture = Messages.getTextComponent(LanguageOptions.getMessage("help.next-deny"), context);
         } else {
-            nextComponent = LanguageOptions.getTextComponent(parse(LanguageOptions.getMessage("help.next-text"), parser));
-            nextComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(parse(LanguageOptions.getMessage("help.next-page"), null))));
-            nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " " + changePageCommand + " " + nextPage));
+            nextFuture = Messages.getTextComponent(LanguageOptions.getMessage("help.next-text"), context);
+
+            nextHoverFuture = Messages.parse(LanguageOptions.getMessage("help.next-page"), MessageContext.builder().build());
         }
 
+        List<CompletableFuture<?>> futures = new ArrayList<>();
 
-        BaseComponent[] baseComponents = new BaseComponent[]{
-                LanguageOptions.getTextComponent(parse(before.replace("{page}", currentPage + ""), parser)),
-                prevComponent,
-                LanguageOptions.getTextComponent(parse(middle.replace("{page}", currentPage + ""), parser)),
-                nextComponent,
-                LanguageOptions.getTextComponent(parse(after, parser))
-        };
-        sender.spigot().sendMessage(baseComponents);
+        futures.add(beforeFuture);
+        futures.add(middleFuture);
+        futures.add(afterFuture);
+        futures.add(prevFuture);
+        futures.add(nextFuture);
+
+        if (prevHoverFuture != null)
+            futures.add(prevHoverFuture);
+
+        if (nextHoverFuture != null)
+            futures.add(nextHoverFuture);
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenRun(() -> {
+            TextComponent prevComponent = prevFuture.join();
+            TextComponent nextComponent = nextFuture.join();
+
+            if (prevHoverFuture != null) {
+                prevComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(prevHoverFuture.join())));
+
+                prevComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " " + changePageCommand + " " + previousPage));
+            }
+
+            if (nextHoverFuture != null) {
+                nextComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(nextHoverFuture.join())));
+
+                nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " " + changePageCommand + " " + nextPage));
+            }
+
+            BaseComponent[] baseComponents = new BaseComponent[]{
+                    beforeFuture.join(),
+                    prevComponent,
+                    middleFuture.join(),
+                    nextComponent,
+                    afterFuture.join()
+            };
+
+            NotBounties.getServerImplementation().global().run(() -> sender.spigot().sendMessage(baseComponents));
+
+        });
     }
 }

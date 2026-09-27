@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.ui.commands;
 
-import com.massivecraft.factions.Conf;
 import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.bounty_events.BountyEditEvent;
 import me.jadenp.notbounties.bounty_events.BountyRemoveEvent;
@@ -9,14 +8,11 @@ import me.jadenp.notbounties.data.player_data.ImpersistentPlayerData;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.data.Whitelist;
-import me.jadenp.notbounties.features.settings.databases.Databases;
 import me.jadenp.notbounties.features.settings.databases.LocalData;
-import me.jadenp.notbounties.features.settings.databases.wrappers.NotBountiesDatabase;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
-import me.jadenp.notbounties.features.settings.money.ExcludedItemException;
 import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.PlayerSkin;
@@ -1137,8 +1133,8 @@ public class Commands implements CommandExecutor, TabCompleter {
                                                             MessageContext.builder().receiver(Bukkit.getOfflinePlayer(setters.getUuid())).amount(setters.getDisplayAmount()).time(setters.getTimeCreated(), LocalTime.TimeFormat.PLAYER).build()
                                                     );
                                                     firstPartFuture.thenCombine(secondPartFuture, (firstPart, secondPart) -> {
-                                                        components[0] = LanguageOptions.getTextComponent(firstPart);
-                                                        components[components.length - 1] = LanguageOptions.getTextComponent(secondPart);
+                                                        components[0] = Messages.getTextComponent(firstPart);
+                                                        components[components.length - 1] = Messages.getTextComponent(secondPart);
                                                         return components;
                                                     }).thenAccept(finalComponents -> {
                                                         if (sender instanceof Player playerSender) {

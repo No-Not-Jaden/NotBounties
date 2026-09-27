@@ -4,8 +4,6 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.RemovePersistentEntitiesEvent;
 import me.jadenp.notbounties.data.Whitelist;
-import me.jadenp.notbounties.data.player_data.PlayerData;
-import me.jadenp.notbounties.data.player_data.RewardHead;
 import me.jadenp.notbounties.data.Setter;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
@@ -13,7 +11,7 @@ import me.jadenp.notbounties.features.settings.display.WantedTags;
 import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
-import me.jadenp.notbounties.utils.BountyManager;
+import me.jadenp.notbounties.features.settings.money.Vouchers;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.settings.auto_bounties.TrickleBounties;
@@ -27,11 +25,9 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
@@ -42,9 +38,9 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static me.jadenp.notbounties.NotBounties.*;
 import static me.jadenp.notbounties.utils.BountyManager.*;
@@ -70,23 +66,12 @@ public class Events implements Listener {
         BountyExpire.logout(event.getPlayer());
         DataManager.logout(event.getPlayer());
 
-        PlayerData playerData = DataManager.getPlayerData(event.getPlayer().getUniqueId());
-        long lastSeen = playerData.getLastSeen();
-        playerData.setLastSeen(System.currentTimeMillis());
-        if (playerData.getPlayerName() == null) {
-            playerData.setPlayerName(event.getPlayer().getName());
-        }
 
-        if (System.currentTimeMillis() - lastSeen > 1000 * 60) {
-            // update player data if they have been online for more than a minute
-            NotBounties.debugMessage("Updating player data for " + playerData.getPlayerName(), false);
-            NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(event.getPlayer().getUniqueId(), null));
-        }
-
-        Bounty bounty = getBounty(event.getPlayer().getUniqueId());
-        if (bounty != null) {
-            ActionCommands.executeBountyQuit(event.getPlayer(), bounty);
-        }
+        DataManager.getBountyAsync(event.getPlayer().getUniqueId()).thenAccept(bounty -> {
+            if (bounty != null) {
+                ActionCommands.executeBountyQuit(event.getPlayer(), bounty);
+            }
+        });
     }
 
     @EventHandler
@@ -99,15 +84,16 @@ public class Events implements Listener {
             if (event.getEntity().getKiller() == null) {
                 // natural death
                 NotBounties.debugMessage("Natural death for " + player.getName(), false);
-                Bounty currentBounty = BountyManager.getBounty(player.getUniqueId());
-                if (currentBounty != null) {
-                    Bounty lostBounty = TrickleBounties.getLostBounty(currentBounty);
-                    List<Setter> removedSetters = new LinkedList<>(lostBounty.getSetters());
-                    if (!removedSetters.isEmpty()) {
-                        player.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("natural-death"), lostBounty.getTotalBounty(), player));
-                        DataManager.removeSetters(currentBounty, removedSetters);
+                DataManager.getBountyAsync(player.getUniqueId()).thenAccept(currentBounty -> {
+                    if (currentBounty != null) {
+                        Bounty lostBounty = TrickleBounties.getLostBounty(currentBounty);
+                        List<Setter> removedSetters = new LinkedList<>(lostBounty.getSetters());
+                        if (!removedSetters.isEmpty()) {
+                            Messages.send(player, LanguageOptions.getMessage("natural-death"), MessageContext.builder().amount(lostBounty.getTotalBounty()).receiver(player).build());
+                            DataManager.removeSetters(currentBounty, removedSetters);
+                        }
                     }
-                }
+                });
             } else {
                 if (ConfigOptions.getClaimOrder() == ConfigOptions.ClaimOrder.REGULAR) {
                     Player killer = event.getEntity().getKiller();
@@ -122,39 +108,29 @@ public class Events implements Listener {
     public void onInteract(PlayerInteractEvent event) {
         if (NotBounties.isPaused())
             return;
-        // redeem reward later
+        Player player = event.getPlayer();
         if (event.getAction() == Action.RIGHT_CLICK_AIR && NumberFormatting.getManualEconomy() == NumberFormatting.ManualEconomy.AUTOMATIC && event.getItem() != null) {
-            ItemStack item = event.getItem();
-            Player player = event.getPlayer();
-            if (item.getType() == Material.PAPER && item.getItemMeta() != null && item.getItemMeta().getLore() != null) {
-                if (!item.getItemMeta().getLore().isEmpty()) {
-                    String lastLine = item.getItemMeta().getLore().get(item.getItemMeta().getLore().size() - 1);
-                    if (lastLine.contains(ChatColor.BLACK + "") && ChatColor.stripColor(lastLine).charAt(0) == '@') {
-                        String reward = ChatColor.stripColor(lastLine).substring(1);
-                        double amount;
-                        try {
-                            amount = NumberFormatting.tryParse(reward);
-                        } catch (NumberFormatException ignored) {
-                            player.sendMessage(ChatColor.RED + "Error redeeming reward");
-                            return;
-                        }
-                        NumberFormatting.doAddCommands(player, amount * item.getAmount());
-                        player.getInventory().remove(item);
-                        player.sendMessage(parse(getPrefix() + getMessage("redeem-voucher"), amount * item.getAmount(), player));
-                    }
-                }
+            // redeem reward later vouchers
+            ItemStack item = player.getInventory().getItemInMainHand();
+            // Vouchers.redeemHeldVoucher handles a successful voucher redeem
+            if (
+                    (Vouchers.isVoucher(item) && !Vouchers.redeemHeldVoucher(player))
+                    || (Vouchers.isLegacyVoucher(item) && !Vouchers.redeemHeldLegacyVoucher(item, player))
+            ) {
+                // voucher cannot be redeemed
+                Messages.send(player, LanguageOptions.getMessage("voucher-redeem-fail"), MessageContext.builder().receiver(player).build());
             }
-
         } else if (event.getAction() == Action.LEFT_CLICK_BLOCK && BountyBoard.getBoardSetup().containsKey(event.getPlayer().getUniqueId())) {
+            // bounty board setup
             event.setCancelled(true);
             if (BountyBoard.getBoardSetup().get(event.getPlayer().getUniqueId()) == -1) {
                 BountyBoard.getBoardSetup().remove(event.getPlayer().getUniqueId());
-                event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.RED + "Canceled board removal.", event.getPlayer()));
+                Messages.send(player, ChatColor.RED + "Canceled board removal.", MessageContext.builder().receiver(player).build());
                 return;
             }
             Location location = Objects.requireNonNull(event.getClickedBlock()).getRelative(event.getBlockFace()).getLocation();
             BountyBoard.addBountyBoard(new BountyBoard(location, event.getBlockFace(), BountyBoard.getBoardSetup().get(event.getPlayer().getUniqueId())));
-            event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", event.getPlayer()));
+            Messages.send(player, ChatColor.GREEN + "Registered bounty board at " + location.getX() + " " + location.getY() + " " + location.getZ() + ".", MessageContext.builder().receiver(player).build());
             BountyBoard.getBoardSetup().remove(event.getPlayer().getUniqueId());
         }
     }
@@ -167,7 +143,7 @@ public class Events implements Listener {
             event.setCancelled(true);
             int removes = BountyBoard.removeSpecificBountyBoard((ItemFrame) event.getRightClicked());
             BountyBoard.getBoardSetup().remove(event.getPlayer().getUniqueId());
-            event.getPlayer().sendMessage(parse(getPrefix() + ChatColor.GREEN + "Removed " + removes + " bounty boards.", event.getPlayer()));
+            Messages.send(event.getPlayer(), ChatColor.GREEN + "Removed " + removes + " bounty board(s).", MessageContext.builder().receiver(event.getPlayer()).build());
         }
     }
 
@@ -191,20 +167,14 @@ public class Events implements Listener {
             // get skin info
             SkinManager.isSkinLoaded(player.getUniqueId());
 
-            PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
+            DataManager.handleRefund(player);
 
-            if (Whitelist.isEnabled() && !Whitelist.isAllowTogglingWhitelist()) {
-                playerData.getWhitelist().setBlacklist(!Whitelist.isDefaultWhitelist());
-            }
-            // set last seen
-            if (playerData.hasRefund() || System.currentTimeMillis() - playerData.getLastSeen() > 1000 * 60) {
-                // sync player data and set last seen
-                NotBounties.debugMessage("Syncing player data for " + playerData.getPlayerName(), false);
-                NotBounties.getServerImplementation().async().runNow(() -> DataManager.syncPlayerData(playerData.getUuid(), DataManager::handleRefund));
-            } else {
-                // player logging in too fast
-                playerData.setLastSeen(System.currentTimeMillis());
-            }
+            DataManager.getPlayerDataAsync(player.getUniqueId()).thenAccept(playerData -> {
+                if (Whitelist.isEnabled() && !Whitelist.isAllowTogglingWhitelist()) {
+                    playerData.getWhitelist().setBlacklist(!Whitelist.isDefaultWhitelist());
+                    DataManager.updatePlayerData(playerData);
+                }
+            });
 
         }, 40);
     }
@@ -218,38 +188,49 @@ public class Events implements Listener {
         }
         login(event.getPlayer());
 
-        Bounty bounty = getBounty(event.getPlayer().getUniqueId());
-        if (bounty != null) {
-            bounty.setDisplayName(event.getPlayer().getName());
-            DataManager.notifyBounty(event.getPlayer(), bounty);
-            // check if the player should be given a wanted tag
-            if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
-                WantedTags.addWantedTag(event.getPlayer());
+        DataManager.getBountyAsync(event.getPlayer().getUniqueId()).thenAccept(bounty -> {
+            if (bounty != null) {
+                DataManager.notifyBounty(event.getPlayer(), bounty);
+                // check if the player should be given a wanted tag
+                if (WantedTags.isEnabled() && bounty.getTotalDisplayBounty() >= WantedTags.getMinWanted()) {
+                    WantedTags.addWantedTag(event.getPlayer());
+                }
+
+                if (ConfigOptions.getIntegrations().isMmoLibEnabled())
+                    MMOLibClass.addStats(event.getPlayer(), bounty.getTotalDisplayBounty());
+
+                ActionCommands.executeBountyJoin(event.getPlayer(), bounty);
             }
+        });
 
-            if (ConfigOptions.getIntegrations().isMmoLibEnabled())
-                MMOLibClass.addStats(event.getPlayer(), bounty.getTotalDisplayBounty());
-
-            ActionCommands.executeBountyJoin(event.getPlayer(), bounty);
-        }
 
         // check for updates
         if (NotBounties.isUpdateAvailable() && !ConfigOptions.getUpdateNotification().equals("false")
                 && NotBounties.getLatestVersion() != null
                 && !ConfigOptions.getUpdateNotification().equalsIgnoreCase(getLatestVersion())
                 && event.getPlayer().hasPermission(NotBounties.getAdminPermission())) {
-            event.getPlayer().sendMessage(parse(getPrefix() + getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", NotBounties.getLatestVersion()), event.getPlayer()));
-            TextComponent prefixMsg =  LanguageOptions.getTextComponent(parse(getPrefix(), event.getPlayer()));
-            TextComponent disableUpdate =  LanguageOptions.getTextComponent(parse(getMessage("disable-update-notification"), event.getPlayer()));
-            disableUpdate.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: false")));
-            disableUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification false"));
-            TextComponent skipUpdate =  LanguageOptions.getTextComponent(parse(getMessage("skip-update"), event.getPlayer()));
-            skipUpdate.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: " + getLatestVersion())));
-            skipUpdate.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + ConfigOptions.getPluginBountyCommands().get(0) + " update-notification " + getLatestVersion()));
-            BaseComponent[] baseComponents = new BaseComponent[]{prefixMsg, skipUpdate};
-            event.getPlayer().spigot().sendMessage(baseComponents);
-            baseComponents = new BaseComponent[]{prefixMsg, disableUpdate};
-            event.getPlayer().spigot().sendMessage(baseComponents);
+            Messages.send(event.getPlayer(), getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", NotBounties.getLatestVersion()), MessageContext.builder().receiver(event.getPlayer()).build());
+
+            CompletableFuture<TextComponent> prefixMsg =  Messages.getTextComponent(getPrefix(), MessageContext.builder().receiver(event.getPlayer()).withPrefix(false).build());
+            CompletableFuture<TextComponent> disableUpdate =  Messages.getTextComponent(getMessage("disable-update-notification"), MessageContext.builder().receiver(event.getPlayer()).withPrefix(false).build());
+            CompletableFuture<TextComponent> skipUpdate =  Messages.getTextComponent(getMessage("skip-update"), MessageContext.builder().receiver(event.getPlayer()).withPrefix(false).build());
+            CompletableFuture.allOf(prefixMsg, disableUpdate, skipUpdate).thenAccept(v -> {
+                TextComponent prefix = prefixMsg.join();
+                TextComponent disable = disableUpdate.join();
+                TextComponent skip = skipUpdate.join();
+                disable.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: false")));
+                disable.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification false"));
+                skip.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.DARK_PURPLE + "update-notification: " + getLatestVersion())));
+                skip.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,  "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification " + getLatestVersion()));
+                NotBounties.getServerImplementation().entity(event.getPlayer()).run(() -> {
+                    BaseComponent[] baseComponents = new BaseComponent[]{prefix, skip};
+                    event.getPlayer().spigot().sendMessage(baseComponents);
+                    baseComponents = new BaseComponent[]{prefix, disable};
+                    event.getPlayer().spigot().sendMessage(baseComponents);
+                });
+            });
+
+
         }
 
         // remove persistent bounty entities in chunk
@@ -280,7 +261,7 @@ public class Events implements Listener {
 
     @EventHandler
     public void onCommandSend(PlayerCommandPreprocessEvent event) {
-        if (DataManager.getLocalData().getOnlineBounty(event.getPlayer().getUniqueId()) == null)
+        if (NotBounties.isPaused() || !LoggedPlayers.hasActiveBounty(event.getPlayer().getUniqueId()))
             return;
         String message = event.getMessage().toLowerCase();
         // remove starting /
@@ -301,11 +282,9 @@ public class Events implements Listener {
         for (String command : ConfigOptions.getAutoBounties().getBlockedBountyCommands()) {
             if (message.startsWith(command)) {
                 event.setCancelled(true);
-                event.getPlayer().sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("blocked-bounty-command"), event.getPlayer()));
+                Messages.send(event.getPlayer(), LanguageOptions.getMessage("blocked-bounty-command"), MessageContext.builder().receiver(event.getPlayer()).build());
                 return;
             }
         }
-
     }
-
 }

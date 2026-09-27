@@ -12,9 +12,9 @@ import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.gui.GUI;
 import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
-import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -39,6 +39,19 @@ public class Messages {
             } else {
                 NotBounties.getServerImplementation().global().run(() -> sender.sendMessage(parsed));
             }
+        });
+    }
+
+    public static CompletableFuture<TextComponent> getTextComponent(String message, MessageContext context) {
+        return parse(message, context).thenApply(msg -> {
+            TextComponent textComponent;
+            try {
+                textComponent = (TextComponent) TextComponent.fromLegacy(msg);
+            } catch (Exception | NoSuchMethodError e) {
+                // not using a version that supports fromLegacy
+                textComponent = new TextComponent(msg);
+            }
+            return textComponent;
         });
     }
 
@@ -79,6 +92,8 @@ public class Messages {
 
         MessageContext safeContext = context == null ? MessageContext.builder().build() : context;
         String parsed = safeContext.isAddPrefix() ? LanguageOptions.getMessage("prefix") + message : message;
+
+        parsed = parseConstants(parsed);
 
         if (safeContext.getTime() != null && safeContext.getTimeFormat() != null && parsed.contains("{time}")) {
             parsed = parsed.replace("{time}", formatTime(safeContext.getTime(), safeContext.getTimeFormat(), getPlayer(safeContext.getReceiver())));

@@ -94,6 +94,7 @@ bounty-voucher-lore:
   - '&7this player''s bounty'
   - ''
 redeem-voucher: '&aSuccessfully redeemed voucher for {amount}!'
+voucher-redeem-fail: '&cThis voucher cannot be redeemed!'
 big-bounty: '&eYour bounty is very impressive!'
 whitelisted-players: '&fYour whitelisted players:&7' # player names will follow this
 whitelist-max: '&cYou''ve reached the maximum amount of whitelisted players.'

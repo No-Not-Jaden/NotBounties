@@ -20,8 +20,7 @@ import org.jspecify.annotations.NonNull;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-import static me.jadenp.notbounties.features.LanguageOptions.getListMessage;
-import static me.jadenp.notbounties.features.LanguageOptions.getMessage;
+import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 public class Vouchers {
 
@@ -29,19 +28,22 @@ public class Vouchers {
     private static final NamespacedKey VOUCHER_PRICE_KEY = new NamespacedKey(NotBounties.getInstance(), "voucher_price");
     private static final Set<UUID> usedKeys = new HashSet<>();
 
+    private Vouchers() {}
+
     /**
      * Checks if the item held is a voucher and if the key is valid.
      * If the voucher is valid, the money is redeemed and the item removed.
      * @param player Player who is redeeming the voucher.
      * @return True if the voucher was redeemed.
      */
-    public static boolean redeemHeldKey(Player player) {
+    public static boolean redeemHeldVoucher(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.getType() != Material.PAPER || item.getItemMeta() == null)
+        if (!isVoucher(item))
             return false;
         ItemMeta meta = item.getItemMeta();
+        assert meta != null; // from isVoucher
         String uniqueKey = meta.getPersistentDataContainer().get(VOUCHER_UNIQUE_KEY, PersistentDataType.STRING);
-        String price = meta.getPersistentDataContainer().get(VOUCHER_PRICE_KEY, PersistentDataType.STRING);
+        Double price = meta.getPersistentDataContainer().get(VOUCHER_PRICE_KEY, PersistentDataType.DOUBLE);
         if (uniqueKey == null || price == null)
             return false;
         UUID uniqueId;
@@ -63,8 +65,48 @@ public class Vouchers {
             return false;
         }
         usedKeys.add(uniqueId);
-        // TODO: Give player voucher same way old version did
 
+        NumberFormatting.doAddCommands(player, price); // not multiplied by item.getAmount() to stop duplication
+        Messages.send(player, getMessage("redeem-voucher"), MessageContext.builder().amount(price).receiver(player).build());
+        return true;
+    }
+
+    /**
+     * Check if an item is a voucher.
+     * @param item Item to check.
+     * @return True if the item is a voucher.
+     */
+    public static boolean isVoucher(ItemStack item) {
+        return item != null && item.getType() == Material.PAPER && item.getItemMeta() != null
+                && item.getItemMeta().getPersistentDataContainer().has(VOUCHER_UNIQUE_KEY, PersistentDataType.STRING);
+    }
+
+    public static boolean isLegacyVoucher(ItemStack item) {
+        return item != null && item.getType() == Material.PAPER && item.getItemMeta() != null
+                && item.getItemMeta().getLore() != null && !item.getItemMeta().getLore().isEmpty()
+                && item.getItemMeta().getLore().getLast().contains(ChatColor.BLACK + "")
+                && ChatColor.stripColor(item.getItemMeta().getLore().getLast()).charAt(0) == '@';
+    }
+
+    public static boolean redeemHeldLegacyVoucher(ItemStack item, Player player) {
+        if (!isLegacyVoucher(item))
+            return false;
+
+        String lastLine = Objects.requireNonNull(Objects.requireNonNull(item.getItemMeta()).getLore()).getLast();
+        String reward = ChatColor.stripColor(lastLine).substring(1);
+        double amount;
+        try {
+            amount = NumberFormatting.tryParse(reward);
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
+        Map<Integer, ItemStack> unRemoved = player.getInventory().removeItem(item);
+        if (!unRemoved.isEmpty()) {
+            // failed to remove item
+            return false;
+        }
+        NumberFormatting.doAddCommands(player, amount * item.getAmount());
+        Messages.send(player, getMessage("redeem-voucher"), MessageContext.builder().amount(amount * item.getAmount()).receiver(player).build());
         return true;
     }
 

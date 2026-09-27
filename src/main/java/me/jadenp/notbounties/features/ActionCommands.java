@@ -77,7 +77,7 @@ public class ActionCommands {
     }
 
     public static void executeBountyQuit(Player player, Bounty bounty) {
-        NotBounties.getServerImplementation().entity(player).run(() -> {
+        NotBounties.getServerImplementation().global().run(() -> {
             for (String command : bountyQuitCommands) {
                 execute(player, player, bounty, command, player.getUniqueId());
             }

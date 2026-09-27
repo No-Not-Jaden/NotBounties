@@ -5,7 +5,7 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ActionCommands;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.LanguageOptions;
-import me.jadenp.notbounties.features.settings.integrations.Integrations;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.integrations.external_api.EconomyShopGUIClass;
 import me.jadenp.notbounties.ui.gui.CustomItem;
 import me.jadenp.notbounties.utils.BountyManager;
@@ -13,7 +13,6 @@ import me.jadenp.notbounties.utils.ItemValue;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.tasks.MultipleItemGive;
 import me.jadenp.notbounties.utils.tasks.SingleItemGive;
-import me.jadenp.notbounties.features.settings.integrations.external_api.EssentialsXClass;
 import me.jadenp.notbounties.features.settings.integrations.external_api.PlaceholderAPIClass;
 import me.jadenp.notbounties.features.settings.integrations.external_api.VaultClass;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -1100,7 +1099,7 @@ public class NumberFormatting {
             if (i > 0)
                 nameString = nameString + ",";
             nameString = nameString + itemStack.getType().name() + amountDenote + itemStack.getAmount();
-            TextComponent name = LanguageOptions.getTextComponent(nameString);
+            TextComponent name = Messages.getTextComponent(nameString);
             name.setHoverEvent(getHoverEvent(itemStack));
             components[i] = name;
         }

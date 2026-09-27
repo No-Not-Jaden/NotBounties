@@ -25,7 +25,7 @@ public class LoggedPlayers {
      */
     private static final Map<String, UUID> playerIDs = new HashMap<>();
     private static final Set<UUID> requestingNames = new HashSet<>();
-    private static final Set<String> activeBountyNames =  new HashSet<>();
+    private static final Map<UUID, String> activeBountyNames =  new HashMap<>();
 
     private static HttpSyncPool httpPool;
     private static long lastBountyNameRequest = 0;
@@ -51,12 +51,18 @@ public class LoggedPlayers {
             DataManager.getPublicBountiesAsync(BountySortType.HIGHEST, 0, ConfigOptions.getMaxTabCompletePlayers() + 1).thenAccept(bounties -> {
                 synchronized (activeBountyNames) {
                     activeBountyNames.clear();
-                    bounties.forEach(bounty -> activeBountyNames.add(bounty.getName()));
+                    bounties.forEach(bounty -> activeBountyNames.put(bounty.getUUID(), bounty.getName()));
                 }
             });
         }
         synchronized (activeBountyNames) {
-            return new HashSet<>(activeBountyNames);
+            return new HashSet<>(activeBountyNames.values());
+        }
+    }
+
+    public static boolean hasActiveBounty(UUID uuid) {
+        synchronized (activeBountyNames) {
+            return activeBountyNames.containsKey(uuid);
         }
     }
 

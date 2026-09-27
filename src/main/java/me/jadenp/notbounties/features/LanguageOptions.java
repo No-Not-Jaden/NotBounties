@@ -1,30 +1,18 @@
 package me.jadenp.notbounties.features;
 
-import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.data.player_data.ImpersistentPlayerData;
-import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.settings.display.BountyHunt;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.SkinManager;
-import me.jadenp.notbounties.ui.gui.GUI;
-import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
-import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
-import me.jadenp.notbounties.utils.BountyManager;
-import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.utils.Tutorial;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
-import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
-import me.jadenp.notbounties.features.settings.integrations.external_api.PlaceholderAPIClass;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -38,7 +26,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-import static me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime.formatTime;
 import static net.md_5.bungee.api.ChatColor.COLOR_CHAR;
 
 public class LanguageOptions {
@@ -389,17 +376,6 @@ public class LanguageOptions {
 
     public static String getPrefix() {
         return prefix;
-    }
-
-    public static TextComponent getTextComponent(String message) {
-        TextComponent textComponent;
-        try {
-            textComponent = (TextComponent) TextComponent.fromLegacy(message);
-        } catch (Exception | NoSuchMethodError e) {
-            // not using a version that supports fromLegacy
-            textComponent = new TextComponent(message);
-        }
-        return textComponent;
     }
 
     public static String parseImageURL(String url, UUID uuid, boolean skinLoaded) {

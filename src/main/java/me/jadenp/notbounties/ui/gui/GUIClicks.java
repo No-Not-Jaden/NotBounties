@@ -3,6 +3,7 @@ package me.jadenp.notbounties.ui.gui;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.ActionCommands;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.features.ConfigOptions;
@@ -146,9 +147,9 @@ public class GUIClicks {
                 if (player.hasPermission(NotBounties.getAdminPermission())) {
                     player.closeInventory();
                     String messageText = LanguageOptions.parse(LanguageOptions.getMessage("edit-bounty-clickable").replace("{receiver}", bounty.getName()), player);
-                    TextComponent message =  LanguageOptions.getTextComponent(messageText);
+                    TextComponent message =  Messages.getTextComponent(messageText);
 
-                    BaseComponent prefix = LanguageOptions.getTextComponent(LanguageOptions.parse(LanguageOptions.getPrefix(), player));
+                    BaseComponent prefix = Messages.getTextComponent(LanguageOptions.parse(LanguageOptions.getPrefix(), player));
                     message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(messageText)));
                     message.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().get(0) + " edit " + bounty.getName() + " "));
                     prefix.addExtra(message);

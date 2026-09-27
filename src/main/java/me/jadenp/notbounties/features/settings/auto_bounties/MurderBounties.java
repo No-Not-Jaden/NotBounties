@@ -7,6 +7,8 @@ import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.features.ActionCommands;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
@@ -14,7 +16,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -136,7 +137,7 @@ public class MurderBounties {
             if (bountyIncrease > 0) {
                 addBounty(killer, bountyIncrease, new ArrayList<>(), new Whitelist(new TreeSet<>(), false)).thenAccept(bounty -> {
                     if (bounty != null) {
-                        killer.sendMessage(parse(getPrefix() + getMessage("murder"), bounty.getTotalDisplayBounty(), player));
+                        Messages.send(killer, getMessage("murder"), MessageContext.builder().amount(bounty.getTotalDisplayBounty()).receiver(player).build());
                     } else {
                         NotBounties.debugMessage("Could not increase killer's bounty.", false);
                     }
