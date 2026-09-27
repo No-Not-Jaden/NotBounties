@@ -29,6 +29,7 @@ public class BroadcastTask extends CancelableTask {
     private final double displayAmount;
     private final double totalBounty;
     private final Whitelist whitelist;
+    private int attemptsRemaining = 50;
 
     public BroadcastTask(@Nullable Player setter, @NotNull OfflinePlayer receiver, double displayAmount, double totalBounty, Whitelist whitelist) {
         super();
@@ -41,7 +42,7 @@ public class BroadcastTask extends CancelableTask {
 
     @Override
     public void run() {
-        if (!SkinManager.isSkinLoaded(receiver.getUniqueId()))
+        if (!SkinManager.isSkinLoaded(receiver.getUniqueId()) && attemptsRemaining-- > 0)
             return;
         this.cancel();
         final UUID setterUUID = setter == null ? DataManager.GLOBAL_SERVER_ID : setter.getUniqueId();
@@ -146,11 +147,12 @@ public class BroadcastTask extends CancelableTask {
                 || (broadcastSettings == PlayerData.BroadcastSettings.DISABLE && overrideDisable)) {
             if (!shortMessage.isBlank())
                 player.sendMessage(shortMessage);
-        } else if (broadcastSettings == PlayerData.BroadcastSettings.EXTENDED) {
-            for (String string : extendedMessage) {
-                player.sendMessage(string);
+        } else if (broadcastSettings == PlayerData.BroadcastSettings.EXTENDED && extendedMessage != null) {
+                for (String string : extendedMessage) {
+                    player.sendMessage(string);
+                }
             }
-        }
+
     }
 
     /**
@@ -162,15 +164,16 @@ public class BroadcastTask extends CancelableTask {
      * @return An array of messages for the extended broadcast, or null if no message should be sent.
      */
     private static @Nullable String[] getExtendedBroadcast(UUID setterUUID, @NotNull OfflinePlayer receiver, double displayAmount, double totalBounty) {
+        BufferedImage face = null;
         if (!SkinManager.isSkinLoaded(receiver.getUniqueId())) {
             NotBounties.debugMessage("Tried to get extended broadcast for " + receiver.getName() + " but they do not have a skin.", true);
-            return null;
+        } else {
+            face = SkinManager.getPlayerFace(receiver.getUniqueId());
+            if (face == null) {
+                NotBounties.debugMessage("Tried to get extended broadcast for " + receiver.getName() + " but they do not have a face.", true);
+            }
         }
-        BufferedImage face = SkinManager.getPlayerFace(receiver.getUniqueId());
-        if (face == null) {
-            NotBounties.debugMessage("Tried to get extended broadcast for " + receiver.getName() + " but they do not have a face.", true);
-            return null;
-        }
+
         //▮
         String[] message = new String[8];
         final List<String> extendedText = LanguageOptions.getListMessage("extended-bounty-broadcast");
@@ -178,9 +181,11 @@ public class BroadcastTask extends CancelableTask {
             return null;
         for (int y = 0; y < 8; y++) {
             StringBuilder builder = new StringBuilder();
-            for (int x = 0; x < 8; x++) {
-                Color color = getColor(face.getRGB(x,y));
-                builder.append(net.md_5.bungee.api.ChatColor.of(color)).append('█');
+            if (face != null) {
+                for (int x = 0; x < 8; x++) {
+                    Color color = getColor(face.getRGB(x, y));
+                    builder.append(net.md_5.bungee.api.ChatColor.of(color)).append('█');
+                }
             }
             if (extendedText.size() > y)
                 builder.append(" ").append(parse(extendedText.get(y), setterUUID, displayAmount, totalBounty, receiver));

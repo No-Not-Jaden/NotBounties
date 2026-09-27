@@ -1717,7 +1717,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                 if (immunityMS <= 0) {
                     // does not have new player immunity anymore
                     DataManager.getPlayerData(player.getUniqueId()).setNewPlayer(false);
-                    Bukkit.getLogger().info("immunity changed");
                     return false;
                 }
                 break;
