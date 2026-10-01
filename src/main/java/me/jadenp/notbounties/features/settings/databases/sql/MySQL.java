@@ -212,8 +212,6 @@ public class MySQL {
     }
 
     public List<PlayerData> getPlayerData() throws SQLException {
-
-        Map<UUID, List<OnlineRefund<?>>> refunds = getRefunds();
         List<PlayerData> playerDataList = new ArrayList<>();
         try (PreparedStatement ps = getConnection().prepareStatement("SELECT uuid, name, immunity, lastclaim, broadcastsetting, whitelist, bountycooldown, newplayer, lastseen, timezone FROM bounty_player_data ORDER BY uuid ASC;");
             ResultSet rs = ps.executeQuery()) {
@@ -223,11 +221,6 @@ public class MySQL {
                 playerData.setServerID(DataManager.GLOBAL_SERVER_ID);
                 playerData.setUuid(uuid);
                 readPlayerDataResult(rs, playerData);
-
-                // Load refund data
-                if (refunds.containsKey(uuid)) {
-                    playerData.setRefund(refunds.get(uuid));
-                }
 
                 playerDataList.add(playerData);
             }
@@ -250,7 +243,6 @@ public class MySQL {
         playerData.setBroadcastSettings(PlayerData.BroadcastSettings.values()[rs.getByte("broadcastsetting")]);
         playerData.setWhitelist(decodeWhitelist(rs.getString("whitelist")));
         playerData.setBountyCooldown(rs.getLong("bountycooldown"));
-        playerData.setNewPlayer(rs.getBoolean("newplayer"));
         playerData.setLastSeen(rs.getLong("lastseen"));
         String timeZone = rs.getString("timezone");
         if (timeZone != null && !timeZone.isEmpty()) {

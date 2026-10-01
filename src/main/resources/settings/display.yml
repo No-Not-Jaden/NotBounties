@@ -68,11 +68,11 @@ bounty-posters:
 # auto-updating bounty poster board
 bounty-board:
   # What the leaderboard is sorted by
-  # 0 oldest bounties
-  # 1 newest bounties
-  # 2 top bounties
-  # 3 lowest bounties
-  type: 2
+  # HIGHEST
+  # LOWEST
+  # OLDEST
+  # NEWEST
+  type: HIGHEST
   # how many seconds between the board updates - minimum of 2 seconds (this can be server intensive)
   update-interval: 5
   # amount of bounty boards to update at a time - 0 to disable

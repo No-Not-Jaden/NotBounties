@@ -64,42 +64,7 @@ public class LocalData extends NotBountiesDatabase {
 
     @Override
     public long getStatRank(UUID uuid, Leaderboard sortStat, StatSortType sortType, Set<UUID> excludedPlayers) {
-        if (excludedPlayers.contains(uuid)) {
-            return -1;
-        }
-
-        List<Map.Entry<UUID, PlayerStat>> entries = new ArrayList<>(statCache.asMap().entrySet());
-        Comparator<Map.Entry<UUID, PlayerStat>> comparator = switch (sortType) {
-            case HIGHEST -> Comparator
-                    .comparingDouble((Map.Entry<UUID, PlayerStat> entry) -> entry.getValue().leaderboardType(sortStat))
-                    .reversed()
-                    .thenComparing(Map.Entry::getKey);
-            case LOWEST -> Comparator
-                    .comparingDouble((Map.Entry<UUID, PlayerStat> entry) -> entry.getValue().leaderboardType(sortStat))
-                    .thenComparing(Map.Entry::getKey);
-            case NEWEST -> Comparator
-                    .comparingLong((Map.Entry<UUID, PlayerStat> entry) -> DataManager.getPlayerData(entry.getKey()).getLastSeen())
-                    .reversed()
-                    .thenComparing(Map.Entry::getKey);
-            case OLDEST -> Comparator
-                    .comparingLong((Map.Entry<UUID, PlayerStat> entry) -> DataManager.getPlayerData(entry.getKey()).getLastSeen())
-                    .thenComparing(Map.Entry::getKey);
-            case ALPHABETICAL -> Comparator
-                    .comparing((Map.Entry<UUID, PlayerStat> entry) -> LoggedPlayers.getPlayerName(entry.getKey()), Comparator.nullsLast(String::compareTo))
-                    .thenComparing(Map.Entry::getKey);
-            case REVERSE_ALPHABETICAL -> Comparator
-                    .comparing((Map.Entry<UUID, PlayerStat> entry) -> LoggedPlayers.getPlayerName(entry.getKey()), Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(Map.Entry::getKey);
-        };
-
-        entries.removeIf(entry -> excludedPlayers.contains(entry.getKey()));
-        entries.sort(comparator);
-        for (int i = 0; i < entries.size(); i++) {
-            if (entries.get(i).getKey().equals(uuid)) {
-                return i + 1L;
-            }
-        }
-        return -1;
+        throw new DatabaseConnectionException("Leaderboard lookup not allowed locally.");
     }
 
     public Map<UUID, PlayerStat> getCachedStats() {

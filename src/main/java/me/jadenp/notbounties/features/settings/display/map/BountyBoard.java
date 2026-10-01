@@ -3,9 +3,13 @@ package me.jadenp.notbounties.features.settings.display.map;
 import com.cjcrafter.foliascheduler.util.ServerVersions;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
+import me.jadenp.notbounties.features.settings.databases.BountySortType;
+import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
@@ -16,13 +20,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
-
-import static me.jadenp.notbounties.utils.BountyManager.getPublicBounties;
 
 public class BountyBoard {
 
-    private static int type;
+    private static BountySortType type;
     private static int updateInterval;
     private static int staggeredUpdate;
     private static boolean glow;
@@ -32,11 +33,17 @@ public class BountyBoard {
 
     private static final List<BountyBoard> bountyBoards = Collections.synchronizedList(new ArrayList<>());
     private static long lastBountyBoardUpdate = System.currentTimeMillis();
-    private static final Deque<BountyBoard> queuedBoards = new ConcurrentLinkedDeque<>();
+    private static int nextBoardUpdateIndex = 0;
     private static final Map<UUID, Integer> boardSetup = Collections.synchronizedMap(new HashMap<>());
 
     public static void loadConfiguration(ConfigurationSection config) {
-        type = config.getInt("type");
+        String typeString = config.getString("type");
+        try {
+            type = BountySortType.valueOf(Objects.requireNonNull(typeString).toUpperCase());
+        } catch (IllegalArgumentException e) {
+            NotBounties.getInstance().getLogger().warning("Invalid bounty board sort type: " + typeString);
+            type = BountySortType.HIGHEST;
+        }
         updateInterval = config.getInt("update-interval");
         glow = config.getBoolean("glow");
         invisible = config.getBoolean("invisible");
@@ -64,6 +71,7 @@ public class BountyBoard {
 
     public static void addBountyBoards(List<BountyBoard> bountyBoards) {
         BountyBoard.bountyBoards.addAll(bountyBoards);
+        bountyBoards.sort(Comparator.comparingInt(BountyBoard::getRank));
     }
 
     public static void addBountyBoard(BountyBoard bountyBoard) {
@@ -98,44 +106,50 @@ public class BountyBoard {
     /**
      * Updates the bounty boards, following the config options.
      */
-    public static synchronized void update() {
+    public static void update() {
         if (!Bukkit.isPrimaryThread()) {
             Bukkit.getScheduler().runTask(NotBounties.getInstance(), BountyBoard::update);
             return;
         }
+
         if (BountyBoard.getLastBountyBoardUpdate() + updateInterval * 1000L < System.currentTimeMillis() && !Bukkit.getOnlinePlayers().isEmpty() && NotBounties.getInstance().isEnabled()) {
             // update bounty board
-            if (queuedBoards.peek() == null) {
-                queuedBoards.addAll(bountyBoards);
+
+            int minUpdate = staggeredUpdate <= 0 ? bountyBoards.size() : staggeredUpdate; // 0 means update all boards
+            List<BountyBoard> boardsToUpdate = new ArrayList<>();
+            for (int i = 0; i < minUpdate; i++) {
+                if (minUpdate < bountyBoards.size())
+                    boardsToUpdate.add(bountyBoards.get(nextBoardUpdateIndex + i));
             }
-            int minUpdate = staggeredUpdate <= 0 ? queuedBoards.size() : staggeredUpdate; // 0 means update all boards
-            List<Bounty> bountyCopy = getPublicBounties(type);
-            checkDuplicates(bountyCopy);
-            int numBoards = Math.min(queuedBoards.size(), minUpdate);
-            for (int i = 0; i < numBoards; i++) {
-                BountyBoard board = queuedBoards.removeFirst();
-                if (bountyCopy.size() >= board.getRank()) {
-                    board.update(bountyCopy.get(board.getRank() - 1));
-                } else {
-                    board.update(null);
-                }
-            }
+            nextBoardUpdateIndex = nextBoardUpdateIndex + minUpdate;
+            if (nextBoardUpdateIndex >= bountyBoards.size())
+                nextBoardUpdateIndex = 0;
+            // get the min and max ranks of the boards to update - should be in sorted order already
+            int minRank = boardsToUpdate.getFirst().getRank();
+            assert minRank > 0;
+            int maxRank = boardsToUpdate.getLast().getRank();
+            assert maxRank > minRank;
+            DataManager.getPublicBountiesAsync(type, minRank - 1, maxRank - minRank + 1)
+                    .thenAccept(bounties -> NotBounties.getServerImplementation().global().run(() ->
+                        // iterate through the boards and update them
+                        applyBounties(bounties, boardsToUpdate, minRank)));
 
             lastBountyBoardUpdate = System.currentTimeMillis();
         }
+
     }
 
-    private static void checkDuplicates(List<Bounty> bounties) {
-        NotBounties.getServerImplementation().async().runNow(() -> {
-            Set<UUID> duplicateUUIDs = new HashSet<>();
-            for (Bounty bounty : bounties) {
-                if (duplicateUUIDs.contains(bounty.getUUID())) {
-                    NotBounties.debugMessage("Duplicate bounty UUID detected: " + bounty.getUUID(), true);
-                } else {
-                    duplicateUUIDs.add(bounty.getUUID());
-                }
+    private static void applyBounties(List<Bounty> bounties, List<BountyBoard> boardsToUpdate, int minRank) {
+        for (BountyBoard board : boardsToUpdate) {
+            // first index in bounties is the minRank
+            int bountyIndex = board.getRank() - minRank;
+            if (bountyIndex >= bounties.size()) {
+                board.update(null);
+            } else {
+                Bounty bounty = bounties.get(bountyIndex);
+                board.update(bounty);
             }
-        });
+        }
     }
 
     private final Location location;
@@ -193,14 +207,17 @@ public class BountyBoard {
                 frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, frameType);
                 frame.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
                 frame.setFacingDirection(direction, true);
-                ItemMeta mapMeta = map.getItemMeta();
-                assert mapMeta != null;
-                mapMeta.setDisplayName(LanguageOptions.parse(itemName, bounty.getTotalDisplayBounty(), Bukkit.getOfflinePlayer(bounty.getUUID())));
-                map.setItemMeta(mapMeta);
-                frame.setItem(map);
                 frame.setInvulnerable(true);
                 frame.setVisible(!invisible);
                 frame.setFixed(true);
+                ItemMeta mapMeta = map.getItemMeta();
+                assert mapMeta != null;
+                OfflinePlayer bountyPlayer = Bukkit.getOfflinePlayer(bounty.getUUID());
+                Messages.parse(itemName, MessageContext.builder().amount(bounty.getTotalDisplayBounty()).receiver(bountyPlayer).build())
+                        .thenAccept(name -> NotBounties.getServerImplementation().region(location).run(() -> {
+                    map.setItemMeta(mapMeta);
+                    frame.setItem(map);
+                }));
             });
 
         } catch (IllegalArgumentException e) {

@@ -3,6 +3,8 @@ package me.jadenp.notbounties.features.settings.auto_bounties;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.features.ActionCommands;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.utils.DataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
@@ -52,7 +54,7 @@ public class BigBounty {
         }
         if (newBounty.getTotalDisplayBounty() >= threshold && newBounty.getTotalDisplayBounty() - amountAdded < threshold) {
             particlePlayers.add(receiver.getUniqueId());
-            receiver.sendMessage(parse(getPrefix() + getMessage("big-bounty"), receiver));
+            Messages.send(receiver, getMessage("big-bounty"), MessageContext.builder().receiver(receiver).bounty(newBounty).build());
         }
     }
 

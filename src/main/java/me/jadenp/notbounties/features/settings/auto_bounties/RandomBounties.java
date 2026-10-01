@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.features.settings.auto_bounties;
 
-import com.cjcrafter.foliascheduler.TaskImplementation;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.utils.BanChecker;
@@ -13,11 +12,9 @@ import me.jadenp.notbounties.data.Whitelist;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 import static me.jadenp.notbounties.utils.BountyManager.addBounty;
 

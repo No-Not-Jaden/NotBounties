@@ -75,13 +75,13 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
 
     /**
      * Get the top stats in the database.
-     * @param sortStat
-     * @param sortType
-     * @param offset
-     * @param limit
-     * @param excludedPlayers
-     * @return
-     * @throws DatabaseConnectionException
+     * @param sortStat Stat that is being sorted.
+     * @param sortType How the stats are sorted.
+     * @param offset Offset of the top stats.
+     * @param limit The maximum number of entries to be returned.
+     * @param excludedPlayers Players excluded from leaderboard results.
+     * @return A sorted list of the top stats.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
     public abstract Map<UUID, PlayerStat> getStats(Leaderboard sortStat, StatSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
 
@@ -182,9 +182,9 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
      * Get the top bounties in the database.
      *
      * @param sortType How the bounties are sorted.
-     * @param offset
+     * @param offset Offset of the top bounties.
      * @param limit The maximum number of entries to be returned.
-     * @param excludedPlayers
+     * @param excludedPlayers Players excluded from leaderboard results.
      * @return A sorted list of the top bounties.
      * @throws DatabaseConnectionException When the database isn't connected.
      */
@@ -341,12 +341,12 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
 
     /**
      * Get the top players in the database.
-     * @param sortType
-     * @param offset
-     * @param limit
-     * @param excludedPlayers
-     * @return
-     * @throws DatabaseConnectionException
+     * @param sortType How the players are sorted.
+     * @param offset Offset of the top players.
+     * @param limit The maximum number of entries to be returned.
+     * @param excludedPlayers Players excluded from leaderboard results.
+     * @return A sorted list of the top players.
+     * @throws DatabaseConnectionException When the database isn't connected.
      */
     public abstract List<PlayerData> getPlayerData(PlayerSortType sortType, long offset, long limit, Set<UUID> excludedPlayers) throws DatabaseConnectionException;
 
@@ -468,7 +468,7 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
 
     @Override
     public int compareTo(@NotNull NotBountiesDatabase o) {
-        return o.getPriority() - getPriority();
+        return Integer.compare(o.getPriority(), getPriority());
     }
 
     // only hash config options

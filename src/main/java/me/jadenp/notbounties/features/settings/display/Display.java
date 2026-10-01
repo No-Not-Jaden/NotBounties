@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.features.settings.display;
 
 import me.jadenp.notbounties.features.settings.ResourceConfiguration;
+import me.jadenp.notbounties.features.settings.databases.BountySortType;
 import me.jadenp.notbounties.features.settings.display.map.BountyBoard;
 import me.jadenp.notbounties.features.settings.display.map.BountyMap;
 import me.jadenp.notbounties.ui.SkinManager;
@@ -9,6 +10,22 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.util.Objects;
 
 public class Display extends ResourceConfiguration {
+
+    @Override
+    protected void prepareConfig(YamlConfiguration config) {
+        if (config.isInt("bounty-board.type")) {
+            int oldType = config.getInt("bounty-board.type");
+            BountySortType newType;
+            switch (oldType) {
+                case 0 -> newType = BountySortType.OLDEST;
+                case 1 -> newType = BountySortType.NEWEST;
+                case 3 -> newType = BountySortType.LOWEST;
+                default -> newType = BountySortType.HIGHEST;
+            }
+            config.set("bounty-board.type", newType.name());
+        }
+    }
+
     @Override
     protected void loadConfiguration(YamlConfiguration config) {
         WantedTags.loadConfiguration(Objects.requireNonNull(config.getConfigurationSection("wanted-tag")), plugin);
