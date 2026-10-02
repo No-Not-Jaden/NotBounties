@@ -6,7 +6,7 @@
 
     <groupId>me.jadenp</groupId>
     <artifactId>NotBounties</artifactId>
-    <version>dev_1.22.38.20</version>
+    <version>dev_1.22.38.25</version>
     <packaging>jar</packaging>
 
     <name>NotBounties</name>
@@ -161,7 +161,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>26.1.2-R0.1-SNAPSHOT</version>
+            <version>26.3-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <!-- https://wiki.placeholderapi.com/developers/using-placeholderapi/ -->
@@ -388,9 +388,15 @@
         <!-- https://github.com/Xyness/SimpleClaimSystem-API -->
         <dependency>
             <groupId>com.github.Xyness</groupId>
-            <artifactId>SimpleClaimSystem-API</artifactId>
-            <version>v2.5.10</version>
+            <artifactId>SimpleClaimSystem</artifactId>
+            <version>1.13.1</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.technicjelle</groupId>
+                    <artifactId>BMUtils</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

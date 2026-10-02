@@ -57,6 +57,17 @@ import java.util.concurrent.TimeoutException;
 import static me.jadenp.notbounties.features.LanguageOptions.*;
 
 /**
+ *     Tested on 26.3
+ *     Extended bounty broadcast will still display if the skin cannot be loaded
+ *     You can now set extended-bounty-broadcast to an empty list in the language.yml file to disable it
+ *     Added the /bounty setdefaultbroadcast (mode) command to set everyone's broadcast setting
+ *     Fixed a startup bug
+ *     Fixed a few issues with murder bounties not triggering correctly.
+ *     Fixed a few Folia bugs
+ *     Fixed bounty-cooldown option not working
+ *
+ * I'm currently working on an update to the database system to make the plugin more efficient as well as many other features.
+ *
  * Go through wiki for outdated materials
  * Update front page
  * Team bounties

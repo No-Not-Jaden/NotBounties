@@ -1,36 +1,36 @@
 package me.jadenp.notbounties.features.settings.integrations.external_api;
 
-import fr.xyness.SimpleClaimSystem.API.SCS_API;
-import fr.xyness.SimpleClaimSystem.API.SCS_API_Provider;
-import fr.xyness.SimpleClaimSystem.Types.Claim;
+import fr.xyness.SCS.API.SimpleClaimSystemAPI;
+import fr.xyness.SCS.API.SimpleClaimSystemAPI_Provider;
+import fr.xyness.SCS.SimpleClaimSystem;
+import fr.xyness.SCS.Types.Claim;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.util.List;
+import java.util.Set;
 
 public class SimpleClaimSystemClass {
     private SimpleClaimSystemClass(){}
 
-    private static SCS_API api = null;
-
     private static boolean isRegistered() {
-        if (api != null) return true;
-        if (SCS_API_Provider.isRegistered()) {
-            api = SCS_API_Provider.get();
-            return true;
-        }
-        return false;
+        SimpleClaimSystem scs = (SimpleClaimSystem) Bukkit.getPluginManager().getPlugin("SimpleClaimSystem");
+        if (scs == null) return false;
+        SimpleClaimSystemAPI_Provider.initialize(scs);
+        return true;
     }
 
     public static boolean isClaimShared(Player player, Player target) {
         if (!isRegistered()) return false;
-        // could use the async api, but the players should be in memory since they are online
-        List<Claim> claims = api.getClaimsByOwner(target.getUniqueId());
+        SimpleClaimSystemAPI api = SimpleClaimSystemAPI_Provider.getAPI();
+        Set<Claim> claims = api.getPlayerClaims(target);
         for (Claim claim : claims) {
+            Bukkit.getLogger().info(claim.getName());
             if (claim.isMember(player.getUniqueId()))
                 return true;
         }
-        claims = api.getClaimsByOwner(player.getUniqueId());
+        claims = api.getPlayerClaims(player);
         for (Claim claim : claims) {
+            Bukkit.getLogger().info(claim.getName());
             if (claim.isMember(target.getUniqueId()))
                 return true;
         }
