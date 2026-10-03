@@ -14,13 +14,17 @@ import me.jadenp.notbounties.ui.gui.PlayerGUInfo;
 import me.jadenp.notbounties.ui.gui.display_items.PlayerItem;
 import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
+import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -39,6 +43,39 @@ public class Messages {
             } else {
                 NotBounties.getServerImplementation().global().run(() -> sender.sendMessage(parsed));
             }
+        });
+    }
+
+    public static void sendActionBar(Player player, String message, MessageContext context) {
+        getTextComponent(message, context).thenAccept(
+                parsed -> NotBounties.getServerImplementation().entity(player).run(
+                        () -> player.spigot().sendMessage(ChatMessageType.ACTION_BAR, parsed)
+                )
+        );
+    }
+
+    public static CompletableFuture<ItemStack> setItemText(@NotNull ItemStack itemStack, String displayName, List<String> lore, MessageContext context) {
+        List<CompletableFuture<String>> lines = new java.util.ArrayList<>();
+        if (displayName != null) {
+            lines.add(parse(displayName, context));
+        }
+        if (lore != null) {
+            lore.forEach(s -> lines.add(parse(s, context)));
+        }
+        return CompletableFuture.allOf(lines.toArray(new CompletableFuture[0])).thenApply(v -> {
+            ItemMeta meta = itemStack.getItemMeta();
+            if (meta == null) {
+                return itemStack;
+            }
+            if (displayName != null) {
+                meta.setDisplayName(lines.removeFirst().join());
+            }
+            if (lore != null) {
+                List<String> newLore = lines.stream().map(CompletableFuture::join).toList();
+                meta.setLore(newLore);
+            }
+            itemStack.setItemMeta(meta);
+            return itemStack;
         });
     }
 
