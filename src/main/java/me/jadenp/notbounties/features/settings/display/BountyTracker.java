@@ -568,23 +568,26 @@ public class BountyTracker implements Listener {
             return;
         event.setCancelled(true);
         UUID posterPlayerUUID = UUID.fromString(Objects.requireNonNull(mapMeta.getPersistentDataContainer().get(getNamespacedKey(), PersistentDataType.STRING)));
-        Bounty bounty = getBounty(posterPlayerUUID);
-        if (bounty == null)
-            return;
-        if (bounty.getTotalDisplayBounty() < minBounty) {
-            event.getPlayer().sendMessage(parse(getPrefix() + getMessage("min-bounty"), minBounty, event.getPlayer()));
-            return;
-        }
-        removeEmptyTracker(event.getPlayer(), true); // remove one empty tracker
-        NumberFormatting.givePlayer(event.getPlayer(), getTracker(posterPlayerUUID), 1); // give tracker
-        // you have been given
-        event.getPlayer().sendMessage(parse(getPrefix() + getMessage("tracker-receive"), event.getPlayer()));
+        DataManager.getBountyAsync(posterPlayerUUID).thenAccept(bounty -> {
+            if (bounty == null)
+                return;
+            if (bounty.getTotalDisplayBounty() < minBounty) {
+                Messages.send(event.getPlayer(), getMessage("min-bounty"), MessageContext.builder().receiver(event.getPlayer()).amount(minBounty).build());
+                return;
+            }
+            removeEmptyTracker(event.getPlayer(), true); // remove one empty tracker
+            getTracker(posterPlayerUUID).thenAccept(trackerItem -> {
+                NumberFormatting.givePlayer(event.getPlayer(), trackerItem, 1); // give tracker
+                // you have been given
+                Messages.send(event.getPlayer(), getMessage("tracker-receive"), MessageContext.builder().receiver(event.getPlayer()).build());
+            });
+        });
+
     }
 
     // check for tracking crafting
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
-        // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
         if (!tracker || NotBounties.isPaused() || !craftTracker)
             return;
         boolean hasPerm = false;
@@ -596,6 +599,7 @@ public class BountyTracker implements Listener {
         }
         if (!hasPerm)
             return;
+        // TODO: Make a function to check if crafting is valid, check validity in future after bounty head is obtained.
         ItemStack[] matrix = event.getInventory().getMatrix();
         boolean hasEmptyTracker = false;
         ItemStack head = null;
