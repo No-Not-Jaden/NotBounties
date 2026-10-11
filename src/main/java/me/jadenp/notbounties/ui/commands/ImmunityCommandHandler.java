@@ -131,7 +131,7 @@ class ImmunityCommandHandler {
         }
 
         // run /bounty stat immunity (player) edit (amount)
-        return commandInvoker.execute(parser, new String[]{"stat", "immunity", args[2], "edit", args[3]}, forcePermission, adminPermission);
+        return commandInvoker.execute(sender, new String[]{"stat", "immunity", args[2], "edit", args[3]}, forcePermission, adminPermission);
 
     }
 
