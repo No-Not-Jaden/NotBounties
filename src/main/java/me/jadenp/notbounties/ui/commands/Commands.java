@@ -1190,7 +1190,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
                     if (actualRemove == null) {
                         // couldnt find setter
-                        OfflinePlayer player = Bukkit.getOfflinePlayer(toRemove.getUUID());
+                        OfflinePlayer player = Bukkit.getOfflinePlayer(senderUUID);
                         if (!silent)
                             sender.sendMessage(parse(getPrefix() + getMessage("no-setter"), senderUUID, player));
                         return false;

@@ -357,8 +357,18 @@ public class LanguageOptions {
      * Mainly for unknown player
      */
     public static String parse(String str, UUID playerUUID, OfflinePlayer receiver) {
-        String player = LoggedPlayers.getPlayerName(receiver);
-        String playerDisplay = LoggedPlayers.getDisplayName(playerUUID);
+        String player;
+        String playerDisplay;
+        if (receiver != null) {
+            player = LoggedPlayers.getPlayerName(receiver);
+            playerDisplay = LoggedPlayers.getDisplayName(receiver);
+        } else if (playerUUID != null) {
+            player = LoggedPlayers.getPlayerName(playerUUID);
+            playerDisplay = LoggedPlayers.getDisplayName(playerUUID);
+        } else {
+            player = "Unknown Player";
+            playerDisplay = "Unknown Player";
+        }
         str = str.replace("{receiver}", (player)).replace("{receiver_displayname}", (playerDisplay));
         str = str.replace("{player}", (player)).replace("{player_displayname}", (playerDisplay));
         return parse(str, receiver);
