@@ -6,10 +6,13 @@ import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.features.challenges.ChallengeManager;
 import me.jadenp.notbounties.features.challenges.ChallengeType;
 import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.ui.Head;
 import me.jadenp.notbounties.ui.gui.CompatabilityUtils;
+import me.jadenp.notbounties.utils.DataManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
@@ -18,6 +21,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
@@ -32,6 +36,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.map.MapView;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -42,10 +47,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
-import static me.jadenp.notbounties.utils.BountyManager.getBounty;
-import static me.jadenp.notbounties.utils.BountyManager.hasBounty;
 
 public class BountyMap implements Listener {
 
@@ -286,9 +290,9 @@ public class BountyMap implements Listener {
     // check for tracking crafting
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent event) {
-        // may have to cancel event or set result to null instead of returning or may have to listen to the craft event
         if (NotBounties.isPaused() || !enabled || !craftPoster)
             return;
+        event.getInventory().setResult(null);
         boolean hasPerm = false;
         for (HumanEntity humanEntity : event.getViewers()) {
             if (humanEntity.hasPermission("notbounties.poster.craft")){
@@ -298,7 +302,33 @@ public class BountyMap implements Listener {
         }
         if (!hasPerm)
             return;
-        ItemStack[] matrix = event.getInventory().getMatrix();
+
+        UUID trackedPlayer = getPosterCraftPlayer(event.getInventory().getMatrix());
+        if (trackedPlayer == null)
+            return;
+
+        DataManager.getBountyAsync(trackedPlayer).thenCompose(bounty -> {
+            if (bounty != null)
+                return getMap(bounty);
+
+            return getMap(trackedPlayer, 0, System.currentTimeMillis());
+        }).thenAccept(result -> {
+            if (result == null || event.getViewers().isEmpty())
+                return;
+
+            HumanEntity viewer = event.getViewers().getFirst();
+            NotBounties.getServerImplementation().entity(viewer).run(() -> {
+                if (viewer.isValid() && (viewer.getOpenInventory().getTopInventory().getType() == InventoryType.WORKBENCH || viewer.getOpenInventory().getTopInventory().getType() == InventoryType.CRAFTING)) {
+                    UUID currentTrackedPlayer = getPosterCraftPlayer(event.getInventory().getMatrix());
+                    if (trackedPlayer.equals(currentTrackedPlayer)) {
+                        event.getInventory().setResult(result);
+                    }
+                }
+            });
+        });
+    }
+
+    private @Nullable UUID getPosterCraftPlayer(ItemStack[] matrix) {
         boolean hasMap = false;
         ItemStack head = null;
         for (ItemStack itemStack : matrix) {
@@ -309,20 +339,20 @@ public class BountyMap implements Listener {
                     hasMap = true;
                 } else {
                     // already a map in previous slot
-                    return;
+                    return null;
                 }
             } if (itemStack.getType() == Material.PLAYER_HEAD) {
                 if (head == null) {
                     head = itemStack;
                 } else {
                     // already a head in previous slot
-                    return;
+                    return null;
                 }
             }
         }
         if (head == null || !hasMap)
             // not enough requirements
-            return;
+            return null;
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         UUID trackedPlayer = null;
@@ -338,17 +368,16 @@ public class BountyMap implements Listener {
         }
         if (trackedPlayer == null) {
             NotBounties.debugMessage("Could not get player from head in crafting matrix.", false);
-            return;
+            return null;
         }
         if (LoggedPlayers.isMissing(trackedPlayer)) {
             if (meta.getOwnerProfile() != null && meta.getOwnerProfile().getUniqueId() != null && !LoggedPlayers.isMissing(meta.getOwnerProfile().getUniqueId())) {
                 trackedPlayer = meta.getOwnerProfile().getUniqueId();
             } else {
-                return;
+                return null;
             }
         }
-        ItemStack map = hasBounty(trackedPlayer) ? getMap(Objects.requireNonNull(getBounty(trackedPlayer))) : getMap(trackedPlayer, 0, System.currentTimeMillis());
-        event.getInventory().setResult(map);
+        return trackedPlayer;
     }
     // complete tracker crafting
     @EventHandler
@@ -470,11 +499,11 @@ public class BountyMap implements Listener {
         return playerFont.deriveFont(fontSize);
     }
 
-    public static ItemStack getMap(Bounty bounty) {
+    public static CompletableFuture<ItemStack> getMap(Bounty bounty) {
         return getMap(bounty.getUUID(), bounty.getTotalDisplayBounty(), bounty.getLatestUpdate());
     }
 
-    public static ItemStack getMap(UUID uuid, double displayBounty, long updateTime) {
+    public static CompletableFuture<ItemStack> getMap(UUID uuid, double displayBounty, long updateTime) {
         OfflinePlayer parser = Bukkit.getOfflinePlayer(uuid);
         MapView mapView = getMapView(uuid);
 
@@ -487,19 +516,25 @@ public class BountyMap implements Listener {
             // error with the map id
             NotBounties.debugMessage("Error setting map view for poster!", true);
             NotBounties.debugMessage(e.toString(), true);
-            return null;
+            return CompletableFuture.completedFuture(null);
         }
-        meta.setDisplayName(LanguageOptions.parse(LanguageOptions.getMessage("map-name"), displayBounty, updateTime, LocalTime.TimeFormat.SERVER, parser));
+        MessageContext context = MessageContext.builder()
+                .receiver(parser)
+                .player(parser)
+                .bounty(displayBounty)
+                .time(updateTime, LocalTime.TimeFormat.SERVER)
+                .build();
+        meta.setDisplayName(Messages.parse(LanguageOptions.getMessage("map-name"), context).join());
         ArrayList<String> lore = new ArrayList<>();
         for (String str : LanguageOptions.getListMessage("map-lore")) {
-            lore.add(LanguageOptions.parse(str, displayBounty, updateTime, LocalTime.TimeFormat.SERVER, parser));
+            lore.add(Messages.parse(str, context).join());
         }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         meta.addItemFlags(ItemFlag.values()[5]);
         meta.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, uuid.toString());
         mapItem.setItemMeta(meta);
-        return mapItem;
+        return CompletableFuture.completedFuture(mapItem);
     }
 
     public static MapView getMapView(UUID uuid) {

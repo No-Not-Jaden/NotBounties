@@ -590,6 +590,7 @@ public class BountyTracker implements Listener {
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         if (!tracker || NotBounties.isPaused() || !craftTracker)
             return;
+        event.getInventory().setResult(null);
         boolean hasPerm = false;
         for (HumanEntity humanEntity : event.getViewers()) {
             if (humanEntity.hasPermission("notbounties.tracker.craft")){
@@ -599,8 +600,34 @@ public class BountyTracker implements Listener {
         }
         if (!hasPerm)
             return;
-        // TODO: Make a function to check if crafting is valid, check validity in future after bounty head is obtained.
-        ItemStack[] matrix = event.getInventory().getMatrix();
+
+        UUID trackedPlayer = getTrackedCraftPlayer(event.getInventory().getMatrix());
+        if (trackedPlayer == null)
+            return;
+
+        DataManager.getBountyAsync(trackedPlayer).thenCompose(bounty -> {
+            if (bounty == null || bounty.getTotalDisplayBounty() < minBounty)
+                return CompletableFuture.completedFuture(null);
+
+            return getTracker(trackedPlayer);
+        }).thenAccept(result -> {
+            if (result == null || event.getViewers().isEmpty())
+                return;
+
+            HumanEntity viewer = event.getViewers().getFirst();
+            NotBounties.getServerImplementation().entity(viewer).run(() -> {
+                if (viewer.isValid() && (viewer.getOpenInventory().getTopInventory().getType() == InventoryType.WORKBENCH || viewer.getOpenInventory().getTopInventory().getType() == InventoryType.CRAFTING)) {
+                    UUID currentTrackedPlayer = getTrackedCraftPlayer(event.getInventory().getMatrix());
+                    if (trackedPlayer.equals(currentTrackedPlayer)) {
+                        event.getInventory().setResult(result);
+                    }
+                }
+
+            });
+        });
+    }
+
+    private @Nullable UUID getTrackedCraftPlayer(ItemStack[] matrix) {
         boolean hasEmptyTracker = false;
         ItemStack head = null;
         for (ItemStack itemStack : matrix) {
@@ -611,7 +638,7 @@ public class BountyTracker implements Listener {
                     hasEmptyTracker = true;
                 } else {
                     // already an empty tracker in previous slot
-                    return;
+                    return null;
                 }
             }
             if (itemStack.getType() == Material.PLAYER_HEAD) {
@@ -619,13 +646,13 @@ public class BountyTracker implements Listener {
                     head = itemStack;
                 } else {
                     // already a head in previous slot
-                    return;
+                    return null;
                 }
             }
         }
         if (head == null || !hasEmptyTracker)
             // not enough requirements
-            return;
+            return null;
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         assert meta != null;
         UUID trackedPlayer = null;
@@ -641,20 +668,16 @@ public class BountyTracker implements Listener {
         }
         if (trackedPlayer == null) {
             NotBounties.debugMessage("Could not get player from head in crafting matrix.", false);
-            return;
+            return null;
         }
         if (LoggedPlayers.isMissing(trackedPlayer)) {
             if (meta.getOwnerProfile() != null && meta.getOwnerProfile().getUniqueId() != null && !LoggedPlayers.isMissing(meta.getOwnerProfile().getUniqueId())) {
                 trackedPlayer = meta.getOwnerProfile().getUniqueId();
             } else {
-                return;
+                return null;
             }
         }
-        Bounty bounty = getBounty(trackedPlayer);
-        if (bounty == null|| bounty.getTotalDisplayBounty() < minBounty)
-            return;
-        ItemStack trackerItem = getTracker(trackedPlayer);
-        event.getInventory().setResult(trackerItem);
+        return trackedPlayer;
     }
     // complete tracker crafting
     @EventHandler
@@ -740,7 +763,7 @@ public class BountyTracker implements Listener {
             if (!event.getItemDrop().isValid())
                 return;
             if ((NotBounties.getServerVersion() < 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.CAULDRON) || (NotBounties.getServerVersion() >= 17 && event.getItemDrop().getLocation().getBlock().getType() == Material.WATER_CAULDRON)) {
-                ItemStack emptyTracker = getEmptyTracker().clone();
+                ItemStack emptyTracker = getEmptyTracker().join().clone();
                 emptyTracker.setAmount(event.getItemDrop().getItemStack().getAmount());
                 event.getItemDrop().getWorld().dropItem(event.getItemDrop().getLocation(), emptyTracker);
                 event.getItemDrop().remove();

@@ -63,6 +63,8 @@ public class AsyncDatabaseWrapper extends NotBountiesDatabase {
     }
 
     private <T> CompletableFuture<T> execute(DatabaseOperation<T> operation) {
+        // Check if already on an async thread
+        // Possibly could allow a main thread completion if getDatabase(LocalData.class) != null and the cache contains a value
         if (NotBounties.getInstance().isEnabled() && Bukkit.isPrimaryThread()) {
             return CompletableFuture.supplyAsync(operation::run);
         } else {
