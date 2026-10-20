@@ -29,12 +29,12 @@ public class LocalData extends NotBountiesDatabase {
 
     public LocalData(Plugin plugin, long maxCacheSize, long refreshInterval) {
         super(plugin, "LocalData");
-        bountyCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
+        /*bountyCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
                 .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();
         statCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
                 .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();
         playerDataCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
-                .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();
+                .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();*/
     }
 
     @Override

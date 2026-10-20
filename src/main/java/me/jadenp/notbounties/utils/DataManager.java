@@ -463,6 +463,10 @@ public class DataManager {
         return onlinePlayers;
     }
 
+    public static boolean isOnline(UUID uuid) {
+        return onlinePlayers.containsKey(uuid);
+    }
+
     /**
      * Get the top players.
      * @param sortType How to sort the returned entries.
