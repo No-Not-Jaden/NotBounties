@@ -1,15 +1,14 @@
 package me.jadenp.notbounties.features.settings.databases;
 
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.player_data.OnlineRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.Setter;
+import me.jadenp.notbounties.features.settings.databases.cache.PlayerCache;
 import me.jadenp.notbounties.features.settings.databases.wrappers.NotBountiesDatabase;
 import me.jadenp.notbounties.utils.DataManager;
-import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.data.PlayerStat;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
@@ -17,24 +16,20 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class LocalData extends NotBountiesDatabase {
     // elements must expire quickly to be up to date with other servers
-    // TODO don't expire elements unless there are no references to them? Don't expire data for online players? Don't expire using a local database
     private final Cache<UUID, Bounty> bountyCache;
     private final Cache<UUID, PlayerStat> statCache;
     private final Cache<UUID, PlayerData> playerDataCache;
 
     public LocalData(Plugin plugin, long maxCacheSize, long refreshInterval) {
         super(plugin, "LocalData");
-        /*bountyCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
-                .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();
-        statCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
-                .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();
-        playerDataCache = CacheBuilder.newBuilder().maximumSize(maxCacheSize)
-                .expireAfterAccess(refreshInterval, TimeUnit.SECONDS).build();*/
+        bountyCache = new PlayerCache<>(Duration.ofSeconds(refreshInterval));
+        statCache = new PlayerCache<>(Duration.ofSeconds(refreshInterval));
+        playerDataCache = new PlayerCache<>(Duration.ofSeconds(refreshInterval));
     }
 
     @Override

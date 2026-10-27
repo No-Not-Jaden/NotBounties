@@ -1,4 +1,4 @@
-package me.jadenp.notbounties.features.settings.databases;
+package me.jadenp.notbounties.features.settings.databases.cache;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheStats;
@@ -9,8 +9,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -20,12 +19,16 @@ public class PlayerCache<T> implements Cache<UUID, T> {
 
     // Zero or a negative duration disables expiration.
     private volatile long expirationNanos;
+    private final long maxCacheSize; // TODO: implement
 
     private final Map<UUID, CacheEntry<T>> entries =
             new ConcurrentHashMap<>();
+    private final CacheMapView<T> mapView;
 
-    public PlayerCache(Duration expiration) {
+    public PlayerCache(Duration expiration, long maxCacheSize) {
         setExpiration(expiration);
+        this.maxCacheSize = maxCacheSize;
+        mapView = new CacheMapView<>(this);
     }
 
     public void setExpiration(Duration expiration) {
@@ -65,42 +68,53 @@ public class PlayerCache<T> implements Cache<UUID, T> {
     }
 
     @Override
-    public T get(@NonNull UUID key, @NonNull Callable<? extends T> loader) throws ExecutionException {
+    public @NonNull T get(@NonNull UUID key, @NonNull Callable<? extends T> loader) throws ExecutionException {
         T value = getIfPresent(key);
         if (value != null) {
             return value;
         }
 
-        return ;
+        try {
+            return loader.call();
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
     }
 
     @Override
-    public ImmutableMap<UUID, T> getAllPresent(Iterable<?> keys) {
-        return null;
+    public @NonNull ImmutableMap<UUID, T> getAllPresent(@NonNull Iterable<?> keys) {
+        cleanUp();
+        // copy entries so we don't return CacheEntry values
+        Map<UUID, T> newEntries = new HashMap<>();
+        entries.forEach((uuid, entry) -> newEntries.put(uuid, entry.value));
+        return ImmutableMap.copyOf(newEntries);
     }
 
-    public void put(UUID uuid, T value) {
+    public void put(@NonNull UUID uuid, @NonNull T value) {
         entries.put(uuid, new CacheEntry<>(value));
     }
 
     @Override
     public void putAll(Map<? extends UUID, ? extends T> m) {
-
+        m.forEach(this::put);
     }
 
     @Override
-    public void invalidate(Object key) {
-
+    public void invalidate(@NonNull Object key) {
+        if (!(key instanceof UUID)) return;
+        entries.remove(key);
     }
 
     @Override
     public void invalidateAll(Iterable<?> keys) {
-
+        for (Object key : keys) {
+            invalidate(key);
+        }
     }
 
     @Override
     public void invalidateAll() {
-
+        entries.clear();
     }
 
     public void remove(UUID uuid) {
@@ -126,13 +140,17 @@ public class PlayerCache<T> implements Cache<UUID, T> {
     }
 
     @Override
-    public CacheStats stats() {
-        return null;
+    public @NonNull CacheStats stats() {
+        return new CacheStats(0,0,0,0,0,0);
+    }
+
+    Map<UUID, CacheEntry<T>> entries() {
+        return entries;
     }
 
     @Override
-    public ConcurrentMap<UUID, T> asMap() {
-        return null;
+    public @NonNull ConcurrentMap<UUID, T> asMap() {
+        return mapView;
     }
 
     @Override
@@ -146,16 +164,6 @@ public class PlayerCache<T> implements Cache<UUID, T> {
                     entries.remove(uuid, entry);
                 }
             }
-        }
-    }
-
-    private static class CacheEntry<T> {
-        private final T value;
-        private volatile long lastAccessNanos;
-
-        private CacheEntry(T value) {
-            this.value = value;
-            this.lastAccessNanos = System.nanoTime();
         }
     }
 }

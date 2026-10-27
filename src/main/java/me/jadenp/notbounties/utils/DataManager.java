@@ -4,6 +4,8 @@ import me.jadenp.notbounties.*;
 import me.jadenp.notbounties.data.*;
 import me.jadenp.notbounties.data.player_data.*;
 import me.jadenp.notbounties.features.ActionCommands;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.databases.*;
 import me.jadenp.notbounties.features.settings.display.BountyTracker;
 import me.jadenp.notbounties.features.settings.auto_bounties.BigBounty;
@@ -432,7 +434,7 @@ public class DataManager {
             for (Setter setter : bounty.getSetters()) {
                 if (!setter.isNotified()) {
                     beenNotified = true;
-                    player.sendMessage(parse(getPrefix() + getMessage("offline-bounty"), setter.getDisplayAmount(), Bukkit.getOfflinePlayer(setter.getUuid())));
+                    Messages.send(player, getMessage("offline-bounty"), MessageContext.builder().amount(setter.getDisplayAmount()).receiver(Bukkit.getOfflinePlayer(setter.getUuid())).build());
                     setter.setNotified(true);
                     addedAmount += setter.getDisplayAmount();
                 }
