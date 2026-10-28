@@ -19,15 +19,19 @@ public class PlayerCache<T> implements Cache<UUID, T> {
 
     // Zero or a negative duration disables expiration.
     private volatile long expirationNanos;
-    private final long maxCacheSize; // TODO: implement
+    // This is useful for when player data is modified by admins on another server. Expected to not be very common.
+    private volatile long onlineExpirationNanos;
+    // This is useful to save space, especially if there is no expiration.
+    private volatile long maxCacheSize; // TODO: implement
 
     private final Map<UUID, CacheEntry<T>> entries =
             new ConcurrentHashMap<>();
     private final CacheMapView<T> mapView;
 
-    public PlayerCache(Duration expiration, long maxCacheSize) {
+    public PlayerCache(Duration expiration, Duration onlineExpiration, long maxCacheSize) {
         setExpiration(expiration);
-        this.maxCacheSize = maxCacheSize;
+        setOnlineExpiration(onlineExpiration);
+        setMaxCacheSize(maxCacheSize);
         mapView = new CacheMapView<>(this);
     }
 
@@ -38,6 +42,19 @@ public class PlayerCache<T> implements Cache<UUID, T> {
         } else {
             expirationNanos = expiration.toNanos();
         }
+    }
+
+    public void setOnlineExpiration(Duration onlineExpiration) {
+        if (onlineExpiration == null || onlineExpiration.isNegative()
+                || onlineExpiration.isZero()) {
+            onlineExpirationNanos = -1L;
+        } else {
+            onlineExpirationNanos = onlineExpiration.toNanos();
+        }
+    }
+
+    public void setMaxCacheSize(long maxCacheSize) {
+        this.maxCacheSize = maxCacheSize;
     }
 
     @Override
@@ -91,7 +108,12 @@ public class PlayerCache<T> implements Cache<UUID, T> {
     }
 
     public void put(@NonNull UUID uuid, @NonNull T value) {
+        // check for space
+        if (maxCacheSize > 0 && entries.size() >= maxCacheSize) {
+            // invalidate a key, perhaps one with the lowest lastAccess time
+        }
         entries.put(uuid, new CacheEntry<>(value));
+
     }
 
     @Override
@@ -126,13 +148,21 @@ public class PlayerCache<T> implements Cache<UUID, T> {
     }
 
     private boolean isExpired(UUID uuid, CacheEntry<T> entry) {
-        long expiration = expirationNanos;
+        long expiration = getExpirationTime(uuid);
 
-        if (expiration < 0 || DataManager.isOnline(uuid)) {
+        if (expiration < 0 ) {
             return false;
         }
 
         return System.nanoTime() - entry.lastAccessNanos >= expiration;
+    }
+
+    private long getExpirationTime(UUID uuid) {
+        if (DataManager.isOnline(uuid)) {
+            return onlineExpirationNanos;
+        } else {
+            return expirationNanos;
+        }
     }
 
     public long size() {
