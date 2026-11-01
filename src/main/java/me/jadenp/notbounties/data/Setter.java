@@ -94,10 +94,10 @@ public class Setter extends Inconsistent implements Comparable<Setter> {
 
     public boolean canClaim(@NotNull UUID claimerUuid) {
         // check if the claimer set this bounty
-        if (!Whitelist.isEnabled())
-            return true;
         if (!ConfigOptions.isSetterClaimOwn() && claimerUuid.equals(uuid))
             return false;
+        if (!Whitelist.isEnabled())
+            return true;
         // check the whitelist
         Whitelist applicableWhitelist = getWhitelist();
         if (applicableWhitelist.getList().isEmpty())
