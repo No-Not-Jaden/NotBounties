@@ -29,21 +29,19 @@ public class Databases extends ResourceConfiguration {
 
     @Override
     protected void loadConfiguration(YamlConfiguration config) {
-        long maxLocalCacheSize;
-        long refreshInterval;
         if (autoReconnectTask != null)
             autoReconnectTask.cancel();
         long autoConnectInterval = config.getLong("auto-connect-interval", 0);
         setAutoReconnectTask(autoConnectInterval);
 
-        maxLocalCacheSize = Math.max(config.getLong("max-local-cache-size", 200), 10);
-        refreshInterval = config.getLong("refresh-interval", 0);
         if (configuredDatabases.isEmpty())
-            configuredDatabases.add(new AsyncDatabaseWrapper(new FallbackWrapper(new LocalData(plugin, maxLocalCacheSize, refreshInterval))));
+            configuredDatabases.add(new AsyncDatabaseWrapper(new FallbackWrapper(new LocalData(plugin))));
 
+        Set<String> databaseNames = new HashSet<>();
         for (String databaseName : config.getKeys(false)) {
             if (!config.isConfigurationSection(databaseName))
                 continue;
+            databaseNames.add(databaseName);
             boolean newDatabase = true;
             for (AsyncDatabaseWrapper database : configuredDatabases) {
                 if (database.getConfigurationName().equals(databaseName)) {
@@ -60,9 +58,15 @@ public class Databases extends ResourceConfiguration {
                 }
             }
         }
+        // check for any removed databases
+        configuredDatabases.removeIf(database ->
+                        database.getDatabase(LocalData.class) == null
+                        && !databaseNames.contains(database.getConfigurationName())
+        );
         if (configuredDatabases.isEmpty())
             return;
         Collections.sort(configuredDatabases); // local data will be first in the list
+        configuredDatabases.getFirst().reloadConfig();
         // set fallback order
         for (int i = 0; i < configuredDatabases.size(); i++) {
             FallbackWrapper fallbackWrapper = configuredDatabases.get(i).getDatabase(FallbackWrapper.class);
@@ -133,9 +137,17 @@ public class Databases extends ResourceConfiguration {
     }
 
     private void tryDatabaseConnections() {
+        // try database connections
+        // if only the local database is connected, set local cache mode
+        boolean localOnly = true;
         for (NotBountiesDatabase database : configuredDatabases) {
-            if (!database.isConnected())
-                database.connect(true);
+            if ((database.isConnected() || database.connect(true)) && database.getDatabase(LocalData.class) != null && !database.isDefault()) {
+                localOnly = false;
+            }
+        }
+        LocalData localData = configuredDatabases.getFirst().getDatabase(LocalData.class);
+        if (localData != null) {
+            localData.setLocalCacheMode(localOnly);
         }
     }
 

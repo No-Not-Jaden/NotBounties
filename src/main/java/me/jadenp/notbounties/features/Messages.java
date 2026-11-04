@@ -27,10 +27,16 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime.formatTime;
 
 public class Messages {
+
+    public static void log(Logger logger, Level level, String message, MessageContext context) {
+        parse(message, context).thenAccept(parsed -> NotBounties.getServerImplementation().global().run(() -> logger.log(level, parsed)));
+    }
 
     public static void send(Player player, String message, MessageContext context) {
         parse(message, context).thenAccept(parsed -> NotBounties.getServerImplementation().entity(player).run(() -> player.sendMessage(parsed)));

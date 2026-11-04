@@ -7,6 +7,8 @@ import me.jadenp.notbounties.features.settings.integrations.external_api.LandsCl
 import me.jadenp.notbounties.utils.BountyManager;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.features.settings.integrations.external_api.worldguard.WorldGuardClass;
+import me.jadenp.notbounties.utils.DataManager;
+import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -127,7 +129,7 @@ public class PVPRestrictions implements Listener {
 
         switch (localPVPRule) {
             case 1:
-                if (!BountyManager.hasBounty(player.getUniqueId())) {
+                if (!LoggedPlayers.hasActiveBounty(player.getUniqueId())) {
                     event.setCancelled(true);
                     return;
                 }

@@ -26,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 
@@ -46,6 +47,9 @@ public class DataManager {
     private static final long NETWORK_PLAYERS_REFRESH_INTERVAL_MS = 10000;
     private static long lastNetworkPlayersRefresh = 0;
     private static final Map<UUID, String> networkPlayers = new HashMap<>();
+    private static final Map<UUID, String> activeBountyNames =  new ConcurrentHashMap<>();
+    private static long lastBountyNameRequest = 0;
+    private static final long BOUNTY_NAME_REQUEST_INTERVAL_MS = 30000;
 
     private static Plugin plugin;
 
@@ -73,6 +77,38 @@ public class DataManager {
         synchronized (networkPlayers) {
             return new HashMap<>(networkPlayers);
         }
+    }
+
+    /**
+     * Get a set of all the player names with active bounties.
+     * These names are lazily updated every {@link #BOUNTY_NAME_REQUEST_INTERVAL_MS} ms.
+     * @return A set of player names who have an active bounty.
+     */
+    public static Set<String> getActiveBountyNames() {
+        checkActiveBounties();
+        return new HashSet<>(activeBountyNames.values());
+    }
+
+    private static void checkActiveBounties() {
+        if (System.currentTimeMillis() - lastBountyNameRequest > BOUNTY_NAME_REQUEST_INTERVAL_MS) {
+            lastBountyNameRequest = System.currentTimeMillis();
+            Map<UUID, String> activeBounties = new HashMap<>();
+            iterateAllBounties(bounty -> activeBounties.put(bounty.getUUID(), bounty.getName())).thenAccept(v -> {
+                activeBountyNames.clear();
+                activeBountyNames.putAll(activeBounties);
+            });
+        }
+    }
+
+    /**
+     * Check if a player has an active bounty.
+     * The bounty status returned by this function is lazily updated every {@link #BOUNTY_NAME_REQUEST_INTERVAL_MS} ms.
+     * @param uuid UUID of the player to check.
+     * @return True if a player has an active bounty.
+     */
+    public static boolean hasActiveBounty(UUID uuid) {
+        checkActiveBounties();
+        return activeBountyNames.containsKey(uuid);
     }
 
     /**
@@ -291,19 +327,20 @@ public class DataManager {
      * Not guaranteed to hit every bounty exactly once.
      * @param operation Operation to perform.
      */
-    public static void iterateAllBounties(BountyOperation operation) {
-        iterateBounties(operation, 0);
+    public static CompletableFuture<Void> iterateAllBounties(BountyOperation operation) {
+        return iterateBounties(operation, 0);
     }
 
-    private static void iterateBounties(BountyOperation operation, long offset) {
+    private static CompletableFuture<Void> iterateBounties(BountyOperation operation, long offset) {
         final long limit = 100;
 
-        ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getBountiesAsync(BountySortType.OLDEST, offset, limit, Collections.emptySet()).thenAccept(bounties -> {
+        return ConfigOptions.getDatabases().getConfiguredDatabases().getFirst().getBountiesAsync(BountySortType.OLDEST, offset, limit, Collections.emptySet()).thenAccept(bounties -> {
             for (Bounty bounty : bounties) {
                 operation.run(bounty);
             }
             if (bounties.size() >= limit) {
-                iterateBounties(operation, offset + limit);
+                // run the next iteration and wait for it to be completed
+                iterateBounties(operation, offset + limit).join();
             }
         });
     }

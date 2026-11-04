@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-
+// TODO: On Cache changes, compare to DataManager's active bounty names list and update that list if necessary
 public class LoggedPlayers {
 
     private LoggedPlayers(){}
@@ -25,11 +25,8 @@ public class LoggedPlayers {
      */
     private static final Map<String, UUID> playerIDs = new HashMap<>();
     private static final Set<UUID> requestingNames = new HashSet<>();
-    private static final Map<UUID, String> activeBountyNames =  new HashMap<>();
 
     private static HttpSyncPool httpPool;
-    private static long lastBountyNameRequest = 0;
-    private static final long BOUNTY_NAME_REQUEST_INTERVAL_MS = 30000;
 
     private static void loadName(PlayerData playerData) {
         if (playerData.getPlayerName() != null) {
@@ -42,27 +39,6 @@ public class LoggedPlayers {
 
         } else {
             webRequestPlayerName(playerData.getUuid());
-        }
-    }
-
-    public static Set<String> getActiveBountyNames() {
-        if (System.currentTimeMillis() - lastBountyNameRequest > BOUNTY_NAME_REQUEST_INTERVAL_MS) {
-            lastBountyNameRequest = System.currentTimeMillis();
-            DataManager.getPublicBountiesAsync(BountySortType.HIGHEST, 0, ConfigOptions.getMaxTabCompletePlayers() + 1).thenAccept(bounties -> {
-                synchronized (activeBountyNames) {
-                    activeBountyNames.clear();
-                    bounties.forEach(bounty -> activeBountyNames.put(bounty.getUUID(), bounty.getName()));
-                }
-            });
-        }
-        synchronized (activeBountyNames) {
-            return new HashSet<>(activeBountyNames.values());
-        }
-    }
-
-    public static boolean hasActiveBounty(UUID uuid) {
-        synchronized (activeBountyNames) {
-            return activeBountyNames.containsKey(uuid);
         }
     }
 

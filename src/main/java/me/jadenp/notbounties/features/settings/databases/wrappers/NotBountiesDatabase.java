@@ -6,10 +6,7 @@ import me.jadenp.notbounties.data.player_data.OnlineRefund;
 import me.jadenp.notbounties.data.player_data.PlayerData;
 import me.jadenp.notbounties.data.PlayerStat;
 import me.jadenp.notbounties.features.ConfigOptions;
-import me.jadenp.notbounties.features.settings.databases.BountySortType;
-import me.jadenp.notbounties.features.settings.databases.DatabaseConnectionException;
-import me.jadenp.notbounties.features.settings.databases.PlayerSortType;
-import me.jadenp.notbounties.features.settings.databases.StatSortType;
+import me.jadenp.notbounties.features.settings.databases.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -34,6 +31,7 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
     private long lastSyncAttempt = 0;
     private long lastSync = 0;
     protected boolean hasConnected = false;
+    private boolean isDefault = false;
 
     protected static final String DISCONNECTED_MESSAGE = "Database has disconnected unexpectedly!";
     protected static final DatabaseConnectionException notConnectedException = new DatabaseConnectionException("Database is not connected!");
@@ -395,11 +393,20 @@ public abstract class NotBountiesDatabase implements Comparable<NotBountiesDatab
             // YAML formatting errors
             return null;
         }
+        if (getDatabase(LocalData.class) != null) {
+            return config;
+        }
         ConfigurationSection configSection = config.getConfigurationSection(name);
         if (configSection == null)
             return null;
+        // check if the section is default
+        isDefault = name.equals("local-database") && configSection.getString("url", "").contains("jdbc:sqlite");
         priority = configSection.getInt("priority", 0);
         return configSection;
+    }
+
+    public boolean isDefault() {
+        return isDefault;
     }
 
     /**

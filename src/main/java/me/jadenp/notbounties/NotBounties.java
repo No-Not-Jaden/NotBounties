@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 
 import static me.jadenp.notbounties.features.LanguageOptions.*;
@@ -348,7 +349,13 @@ public final class NotBounties extends JavaPlugin {
             if (!updateAvailable && currentNumbers.length < versionNumbers.length)
                 updateAvailable = true;
             if (updateAvailable && !version.equals(ConfigOptions.getUpdateNotification())) {
-                plugin.getLogger().info(ChatColor.stripColor(parse(getMessage("update-notification").replace("{current}", NotBounties.getInstance().getDescription().getVersion()).replace("{latest}", version), null)));
+                Messages.log(
+                        plugin.getLogger(),
+                        Level.INFO,
+                        getMessage("update-notification")
+                                .replace("{current}", NotBounties.getInstance().getDescription().getVersion())
+                                .replace("{latest}", version), MessageContext.builder().build()
+                );
             }
         });
 
@@ -457,7 +464,7 @@ public final class NotBounties extends JavaPlugin {
 
 
     public void sendDebug(CommandSender sender) {
-        sender.sendMessage(parse(getPrefix() + ChatColor.WHITE + "NotBounties debug info:", null));
+        sender.sendMessage(ChatColor.WHITE + "NotBounties debug info:");
         List<AsyncDatabaseWrapper> databases = ConfigOptions.getDatabases().getConfiguredDatabases();
         long numConnected = databases.stream().filter(AsyncDatabaseWrapper::isConnected).count();
         String connected = numConnected > 0 ? ChatColor.GREEN + "" + numConnected : ChatColor.RED + "" + numConnected;
@@ -498,31 +505,40 @@ public final class NotBounties extends JavaPlugin {
         TextComponent github = new TextComponent(net.md_5.bungee.api.ChatColor.of(new Color(230, 237, 243))
                 + "Github + Wiki: " + ChatColor.GRAY + ChatColor.UNDERLINE + "https://github.com/No-Not-Jaden/NotBounties");
         github.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/No-Not-Jaden/NotBounties"));
-        String enable = NotBounties.isDebug() ? "disable" : "enable";
-        TextComponent debugMsg = new TextComponent(ChatColor.YELLOW + "(Tip) " + ChatColor.GOLD + "Run " + ChatColor.GRAY + "/" + ConfigOptions.getPluginBountyCommands().get(0) + " debug " + enable + ChatColor.GOLD + " to " + enable + " debug messages in console.");
-        debugMsg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " debug " + enable));
-        debugMsg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().getFirst() + " debug " + enable)));
+        TextComponent debugMsg = getDebugMsg();
         sender.spigot().sendMessage(discord);
         sender.spigot().sendMessage(spigot);
         sender.spigot().sendMessage(github);
         sender.spigot().sendMessage(debugMsg);
     }
 
+    private static @NotNull TextComponent getDebugMsg() {
+        String enable = NotBounties.isDebug() ? "disable" : "enable";
+        final String debugCommand = "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " debug " + enable;
+        TextComponent debugMsg = new TextComponent(ChatColor.YELLOW + "(Tip) " + ChatColor.GOLD + "Run " + ChatColor.GRAY + debugCommand + ChatColor.GOLD + " to " + enable + " debug messages in console.");
+        debugMsg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, debugCommand));
+        debugMsg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(debugCommand)));
+        return debugMsg;
+    }
+
     private static @NotNull TextComponent getUpdateNotificationInfo() {
         TextComponent updateNotification;
-        String update = ConfigOptions.getUpdateNotification();
+        final String update = ConfigOptions.getUpdateNotification();
+        final String updateNotificationLabel = ChatColor.GOLD + "Update Notification > ";
+        final String enableCommand = "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true";
+        final String disableCommand = "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification false";
         if (update.equalsIgnoreCase("false")){
-            updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.RED + "Disabled " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to enable.");
-            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true"));
-            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true")));
+            updateNotification = new TextComponent(updateNotificationLabel + ChatColor.RED + "Disabled " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "[Enable]");
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, enableCommand));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(enableCommand)));
         } else if (update.equalsIgnoreCase("true")){
-            updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.GREEN + "Enabled " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to disable.");
-            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification false"));
-            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification false")));
+            updateNotification = new TextComponent(updateNotificationLabel + ChatColor.GREEN + "Enabled " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "[Disable]");
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, disableCommand));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(disableCommand)));
         } else {
-            updateNotification = new TextComponent(ChatColor.GOLD + "Update Notification > " + ChatColor.YELLOW + "Paused for the latest version " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "Click to enable.");
-            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true"));
-            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("/" + ConfigOptions.getPluginBountyCommands().getFirst() + " update-notification true")));
+            updateNotification = new TextComponent(updateNotificationLabel + ChatColor.YELLOW + "Paused for the latest version " + ChatColor.GRAY + ChatColor.UNDERLINE + ChatColor.ITALIC + "[Enable]");
+            updateNotification.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, enableCommand));
+            updateNotification.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(enableCommand)));
         }
         return updateNotification;
     }

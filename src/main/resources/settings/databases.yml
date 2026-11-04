@@ -11,7 +11,12 @@ max-local-cache-size: 200
 # The time in seconds that data is valid locally after retrieving.
 # Set to 0 to always request data from the database.
 refresh-interval: 30
-local-databse:
+# The time in seconds that data for online players is valid locally after retrieving.
+online-refresh-interval: 3600
+# When only the default local database is connected, more data is buffered into the cache.
+# Set to true to disable this.
+override-local-cache-mode: false
+local-database:
   type: SQL
   path: 'data/local.db'
   url: 'jdbc:sqlite:{path}'

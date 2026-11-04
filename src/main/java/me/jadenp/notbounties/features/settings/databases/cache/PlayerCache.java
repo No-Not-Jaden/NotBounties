@@ -10,10 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 
 public class PlayerCache<T> implements Cache<UUID, T> {
 
@@ -22,7 +19,8 @@ public class PlayerCache<T> implements Cache<UUID, T> {
     // This is useful for when player data is modified by admins on another server. Expected to not be very common.
     private volatile long onlineExpirationNanos;
     // This is useful to save space, especially if there is no expiration.
-    private volatile long maxCacheSize; // TODO: implement
+    private volatile long maxCacheSize;
+    private boolean removingOverflow = false;
 
     private final Map<UUID, CacheEntry<T>> entries =
             new ConcurrentHashMap<>();
@@ -32,6 +30,14 @@ public class PlayerCache<T> implements Cache<UUID, T> {
         setExpiration(expiration);
         setOnlineExpiration(onlineExpiration);
         setMaxCacheSize(maxCacheSize);
+        mapView = new CacheMapView<>(this);
+    }
+
+    public PlayerCache() {
+        // initialize with default values
+        setExpiration(Duration.ZERO);
+        setOnlineExpiration(Duration.ZERO);
+        setMaxCacheSize(0);
         mapView = new CacheMapView<>(this);
     }
 
@@ -110,10 +116,29 @@ public class PlayerCache<T> implements Cache<UUID, T> {
     public void put(@NonNull UUID uuid, @NonNull T value) {
         // check for space
         if (maxCacheSize > 0 && entries.size() >= maxCacheSize) {
-            // invalidate a key, perhaps one with the lowest lastAccess time
+            // invalidate a key, one with the lowest lastAccess time
+            CompletableFuture.runAsync(this::removeOverflow); // lazy removal
         }
         entries.put(uuid, new CacheEntry<>(value));
 
+    }
+
+    /**
+     * Remove entries past the maxCacheSize with the lowest lastAccessNanos.
+     */
+    private void removeOverflow() {
+        // skip if this function is already running
+        if (removingOverflow) return;
+        removingOverflow = true;
+        if (maxCacheSize <= 0) return;
+        long entriesToRemove = entries.size() - maxCacheSize;
+        if (entriesToRemove <= 0) return;
+        List<Map.Entry<UUID, CacheEntry<T>>> entriesToRemoveList = new ArrayList<>(entries.entrySet());
+        entriesToRemoveList.sort(Comparator.comparingLong(entry -> entry.getValue().lastAccessNanos));
+        for (int i = 0; i < entriesToRemove; i++) {
+            entries.remove(entriesToRemoveList.get(i).getKey());
+        }
+        removingOverflow = false;
     }
 
     @Override
@@ -195,5 +220,6 @@ public class PlayerCache<T> implements Cache<UUID, T> {
                 }
             }
         }
+        removeOverflow();
     }
 }

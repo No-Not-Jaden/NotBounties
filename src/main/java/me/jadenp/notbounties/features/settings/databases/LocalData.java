@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.features.settings.databases;
 
-import com.google.common.cache.Cache;
 import me.jadenp.notbounties.Leaderboard;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.data.player_data.OnlineRefund;
@@ -21,15 +20,21 @@ import java.util.*;
 
 public class LocalData extends NotBountiesDatabase {
     // elements must expire quickly to be up to date with other servers
-    private final Cache<UUID, Bounty> bountyCache;
-    private final Cache<UUID, PlayerStat> statCache;
-    private final Cache<UUID, PlayerData> playerDataCache;
+    private final PlayerCache<Bounty> bountyCache;
+    private final PlayerCache<PlayerStat> statCache;
+    private final PlayerCache<PlayerData> playerDataCache;
+    public static final String LOCAL_DATABASE_NAME = "_LocalData_";
+    private long maxLocalCacheSize = 200;
+    private long refreshInterval = 0;
+    private long onlineRefreshInterval = 0;
+    private boolean overrideLocalCacheMode = false;
+    private boolean localCacheMode = false;
 
-    public LocalData(Plugin plugin, long maxCacheSize, long refreshInterval) {
-        super(plugin, "LocalData");
-        bountyCache = new PlayerCache<>(Duration.ofSeconds(refreshInterval));
-        statCache = new PlayerCache<>(Duration.ofSeconds(refreshInterval));
-        playerDataCache = new PlayerCache<>(Duration.ofSeconds(refreshInterval));
+    public LocalData(Plugin plugin) {
+        super(plugin, LOCAL_DATABASE_NAME);
+        bountyCache = new PlayerCache<>();
+        statCache = new PlayerCache<>();
+        playerDataCache = new PlayerCache<>();
     }
 
     @Override
@@ -354,15 +359,40 @@ public class LocalData extends NotBountiesDatabase {
     }
 
     @Override
-    public boolean reloadConfig() {
-        // no configuration for this database
-        return false;
+    public synchronized ConfigurationSection readConfig() {
+        ConfigurationSection config = super.readConfig();
+        if (config == null)
+            return null;
+        maxLocalCacheSize = Math.max(config.getLong("max-local-cache-size", maxLocalCacheSize), 10);
+        refreshInterval = config.getLong("refresh-interval", 0);
+        onlineRefreshInterval = config.getLong("online-refresh-interval", 0);
+        overrideLocalCacheMode = config.getBoolean("override-local-cache-mode", false);
+        setCacheSettings(maxLocalCacheSize, refreshInterval, onlineRefreshInterval);
+        return config;
     }
 
-    @Override
-    public synchronized ConfigurationSection readConfig() {
-        // no configuration for local data.
-        return null;
+    private void setCacheSettings(long maxLocalCacheSize, long refreshInterval, long onlineRefreshInterval) {
+        playerDataCache.setMaxCacheSize(maxLocalCacheSize);
+        playerDataCache.setExpiration(Duration.ofSeconds(refreshInterval));
+        playerDataCache.setOnlineExpiration(Duration.ofSeconds(onlineRefreshInterval));
+        statCache.setMaxCacheSize(maxLocalCacheSize);
+        statCache.setExpiration(Duration.ofSeconds(refreshInterval));
+        statCache.setOnlineExpiration(Duration.ofSeconds(onlineRefreshInterval));
+        bountyCache.setMaxCacheSize(maxLocalCacheSize);
+        bountyCache.setExpiration(Duration.ofSeconds(refreshInterval));
+        bountyCache.setOnlineExpiration(Duration.ofSeconds(onlineRefreshInterval));
+    }
+
+    public void setLocalCacheMode(boolean mode) {
+        if (mode == localCacheMode)
+            return;
+        localCacheMode = mode;
+        if (!overrideLocalCacheMode && mode) {
+            // disable cache size and expiring
+            setCacheSettings(0, 0, 0);
+        } else {
+            setCacheSettings(maxLocalCacheSize, refreshInterval, onlineRefreshInterval);
+        }
     }
 
     @Override
