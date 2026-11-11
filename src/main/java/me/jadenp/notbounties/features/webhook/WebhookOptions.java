@@ -17,6 +17,7 @@ import org.bukkit.event.Listener;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -75,10 +76,12 @@ public class WebhookOptions implements Listener {
         if (link.equals(UNSET_LINK) || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
-        Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
-        double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
-        total = total + event.getBounty().getTotalDisplayBounty();
-        buildWebhook(webhook, event.getBounty().getUUID(), event.getBounty().getLastSetter().getUuid(), event.getBounty().getTotalDisplayBounty(), total);
+        DataManager.getBountyAsync(event.getBounty().getUUID()).thenAccept(totalBounty -> {
+            double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
+            total = total + event.getBounty().getTotalDisplayBounty();
+            buildWebhook(webhook, event.getBounty().getUUID(), event.getBounty().getLastSetter().getUuid(), event.getBounty().getTotalDisplayBounty(), total);
+        });
+
     }
 
     @EventHandler
@@ -86,10 +89,12 @@ public class WebhookOptions implements Listener {
         if (link.equals(UNSET_LINK) || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
-        Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
-        double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
-        total = total - event.getBounty().getTotalDisplayBounty();
-        buildWebhook(webhook, event.getBounty().getUUID(), event.getKiller().getUniqueId(), event.getBounty().getTotalDisplayBounty(), total);
+        DataManager.getBountyAsync(event.getBounty().getUUID()).thenAccept(totalBounty -> {
+            double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
+            total = total - event.getBounty().getTotalDisplayBounty();
+            buildWebhook(webhook, event.getBounty().getUUID(), event.getKiller().getUniqueId(), event.getBounty().getTotalDisplayBounty(), total);
+        });
+
     }
 
     @EventHandler
@@ -97,11 +102,13 @@ public class WebhookOptions implements Listener {
         if (link.equals(UNSET_LINK) || event.isCancelled())
             return;
         Webhook webhook = webhooks.get(event.getClass());
-        Bounty totalBounty = BountyManager.getBounty(event.getBounty().getUUID());
-        double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
-        total = total - event.getBounty().getTotalDisplayBounty();
-        UUID removerUUID = event.getRemover() instanceof Player player ? player.getUniqueId() : DataManager.GLOBAL_SERVER_ID;
-        buildWebhook(webhook, event.getBounty().getUUID(), removerUUID, event.getBounty().getTotalDisplayBounty(), total);
+        DataManager.getBountyAsync(event.getBounty().getUUID()).thenAccept(totalBounty -> {
+            double total = totalBounty != null ? totalBounty.getTotalDisplayBounty() : 0;
+            total = total - event.getBounty().getTotalDisplayBounty();
+            UUID removerUUID = event.getRemover() instanceof Player player ? player.getUniqueId() : DataManager.GLOBAL_SERVER_ID;
+            buildWebhook(webhook, event.getBounty().getUUID(), removerUUID, event.getBounty().getTotalDisplayBounty(), total);
+        });
+
     }
 
     @EventHandler
@@ -121,7 +128,7 @@ public class WebhookOptions implements Listener {
 
     }
 
-    public void sendEmbed(DiscordWebhook.EmbedObject embed, String username, String avatarURL, String content) throws IOException {
+    public void sendEmbed(DiscordWebhook.EmbedObject embed, String username, String avatarURL, String content) throws IOException, URISyntaxException {
         if (link.equals(UNSET_LINK))
             return;
         DiscordWebhook webhook = new DiscordWebhook(link);

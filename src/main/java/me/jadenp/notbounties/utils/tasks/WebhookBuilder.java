@@ -1,6 +1,7 @@
 package me.jadenp.notbounties.utils.tasks;
 
 import me.jadenp.notbounties.NotBounties;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import me.jadenp.notbounties.features.LanguageOptions;
@@ -12,7 +13,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class WebhookBuilder extends CancelableTask{
     private final Webhook webhook;
@@ -56,6 +59,7 @@ public class WebhookBuilder extends CancelableTask{
         String imageURL = LanguageOptions.parseImageURL(WebhookOptions.getImageURL(), imageUUID, imageLoaded);
 
         if (sendEmbed) {
+            CompletableFuture<String> title = Messages.parse() // TODO: Finish converting
             embed = new DiscordWebhook.EmbedObject()
                     .setTitle(ChatColor.stripColor(LanguageOptions.parse(webhook.getTitle(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))))
                     .setDescription(ChatColor.stripColor(LanguageOptions.parse(webhook.getDescription(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver))))
@@ -70,7 +74,7 @@ public class WebhookBuilder extends CancelableTask{
         String content = ChatColor.stripColor(LanguageOptions.parse(webhook.getMessage(), Bukkit.getOfflinePlayer(player), amount, total, Bukkit.getOfflinePlayer(receiver)));
         try {
             webhookOptions.sendEmbed(embed, username, avatarURL, content);
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             NotBounties.debugMessage("Could not send a discord webhook!", true);
 
         }

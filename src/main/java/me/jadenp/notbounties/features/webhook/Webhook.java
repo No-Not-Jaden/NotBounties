@@ -32,7 +32,6 @@ public class Webhook {
         footerURL = configuration.isSet("footer.image-url") ? configuration.getString("footer.image-url") : "";
         message = configuration.isSet("message") ? configuration.getString("message") : "";
         sendImage = !configuration.isSet("send-image") || configuration.getBoolean("send-image"); // true default
-        content.clear();
         if (configuration.isConfigurationSection("content"))
             for (String key : Objects.requireNonNull(configuration.getConfigurationSection("content")).getKeys(false)) {
                 if (configuration.isConfigurationSection("content." + key))

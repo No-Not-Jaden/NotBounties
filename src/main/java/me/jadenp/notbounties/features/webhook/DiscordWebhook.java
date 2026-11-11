@@ -5,6 +5,8 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,7 +55,7 @@ public class DiscordWebhook {
         this.embeds.add(embed);
     }
 
-    public void execute() throws IOException {
+    public void execute() throws IOException, URISyntaxException {
         if (this.content == null && this.embeds.isEmpty()) {
             throw new IllegalArgumentException("Set content or add at least one EmbedObject");
         }
@@ -139,8 +141,8 @@ public class DiscordWebhook {
             json.put("embeds", embedObjects.toArray());
         }
 
-        URL url = new URL(this.url);
-        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        URL connectionUrl = new URI(this.url).toURL();
+        HttpsURLConnection connection = (HttpsURLConnection) connectionUrl.openConnection();
         connection.addRequestProperty("Content-Type", "application/json");
         connection.addRequestProperty("User-Agent", "Java-DiscordWebhook-BY-Gelox_");
         connection.setDoOutput(true);

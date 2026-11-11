@@ -129,20 +129,20 @@ public class PVPRestrictions implements Listener {
 
         switch (localPVPRule) {
             case 1:
-                if (!LoggedPlayers.hasActiveBounty(player.getUniqueId())) {
+                if (!DataManager.hasActiveBounty(player.getUniqueId())) {
                     event.setCancelled(true);
                     return;
                 }
                 break;
             case 2:
-                if (!BountyManager.hasBounty(player.getUniqueId()) && !hasAttackedRecently(player, damager)) {
+                if (!DataManager.hasActiveBounty(player.getUniqueId()) && !hasAttackedRecently(player, damager)) {
                     event.setCancelled(true);
                     return;
                 }
 
                 break;
             case 3:
-                if (!BountyManager.hasBounty(player.getUniqueId()) && !BountyManager.hasBounty(damager.getUniqueId())) {
+                if (!DataManager.hasActiveBounty(player.getUniqueId()) && !DataManager.hasActiveBounty(damager.getUniqueId())) {
                     event.setCancelled(true);
                     return;
                 }
@@ -153,7 +153,7 @@ public class PVPRestrictions implements Listener {
                     LandsClass landsClass = new LandsClass();
                     if (!landsClass.canClaim(player, player.getLocation()) && !landsClass.canClaim(damager, player.getLocation())) {
                         // claim flag is not set at either location
-                        if (!BountyManager.hasBounty(player.getUniqueId()) && !BountyManager.hasBounty(damager.getUniqueId())) {
+                        if (!DataManager.hasActiveBounty(player.getUniqueId()) && !DataManager.hasActiveBounty(damager.getUniqueId())) {
                             event.setCancelled(true);
                             return;
                         }
@@ -165,7 +165,7 @@ public class PVPRestrictions implements Listener {
                 break;
         }
 
-        if ((localCombatTime > 0 || localPVPRule == 2) && BountyManager.hasBounty(player.getUniqueId())) {
+        if ((localCombatTime > 0 || localPVPRule == 2) && DataManager.hasActiveBounty(player.getUniqueId())) {
             if (isCombatSafe(player) && localCombatTime > 0 && combatLoggingSendMessage) {
                 Messages.send(player, LanguageOptions.getMessage("combat-tag"), MessageContext.builder().time(localCombatTime * 1000L, LocalTime.TimeFormat.RELATIVE).receiver(player).build());
             }
@@ -238,7 +238,7 @@ public class PVPRestrictions implements Listener {
             return;
         if (localCombatLoggingTime == -1 && (!worlds.contains(event.getPlayer().getWorld().getName()) && !worlds.isEmpty()))
             return;
-        if (!BountyManager.hasBounty(event.getPlayer().getUniqueId()) || !historyMap.containsKey(event.getPlayer().getUniqueId()))
+        if (!DataManager.hasActiveBounty(event.getPlayer().getUniqueId()) || !historyMap.containsKey(event.getPlayer().getUniqueId()))
             return;
         PVPHistory pvpHistory = getLastHit(event.getPlayer());
         if (pvpHistory == null)
@@ -260,7 +260,7 @@ public class PVPRestrictions implements Listener {
         List<PVPHistory> pvpHistories = historyMap.get(player.getUniqueId());
         if (pvpHistories.isEmpty())
             return null;
-        PVPHistory minLastHit = pvpHistories.get(0);
+        PVPHistory minLastHit = pvpHistories.getFirst();
         for (PVPHistory pvpHistory : pvpHistories) {
             if (pvpHistory.getLastHit() < minLastHit.getLastHit())
                 minLastHit = pvpHistory;
