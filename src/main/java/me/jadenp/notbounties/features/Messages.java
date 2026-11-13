@@ -100,7 +100,7 @@ public class Messages {
 
     @FunctionalInterface
     public interface ExcludePlayersOperation {
-        boolean isExcluded(UUID uuid);
+        boolean isExcluded(Player player);
     }
 
     /**
@@ -113,7 +113,7 @@ public class Messages {
         parse(message, context).thenAccept(parsedMessage -> NotBounties.getServerImplementation().global().run(() -> {
             Bukkit.getConsoleSender().sendMessage(parsedMessage);
             for (Player p : Bukkit.getOnlinePlayers()) {
-                if (!operation.isExcluded(p.getUniqueId())) {
+                if (operation == null || !operation.isExcluded(p)) {
                     DataManager.getPlayerDataAsync(p.getUniqueId()).thenAccept(playerData -> {
                         if (playerData.getBroadcastSettings() != PlayerData.BroadcastSettings.DISABLE) {
                             NotBounties.getServerImplementation().entity(p).run(() -> p.sendMessage(parsedMessage));

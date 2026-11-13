@@ -1,11 +1,10 @@
 package me.jadenp.notbounties.features.settings.display;
 
+import com.mysql.cj.MessageBuilder;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Whitelist;
 import me.jadenp.notbounties.data.player_data.PlayerData;
-import me.jadenp.notbounties.features.ActionCommands;
-import me.jadenp.notbounties.features.ConfigOptions;
-import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.*;
 import me.jadenp.notbounties.features.settings.immunity.ImmunityManager;
 import me.jadenp.notbounties.features.settings.integrations.external_api.LocalTime;
 import me.jadenp.notbounties.features.settings.money.NotEnoughCurrencyException;
@@ -262,10 +261,10 @@ public class BountyHunt {
             }
             BountyHunt hunt = getHunt(uuid);
             if (hunt == null) {
-                return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), uuid, parser));
+                return failMessage(sender, silent, getMessage("no-hunt-found"), MessageContext.builder().receiver(parser).player(uuid).build());
             }
             if (!hunt.isParticipating(parser.getUniqueId()))
-                sender.sendMessage(parse(getPrefix() + getMessage("hunt-end"), uuid, parser));
+                Messages.send(sender, getMessage("hunt-end"), MessageContext.builder().receiver(parser).player(uuid).build());
             endHunt(uuid);
             return CompletableFuture.completedFuture(true);
         }
@@ -288,7 +287,7 @@ public class BountyHunt {
         }
 
         if (getParticipatingHunts(player.getUniqueId()).size() >= maxJoinableHunts && maxJoinableHunts > 0) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("max-hunts-joined"), parser));
+            return failMessage(sender, silent, getMessage("max-hunts-joined"), MessageContext.builder().receiver(parser).build());
         }
 
         if (args.length <= 2) {
@@ -301,16 +300,16 @@ public class BountyHunt {
         }
 
         if (uuid.equals(player.getUniqueId())) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("own-hunt"), uuid, parser));
+            return failMessage(sender, silent, getMessage("own-hunt"), MessageContext.builder().receiver(parser).player(uuid).build());
         }
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), uuid, parser));
+            return failMessage(sender, silent, getMessage("no-hunt-found"), MessageContext.builder().receiver(parser).player(uuid).build());
         }
 
         hunt.addParticipatingPlayer(player);
-        sender.sendMessage(parse(getPrefix() + getMessage("hunt-join"), uuid, parser));
+        Messages.send(sender, LanguageOptions.getMessage("hunt-join"), MessageContext.builder().receiver(parser).player(uuid).build());
         return CompletableFuture.completedFuture(true);
     }
 
@@ -323,7 +322,7 @@ public class BountyHunt {
             List<BountyHunt> participatingHunts = getParticipatingHunts(player.getUniqueId());
             if (participatingHunts.size() == 1) {
                 participatingHunts.getFirst().removeParticipatingPlayer(player);
-                sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), participatingHunts.getFirst().getHuntedPlayer(), parser));
+                Messages.send(sender, getMessage("hunt-leave"), MessageContext.builder().receiver(parser).player(participatingHunts.getFirst().getHuntedPlayer()).build());
                 return CompletableFuture.completedFuture(true);
             }
             return failUnknownCommand(sender, silent, parser, "help.hunt-participate");
@@ -336,24 +335,26 @@ public class BountyHunt {
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), uuid, parser));
+            return failMessage(sender, silent, getMessage("no-hunt-found"), MessageContext.builder().receiver(parser).player(uuid).build());
         }
 
         if (!hunt.isParticipating(player.getUniqueId())) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("not-in-hunt"), hunt.getHuntedPlayer(), parser));
+            return failMessage(sender, silent, getMessage("not-in-hunt"), MessageContext.builder().receiver(parser).player(hunt.getHuntedPlayer()).build());
         }
 
         hunt.removeParticipatingPlayer(player);
-        sender.sendMessage(parse(getPrefix() + getMessage("hunt-leave"), hunt.getHuntedPlayer(), parser));
+        Messages.send(sender, LanguageOptions.getMessage("leave-hunt"), MessageContext.builder().receiver(parser).player(hunt.getHuntedPlayer()).build());
         return CompletableFuture.completedFuture(true);
     }
 
     private static CompletableFuture<Boolean> handleListCommand(CommandSender sender, String[] args, boolean silent, Player parser) {
         if (args.length == 2) {
             // List all hunts
-            sender.sendMessage(parse(getPrefix() + getMessage("list-hunts"), parser));
-            hunts.forEach(hunt -> sender.sendMessage(ChatColor.RED + LoggedPlayers.getPlayerName(hunt.getHuntedPlayer())));
-            sender.sendMessage("");
+            Messages.parse(getMessage("list-hunts"), MessageContext.builder().receiver(parser).build()).thenAccept(message -> {
+                sender.sendMessage(message);
+                hunts.forEach(hunt -> sender.sendMessage(ChatColor.RED + LoggedPlayers.getPlayerName(hunt.getHuntedPlayer())));
+                sender.sendMessage("");
+            });
             return CompletableFuture.completedFuture(true);
         }
 
@@ -364,18 +365,21 @@ public class BountyHunt {
 
         BountyHunt hunt = getHunt(uuid);
         if (hunt == null) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("no-hunt-found"), uuid, parser));
+            return failMessage(sender, silent, getMessage("no-hunt-found"), MessageContext.builder().receiver(parser).player(uuid).build());
         }
 
-        sender.sendMessage(parse(getPrefix() + getMessage("list-hunt-players"), uuid, parser));
-        hunt.getParticipatingPlayers().forEach(player -> sender.sendMessage(ChatColor.YELLOW + LoggedPlayers.getPlayerName(player)));
-        sender.sendMessage("");
+        Messages.parse(getMessage("list-hunt-players"), MessageContext.builder().receiver(parser).player(uuid).build()).thenAccept(message -> {
+            sender.sendMessage(message);
+            hunt.getParticipatingPlayers().forEach(player -> sender.sendMessage(ChatColor.YELLOW + LoggedPlayers.getPlayerName(player)));
+            sender.sendMessage("");
+        });
+
         return CompletableFuture.completedFuture(true);
     }
 
     private static CompletableFuture<Boolean> handleStartNewHunt(CommandSender sender, String[] args, boolean silent, boolean adminPermission, Player parser) {
         if (hunts.size() >= maxConcurrentHunts && maxConcurrentHunts > 0) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("max-hunts-active"), parser));
+            return failMessage(sender, silent, getMessage("max-hunts-active"), MessageContext.builder().receiver(parser).build());
         }
 
         if (hasNoPermission(sender, adminPermission, "notbounties.hunt.start")) {
@@ -404,11 +408,11 @@ public class BountyHunt {
             try {
                 time = Duration.parse("+PT" + args[2]).toMillis();
             } catch (DateTimeParseException e1) {
-                return failMessage(sender,  silent, parse(getPrefix() + getMessage("unknown-number"), parser));
+                return failMessage(sender,  silent, getMessage("unknown-number"), MessageContext.builder().receiver(parser).build());
             }
         }
         if (time / (60 * 1000L) < minimumMinutes) {
-            return failMessage(sender, silent, parse(getPrefix() + getMessage("minimum-duration").replace("{time}", String.valueOf(minimumMinutes)), parser));
+            return failMessage(sender, silent, getMessage("minimum-duration").replace("{time}", String.valueOf(minimumMinutes)), MessageContext.builder().receiver(parser).build());
         }
         double cost = time / (60 * 1000.0) * costPerMinute;
 
@@ -424,6 +428,7 @@ public class BountyHunt {
         }
 
         OfflinePlayer huntedPlayer = Bukkit.getOfflinePlayer(uuid);
+        long finalTime = time;
         return ImmunityManager.checkAndNotifyImmunity(sender, cost, silent, huntedPlayer, Collections.emptyList()).thenApply(hasImmunity -> {
             if (hasImmunity) {
                 // has immunity
@@ -442,12 +447,12 @@ public class BountyHunt {
             for (BountyHunt hunt :  hunts) {
                 if (hunt.getHuntedPlayer().getUniqueId().equals(uuid)) {
                     // already has a hunt
-                    hunt.extendHunt(parser, time);
-                    sender.sendMessage(parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("extend-hunt").replace("{time}", LocalTime.formatTime(hunt.getEndTime() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), uuid, parser));
+                    hunt.extendHunt(parser, finalTime);
+                    Messages.send(sender, LanguageOptions.getMessage("extend-hunt").replace("{time}", LocalTime.formatTime(hunt.getEndTime() - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), MessageContext.builder().receiver(parser).player(uuid).build());
                     return true;
                 }
             }
-            hunts.add(new BountyHunt(parser, huntedPlayer, time));
+            hunts.add(new BountyHunt(parser, huntedPlayer, finalTime));
             return true;
         });
 
@@ -463,7 +468,7 @@ public class BountyHunt {
 
     private static CompletableFuture<Boolean> failUnknownCommand(CommandSender sender, boolean silent, Player parser, String helpMessageKey) {
         if (!silent) {
-            sender.sendMessage(parse(getPrefix() + getMessage("unknown-command"), parser));
+            Messages.send(sender, getMessage("unknown-command"), MessageContext.builder().receiver(parser).build());
             LanguageOptions.sendHelpMessage(sender, getListMessage(helpMessageKey));
         }
         return CompletableFuture.completedFuture(false);
@@ -471,21 +476,21 @@ public class BountyHunt {
 
     private static CompletableFuture<Boolean> failNoPermission(CommandSender sender, boolean silent, Player parser) {
         if (!silent) {
-            sender.sendMessage(parse(getPrefix() + getMessage("no-permission"), parser));
+            Messages.send(sender, getMessage("no-permission"), MessageContext.builder().receiver(parser).build());
         }
         return CompletableFuture.completedFuture(false);
     }
 
     private static CompletableFuture<Boolean> failBroke(CommandSender sender, boolean silent, double requiredAmount, Player parser) {
         if (!silent) {
-            sender.sendMessage(parse(getPrefix() + getMessage("broke"), requiredAmount, parser));
+            Messages.send(sender, getMessage("broke"), MessageContext.builder().receiver(parser).amount(requiredAmount).build());
         }
         return CompletableFuture.completedFuture(false);
     }
 
     private static CompletableFuture<Boolean> failUnknownPlayer(CommandSender sender, boolean silent, String playerName, Player parser) {
         if (!silent) {
-            sender.sendMessage(parse(getPrefix() + getMessage("unknown-player").replace("{player}", playerName), parser));
+            Messages.send(sender, getMessage("unknown-player").replace("{player}", playerName), MessageContext.builder().receiver(parser).build());
         }
         return CompletableFuture.completedFuture(false);
     }
@@ -497,9 +502,9 @@ public class BountyHunt {
         return CompletableFuture.completedFuture(false);
     }
 
-    private static CompletableFuture<Boolean> failMessage(CommandSender sender, boolean silent, String message) {
+    private static CompletableFuture<Boolean> failMessage(CommandSender sender, boolean silent, String message, MessageContext context) {
         if (!silent) {
-            sender.sendMessage(message);
+            Messages.send(sender, message, context);
         }
         return CompletableFuture.completedFuture(false);
     }
@@ -523,7 +528,9 @@ public class BountyHunt {
         this.endTime = startTime + time;
         this.huntedPlayer = huntedPlayer;
         this.setter = setter;
-        this.bossBar = Bukkit.createBossBar(parseTitle(), bossBarColor, BarStyle.SOLID);
+        this.bossBar = Bukkit.createBossBar("", bossBarColor, BarStyle.SOLID);
+        setTitle();
+
         this.givenTrackers = new HashSet<>();
         if (setter != null)
             addParticipatingPlayer(setter);
@@ -533,7 +540,7 @@ public class BountyHunt {
             }
             sendBroadcast(player);
         }
-        Bukkit.getConsoleSender().sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("hunt-broadcast").replace("{time}", LocalTime.formatTime(endTime - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), setter, huntedPlayer));
+        Messages.send(Bukkit.getConsoleSender(), LanguageOptions.getMessage("hunt-broadcast").replace("{time}", LocalTime.formatTime(endTime - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), MessageContext.builder().receiver(huntedPlayer).player(setter).build());
     }
 
 
@@ -557,11 +564,8 @@ public class BountyHunt {
 
     public void endHunt() {
         // send hunt ended msg
-        String msg = LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("hunt-end"), setter, huntedPlayer);
-        for (Player player : participatingPlayers) {
-            if (player.isOnline())
-                BroadcastTask.sendBroadcast(msg, null, player, false);
-        }
+        Set<Player> players = new HashSet<>(participatingPlayers);
+        Messages.broadcastMessage(LanguageOptions.getMessage("hunt-end"), MessageContext.builder().receiver(huntedPlayer).player(setter).build(), player -> !players.contains(player));
 
         participatingPlayers.clear();
         bossBar.removeAll();
@@ -569,13 +573,14 @@ public class BountyHunt {
     }
 
     private void sendBroadcast(Player player) {
-        String msg = LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("hunt-broadcast").replace("{time}", LocalTime.formatTime(endTime - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), setter, huntedPlayer);
-
-        BroadcastTask.sendBroadcast(msg, null, player, false);
+        Messages.send(player, LanguageOptions.getMessage("hunt-broadcast").replace("{time}", LocalTime.formatTime(endTime - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE)), MessageContext.builder().receiver(huntedPlayer).player(setter).build());
     }
 
-    private String parseTitle() {
-        return LanguageOptions.parse(bossBarText, endTime - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE, huntedPlayer);
+    private void setTitle() {
+        Messages.parse(bossBarText,  MessageContext.builder().receiver(huntedPlayer).time(endTime - System.currentTimeMillis(), LocalTime.TimeFormat.RELATIVE).withPrefix(false).build()).thenAccept(title -> {
+            if (bossBar != null)
+                bossBar.setTitle(title);
+        });
     }
 
     public void addParticipatingPlayer(Player player) {
@@ -584,12 +589,13 @@ public class BountyHunt {
             bossBar.addPlayer(player);
         }
         if (giveTrackers && BountyTracker.isEnabled() && !givenTrackers.contains(player.getUniqueId())) {
-            ItemStack tracker = BountyTracker.getTracker(huntedPlayer.getUniqueId());
-            ItemMeta meta = tracker.getItemMeta();
-            assert meta != null;
-            meta.getPersistentDataContainer().set(huntKey, PersistentDataType.STRING, player.getUniqueId().toString());
-            tracker.setItemMeta(meta);
-            NumberFormatting.givePlayer(player, tracker, 1);
+            BountyTracker.getTracker(huntedPlayer.getUniqueId()).thenAccept(tracker -> {
+                ItemMeta meta = tracker.getItemMeta();
+                assert meta != null;
+                meta.getPersistentDataContainer().set(huntKey, PersistentDataType.STRING, player.getUniqueId().toString());
+                tracker.setItemMeta(meta);
+                NumberFormatting.givePlayer(player, tracker, 1);
+            });
             givenTrackers.add(player.getUniqueId());
         }
     }
@@ -628,7 +634,7 @@ public class BountyHunt {
             return;
         }
         bossBar.setColor(bossBarColor);
-        bossBar.setTitle(parseTitle());
+        setTitle();
         bossBar.setProgress(1 - ((double) (System.currentTimeMillis() - startTime) / (endTime - startTime)));
     }
 

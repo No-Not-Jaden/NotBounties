@@ -15,11 +15,11 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class BountyBoard {
 
@@ -57,12 +57,7 @@ public class BountyBoard {
     }
 
     public static Set<UUID> getBoardUUIDs() {
-        Set<UUID> uuids = new HashSet<>();
-        for (BountyBoard board : bountyBoards) {
-            if (board.getFrame() != null)
-                uuids.add(board.getFrame().getUniqueId());
-        }
-        return uuids;
+        return bountyBoards.stream().filter(board -> board.getFrame() != null).map(bountyBoard -> bountyBoard.getFrame().getUniqueId()).collect(Collectors.toUnmodifiableSet());
     }
 
     public static Map<UUID, Integer> getBoardSetup() {
@@ -199,31 +194,33 @@ public class BountyBoard {
 
     private void placeBoard(Bounty bounty) {
         EntityType frameType = glow && NotBounties.getServerVersion() >= 17 ? EntityType.GLOW_ITEM_FRAME : EntityType.ITEM_FRAME;
-        try {
-            ItemStack map = BountyMap.getMap(bounty);
-            if (map == null)
-                return;
-            NotBounties.getServerImplementation().region(location).run(() -> {
-                frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, frameType);
-                frame.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
-                frame.setFacingDirection(direction, true);
-                frame.setInvulnerable(true);
-                frame.setVisible(!invisible);
-                frame.setFixed(true);
-                ItemMeta mapMeta = map.getItemMeta();
-                assert mapMeta != null;
-                OfflinePlayer bountyPlayer = Bukkit.getOfflinePlayer(bounty.getUUID());
-                Messages.parse(itemName, MessageContext.builder().amount(bounty.getTotalDisplayBounty()).receiver(bountyPlayer).build())
-                        .thenAccept(name -> NotBounties.getServerImplementation().region(location).run(() -> {
-                    map.setItemMeta(mapMeta);
-                    frame.setItem(map);
-                }));
+
+            BountyMap.getMap(bounty).thenAccept(map -> {
+                if (map == null)
+                    return;
+                NotBounties.getServerImplementation().region(location).run(() -> {
+                    try {
+                        frame = (ItemFrame) Objects.requireNonNull(location.getWorld()).spawnEntity(location, frameType);
+                        frame.getPersistentDataContainer().set(NotBounties.getNamespacedKey(), PersistentDataType.STRING, NotBounties.SESSION_KEY);
+                        frame.setFacingDirection(direction, true);
+                        frame.setInvulnerable(true);
+                        frame.setVisible(!invisible);
+                        frame.setFixed(true);
+                        ItemMeta mapMeta = map.getItemMeta();
+                        assert mapMeta != null;
+                        OfflinePlayer bountyPlayer = Bukkit.getOfflinePlayer(bounty.getUUID());
+                        Messages.parse(itemName, MessageContext.builder().amount(bounty.getTotalDisplayBounty()).receiver(bountyPlayer).build())
+                                .thenAccept(name -> NotBounties.getServerImplementation().region(location).run(() -> {
+                                    map.setItemMeta(mapMeta);
+                                    frame.setItem(map);
+                                }));
+                    } catch (IllegalArgumentException e) {
+                        // this is thrown when there is no space to place the board
+                        NotBounties.debugMessage("Failed to place a bounty board: " + e, true);
+                    }
+                });
             });
 
-        } catch (IllegalArgumentException e) {
-            // this is thrown when there is no space to place the board
-            NotBounties.debugMessage("Failed to place a bounty board: " + e, true);
-        }
     }
 
 

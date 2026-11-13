@@ -1,7 +1,6 @@
 package me.jadenp.notbounties.ui.commands;
 
 import me.jadenp.notbounties.NotBounties;
-import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.features.ConfigOptions;
 import me.jadenp.notbounties.features.MessageContext;
 import me.jadenp.notbounties.features.Messages;
@@ -17,7 +16,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import javax.xml.crypto.Data;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -44,7 +42,7 @@ class PosterCommandHandler {
 
         if (args.length == 2 || (args.length == 3 && (adminPermission || BountyMap.isGiveOwn() || sender.hasPermission("notbounties.spawnposter")))) {
             // tab complete players for args 2 and 3 (admins only)
-            Set<String> bountyList = LoggedPlayers.getActiveBountyNames();
+            Set<String> bountyList = DataManager.getActiveBountyNames();
             if (bountyList.size() <= ConfigOptions.getMaxTabCompletePlayers()) {
                 tab.addAll(bountyList);
             }
@@ -75,7 +73,7 @@ class PosterCommandHandler {
         UUID playerUUID = LoggedPlayers.getPlayer(args[1]);
         if (playerUUID == null) {
             unknownPlayerHandler.failUnknownPlayer(sender, args[1], silent);
-            CompletableFuture.completedFuture(false);
+            return CompletableFuture.completedFuture(false);
         }
 
         return DataManager.getBountyAsync(playerUUID).thenApply(bounty -> {
@@ -116,7 +114,7 @@ class PosterCommandHandler {
                 return false;
             }
 
-            ItemStack mapItem = bounty != null ? BountyMap.getMap(bounty) : BountyMap.getMap(playerUUID, 0, System.currentTimeMillis());
+            ItemStack mapItem = bounty != null ? BountyMap.getMap(bounty).join() : BountyMap.getMap(playerUUID, 0, System.currentTimeMillis()).join();
             NumberFormatting.givePlayer(receiver, mapItem, 1);
             Messages.send(receiver, getMessage("map-receive"), MessageContext.builder().player(Bukkit.getOfflinePlayer(playerUUID)).receiver(receiver).build());
             return true;

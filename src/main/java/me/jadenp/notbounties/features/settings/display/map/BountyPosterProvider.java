@@ -3,7 +3,8 @@ package me.jadenp.notbounties.features.settings.display.map;
 import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.data.Bounty;
 import me.jadenp.notbounties.features.ConfigOptions;
-import me.jadenp.notbounties.features.LanguageOptions;
+import me.jadenp.notbounties.features.MessageContext;
+import me.jadenp.notbounties.features.Messages;
 import me.jadenp.notbounties.features.settings.integrations.external_api.PlaceholderAPIClass;
 import me.jadenp.notbounties.features.settings.money.NumberFormatting;
 import me.jadenp.notbounties.ui.SkinManager;
@@ -267,41 +268,44 @@ public abstract class BountyPosterProvider implements SkinManager.SkinUpdateList
         graphics.fillRect(0, 0, reward.getWidth(), reward.getHeight());
         // parse reward text
         graphics.setComposite(AlphaComposite.Src);
-        String rewardText = BountyMap.getRewardText();
+        String unFormatedRewardText = BountyMap.getRewardText();
         String bountyText = BountyMap.isCurrencyWrap() ? NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(currentCost) + NumberFormatting.getCurrencySuffix() : NumberFormatting.formatNumber(currentCost);
-        rewardText = rewardText.replace("{reward}", (bountyText));
-        rewardText = LanguageOptions.parse(rewardText, player);
-        rewardText = ChatColor.translateAlternateColorCodes('&', rewardText);
+        unFormatedRewardText = unFormatedRewardText.replace("{reward}", (bountyText));
+        Messages.parse(unFormatedRewardText, MessageContext.builder().receiver(player).withPrefix(false).build()).thenAccept(rewardText -> {
+            rewardText = ChatColor.translateAlternateColorCodes('&', rewardText);
 
 
-        int y = 12;
-        if (BackupFontManager.isUsingTraditionalFont()) {
-            try {
-                int x = 64 - setBiggestFontSize(graphics, rewardText, false, REWARD_FONT_SIZE) / 2;
-                drawColors(rewardText, graphics, x, y);
-            } catch (Throwable throwable) {
-                BackupFontManager.loadBackupFonts();
+            int y = 12;
+            if (BackupFontManager.isUsingTraditionalFont()) {
+                try {
+                    int x = 64 - setBiggestFontSize(graphics, rewardText, false, REWARD_FONT_SIZE) / 2;
+                    drawColors(rewardText, graphics, x, y);
+                } catch (Throwable throwable) {
+                    BackupFontManager.loadBackupFonts();
+                    int x = 64 - BackupFontManager.getRewardLine().getWidth(rewardText) / 2;
+                    BackupFontManager.getRewardLine().drawText(reward, x, y, rewardText);
+                }
+            } else {
                 int x = 64 - BackupFontManager.getRewardLine().getWidth(rewardText) / 2;
                 BackupFontManager.getRewardLine().drawText(reward, x, y, rewardText);
             }
-        } else {
-            int x = 64 - BackupFontManager.getRewardLine().getWidth(rewardText) / 2;
-            BackupFontManager.getRewardLine().drawText(reward, x, y, rewardText);
-        }
 
-        // draw background to cover the old reward
-        for (int ix = 0; ix < 128; ix++) {
-            for (int iy = 114; iy < 128; iy++) {
-                Color color = getColor(background.getRGB(ix, iy));
-                setPixel(ix, iy, color);
+            // draw background to cover the old reward
+            for (int ix = 0; ix < 128; ix++) {
+                for (int iy = 114; iy < 128; iy++) {
+                    Color color = getColor(background.getRGB(ix, iy));
+                    setPixel(ix, iy, color);
+                }
             }
-        }
 
-        drawTransparentImage(0, 114, reward);
-        graphics.dispose();
+            drawTransparentImage(0, 114, reward);
+            graphics.dispose();
+        });
+
     }
 
     protected void drawTransparentImage(int x, int y, BufferedImage image) {
+        // The MapProvider implementation of setPixel modifies a MapCanvas object. Unknown if this is thread safe
         for (int ix = 0; ix < Math.min(image.getWidth(), 128 - x); ix++) {
             for (int iy = 0; iy < Math.min(image.getHeight(), 128 - y); iy++) {
                 Color color = getColor(image.getRGB(ix, iy));

@@ -50,6 +50,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
+import static me.jadenp.notbounties.features.settings.display.BountyTracker.getUUIDFromHead;
+
 
 public class BountyMap implements Listener {
 
@@ -350,34 +352,9 @@ public class BountyMap implements Listener {
                 }
             }
         }
-        if (head == null || !hasMap)
-            // not enough requirements
+        if (!hasMap)
             return null;
-        SkullMeta meta = (SkullMeta) head.getItemMeta();
-        assert meta != null;
-        UUID trackedPlayer = null;
-        if (meta.getPersistentDataContainer().has(Head.UUID_KEY)) {
-            try {
-                trackedPlayer = UUID.fromString(Objects.requireNonNull(meta.getPersistentDataContainer().get(Head.UUID_KEY, PersistentDataType.STRING)));
-            } catch (IllegalArgumentException ignored) {
-                NotBounties.debugMessage("Player head in crafting matrix has invalid uuid data!", false);
-            }
-        }
-        if (trackedPlayer == null && meta.getOwnerProfile() != null) {
-            trackedPlayer = meta.getOwnerProfile().getUniqueId();
-        }
-        if (trackedPlayer == null) {
-            NotBounties.debugMessage("Could not get player from head in crafting matrix.", false);
-            return null;
-        }
-        if (LoggedPlayers.isMissing(trackedPlayer)) {
-            if (meta.getOwnerProfile() != null && meta.getOwnerProfile().getUniqueId() != null && !LoggedPlayers.isMissing(meta.getOwnerProfile().getUniqueId())) {
-                trackedPlayer = meta.getOwnerProfile().getUniqueId();
-            } else {
-                return null;
-            }
-        }
-        return trackedPlayer;
+        return getUUIDFromHead(head);
     }
     // complete tracker crafting
     @EventHandler

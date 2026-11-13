@@ -149,7 +149,7 @@ public class MapColor {
             return;
         // get closest colors
         if (blends == 0 || isPaletteLoading()) {
-            // palette not generated - this will draw the closest color
+            // palette isn't generated - this will draw the closest color
             for (int ix = x; ix < w + x; ix++) {
                 for (int iy = y; iy < h + y; iy++) {
                     setPixel(ix, iy, color, canvas);

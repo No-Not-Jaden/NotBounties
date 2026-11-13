@@ -3,6 +3,7 @@ package me.jadenp.notbounties.utils;
 import java.util.concurrent.*;
 
 public final class SafeSaver {
+    private SafeSaver() {}
     private static final ExecutorService SAVE_EXEC = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "NotBounties-Save");
         t.setDaemon(true);

@@ -374,7 +374,7 @@ public class BountyManager {
                                     .amount(stolenBounty.getTotalDisplayBounty())
                                     .bounty(killerBounty.getTotalDisplayBounty())
                             .build(),
-                            uuid -> uuid.equals(killer.getUniqueId()));
+                            player1 -> player1.getUniqueId().equals(killer.getUniqueId()));
                 }
                 // play sound
                 killer.getWorld().playSound(player.getLocation(), Sound.ENTITY_CAT_HISS, 1, 1);
@@ -478,7 +478,7 @@ public class BountyManager {
 
         // broadcast message
         if (bounty.getTotalDisplayBounty(killer) >= ConfigOptions.getMoney().getMinBroadcast()) {
-            Messages.broadcastMessage(getMessage("claim-bounty-broadcast"), MessageContext.builder().player(killer).receiver(player).amount(bounty.getTotalDisplayBounty(killer)).build(), uuid -> !uuid.equals(killer.getUniqueId()) && !uuid.equals(player.getUniqueId()));
+            Messages.broadcastMessage(getMessage("claim-bounty-broadcast"), MessageContext.builder().player(killer).receiver(player).amount(bounty.getTotalDisplayBounty(killer)).build(), player1 -> !player1.getUniqueId().equals(killer.getUniqueId()) && !player1.getUniqueId().equals(player.getUniqueId()));
         }
         NotBounties.debugMessage("Claim messages sent to all players.", false);
 

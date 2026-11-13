@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.features.settings.display.map;
 
-import me.jadenp.notbounties.NotBounties;
 import me.jadenp.notbounties.ui.SkinManager;
 import me.jadenp.notbounties.utils.LoggedPlayers;
 import org.bukkit.entity.Player;

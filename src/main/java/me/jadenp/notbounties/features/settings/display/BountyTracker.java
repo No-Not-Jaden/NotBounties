@@ -650,7 +650,13 @@ public class BountyTracker implements Listener {
                 }
             }
         }
-        if (head == null || !hasEmptyTracker)
+        if (!hasEmptyTracker)
+            return null;
+        return getUUIDFromHead(head);
+    }
+
+    public static @Nullable UUID getUUIDFromHead(ItemStack head) {
+        if (head == null)
             // not enough requirements
             return null;
         SkullMeta meta = (SkullMeta) head.getItemMeta();
@@ -660,14 +666,14 @@ public class BountyTracker implements Listener {
             try {
                 trackedPlayer = UUID.fromString(Objects.requireNonNull(meta.getPersistentDataContainer().get(Head.UUID_KEY, PersistentDataType.STRING)));
             } catch (IllegalArgumentException ignored) {
-                NotBounties.debugMessage("Player head in crafting matrix has invalid uuid data!", false);
+                NotBounties.debugMessage("Player head has uuid data!", false);
             }
         }
         if (trackedPlayer == null && meta.getOwnerProfile() != null) {
             trackedPlayer = meta.getOwnerProfile().getUniqueId();
         }
         if (trackedPlayer == null) {
-            NotBounties.debugMessage("Could not get player from head in crafting matrix.", false);
+            NotBounties.debugMessage("Could not get player from head from item", false);
             return null;
         }
         if (LoggedPlayers.isMissing(trackedPlayer)) {
@@ -679,6 +685,7 @@ public class BountyTracker implements Listener {
         }
         return trackedPlayer;
     }
+
     // complete tracker crafting
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
@@ -712,11 +719,10 @@ public class BountyTracker implements Listener {
                 int minAmount = 65;
                 ItemStack[] matrix = inventory.getMatrix();
                 for (ItemStack itemStack : matrix) {
-                    if (itemStack != null) {
-                        if (itemStack.getAmount() < minAmount) {
+                    if (itemStack != null && itemStack.getAmount() < minAmount) {
                             minAmount = itemStack.getAmount();
                         }
-                    }
+
                 }
                 NumberFormatting.givePlayer((Player) event.getWhoClicked(), inventory.getResult(), minAmount);
                 amountCrafted = minAmount;
