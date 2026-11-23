@@ -92,6 +92,7 @@ import static me.jadenp.notbounties.features.LanguageOptions.*;
  * make admin-edit-lore consistent with GUI clicks & configurable
  * confirmation for remove and edit a specific bounty
  * add delay for action commands
+ * scheduled bounty announcements (see discord comment "Automated bounty announcement suggestion")
  */
 public final class NotBounties extends JavaPlugin {
 
