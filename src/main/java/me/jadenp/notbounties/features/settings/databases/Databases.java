@@ -65,7 +65,7 @@ public class Databases extends ResourceConfiguration {
         );
         if (configuredDatabases.isEmpty())
             return;
-        Collections.sort(configuredDatabases); // local data will be first in the list
+        configuredDatabases.sort(null); // local data will be first in the list
         configuredDatabases.getFirst().reloadConfig();
         // set fallback order
         for (int i = 0; i < configuredDatabases.size(); i++) {

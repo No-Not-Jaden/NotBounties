@@ -1,6 +1,5 @@
 package me.jadenp.notbounties.features.settings.display.map;
 
-import me.jadenp.notbounties.NotBounties;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;

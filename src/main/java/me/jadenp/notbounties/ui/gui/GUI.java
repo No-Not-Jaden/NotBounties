@@ -223,6 +223,16 @@ public class GUI implements Listener {
     }
 
     // TODO: make page zero indexed
+
+    /**
+     * Get the display items for a GUI.
+     * @apiNote This method is not meant to be run on the main thread.
+     * @param player Player to open the GUI for.
+     * @param name Name of the GUI.
+     * @param page Page of the GUI.
+     * @param data Extra data to pass to the GUI.
+     * @return The display items for the GUI.
+     */
     public static List<DisplayItem> getGUIValues(Player player, String name, long page, Object[] data) {
         if (Bukkit.isPrimaryThread()) {
             NotBounties.debugMessage("GUI values being loaded on main thread.", true);
@@ -238,7 +248,6 @@ public class GUI implements Listener {
         boolean online = (data.length == 0 || !(data[0] instanceof String) || !((String) data[0]).equalsIgnoreCase("offline"));
         Set<UUID> onlinePlayers = NotBounties.getNetworkPlayers().keySet();
         int sortType = ImpersistentPlayerData.get(player.getUniqueId()).getGUISortType(name);
-        PlayerData playerData = DataManager.getPlayerData(player.getUniqueId());
         boolean playerHasAdmin = player.hasPermission(NotBounties.getAdminPermission());
         switch (name) {
             case "bounty-gui":
@@ -341,7 +350,7 @@ public class GUI implements Listener {
                                                 meta.setDisplayName(meta.getDisplayName().replace("{amount}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(valuePerItem * item.getMaxStackSize()) + NumberFormatting.getCurrencySuffix()));
                                                 if (meta.hasLore() && meta.getLore() != null) {
                                                     List<String> lore = meta.getLore();
-                                                    meta.setLore(lore.stream().map(string -> LanguageOptions.parse(string, valuePerItem * item.getMaxStackSize(), player)).toList());
+                                                    meta.setLore(lore.stream().map(string -> Messages.parse(string, MessageContext.builder().amount(valuePerItem * item.getMaxStackSize()).withPrefix(false).receiver(player).build()).join()).toList());
                                                 }
                                                 parsedItem.setItemMeta(meta);
                                             }
@@ -357,7 +366,7 @@ public class GUI implements Listener {
                                                 meta.setDisplayName(meta.getDisplayName().replace("{amount}", NumberFormatting.getCurrencyPrefix() + NumberFormatting.formatNumber(valuePerItem * remainder) + NumberFormatting.getCurrencySuffix()));
                                                 if (meta.hasLore() && meta.getLore() != null) {
                                                     List<String> lore = meta.getLore();
-                                                    meta.setLore(lore.stream().map(string -> LanguageOptions.parse(string, valuePerItem * remainder, player)).toList());
+                                                    meta.setLore(lore.stream().map(string -> Messages.parse(string, MessageContext.builder().amount(valuePerItem * remainder).withPrefix(false).receiver(player).build()).join()).toList());
                                                 }
                                                 parsedItem.setItemMeta(meta);
                                             }
@@ -415,7 +424,7 @@ public class GUI implements Listener {
                                 break;
                             if (!addedPlayers.contains(entry.getKey())) {
 
-                                ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(entry.getKey(), 69);
+                                ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(entry.getKey(), 69).join();
                                 if (immunityType == ImmunityManager.ImmunityType.PERMANENT
                                         || immunityType == ImmunityManager.ImmunityType.GRACE_PERIOD
                                         || immunityType == ImmunityManager.ImmunityType.TIME
@@ -455,7 +464,7 @@ public class GUI implements Listener {
                             break;
                         if (!addedBountyPlayers.contains(entry.getKey())) {
 
-                            ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(entry.getKey(), 69);
+                            ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(entry.getKey(), 69).join();
                             if (immunityType == ImmunityManager.ImmunityType.PERMANENT
                                     || immunityType == ImmunityManager.ImmunityType.GRACE_PERIOD
                                     || immunityType == ImmunityManager.ImmunityType.TIME
@@ -541,8 +550,14 @@ public class GUI implements Listener {
         return displayItems;
     }
 
+    /**
+     *
+     * @apiNote Run asynchronously
+     * @param uuid UUID of the player to check
+     * @return true if the player is online, false otherwise
+     */
     private static boolean checkPermImmunity(UUID uuid) {
-        ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(uuid, 69);
+        ImmunityManager.ImmunityType immunityType = ImmunityManager.getAppliedImmunity(uuid, 69).join();
         if (immunityType == ImmunityManager.ImmunityType.PERMANENT
                 || immunityType == ImmunityManager.ImmunityType.GRACE_PERIOD
                 || immunityType == ImmunityManager.ImmunityType.TIME
@@ -584,13 +599,13 @@ public class GUI implements Listener {
             }
             if (!allowed) {
                 if (player.hasPermission(NotBounties.getAdminPermission()))
-                    player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("paused"), player));
+                    Messages.send(player, LanguageOptions.getMessage("paused"), MessageContext.builder().receiver(player).build());
                 return;
             }
         }
 
         if (!player.hasPermission("notbounties.gui") && !player.hasPermission("notbounties.gui." + name)) {
-            player.sendMessage(LanguageOptions.parse(LanguageOptions.getPrefix() + LanguageOptions.getMessage("no-permission"), player));
+            Messages.send(player, LanguageOptions.getMessage("no-permission"), MessageContext.builder().receiver(player).build());
             return;
         }
 
@@ -672,7 +687,7 @@ public class GUI implements Listener {
         }
         if (type.equals("view-bounty") && data.length > 0 && data[0] instanceof UUID uuid) {
             double amount = 0;
-            Bounty bounty = BountyManager.getBounty(uuid);
+            Bounty bounty = DataManager.getBountyAsync(uuid).join();
             if (bounty != null) {
                 amount = Whitelist.isShowWhitelistedBounties() ? bounty.getTotalDisplayBounty() : bounty.getTotalDisplayBounty(viewer);
             }
@@ -694,7 +709,7 @@ public class GUI implements Listener {
                 .replace("%notbounties_total_pages%", (maxPage + ""));
         if (addPage)
             title = title + " " + page;
-        return LanguageOptions.parse(title, viewer);
+        return Messages.parse(title, MessageContext.builder().withPrefix(false).receiver(viewer).build());
     }
 
     public static int estimateMaxPage(String type, Player viewer, int numPlayerSlots, List<DisplayItem> displayItems, Object[] data) {
